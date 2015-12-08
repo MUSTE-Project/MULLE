@@ -5,6 +5,7 @@ abstract ABCAbs = {
     A; B; C; D; E; F; G;
   fun
     a : B -> A ;
+    aa : A ;
     b : B ;
     c : D -> E -> F -> C ;
     d : D ;
