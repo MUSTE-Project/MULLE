@@ -12,15 +12,7 @@ type Weight = Int
 --   in
 --     precompute pgf b (tail path)
 
--- Find a subtree in a BracketedString and return the path to it
-findPath :: BracketedString -> BracketedString -> Maybe [Int]
-findPath tree needle =
-   let (Bracket cat1 _ _ fun1 _ bss1) = tree
-       (Bracket cat2 _ _ fun2 _ bss2) = needle
-   in
-   if cat1 == cat2 && fun1 == fun2 && map showBracketedString bss1 == map showBracketedString bss2 then Just []
-   else
-     Nothing --map (\b -> findPath b needle) bss1
+
      
        
 main =
