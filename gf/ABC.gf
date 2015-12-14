@@ -9,5 +9,5 @@ concrete ABC of ABCAbs = open Prelude in {
     d = ss "d" ;
     e = ss "e" ;
     f = ss "f" ;
-    g a c = cc2 a c ;
+    g a c = cc2 a (cc2 (ss "g") c) ;
 }
