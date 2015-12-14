@@ -203,17 +203,3 @@ augment grammar (CNode id typ children) =
       putStrLn $ show types
       return (FNode id [] [])
 
-getfuntype :: PGF -> CId -> [CId]
-getfuntype grammar id =
-  let
-    typ = functionType grammar id
-    (hypos,typeid,exprs) = unType $ fromJust typ
-    cats = (map (\(_,_,DTyp _ cat _) -> cat) hypos) ++ [typeid]
-  in
-    do      
-      cats
-
-showfuntype :: [CId] -> String
-showfuntype cats =
-  foldl (\a -> \b -> a ++ " -> " ++ (show b)) (show $ head cats) (tail cats)
-
