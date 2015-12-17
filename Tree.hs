@@ -3,121 +3,52 @@ module Tree where
 import PGF hiding (showType)
 import PGF.Internal hiding (showType)
 import Data.Maybe
+import Grammar
 
 class TreeC t where
   showTree :: t -> String
-  selectNode :: t -> Path -> Maybe t
-  selectBranch :: t -> Int -> Maybe t
-  findPath :: t -> t -> Maybe Path
+--  selectNode :: t -> Path -> Maybe t
+--  selectBranch :: t -> Int -> Maybe t
+--  findPath :: t -> t -> Maybe Path
+
 
 type Pos = Int
-type UPos = (Int,Int)
 type Path = [Pos]
-type UPath = [UPos]
-
--- GF Abstract Syntax Tree with numbered nodes
-data UTree =
-  UEApp UTree UTree Pos
-  | UEFun CId Pos
-
--- A more classical looking generic tree 
-data GTree = Node CId [GTree]
-
--- A generic tree with numbered nodes
-data UGTree = UNode CId Pos [UGTree]
 
 -- A generic tree with types
-data CGTree = CNode CId (Maybe Type) [CGTree]
+data TTree = TNode CId (Maybe FunType) [TTree]
+           | TMeta CId
 
+data MetaTTree = MetaTTree {
+  metaTree :: TTree,
+  innerNodes :: [(Path,TTree)]
+  }
+                 
 showType :: Maybe Type -> String
 showType Nothing = "NoType"
 showType (Just (DTyp hypos id exprs)) = show id
 
-instance Show UTree where
-  show (UEApp e1 e2 p) = "(App:" ++ show p ++ " " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (UEFun cid p) = "(Fun:" ++ show p ++ " " ++ show cid ++ ")"
+instance Show TTree where
+  show (TNode name t []) = "("++ (show name) ++ ":"  ++ show t ++ ")";
+  show (TNode name t children) = "(" ++ (show name) ++ ":" ++ show t ++ " " ++ ( unwords $ map show children ) ++ ")"
+  show (TMeta name) = "(?" ++ show name ++ ")"
 
-instance Show GTree where
-  show (Node name []) = show name;
-  show (Node name children) = "(" ++ (show name) ++ " " ++ ( unwords $ map show children ) ++ ")"
-
-instance Show UGTree where
-  show (UNode name pos []) = "("++ (show name) ++ ":"  ++ show pos ++ ")";
-  show (UNode name pos children) = "(" ++ (show name) ++ ":" ++ show pos ++ " " ++ ( unwords $ map show children ) ++ ")"
-
-instance Show CGTree where
-  show (CNode name t []) = "("++ (show name) ++ ":"  ++ showType t ++ ")";
-  show (CNode name t children) = "(" ++ (show name) ++ ":" ++ showType t ++ " " ++ ( unwords $ map show children ) ++ ")"
-instance TreeC BracketedString where
-  -- My version of showBracketedString with slightly different output and primarily used to understand the BracketedString data type
---  showTree :: BString -> String
-  showTree (Leaf token) = "\"" ++ token ++ "\""
-  showTree (Bracket cat fid lindex fun exps bss) =
-    "(" ++ showCId fun ++ ":" ++ showCId cat ++ " " ++ (unwords $ map showTree bss) ++ ")"
-
-  -- Select a node in a BracketedString determined by a path
---  selectNode :: BracketedString -> Path -> Maybe BracketedString
-  selectNode t [] = Just t
-  selectNode t (pos:rest) =
-    let branch = (selectBranch t pos) in
-    case branch of {
-      Just b ->  selectNode b rest ;
-      Nothing -> Nothing
-      }
-  -- Given a BracketedString, select one of the possible branches determined by an integer
---  selectBranch :: BracketedString -> Int -> Maybe BracketedString
-  selectBranch (Leaf token) i
-    | i == 0 = Just (Leaf token)
-    | otherwise = Nothing
-  selectBranch (Bracket cat fid lindex fun exps bss) i
-    | i >= length bss = Nothing
-    | otherwise = Just (bss !! i)
-  
-  -- Find a subtree in a BracketedString and return the path to it
---  findPath :: BracketedString -> BracketedString -> Maybe Path
-  findPath tree needle =
-    let (Bracket cat1 _ _ fun1 _ bss1) = tree
-        (Bracket cat2 _ _ fun2 _ bss2) = needle
-    in
-      if cat1 == cat2 && fun1 == fun2 && map showBracketedString bss1 == map showBracketedString bss2 then Just []
-      else
-        Nothing --map (\b -> findPath b needle) bss1
-
+instance Show MetaTTree where
+  show tree =
+    show (metaTree tree) ++ "\n" ++
+    unwords (map show (innerNodes tree))
 instance TreeC Tree where
   showTree = show
-  selectNode t p = Nothing
-  selectBranch t i = Nothing
-  findPath s n = Nothing
+--  selectNode t p = Nothing
+--  selectBranch t i = Nothing
+--  findPath s n = Nothing
 
-instance TreeC UTree where
+instance TreeC TTree where
   showTree = show
-  selectNode t p = Nothing
-  selectBranch t i = Nothing
-  findPath s n = Nothing
+--  selectNode t p = Nothing
+--  selectBranch t i = Nothing
+--  findPath s n = Nothing
 
-instance TreeC GTree where
-  showTree = show
-  selectNode t p = Nothing
-  selectBranch t i = Nothing
-  findPath s n = Nothing
-
-instance TreeC UGTree where
-  showTree = show
-  selectNode t p = Nothing
-  selectBranch t i = Nothing
-  findPath s n = Nothing
-
-tree2utree :: Tree -> UTree
-tree2utree t = 
-  let internal :: Tree -> Int -> (Int,UTree)
-      internal (EApp e1 e2) i =
-        let (d1,ut1) = internal e1 (i+1)
-            (d2,ut2) = internal e2 (d1+1)
-        in (d2, UEApp ut1 ut2 i)
-      internal (EFun id) i =
-        (i,UEFun id i)
-  in
-    snd $ internal t 0
 
 -- path2upath :: UTree -> Path -> Maybe UPath
 -- path2upath ut [] = Just []
@@ -128,58 +59,36 @@ tree2utree t =
 --   | otherwise = Nothing
 
 -- Creates a generic tree from an abstract syntax tree
-tree2gtree :: Tree -> GTree
-tree2gtree (EFun f) = Node f []
-tree2gtree (EApp e1 e2) =
-  let (Node name sts) = tree2gtree e1
-      st2 = tree2gtree e2
+treeToTTree :: PGF -> Tree -> TTree
+treeToTTree pgf (EFun f) =
+  let
+    typ = getFunType pgf f
   in
-    (Node name (sts ++ [st2]))
+    TNode f typ []
+treeToTTree pgf (EApp e1 e2) =
+  let
+    (TNode name typ sts) = treeToTTree pgf e1
+    st2 = treeToTTree pgf e2
+  in
+    (TNode name typ (sts ++ [st2]))
 
 -- Creates a AST from a generic tree
-gtree2tree :: GTree -> Tree
-gtree2tree (Node name []) = (EFun name)
-gtree2tree (Node name ts) =
+ttreeToTree :: TTree -> Tree
+ttreeToTree (TNode name _ []) = (EFun name)
+ttreeToTree (TNode name _ ts) =
   let
-     nts = map gtree2tree ts
+     nts = map ttreeToTree ts
   in
     mkApp name nts
 
--- Adds numbers to the nodes of a generic trees
-gtree2ugtree :: GTree -> UGTree
-gtree2ugtree t =
-  let internal :: GTree -> Int -> (Int,UGTree)
-      internal (Node name []) i = (i,UNode name i [])
-      internal (Node name sts) i =
-        let (ni,nsts) = internal2 sts i
-        in
-          (ni,UNode name i nsts)
-      internal2 :: [GTree] -> Int -> (Int,[UGTree])
-      internal2 [t] i =
-        let (ni,nt) = internal t (i+1)
-        in
-          (ni,[nt])
-      internal2 (t:ts) i =
-        let
-          (ni,nt) = internal t (i+1)
-          (li,nts) = internal2 ts ni
-        in
-          (li,nt:nts)
-  in
-    snd $ internal t 0
 
--- Adds categories from a grammar to a generic tree
-gtree2cgtree :: GTree -> PGF -> CGTree
-gtree2cgtree (Node id []) pgf = (CNode id (functionType pgf id) [])
-gtree2cgtree (Node id ts) pgf = (CNode id (functionType pgf id) (map (\t -> gtree2cgtree t pgf) ts))
-
--- Creates a list of all subtrees with its depth for a CGTree
-cgsubtrees :: CGTree -> [(Int,[CGTree])]
-cgsubtrees tree =
+-- Creates a list of all subtrees with its depth for a TTree
+tSubTrees :: TTree -> [(Int,[TTree])]
+tSubTrees tree =
   let
-    internal :: Int -> CGTree -> [(Int,[CGTree])]
-    internal depth (CNode id cat []) = []
-    internal depth n@(CNode id cat children) =
+    internal :: Int -> TTree -> [(Int,[TTree])]
+    internal depth (TNode id cat []) = []
+    internal depth n@(TNode id cat children) =
       let
         ndepth = depth + 1
       in
@@ -187,19 +96,66 @@ cgsubtrees tree =
   in
     internal 0 tree
 
--- A generic tree with types
-data FooTree = FNode CId [(Type,[Type],[Type])] [CGTree]
+-- Prune all subtrees to a certain depth
+-- prune :: TTree -> Int -> [MetaTTree]
+-- prune tree depth =
+--   let
+--     inner_prune t@(TNode name cat sts) depth path =
+--       let
+--         (newTree0,subTree0) = makeMeta t 0
+--         (newTree1,subTree1) = makeMeta t 1
+--       in
+--         [MetaTTree (TMeta ((\(Just (Fun c _)) -> c) cat)) [(path,t)]] ++
+--         [MetaTTree newTree0 [(path ++ [0],subTree0)]] ++
+--         [MetaTTree newTree1 [(path ++ [0],subTree1)]]
+      
+--     -- inner_prune :: TTree -> Int -> [Int] -> [MetaTTree]
+--     -- inner_prune tree 0 path = [MetaTTree tree []]
+--     -- inner_prune (TMeta cat) _ path = [MetaTTree (TMeta cat) []]
+--     -- inner_prune (TNode name cat sts) depth path =
+--     --   let
+--     --     mapPruneOverTrees [] _ _ pos = []
+--     --     mapPruneOverTrees trees depth path pos =
+--     --       let
+--     --         npath = path ++ [pos]
+--     --         pruned = inner_prune (head trees) depth npath
+--     --       in
+--     --         pruned ++ (mapPruneOverTrees (tail trees) depth path (pos + 1))
+--     --   in
+--     --     mapPruneOverTrees sts (depth - 1) path 0
+--   in
+--     inner_prune tree depth []
 
-augment :: PGF -> CGTree -> IO FooTree
-augment grammar (CNode id typ children) =
+-- makeMeta (TNode name typ sts) pos =
+--   let
+--     subTree = sts !! pos
+--     (nSts1,nSts2) = splitAt pos sts
+--     meta = TMeta ((\(TNode _ typ _) -> (\(Just (Fun cat _)) -> cat) typ) subTree)
+--     nSts = nSts1 ++ (meta:(tail nSts2))
+--     newTree = (TNode name typ nSts)
+--   in
+--     (newTree,subTree)
+
+makeMeta :: MetaTTree -> [Int] -> MetaTTree
+makeMeta tree path = tree -- TODO
+
+maxPath :: TTree -> Int -> [Int]
+maxPath (TNode maxDepth =
+  
+
+prune :: TTree -> Int -> [MetaTTree]
+prune tree depth =
   let
-    (hypos1,typeid,exprs1) = unType $ fromJust typ
-    functions = functionsByCat grammar typeid
-    types = map (fromJust . functionType grammar) functions
-    untypes = map (unType ) types
-    hypos = map (\(a,_,_) -> a) untypes
+    pruneTrees :: [MetaTTree] -> Int -> [MetaTTree]
+    pruneTrees trees depth =
+      let
+        tree = head trees
+        dPath = maxPath (metaTree tree) depth
+        nTree = makeMeta tree dPath
+      in
+        nTree : (pruneTrees [nTree] depth) ++ (pruneTrees (tail trees) depth)
   in
-    do
-      putStrLn $ show types
-      return (FNode id [] [])
+    pruneTrees [(MetaTTree tree [])] depth
+        
 
+t = (TNode (mkCId "f") (Just (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])) [(TNode (mkCId "a") (Just (Fun (mkCId "A") [])) []),(TNode (mkCId "g") (Just (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])) [(TNode (mkCId "b") (Just (Fun (mkCId "B") [])) []),(TNode (mkCId "c") (Just (Fun (mkCId "C") [])) [])])])
