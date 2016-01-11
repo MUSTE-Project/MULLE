@@ -171,7 +171,7 @@ replaceBranchByMeta t@(TNode id typ trees) pos =
 
     in
       case subTree of {
-        (TNode _ (Just (Fun id _)) _) ->
+        (TNode _ (Just (Fun sid _)) _) ->
             let newTrees = let (pre,post) = splitAt pos trees in (pre ++ ((TMeta cat):tail post))
             in (TNode id typ newTrees) ;
         _ -> t
@@ -196,7 +196,7 @@ replaceNodeByMeta tree fullpath =
                 newSub = (fullpath, newBranch)
                 newMeta = replaceBranchByMeta oldMeta pos
             in
-              MetaTTree newMeta (newSub:subTrees tree)
+              MetaTTree newMeta (sortBy (\(p1,_) -> \(p2,_) -> compare p1 p2) $ newSub:subTrees tree)
         internal tree fullpath (p:ps) =
             let
                 (TNode id typ trees) = metaTree tree
@@ -207,7 +207,7 @@ replaceNodeByMeta tree fullpath =
     in
       internal tree fullpath fullpath
 
-          
+
 maxPath :: Int -> TTree -> [Path]
 maxPath 0 _ = [[]]
 maxPath _ (TNode _ _ []) = [[]]
@@ -232,27 +232,54 @@ maxPath maxDepth (TNode _ _ trees) =
       }
 maxPath _ (TMeta _) = [[]]
 
+-- Finds all paths to leaves that are no metas
+findPaths :: Int -> TTree -> [Path]
+findPaths 0 _ = [[]]
+findPaths _ (TNode _ _ []) = [[]]
+findPaths maxDepth (TNode _ _ trees) =
+    let
+        branches :: [(Pos, TTree)] -- List of branch positions and subtrees 
+        branches = (zip [0..(length trees)] trees)
+        relevantBranches :: [(Pos, TTree)] -- List of all branches that don't end in a meta
+        relevantBranches = (filter (\t -> case t of { (_, (TNode _ _ _)) -> True ; _ -> False } ) branches)
+        relevantPaths :: [(Pos, [Path])] -- List of the maximum pathes of the subtrees for each branch
+        relevantPaths = map (\(p,t) -> (p,(findPaths (maxDepth - 1) t)))  relevantBranches
+        paths :: [Path]
+        paths = concat $ map (\(p,ps) -> map (\s -> p:s) ps ) relevantPaths
+    in
+      case paths of {
+        [] -> [[]] ;
+        _ -> paths
+      }
+findPaths _ (TMeta _) = [[]]
+
 prune :: TTree -> Int -> [MetaTTree]
 prune tree depth =
   let
-    pruneTrees :: [MetaTTree] -> Int -> [MetaTTree]
-    pruneTrees [] _ = []
-    pruneTrees trees depth =
+    -- Prunes on multiple nodes
+    multiplePrune :: MetaTTree -> [Path] -> MetaTTree
+    multiplePrune tree [] = tree
+    multiplePrune tree (p:ps) =
+      multiplePrune (replaceNodeByMeta tree p) ps
+    -- works through a list of trees
+    pruneTrees :: MetaTTree -> [MetaTTree] -> Int -> [MetaTTree]
+    pruneTrees origTree [] _ = []
+    pruneTrees origTree trees depth =
       let
         tree = head trees
-        dPath = maxPath depth (metaTree tree)
+        paths = findPaths depth (metaTree tree)
       in
-        case dPath of {
-          [] -> [] ;
---          [[]] -> [tree] ;
-          _ -> let
-                 nTree = (replaceNodeByMeta tree $ head dPath)
-                 nTrees = nTree : (pruneTrees [nTree] depth) ++ (pruneTrees (tail trees) depth)
+        case paths of {
+          [[]] -> nub $ [(replaceNodeByMeta origTree [])] ;
+          _ -> 
+              let
+                finishedTree =  multiplePrune origTree paths 
+                todoTrees = map (replaceNodeByMeta tree) paths
                in
-                 if trees == nTrees then [] else nTrees --nTree : (pruneTrees (tail trees) depth) -- (pruneTrees [nTree] depth) ++ (pruneTrees (tail trees) depth)
-        }
+                 nub $ finishedTree : (pruneTrees origTree (nub $ tail trees ++ todoTrees) depth)
+          }
   in
-    pruneTrees [(makeMeta tree)] depth
+    reverse $ pruneTrees (makeMeta tree) [(makeMeta tree)] depth
 
 getMetaLeaves :: TTree -> [CId]
 getMetaLeaves (TMeta id) = [id]
