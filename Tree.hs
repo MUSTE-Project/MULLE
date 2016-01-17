@@ -74,6 +74,16 @@ instance Eq MetaTTree where
 --  findPath s n = Nothing
 
 
+-- general helpers
+-- replace an element in a list if the position exists
+listReplace :: [a] -> Pos -> a -> [a]
+listReplace list pos elem
+  | 0 <= pos && pos < length list = -- pos in list -> replace it
+      let
+        (pre,_:post) = splitAt pos list
+      in
+        pre ++ (elem:post)
+  | otherwise = list -- Element not in the list -> return the same list instead
 -- path2upath :: UTree -> Path -> Maybe UPath
 -- path2upath ut [] = Just []
 -- path2upath (UEFun id pos) [0] = Just [pos]
