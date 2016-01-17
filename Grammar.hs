@@ -49,6 +49,13 @@ getFunType grammar id =
         _ -> Nothing
         } ;
 
+getFunCat :: FunType -> CId
+getFunCat (Fun cat _) = cat
+
+getRuleCat :: Rule -> Maybe CId
+getRuleCat (Function _ (Just funType)) = Just $ getFunCat funType 
+getRuleCat _ = Nothing
+
 pgfToGrammar :: PGF -> Grammar
 pgfToGrammar pgf =
   let
