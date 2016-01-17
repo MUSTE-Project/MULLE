@@ -133,19 +133,6 @@ ttreeToTree (TNode name _ ts) =
 --   in
 --     internal 0 tree
 
-
-
-
--- makeMeta (TNode name typ sts) pos =
---   let
---     subTree = sts !! pos
---     (nSts1,nSts2) = splitAt pos sts
---     meta = TMeta ((\(TNode _ typ _) -> (\(Just (Fun cat _)) -> cat) typ) subTree)
---     nSts = nSts1 ++ (meta:(tail nSts2))
---     newTree = (TNode name typ nSts)
---   in
---     (newTree,subTree)
-
 -- Create a meta tree by appending an empty subtree list
 makeMeta :: TTree -> MetaTTree
 makeMeta tree =
