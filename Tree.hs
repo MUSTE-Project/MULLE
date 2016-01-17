@@ -132,23 +132,7 @@ makeMeta :: TTree -> MetaTTree
 makeMeta tree =
     MetaTTree tree []
 
--- Replace one branch in a node with a meta
-replaceBranchByMeta :: TTree -> Pos -> TTree
-replaceBranchByMeta t@(TNode id typ trees) pos =
-    let
-        subTree = trees !! pos
-        cat = (\(TNode _ (Fun id _) _) -> id) subTree
-
-    in
-      case subTree of {
-        (TNode _ (Fun sid _) _) ->
-            let newTrees = let (pre,post) = splitAt pos trees in (pre ++ ((TMeta cat):tail post))
-            in (TNode id typ newTrees) ;
-        _ -> t
-      }
-
-
--- A generalization of replaceBranchByMeta
+-- replace a branch in a tree by a new tree
 replaceBranch :: TTree -> Pos -> TTree  -> TTree
 replaceBranch (TNode id typ trees) pos newTree =
   let
@@ -182,35 +166,14 @@ getBranchCat tree@(TNode id typ trees) pos=
 
 -- Replace a node given by a path with a meta
 replaceNodeByMeta :: MetaTTree -> Path -> MetaTTree
-replaceNodeByMeta tree fullpath =
-    let
-        internal :: MetaTTree -> Path -> Path -> MetaTTree
-        internal tree fullpath [] =
-            let
-                oldMeta = metaTree tree
-            in
-              case oldMeta of {
-                (TNode _ (Fun id _) _ ) -> MetaTTree (TMeta id) [(fullpath,oldMeta)] ;
-                (TMeta _) -> tree
-              }
-        internal tree fullpath [pos] =
-            let
-                oldMeta = metaTree tree
-                newBranch = fromJust (selectBranch oldMeta pos) 
-                newSub = (fullpath, newBranch)
-                newMeta = replaceBranchByMeta oldMeta pos
-            in
-              MetaTTree newMeta (sortBy (\(p1,_) -> \(p2,_) -> compare p1 p2) $ newSub:subTrees tree)
-        internal tree fullpath (p:ps) =
-            let
-                (TNode id typ trees) = metaTree tree
-                (pre,post) = splitAt p trees
-                (MetaTTree newMeta newInner) = internal (MetaTTree (trees !! p) (subTrees tree)) fullpath ps
-            in
-              (MetaTTree (TNode id typ (pre ++ (newMeta:tail post))) newInner)
-    in
-      internal tree fullpath fullpath
-
+replaceNodeByMeta tree path = 
+  let
+    newSubTree = fromJust $ selectNode (metaTree tree) path
+    cat = getTreeCat $ newSubTree
+    oldSubTrees = subTrees tree
+    newTree = replaceNode (metaTree tree) path (TMeta cat)
+  in
+    MetaTTree newTree ((path,newSubTree):oldSubTrees)
 
 -- Find the maximum length paths not ending in metas
 maxPath :: Int -> TTree -> [Path]
