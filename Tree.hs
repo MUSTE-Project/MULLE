@@ -153,6 +153,40 @@ replaceBranchByMeta t@(TNode id typ trees) pos =
         _ -> t
       }
 
+
+-- A generalization of replaceBranchByMeta
+replaceBranch :: TTree -> Pos -> TTree  -> TTree
+replaceBranch (TNode id typ trees) pos newTree =
+  let
+    newSubtrees = listReplace trees pos newTree -- let (pre,post) = splitAt pos trees in (pre ++ (newTree:tail post))
+      
+  in
+    (TNode id typ newSubtrees)
+replaceBranch tree _ _ = t
+
+replaceNode :: TTree -> Path -> TTree -> TTree
+replaceNode oldTree@(TNode id typ trees) (pos:ps) newTree =
+  replaceBranch oldTree pos (replaceNode (trees !! pos) ps newTree)
+
+replaceNode oldTree@(TNode id typ trees) [] newTree =
+  newTree -- at the end of the path just give the new tree to be inserted
+
+replaceNode tree _ _ = tree
+
+getTreeCat :: TTree -> Maybe CId
+getTreeCat (TNode id (Just typ) _) =
+  let
+    (Fun cat _) = typ
+  in
+    Just cat
+getTreeCat (TMeta cat) = Just cat
+getTreeCat _ = Nothing
+
+getBranchCat :: TTree -> Pos -> Maybe CId
+getBranchCat tree@(TNode id typ trees) pos=
+  getTreeCat (trees !! pos)
+--getNodeCat :: TTree -> Path -> CId
+
 -- Replace a node given by a path with a meta
 replaceNodeByMeta :: MetaTTree -> Path -> MetaTTree
 replaceNodeByMeta tree fullpath =
