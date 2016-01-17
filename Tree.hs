@@ -84,6 +84,9 @@ listReplace list pos elem
       in
         pre ++ (elem:post)
   | otherwise = list -- Element not in the list -> return the same list instead
+
+-- Tree-related functions
+                
 -- path2upath :: UTree -> Path -> Maybe UPath
 -- path2upath ut [] = Just []
 -- path2upath (UEFun id pos) [0] = Just [pos]
