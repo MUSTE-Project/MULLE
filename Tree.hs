@@ -327,9 +327,10 @@ combine tree rule =
   let
     ruleCat = fromJust $ getRuleCat rule
     filteredMetas = filter (\(p,c) -> ruleCat == c) $ getMetaPaths (metaTree tree)
-    pathLists = powerList $ concat $ map fst filteredMetas
+    pathLists = powerList $ map fst filteredMetas
   in
-    map (applyRule tree rule) pathLists
+    trace  ("COMBINE " ++  show pathLists ) $ map (applyRule tree rule) pathLists
+    
 -- combine :: MetaTTree -> Rule -> [MetaTTree]
 -- combine tree rule =
 --   let
