@@ -19,7 +19,7 @@ type Pos = Int
 type Path = [Pos]
 
 -- A generic tree with types
-data TTree = TNode CId (Maybe FunType) [TTree]
+data TTree = TNode CId FunType [TTree]
            | TMeta CId
 
 data MetaTTree = MetaTTree {
@@ -32,10 +32,8 @@ showType Nothing = "NoType"
 showType (Just (DTyp hypos id exprs)) = show id
 
 instance Show TTree where
-  show (TNode name (Just t) []) = "{"++ (show name) ++ ":"  ++ show t ++ "}";
-  show (TNode name (Just t)  children) = "{" ++ (show name) ++ ":" ++ show t ++ " " ++ ( unwords $ map show children ) ++ "}"
-  show (TNode name Nothing []) = "{"++ (show name) ++ "}";
-  show (TNode name Nothing  children) = "{" ++ (show name) ++ " " ++ ( unwords $ map show children ) ++ "}"
+  show (TNode name typ []) = "{"++ (show name) ++ ":"  ++ show typ ++ "}";
+  show (TNode name typ children) = "{" ++ (show name) ++ ":" ++ show typ ++ " " ++ ( unwords $ map show children ) ++ "}"
   show (TMeta cat) = "{?" ++ show cat ++ "}"
 instance Show MetaTTree where
   show tree =
@@ -143,11 +141,11 @@ replaceBranchByMeta :: TTree -> Pos -> TTree
 replaceBranchByMeta t@(TNode id typ trees) pos =
     let
         subTree = trees !! pos
-        cat = (\(TNode _ (Just (Fun id _)) _) -> id) subTree
+        cat = (\(TNode _ (Fun id _) _) -> id) subTree
 
     in
       case subTree of {
-        (TNode _ (Just (Fun sid _)) _) ->
+        (TNode _ (Fun sid _) _) ->
             let newTrees = let (pre,post) = splitAt pos trees in (pre ++ ((TMeta cat):tail post))
             in (TNode id typ newTrees) ;
         _ -> t
@@ -173,16 +171,15 @@ replaceNode oldTree@(TNode id typ trees) [] newTree =
 
 replaceNode tree _ _ = tree
 
-getTreeCat :: TTree -> Maybe CId
-getTreeCat (TNode id (Just typ) _) =
+getTreeCat :: TTree -> CId
+getTreeCat (TNode id typ _) =
   let
     (Fun cat _) = typ
   in
-    Just cat
-getTreeCat (TMeta cat) = Just cat
-getTreeCat _ = Nothing
+    cat
+getTreeCat (TMeta cat) = cat
 
-getBranchCat :: TTree -> Pos -> Maybe CId
+getBranchCat :: TTree -> Pos -> CId
 getBranchCat tree@(TNode id typ trees) pos=
   getTreeCat (trees !! pos)
 --getNodeCat :: TTree -> Path -> CId
@@ -197,7 +194,7 @@ replaceNodeByMeta tree fullpath =
                 oldMeta = metaTree tree
             in
               case oldMeta of {
-                (TNode _ (Just (Fun id _)) _ ) -> MetaTTree (TMeta id) [(fullpath,oldMeta)] ;
+                (TNode _ (Fun id _) _ ) -> MetaTTree (TMeta id) [(fullpath,oldMeta)] ;
                 (TMeta _) -> tree
               }
         internal tree fullpath [pos] =
@@ -317,15 +314,16 @@ getRules grammar cats =
     let
         rs = rules grammar
     in
-      concat $ map (\c -> filter (\(Function _ (Just (Fun fcat _))) -> fcat == c ) rs) cats
+      concat $ map (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rs) cats
 
 applyRule :: MetaTTree -> Rule -> [Path] -> MetaTTree
 applyRule tree rule pathes = tree --TODO
+
 -- Apply a rule to a meta tree generating all possible new meta trees
 combine :: MetaTTree -> Rule -> [MetaTTree]
 combine tree rule =
   let
-    ruleCat = fromJust $ getRuleCat rule
+    ruleCat = getRuleCat rule
     filteredMetas = filter (\(p,c) -> ruleCat == c) $ getMetaPaths (metaTree tree)
     pathLists = powerList $ map fst filteredMetas
   in
@@ -422,33 +420,33 @@ generate grammar cat maxDepth =
       trace "GENERATE" $ nub $ loop maxDepth [startTree]
 --      extendTree grammar maxDepth startTree
                            
-t = (TNode (mkCId "f") (Just (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])) [(TNode (mkCId "a") (Just (Fun (mkCId "A") [])) []),(TNode (mkCId "g") (Just (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])) [(TNode (mkCId "b") (Just (Fun (mkCId "B") [])) []),(TNode (mkCId "c") (Just (Fun (mkCId "C") [])) [])])])
+t = (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "a") (Fun (mkCId "A") []) []),(TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")]) [(TNode (mkCId "b") (Fun (mkCId "B") []) []),(TNode (mkCId "c") (Fun (mkCId "C") []) [])])])
 
-t2 = (TNode (mkCId "f") (Just (Fun (mkCId "F") [(mkCId "A"), (mkCId "G")])) [(TMeta (mkCId "A")), (TNode (mkCId "g") (Just (Fun (mkCId "G") [(mkCId "B"), (mkCId "H")])) [(TMeta (mkCId "B")), (TNode (mkCId "h") (Just (Fun (mkCId "H") [(mkCId "C"), (mkCId "I")])) [(TMeta (mkCId "C")), (TNode (mkCId "i") (Just (Fun (mkCId "I") [(mkCId "D"),(mkCId "E")])) [(TMeta (mkCId "D")), (TMeta (mkCId "E"))])])])])
+t2 = (TNode (mkCId "f") (Fun (mkCId "F") [(mkCId "A"), (mkCId "G")]) [(TMeta (mkCId "A")), (TNode (mkCId "g") (Fun (mkCId "G") [(mkCId "B"), (mkCId "H")]) [(TMeta (mkCId "B")), (TNode (mkCId "h") (Fun (mkCId "H") [(mkCId "C"), (mkCId "I")]) [(TMeta (mkCId "C")), (TNode (mkCId "i") (Fun (mkCId "I") [(mkCId "D"),(mkCId "E")]) [(TMeta (mkCId "D")), (TMeta (mkCId "E"))])])])])
 
 t3 = metaTree $ replaceNodeByMeta (replaceNodeByMeta (makeMeta t) [1,0]) [1,1]
 
-t4 = (TNode (mkCId "f") (Just (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])) [(TMeta (mkCId "A")), (TMeta (mkCId "A"))])
+t4 = (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TMeta (mkCId "A")), (TMeta (mkCId "A"))])
 g1 = Grammar (mkCId "A")
      [
-      Function (mkCId "f") (Just (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])),
-      Function (mkCId "g") (Just (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])),
-      Function (mkCId "a") (Just (Fun (mkCId "A") [])),
-      Function (mkCId "b") (Just (Fun (mkCId "B") [])),
-      Function (mkCId "c") (Just (Fun (mkCId "C") []))
+      Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]),
+      Function (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")]),
+      Function (mkCId "a") (Fun (mkCId "A") []),
+      Function (mkCId "b") (Fun (mkCId "B") []),
+      Function (mkCId "c") (Fun (mkCId "C") [])
      ]
 g2 = Grammar (mkCId "A")
      [
-      Function (mkCId "f") (Just (Fun (mkCId "A") [(mkCId "A"),(mkCId "A")])),
-      Function (mkCId "a") (Just (Fun (mkCId "A") [])) -- ,
---      Function (mkCId "aa") (Just (Fun (mkCId "A") [(mkCId "A")]))
+      Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "A")]),
+      Function (mkCId "a") (Fun (mkCId "A") []) -- ,
+--      Function (mkCId "aa") (Fun (mkCId "A") [(mkCId "A")])
      ]
 
-r1 = Function (mkCId "b") (Just (Fun (mkCId "B") []))
+r1 = Function (mkCId "b") (Fun (mkCId "B") [])
 
-r2 = Function (mkCId "g") (Just (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")]))
+r2 = Function (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])
 
-r3 = Function (mkCId "f") (Just (Fun (mkCId "A") [(mkCId "A"),(mkCId "A")]))
+r3 = Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "A")])
 
 main =
     generate g1 (mkCId "A") 2

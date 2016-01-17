@@ -8,7 +8,7 @@ import Data.Maybe
 data FunType = Fun CId [CId]
 
 -- CId is the function name
-data Rule = Function CId (Maybe FunType)
+data Rule = Function CId FunType
 
 data Grammar = Grammar {
   startcat :: CId,
@@ -34,27 +34,20 @@ instance Show Rule where
 -- instance Show Grammar where
 --   show g = unwords $ map show g
        
-getFunType :: PGF -> CId -> Maybe FunType
+getFunType :: PGF -> CId -> FunType
 getFunType grammar id =
   let
-    typ = functionType grammar id
+    typ = fromJust $ functionType grammar id -- Here is some uncertainty from the grammar but we just assume there will always be a type
+    (hypos,typeid,exprs) = unType typ
+    cats = (map (\(_,_,DTyp _ cat _) -> cat) hypos)
   in
-    do
-      case typ of {
-        (Just t) -> let
-                (hypos,typeid,exprs) = unType $ fromJust typ
-                cats = (map (\(_,_,DTyp _ cat _) -> cat) hypos)
-                in
-                  Just (Fun typeid cats) ;
-        _ -> Nothing
-        } ;
+    (Fun typeid cats) ;
 
 getFunCat :: FunType -> CId
 getFunCat (Fun cat _) = cat
 
-getRuleCat :: Rule -> Maybe CId
-getRuleCat (Function _ (Just funType)) = Just $ getFunCat funType 
-getRuleCat _ = Nothing
+getRuleCat :: Rule -> CId
+getRuleCat (Function _ funType) = getFunCat funType 
 
 pgfToGrammar :: PGF -> Grammar
 pgfToGrammar pgf =
