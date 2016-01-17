@@ -25,12 +25,18 @@ instance Show FunType where
     show cat
   show (Fun cat cats) =
     foldl (\a -> \b -> a ++ " -> " ++ (show b)) (show $ head cats) (tail cats) ++ " -> " ++ show cat
+
 instance Eq FunType where
   (==) (Fun id1 pre1) (Fun id2 pre2) = (id1 == id2) && (pre1 == pre2) 
+
 instance Show Rule where
   show (Function name funtype) =
     show name ++ " : " ++ show funtype ;
-    
+
+showType :: Maybe Type -> String
+showType Nothing = "NoType"
+showType (Just (DTyp hypos id exprs)) = show id
+
 -- instance Show Grammar where
 --   show g = unwords $ map show g
        

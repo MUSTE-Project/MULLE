@@ -26,11 +26,7 @@ data MetaTTree = MetaTTree {
   metaTree :: TTree,
   subTrees :: [(Path,TTree)]
   }
-                 
-showType :: Maybe Type -> String
-showType Nothing = "NoType"
-showType (Just (DTyp hypos id exprs)) = show id
-
+                
 instance Show TTree where
   show (TNode name typ []) = "{"++ (show name) ++ ":"  ++ show typ ++ "}";
   show (TNode name typ children) = "{" ++ (show name) ++ ":" ++ show typ ++ " " ++ ( unwords $ map show children ) ++ "}"
