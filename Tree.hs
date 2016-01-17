@@ -27,6 +27,7 @@ data MetaTTree = MetaTTree {
   subTrees :: [(Path,TTree)]
   }
                 
+
 instance Show TTree where
   show (TNode name typ []) = "{"++ (show name) ++ ":"  ++ show typ ++ "}";
   show (TNode name typ children) = "{" ++ (show name) ++ ":" ++ show typ ++ " " ++ ( unwords $ map show children ) ++ "}"
@@ -80,14 +81,6 @@ listReplace list pos elem
   | otherwise = list -- Element not in the list -> return the same list instead
 
 -- Tree-related functions
-                
--- path2upath :: UTree -> Path -> Maybe UPath
--- path2upath ut [] = Just []
--- path2upath (UEFun id pos) [0] = Just [pos]
--- path2upath (UEApp e1 e2 pos) (p:rest)
---   | p == 0 = let next = (path2upath e1 rest) in if isJust next then Just (pos:(fromJust next)) else Nothing
---   | p == 1 = let next = (path2upath e2 rest) in if isJust next then Just (pos:(fromJust next)) else Nothing
---   | otherwise = Nothing
 
 -- Creates a generic tree from an abstract syntax tree
 treeToTTree :: PGF -> Tree -> TTree
@@ -112,21 +105,6 @@ ttreeToTree (TNode name _ ts) =
   in
     mkApp name nts
 
-
--- Creates a list of all subtrees with its depth for a TTree
--- tSubTrees :: TTree -> [(Int,[TTree])]
--- tSubTrees tree =
---   let
---     internal :: Int -> TTree -> [(Int,[TTree])]
---     internal depth (TNode id cat []) = []
---     internal depth n@(TNode id cat children) =
---       let
---         ndepth = depth + 1
---       in
---         (ndepth,children):(concat $ map (internal ndepth) children) 
---   in
---     internal 0 tree
-
 -- Create a meta tree by appending an empty subtree list
 makeMeta :: TTree -> MetaTTree
 makeMeta tree =
@@ -148,9 +126,9 @@ replaceNode oldTree@(TNode id typ trees) (pos:ps) newTree =
 
 replaceNode oldTree@(TNode id typ trees) [] newTree =
   newTree -- at the end of the path just give the new tree to be inserted
-
 replaceNode tree _ _ = tree
 
+-- Get the root category of a tree
 getTreeCat :: TTree -> CId
 getTreeCat (TNode id typ _) =
   let
@@ -158,11 +136,6 @@ getTreeCat (TNode id typ _) =
   in
     cat
 getTreeCat (TMeta cat) = cat
-
-getBranchCat :: TTree -> Pos -> CId
-getBranchCat tree@(TNode id typ trees) pos=
-  getTreeCat (trees !! pos)
---getNodeCat :: TTree -> Path -> CId
 
 -- Replace a node given by a path with a meta
 replaceNodeByMeta :: MetaTTree -> Path -> MetaTTree
