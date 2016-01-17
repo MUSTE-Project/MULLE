@@ -80,6 +80,12 @@ listReplace list pos elem
         pre ++ (elem:post)
   | otherwise = list -- Element not in the list -> return the same list instead
 
+-- generates a power set from a list
+powerList :: [a] -> [[a]]
+powerList [] = [[]]
+powerList (x:xs) = powerList xs ++ map (x:) (powerList xs)
+
+
 -- Tree-related functions
 
 -- Creates a generic tree from an abstract syntax tree
@@ -383,10 +389,3 @@ r3 = Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "A")])
 main =
     generate g1 (mkCId "A") 2
 
-
-
-powerList :: [a] -> [[a]]
-powerList [] = [[]]
-powerList (x:xs) = powerList xs ++ map (x:) (powerList xs)
---powerList :: [a] -> [[a]]
---powerList = filterM (const [True, False])
