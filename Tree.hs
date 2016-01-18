@@ -266,8 +266,15 @@ getRules grammar cats =
     in
       concat $ map (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rs) cats
 
-applyRule :: MetaTTree -> Rule -> [Path] -> MetaTTree
-applyRule tree rule pathes = tree --TODO
+-- expands a tree according to a rule and a path
+applyRule :: TTree -> Rule -> [Path] -> TTree
+applyRule tree rule@(Function name ftype@(Fun cat cats)) (path:pathes) = -- tree --TODO
+  let
+    newSubTree = (TNode name ftype (map (TMeta) cats)) -- Tree from the rule
+    newTree = (replaceNode tree path newSubTree) -- Get new tree by replacing a meta given by path with the new rule
+   in
+    applyRule newTree rule pathes
+applyRule tree rule [] = tree
 
 -- Apply a rule to a meta tree generating all possible new meta trees
 combine :: MetaTTree -> Rule -> [MetaTTree]
