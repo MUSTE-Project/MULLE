@@ -329,9 +329,10 @@ combine tree rule =
 --                          (nub $ ((delete (subTrees !! p) subTrees) ++ newSubtrees))
 --          ) numberedCombinedTrees
 
--- Extend a tree to a certain depth
-extendTree :: Grammar -> Int -> MetaTTree -> [MetaTTree]
-extendTree grammar maxDepth tree =
+
+-- Extend a tree by applying all possible rules once
+extendTree :: Grammar -> MetaTTree -> [MetaTTree]
+extendTree grammar tree =
   let
       mTree :: TTree
       mTree = metaTree tree
@@ -342,9 +343,8 @@ extendTree grammar maxDepth tree =
       rules :: [Rule]
       rules = getRules grammar metaLeaves
   in
+    nub $ concat $ map (combine tree) rules
 --    convergeTrees grammar maxDepth $ concat $ map (combine tree) rules
-    concat $ map (combine tree) rules
-
 -- convergeTrees :: Grammar -> Int -> [MetaTTree] -> [MetaTTree]
 -- convergeTrees grammar maxDepth trees =
 --   let
