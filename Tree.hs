@@ -368,18 +368,18 @@ extendTree grammar tree =
 --         convergeTrees grammar maxDepth newTrees
 
 generate :: Grammar -> CId -> Int -> [MetaTTree]
-generate grammar cat maxDepth =
+generate grammar cat depth =
     let
         loop :: Int -> [MetaTTree] -> [MetaTTree]
         loop 0 oldTrees = oldTrees
         loop count oldTrees =
            let
-               newTrees = (concat $ map (extendTree grammar maxDepth) oldTrees)
+               newTrees = filter (\t -> maxDepth (metaTree t) <= depth) $ (concat $ map (extendTree grammar) oldTrees)
            in
              oldTrees ++ (loop (count - 1) newTrees)
         startTree = MetaTTree (TMeta cat) [([],(TMeta cat))]
     in
-      trace "GENERATE" $ nub $ loop maxDepth [startTree]
+      nub $ loop depth [startTree]
 --      extendTree grammar maxDepth startTree
                            
 t = (TNode (mkCId "t") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "a") (Fun (mkCId "A") []) []),(TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")]) [(TNode (mkCId "b") (Fun (mkCId "B") []) []),(TNode (mkCId "c") (Fun (mkCId "C") []) [])])])
