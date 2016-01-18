@@ -126,16 +126,16 @@ makeMeta :: TTree -> MetaTTree
 makeMeta tree =
     MetaTTree tree []
 
--- replace a branch in a tree by a new tree
+-- replace a branch in a tree by a new tree if a subtree at the position exists
 replaceBranch :: TTree -> Pos -> TTree  -> TTree
 replaceBranch (TNode id typ trees) pos newTree =
   let
-    newSubtrees = listReplace trees pos newTree -- let (pre,post) = splitAt pos trees in (pre ++ (newTree:tail post))
-      
+    newSubtrees = listReplace trees pos newTree
   in
     (TNode id typ newSubtrees)
 replaceBranch tree _ _ = t
 
+-- replace a subtree given by path by a new tree
 replaceNode :: TTree -> Path -> TTree -> TTree
 replaceNode oldTree@(TNode _ _ trees) path@(pos:ps) newTree
   | pos < length trees = 
@@ -246,6 +246,7 @@ getMetaLeaves :: TTree -> [CId]
 getMetaLeaves (TMeta id) = [id]
 getMetaLeaves (TNode _ _ trees) = concat $ map getMetaLeaves trees
 
+-- Generates list of all pathes to metas
 getMetaPaths :: TTree -> [(Path,CId)]
 getMetaPaths tree =
   let
@@ -258,6 +259,7 @@ getMetaPaths tree =
         concat $ map (\(b,t) -> withPath t (path ++ [b])) numberedTrees
   in
     withPath tree []
+    
 -- Find all rules in grammar that have a certain category
 getRules :: Grammar -> [CId] -> [Rule]
 getRules grammar cats =
@@ -291,56 +293,7 @@ combine tree@(MetaTTree oldMetaTree oldSubTrees) rule =
           in
             (MetaTTree newMetaTree newSubTrees)
         ) pathesLists
--- combine :: MetaTTree -> Rule -> [MetaTTree]
--- combine tree rule =
---   let
---       combined = combineFoo tree [] rule
---       cleaned = map
---                   (
---                     \(MetaTTree metaTree subTrees) ->
---                       let
---                           filteredSubTrees = filter (\(path,_) -> case (selectNode metaTree path) of { (Just (TMeta _)) -> True ; _ -> False }) subTrees
---                           sortedSubTrees = sortBy (\(p1,_) -> \(p2,_) -> compare p1 p2) filteredSubTrees
---                       in
---                         MetaTTree metaTree filteredSubTrees
---                   ) combined
---   in
---     cleaned
     
--- -- BOOOOOOOOHOOOOOOOOOO here be bugs
--- combineFoo :: MetaTTree -> Path -> Rule -> [MetaTTree]
--- combineFoo m@(MetaTTree (TMeta lcat) sts) path (Function fid funtype@(Just (Fun fcat cats))) =
---     if lcat == fcat then -- matching rule
---         let
---             -- Generate new metaTree by converting function type to meta nodes
---             newMetaTree = (TNode fid funtype (map TMeta cats))
---             -- Generate new subtrees also by converting the function type to meta subtrees plus the old one minus what is no longer meta
---             newSubTrees = nub $ (sts ++ (map (\(p,c) -> (path ++ [p], TMeta c)) (zip [0..(length cats)] cats)))
---         in
---           [MetaTTree newMetaTree newSubTrees]
---     else -- not matching -> just keep it as a list
---         [m]
--- combineFoo (MetaTTree (TNode fid funtype trees) subTrees) path rule =
---   let
---       -- Convert subtrees to metattrees
---       metaSubtrees = (map (\t -> MetaTTree t subTrees) trees)
---       -- Number all trees in the list -> needed for remembering the path
---       numberedMetaSubtrees = (zip [0..length trees] metaSubtrees)
---       -- Try to apply the rule
---       combinedTrees = concat $ map (\(p,t) -> combineFoo t (p:path) rule) numberedMetaSubtrees
---       -- Number again
---       numberedCombinedTrees = (zip [0..length combinedTrees] combinedTrees)
---   in
---       map
---         (
---            \(p,(MetaTTree metaTree newSubtrees)) ->
---              let
---                (pre,post) = splitAt p trees
---              in
---                MetaTTree (TNode fid funtype (pre ++ metaTree:(tail post))) -- Replace old subtrees by new subtrees
---                          (nub $ ((delete (subTrees !! p) subTrees) ++ newSubtrees))
---          ) numberedCombinedTrees
-
 
 -- Extend a tree by applying all possible rules once
 extendTree :: Grammar -> MetaTTree -> [MetaTTree]
@@ -356,16 +309,6 @@ extendTree grammar tree =
       rules = getRules grammar metaLeaves
   in
     nub $ concat $ map (combine tree) rules
---    convergeTrees grammar maxDepth $ concat $ map (combine tree) rules
--- convergeTrees :: Grammar -> Int -> [MetaTTree] -> [MetaTTree]
--- convergeTrees grammar maxDepth trees =
---   let
---       newTrees =  filter (\t -> (length $ maxPath maxDepth $ metaTree t) < maxDepth) (nub $ concat $ map (extendTree grammar maxDepth) trees)
---   in
---     trace "CONVERGETREES" $ if newTrees == trees then
---         newTrees
---     else
---         convergeTrees grammar maxDepth newTrees
 
 generate :: Grammar -> CId -> Int -> [MetaTTree]
 generate grammar cat depth =
@@ -380,7 +323,6 @@ generate grammar cat depth =
         startTree = MetaTTree (TMeta cat) [([],(TMeta cat))]
     in
       nub $ loop depth [startTree]
---      extendTree grammar maxDepth startTree
                            
 t = (TNode (mkCId "t") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "a") (Fun (mkCId "A") []) []),(TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")]) [(TNode (mkCId "b") (Fun (mkCId "B") []) []),(TNode (mkCId "c") (Fun (mkCId "C") []) [])])])
 
