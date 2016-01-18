@@ -158,12 +158,11 @@ getTreeCat (TMeta cat) = cat
 
 -- Replace a node given by a path with a meta
 replaceNodeByMeta :: MetaTTree -> Path -> MetaTTree
-replaceNodeByMeta tree path = 
+replaceNodeByMeta tree@(MetaTTree oldMetaTree oldSubTrees) path = 
   let
-    newSubTree = fromJust $ selectNode (metaTree tree) path
+    newSubTree = fromJust $ selectNode (oldMetaTree) path
     cat = getTreeCat $ newSubTree
-    oldSubTrees = subTrees tree
-    newTree = replaceNode (metaTree tree) path (TMeta cat)
+    newTree = replaceNode (oldMetaTree) path (TMeta cat)
   in
     MetaTTree newTree ((path,newSubTree):oldSubTrees)
 
