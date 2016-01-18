@@ -269,13 +269,14 @@ getRules grammar cats =
       concat $ map (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rs) cats
 
 -- expands a tree according to a rule and a path
-applyRule :: TTree -> Rule -> [Path] -> TTree
-applyRule tree rule@(Function name ftype@(Fun cat cats)) (path:pathes) = -- tree --TODO
+applyRule :: MetaTTree -> Rule -> [Path] -> MetaTTree
+applyRule tree@(MetaTTree oldMetaTree oldSubTrees) rule@(Function name ftype@(Fun cat cats)) (path:pathes) = -- tree --TODO
   let
-    newSubTree = (TNode name ftype (map (TMeta) cats)) -- Tree from the rule
-    newTree = (replaceNode tree path newSubTree) -- Get new tree by replacing a meta given by path with the new rule
+    newMetaSubTree = (TNode name ftype (map (TMeta) cats)) -- Tree from the rule
+    newSubTrees = map (\(subPath,id) -> (path ++ subPath, (TMeta id))) (getMetaPaths newMetaSubTree)
+    newTree = (replaceNode (metaTree tree) path newMetaSubTree) -- Get new tree by replacing a meta given by path with the new rule
    in
-    applyRule newTree rule pathes
+    applyRule (MetaTTree newTree (oldSubTrees ++ newSubTrees)) rule pathes
 applyRule tree rule [] = tree
 
 -- Apply a rule to a meta tree generating all possible new meta trees
@@ -288,8 +289,8 @@ combine tree@(MetaTTree oldMetaTree oldSubTrees) rule =
   in
     map (\pathes ->
           let
-            newMetaTree = applyRule (metaTree tree) rule pathes
-            newSubTrees = filter (\(p,_) -> let st = selectNode newMetaTree p in (isJust st) && (isMeta $ fromJust st)) oldSubTrees -- do some filtering to remove all subtrees that are now replaced by the new rules
+            (MetaTTree newMetaTree intermSubTrees) = applyRule tree rule pathes
+            newSubTrees = filter (\(p,_) -> let st = selectNode newMetaTree p in (isJust st) && (isMeta $ fromJust st)) (intermSubTrees ++ oldSubTrees) -- do some filtering to remove all subtrees that are now replaced by the new rules
           in
             (MetaTTree newMetaTree newSubTrees)
         ) pathesLists
@@ -323,7 +324,10 @@ generate grammar cat depth =
         startTree = MetaTTree (TMeta cat) [([],(TMeta cat))]
     in
       nub $ loop depth [startTree]
-                           
+
+
+
+
 t = (TNode (mkCId "t") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "a") (Fun (mkCId "A") []) []),(TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")]) [(TNode (mkCId "b") (Fun (mkCId "B") []) []),(TNode (mkCId "c") (Fun (mkCId "C") []) [])])])
 
 t2 = (TNode (mkCId "t2") (Fun (mkCId "F") [(mkCId "A"), (mkCId "G")]) [(TMeta (mkCId "A")), (TNode (mkCId "g") (Fun (mkCId "G") [(mkCId "B"), (mkCId "H")]) [(TMeta (mkCId "B")), (TNode (mkCId "h") (Fun (mkCId "H") [(mkCId "C"), (mkCId "I")]) [(TMeta (mkCId "C")), (TNode (mkCId "i") (Fun (mkCId "I") [(mkCId "D"),(mkCId "E")]) [(TMeta (mkCId "D")), (TMeta (mkCId "E"))])])])])
