@@ -278,14 +278,19 @@ applyRule tree rule [] = tree
 
 -- Apply a rule to a meta tree generating all possible new meta trees
 combine :: MetaTTree -> Rule -> [MetaTTree]
-combine tree rule =
+combine tree@(MetaTTree oldMetaTree oldSubTrees) rule =
   let
     ruleCat = getRuleCat rule
     filteredMetas = filter (\(p,c) -> ruleCat == c) $ getMetaPaths (metaTree tree)
-    pathLists = powerList $ map fst filteredMetas
+    pathesLists = powerList $ map fst filteredMetas
   in
-    trace  ("COMBINE " ++  show pathLists ) $ map (applyRule tree rule) pathLists
-    
+    map (\pathes ->
+          let
+            newMetaTree = applyRule (metaTree tree) rule pathes
+            newSubTrees = filter (\(p,_) -> let st = selectNode newMetaTree p in (isJust st) && (isMeta $ fromJust st)) oldSubTrees -- do some filtering to remove all subtrees that are now replaced by the new rules
+          in
+            (MetaTTree newMetaTree newSubTrees)
+        ) pathesLists
 -- combine :: MetaTTree -> Rule -> [MetaTTree]
 -- combine tree rule =
 --   let
