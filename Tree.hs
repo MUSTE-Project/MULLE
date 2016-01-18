@@ -87,6 +87,10 @@ powerList (x:xs) = powerList xs ++ map (x:) (powerList xs)
 
 
 -- Tree-related functions
+-- predicate if a tree is just a meta node
+isMeta :: TTree -> Bool
+isMeta (TMeta _) = True
+isMeta _ = False
 
 -- Creates a generic tree from an abstract syntax tree
 treeToTTree :: PGF -> Tree -> TTree
@@ -111,6 +115,12 @@ ttreeToTree (TNode name _ ts) =
   in
     mkApp name nts
 
+maxDepth :: TTree -> Int
+maxDepth (TMeta _) = 1
+maxDepth (TNode _ _ []) = 1
+maxDepth (TNode _ _ trees) =
+  1 + (maximum $ map maxDepth trees)
+  
 -- Create a meta tree by appending an empty subtree list
 makeMeta :: TTree -> MetaTTree
 makeMeta tree =
