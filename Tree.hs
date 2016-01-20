@@ -294,7 +294,7 @@ combine tree@(MetaTTree oldMetaTree oldSubTrees) rule =
     map (\pathes ->
           let
             (MetaTTree newMetaTree intermSubTrees) = applyRule tree rule pathes
-            newSubTrees = filter (\(p,_) -> let st = selectNode newMetaTree p in (isJust st) && (isMeta $ fromJust st)) (intermSubTrees ++ oldSubTrees) -- do some filtering to remove all subtrees that are now replaced by the new rules
+            newSubTrees = nub $ filter (\(p,_) -> let st = selectNode newMetaTree p in (isJust st) && (isMeta $ fromJust st)) (intermSubTrees ++ oldSubTrees) -- do some filtering to remove all subtrees that are now replaced by the new rules
           in
             (MetaTTree newMetaTree newSubTrees)
         ) pathesLists
