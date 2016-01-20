@@ -400,3 +400,101 @@ r3 = Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "A")])
 main =
     generate g1 (mkCId "A") 2
 
+
+mt11 =
+  (MetaTTree
+   (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"), (mkCId "B")])
+    [
+       (TMeta (mkCId "A")),
+       (TMeta (mkCId "B"))
+    ]
+   )
+   ([([0], (TNode (mkCId "a") (Fun (mkCId "A") []) [])),
+     ([1], (TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])
+            [
+              (TNode (mkCId "b") (Fun (mkCId "B") []) []),
+              (TNode (mkCId "c") (Fun (mkCId "C") []) [])
+            ]
+           )
+     )
+    ]
+   )
+  )
+mt12 =
+  (MetaTTree
+   (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+    [
+      (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+       [
+         (TMeta (mkCId "A")),
+         (TMeta (mkCId "B"))
+       ]
+      ),
+      (TNode (mkCId "b") (Fun (mkCId "B") []) [])
+    ]
+   )
+   [([0,0], (TMeta (mkCId "A"))),
+    ([0,1], (TMeta (mkCId "B")))
+   ]
+  )
+rt1 =
+  (4,
+   (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+    [
+      (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+       [
+         (TNode (mkCId "a") (Fun (mkCId "A") []) []),
+         (TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])
+          [
+            (TNode (mkCId "b") (Fun (mkCId "B") []) []),
+            (TNode (mkCId "c") (Fun (mkCId "C") []) [])
+          ]
+         )
+       ]),
+      (TNode (mkCId "b") (Fun (mkCId "B") []) [])
+    ]
+   )
+  )
+-- (the cost 1 is because the splitted_tree has 1 node, and 3 is because the generated_tree has 3 nodes)
+-- Not working yet
+mt21 =
+  (MetaTTree
+   (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"), (mkCId "B")])
+    [
+      (TMeta (mkCId "A")),
+      (TMeta (mkCId "B"))
+    ]
+   )
+   [
+     ([0], (TNode (mkCId "a") (Fun (mkCId "A") []) [])),
+     ([1], (TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"), (mkCId "C")])
+            [
+              (TNode (mkCId "b") (Fun (mkCId "B") []) []),
+              (TNode (mkCId "c") (Fun (mkCId "C") []) [])
+            ]
+           )
+     )
+   ]
+  )
+mt22 =
+  (MetaTTree
+   (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"), (mkCId "B")])
+    [
+      (TMeta (mkCId "A")),
+      (TNode (mkCId "b") (Fun (mkCId "B") []) [])
+    ]
+   )
+   [
+     ([0], (TMeta (mkCId "A")))
+   ]
+  )
+rt2 =
+  (6,
+   (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"), (mkCId "B")])
+    [
+      (TNode (mkCId "a") (Fun (mkCId "A") []) []),
+      (TNode (mkCId "b") (Fun (mkCId "B") []) [])
+    ]
+   )
+  )
+-- (the cost 1 is because the splitted_tree has 1 node, and 2 is because the generated_tree has 2 nodes; the cost 3 is because the B tree was removed, and it has 3 nodes)
