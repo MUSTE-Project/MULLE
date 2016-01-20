@@ -120,7 +120,11 @@ maxDepth (TMeta _) = 1
 maxDepth (TNode _ _ []) = 1
 maxDepth (TNode _ _ trees) =
   1 + (maximum $ map maxDepth trees)
-  
+
+
+countNodes :: TTree -> Int
+countNodes (TNode _ _ trees) = foldl (+) 1 (map countNodes trees)
+countNodes (TMeta _) = 0
 -- Create a meta tree by appending an empty subtree list
 makeMeta :: TTree -> MetaTTree
 makeMeta tree =
