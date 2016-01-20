@@ -14,7 +14,7 @@ class TreeC t where
   selectBranch :: t -> Int -> Maybe t
 --  findPath :: t -> t -> Maybe Path
 
-
+type Cost = Int
 type Pos = Int
 type Path = [Pos]
 
@@ -329,8 +329,44 @@ generate grammar cat depth =
     in
       nub $ loop depth [startTree]
 
+computeCosts :: (TTree,TTree,[TTree],[TTree]) -> Cost
+computeCosts (gTree,pTree,_,deleted) =
+  foldl (+) (countNodes gTree + countNodes pTree) (map countNodes deleted)
 
+combineTrees :: (TTree,TTree,[TTree],[TTree]) -> TTree
+combineTrees (gTree,_,subTrees,_) =
+  let
+    combineTree :: TTree -> [TTree] -> TTree
+    combineTree tree [] = tree
+    combineTree tree (subTree:_) =
 
+      let
+        paths = map fst $ filter (\(_,cat) -> cat == (getTreeCat subTree)) $ getMetaPaths tree
+      in
+        -- Here be dragons -> what happens with multiple paths
+        replaceNode tree (head paths) subTree
+  in
+    combineTree gTree subTrees 
+match :: MetaTTree -> MetaTTree -> [(Cost, TTree)]
+match prunedTree@(MetaTTree pMetaTree pSubTrees) generatedTree@(MetaTTree gMetaTree gSubTrees) =
+  let
+    replaceCats :: [CId] 
+    replaceCats = map (\(_,(TMeta cat)) -> cat) gSubTrees
+    replaceSubTrees :: [(Path,TTree)]
+    replaceSubTrees = filter (\(_,t) -> isInfixOf [getTreeCat t] replaceCats) pSubTrees
+    combinations :: [[(Path,TTree)]]
+    combinations = powerList replaceSubTrees
+    extractTrees :: [(Path,TTree)] -> [TTree]
+    extractTrees trees =
+      map (\(_,t) -> t) trees
+    magicQuadruple :: [(TTree,TTree,[TTree],[TTree])]
+    magicQuadruple = map (\replaceTrees -> let deletedTrees = (extractTrees pSubTrees \\ extractTrees replaceTrees) in (gMetaTree,pMetaTree,extractTrees replaceTrees,deletedTrees)) combinations
+    newTrees :: [TTree]
+    newTrees = map combineTrees magicQuadruple
+    costs :: [Cost]
+    costs = map computeCosts magicQuadruple
+  in
+    sortBy (\(c1,_) (c2,_) -> compare c1 c2) $ zip costs newTrees
 
 t = (TNode (mkCId "t") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "a") (Fun (mkCId "A") []) []),(TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")]) [(TNode (mkCId "b") (Fun (mkCId "B") []) []),(TNode (mkCId "c") (Fun (mkCId "C") []) [])])])
 
