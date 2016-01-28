@@ -30,29 +30,38 @@ instance Show FunType where
     "(" ++ (foldl (\a -> \b -> a ++ " -> " ++ (show b)) (show $ head cats) (tail cats) ++ " -> " ++ show cat) ++ ")"
   show (NoType) = "()"
 
+readId :: String -> Maybe (CId,String)
+readId str =
+  let
+    result = readsPrec 0 str
+  in
+    if result == [] then Nothing else Just $ head result
+  
 -- A funtype is in the Read class
 instance Read FunType where
   readsPrec _ sType =
     let
-      readType :: String -> String -> ([String],String)
-      -- Skip a ( at the start
-      readType cat ('(':rest) = readType cat rest
-      -- A ) as the end marker
-      readType cat (')':rest) = ([cat],rest)
-      -- An arrow -> between the categories
-      readType cat (' ':'-':'>':' ':rest) =
+      readType :: String -> ([CId],String)
+      readType ('(':rest) = readType rest
+      readType (')':rest) = ([],rest)
+      readType (' ':'-':'>':' ':rest) =
         let
-          result = readType "" rest
+          result = readType rest
         in
-        (fst result ++ [cat],snd result)
-        -- Completely read a category -- maybe better use read :: CId ??? 
-      readType cat (c:rest) =
-        readType (cat ++ [c]) rest
-      readType cat [] = ([cat],[])
-      result = readType "" sType
-      cats = reverse $ fst result
+          (fst result, snd result)
+      readType "" = ([],"")
+      readType rest =
+        let
+          result = readId rest
+        in
+          case result of {
+            Just r -> let more = readType $ snd r in ((fst r):(fst more), snd more) ;
+            _ -> ([],rest)
+            }
+      result = readType sType
+      cats = fst result
     in
-      [((Fun (mkCId (last cats)) (map mkCId (init cats))),snd result)]
+      [((Fun (last cats) (init cats)),snd result)]
 
 -- A funtype is a member of Eq class
 {-
