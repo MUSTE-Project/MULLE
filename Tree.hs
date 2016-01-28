@@ -58,6 +58,45 @@ instance TreeC TTree where
   selectBranch (TNode _ _ [] ) _ = Nothing
   selectBranch (TNode _ _ trees) i = Just (trees !! i)
 
+-- skipChar :: Char -> String -> String
+-- skipChar _ [] = []
+-- skipChar c str@(c1:rest)
+--   | c == c1 = rest
+--   | otherwise = str
+-- readId :: String -> (CId,String)
+-- readId str =
+--     head $ readsPrec 0 str
+
+-- readFunType :: String -> (FunType,String)
+-- readFunType str =
+--   head $ readsPrec 0 str
+-- {t:A -> B -> A {a:A} {g:B -> C -> B {b:B} {c:C}}}
+-- A generic tree with types is in the Read class
+-- instance Read TTree where
+--   readsPrec _ sTree =
+--      let
+--        combine :: (a,b) -> (a -> c -> a) -> c -> (a,b)
+--        combine (a,b) f aa = (f a aa, b)
+--        readTrees :: String -> ([TTree],String)
+--        readTrees [] = ([],"")
+--        readTrees str =
+--          let
+--            (parse,rest) = trace str $ readTree $ skipChar ' ' str
+--          in
+--            if str /= rest then combine (readTrees rest) (++) [parse]
+--            else ([parse],rest)
+--        readTree :: String -> (TTree,String)
+--        readTree str =
+--          let
+--            (id,str2) = readId $ skipChar '{' str
+--            (ftype,str3) = trace ( show id ) $ readFunType $ skipChar ':' str2
+--            (trees,str4) = trace ( show ftype) $ readTrees str3
+--          in
+--            ((TNode id ftype trees),skipChar '}' str4)
+--      in
+--        --fst $ readTree sTree
+--        [readTree sTree]
+       
 instance Eq TTree where
   (==) (TMeta id1) (TMeta id2) = id1 == id2
   (==) (TNode _ typ1 trees1) (TNode _ typ2 trees2) = (typ1 == typ2) && (trees1 == trees2)
