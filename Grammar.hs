@@ -5,7 +5,7 @@ import PGF.Internal
 import Data.Maybe
 
 -- first CId is the the result category and [CId] are the parameter categories
-data FunType = Fun CId [CId]
+data FunType = Fun CId [CId] | NoType
 
 -- CId is the function name
 data Rule = Function CId FunType
@@ -28,6 +28,7 @@ instance Show FunType where
     "(" ++ show cat ++ ")"
   show (Fun cat cats) =
     "(" ++ (foldl (\a -> \b -> a ++ " -> " ++ (show b)) (show $ head cats) (tail cats) ++ " -> " ++ show cat) ++ ")"
+  show (NoType) = "()"
 
 -- A funtype is in the Read class
 instance Read FunType where
