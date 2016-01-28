@@ -28,9 +28,21 @@ data MetaTTree = MetaTTree {
                 
 
   showTree = show
-  selectNode t p = Nothing
-  selectBranch t i = Nothing
---  findPath s n = Nothing
+  selectNode t [p] =
+    selectBranch t p
+  selectNode t (p:ps) =
+    let
+      branch = selectBranch t p
+    in
+      case branch of {
+        Just b -> selectNode b ps ;
+        Nothing -> Nothing
+        }
+  -- Only branch at applications
+  selectBranch (EApp t1 t2) 0 = Just t1
+  selectBranch (EApp t1 t2) 1 = Just t2
+  selectBranch _ _ = Nothing
+  
 
 instance TreeC TTree where
   showTree = show
