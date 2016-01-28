@@ -12,7 +12,6 @@ class TreeC t where
   showTree :: t -> String
   selectNode :: t -> Path -> Maybe t
   selectBranch :: t -> Int -> Maybe t
---  findPath :: t -> t -> Maybe Path
 
 type Cost = Int
 type Pos = Int
@@ -28,15 +27,6 @@ data MetaTTree = MetaTTree {
   }
                 
 
-instance Show TTree where
-  show (TNode name typ []) = "{"++ (show name) ++ ":"  ++ show typ ++ "}";
-  show (TNode name typ children) = "{" ++ (show name) ++ ":" ++ show typ ++ " " ++ ( unwords $ map show children ) ++ "}"
-  show (TMeta cat) = "{?" ++ show cat ++ "}"
-instance Show MetaTTree where
-  show tree =
-    "(" ++ show (metaTree tree) ++ 
-    ", [" ++ unwords (map show (subTrees tree)) ++ "])\n"
-instance TreeC Tree where
   showTree = show
   selectNode t p = Nothing
   selectBranch t i = Nothing
@@ -105,7 +95,6 @@ instance Eq TTree where
 instance Eq MetaTTree where
   (==) t1 t2 =
       (metaTree t1 == metaTree t2) && (subTrees t1 == subTrees t2)
---  findPath s n = Nothing
 
 
 -- general helpers
@@ -189,15 +178,6 @@ replaceNode oldTree@(TNode _ _ trees) path@(pos:ps) newTree
   | otherwise = oldTree -- if branch does not exist just do nothing
 replaceNode oldTree [] newTree =
   newTree -- at the end of the path just give the new tree to be inserted
-
--- Get the root category of a tree
-getTreeCat :: TTree -> CId
-getTreeCat (TNode id typ _) =
-  let
-    (Fun cat _) = typ
-  in
-    cat
-getTreeCat (TMeta cat) = cat
 
 -- Replace a node given by a path with a meta
 replaceNodeByMeta :: MetaTTree -> Path -> MetaTTree
@@ -436,8 +416,8 @@ r2 = Function (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])
 
 r3 = Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "A")])
 
-main =
-    generate g1 (mkCId "A") 2
+--main =
+--    generate g1 (mkCId "A") 2
 
 
 mt11 =
