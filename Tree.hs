@@ -17,6 +17,8 @@ type Cost = Int
 type Pos = Int
 type Path = [Pos]
 
+type GFAbsTree = Tree
+
 -- A generic tree with types
 data TTree = TNode CId FunType [TTree]
            | TMeta CId
@@ -27,6 +29,7 @@ data MetaTTree = MetaTTree {
   }
                 
 
+instance TreeC GFAbsTree where
   showTree = show
   selectNode t [p] =
     selectBranch t p
@@ -151,25 +154,25 @@ getTreeCat (TNode id typ _) =
 getTreeCat (TMeta cat) = cat
 
 -- Creates a generic tree from an abstract syntax tree
-treeToTTree :: PGF -> Tree -> TTree
-treeToTTree pgf (EFun f) =
+gfAbsTreeToTTree :: PGF -> GFAbsTree -> TTree
+gfAbsTreeToTTree pgf (EFun f) =
   let
     typ = getFunType pgf f
   in
     TNode f typ []
-treeToTTree pgf (EApp e1 e2) =
+gfAbsTreeToTTree pgf (EApp e1 e2) =
   let
-    (TNode name typ sts) = treeToTTree pgf e1
-    st2 = treeToTTree pgf e2
+    (TNode name typ sts) = gfAbsTreeToTTree pgf e1
+    st2 = gfAbsTreeToTTree pgf e2
   in
     (TNode name typ (sts ++ [st2]))
 
--- Creates a AST from a generic tree
-ttreeToTree :: TTree -> Tree
-ttreeToTree (TNode name _ []) = (EFun name)
-ttreeToTree (TNode name _ ts) =
+-- Creates a GF abstract syntax Tree from a generic tree
+ttreeToGFAbsTree :: TTree -> GFAbsTree
+ttreeToGFAbsTree (TNode name _ []) = (EFun name)
+ttreeToGFAbsTree (TNode name _ ts) =
   let
-     nts = map ttreeToTree ts
+     nts = map ttreeToGFAbsTree ts
   in
     mkApp name nts
 
