@@ -22,9 +22,33 @@ instance Show Grammar where
     
 instance Show FunType where
   show (Fun cat []) =
-    show cat
+    "(" ++ show cat ++ ")"
   show (Fun cat cats) =
-    foldl (\a -> \b -> a ++ " -> " ++ (show b)) (show $ head cats) (tail cats) ++ " -> " ++ show cat
+    "(" ++ (foldl (\a -> \b -> a ++ " -> " ++ (show b)) (show $ head cats) (tail cats) ++ " -> " ++ show cat) ++ ")"
+
+-- A funtype is in the Read class
+instance Read FunType where
+  readsPrec _ sType =
+    let
+      readType :: String -> String -> ([String],String)
+      -- Skip a ( at the start
+      readType cat ('(':rest) = readType cat rest
+      -- A ) as the end marker
+      readType cat (')':rest) = ([cat],rest)
+      -- An arrow -> between the categories
+      readType cat (' ':'-':'>':' ':rest) =
+        let
+          result = readType "" rest
+        in
+        (fst result ++ [cat],snd result)
+        -- Completely read a category -- maybe better use read :: CId ??? 
+      readType cat (c:rest) =
+        readType (cat ++ [c]) rest
+      readType cat [] = ([cat],[])
+      result = readType "" sType
+      cats = reverse $ fst result
+    in
+      [((Fun (mkCId (last cats)) (map mkCId (init cats))),snd result)]
 
 instance Eq FunType where
   (==) (Fun id1 pre1) (Fun id2 pre2) = (id1 == id2) && (pre1 == pre2) 
