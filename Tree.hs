@@ -142,6 +142,14 @@ isMeta :: TTree -> Bool
 isMeta (TMeta _) = True
 isMeta _ = False
 
+getTreeCat :: TTree -> CId
+getTreeCat (TNode id typ _) =
+  let
+    (Fun cat _) = typ
+  in
+    cat
+getTreeCat (TMeta cat) = cat
+
 -- Creates a generic tree from an abstract syntax tree
 treeToTTree :: PGF -> Tree -> TTree
 treeToTTree pgf (EFun f) =
