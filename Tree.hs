@@ -109,6 +109,11 @@ instance Eq TTree where
   (==) (TNode _ typ1 trees1) (TNode _ typ2 trees2) = (typ1 == typ2) && (trees1 == trees2)
   (==) _ _ = False
              
+instance Show MetaTTree where
+  show tree =
+    "(" ++ show (metaTree tree) ++ 
+    ", [" ++ unwords (map show (subTrees tree)) ++ "])\n"
+
 instance Eq MetaTTree where
   (==) t1 t2 =
       (metaTree t1 == metaTree t2) && (subTrees t1 == subTrees t2)
