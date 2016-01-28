@@ -57,13 +57,6 @@ instance Show Rule where
   show (Function name funtype) =
     show name ++ " : " ++ show funtype ;
 
-showType :: Maybe Type -> String
-showType Nothing = "NoType"
-showType (Just (DTyp hypos id exprs)) = show id
-
--- instance Show Grammar where
---   show g = unwords $ map show g
-       
 getFunType :: PGF -> CId -> FunType
 getFunType grammar id =
   let
@@ -82,11 +75,9 @@ getRuleCat (Function _ funType) = getFunCat funType
 pgfToGrammar :: PGF -> Grammar
 pgfToGrammar pgf =
   let
---    cats = categories pgf
     funs = functions pgf
     funtypes = map (getFunType pgf) funs
-    zipped = zip funs funtypes
-    rules = map (\(id,typ) -> Function id typ) zipped
+    rules = map (\(id,typ) -> Function id typ) (zip funs funtypes)
     (_, startcat, _) = unType (startCat pgf)
   in
     Grammar startcat rules
