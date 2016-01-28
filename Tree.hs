@@ -393,13 +393,13 @@ combineTrees (gTree,_,subTrees,_) =
   let
     combineTree :: TTree -> [TTree] -> TTree
     combineTree tree [] = tree
-    combineTree tree (subTree:_) =
+    combineTree tree (subTree:subTrees) =
 
       let
         paths = map fst $ filter (\(_,cat) -> cat == (getTreeCat subTree)) $ getMetaPaths tree
       in
         -- Here be dragons -> what happens with multiple paths
-        replaceNode tree (head paths) subTree
+        combineTree (replaceNode tree (head paths) subTree) subTrees 
   in
     combineTree gTree subTrees 
 match :: MetaTTree -> MetaTTree -> [(Cost, TTree)]
