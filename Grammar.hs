@@ -10,16 +10,19 @@ data FunType = Fun CId [CId]
 -- CId is the function name
 data Rule = Function CId FunType
 
+-- A Grammar consists of a start categorie and a list of rules
 data Grammar = Grammar {
   startcat :: CId,
   rules :: [Rule]
   }
 
+-- A grammar is in the Show class
 instance Show Grammar where
   show (Grammar startcat rules) =
     "Startcat: " ++ show startcat ++ "\nRules:\n " ++
     (unwords $ map show rules)
-    
+
+-- A funtype is in the Show class
 instance Show FunType where
   show (Fun cat []) =
     "(" ++ show cat ++ ")"
@@ -50,13 +53,19 @@ instance Read FunType where
     in
       [((Fun (mkCId (last cats)) (map mkCId (init cats))),snd result)]
 
+-- A funtype is a member of Eq class
+{-
+  Function types are equal if all hypothesises and the resulting category are equal
+-}
 instance Eq FunType where
   (==) (Fun id1 pre1) (Fun id2 pre2) = (id1 == id2) && (pre1 == pre2) 
 
+-- A rule is member of the Show class
 instance Show Rule where
   show (Function name funtype) =
     show name ++ " : " ++ show funtype ;
 
+-- Given a function name extracts its type from a grammar
 getFunType :: PGF -> CId -> FunType
 getFunType grammar id =
   let
@@ -66,18 +75,25 @@ getFunType grammar id =
   in
     (Fun typeid cats) ;
 
+-- Extracts the result category from a function type
 getFunCat :: FunType -> CId
 getFunCat (Fun cat _) = cat
 
+-- Extracts the result category of a rule
 getRuleCat :: Rule -> CId
 getRuleCat (Function _ funType) = getFunCat funType 
 
+-- Transform a PGF grammar to a simpler data structure
 pgfToGrammar :: PGF -> Grammar
 pgfToGrammar pgf =
   let
+    -- Get function names
     funs = functions pgf
+    -- Get their types
     funtypes = map (getFunType pgf) funs
+    -- Combine to a rule
     rules = map (\(id,typ) -> Function id typ) (zip funs funtypes)
+    -- Get the startcat from the PGF
     (_, startcat, _) = unType (startCat pgf)
   in
     Grammar startcat rules
