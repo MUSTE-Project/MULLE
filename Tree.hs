@@ -224,28 +224,12 @@ replaceNodeByMeta tree@(MetaTTree oldMetaTree oldSubTrees) path =
 
 -- Find the maximum length paths not ending in metas
 maxPath :: Int -> TTree -> [Path]
-maxPath 0 _ = [[]]
-maxPath _ (TNode _ _ []) = [[]]
-maxPath maxDepth (TNode _ _ trees) =
-    let
-        branches :: [(Pos, TTree)] -- List of branch positions and subtrees 
-        branches = (zip [0..(length trees)] trees)
-        relevantBranches :: [(Pos, TTree)] -- List of all branches that don't end in a meta
-        relevantBranches = (filter (\t -> case t of { (_, (TNode _ _ _)) -> True ; _ -> False } ) branches)
-        relevantPaths :: [(Pos, [Path])] -- List of the maximum pathes of the subtrees for each branch
-        relevantPaths = map (\(p,t) -> (p,(maxPath (maxDepth - 1) t))) relevantBranches
-        nPaths :: [Path]
-        nPaths = concat $ map (\(p,ps) -> map (\s -> p:s) ps ) relevantPaths
-        mDepth :: Int
-        mDepth = maximum $ 0:(map length nPaths)
-        filtered :: [Path]
-        filtered = filter (\x -> (length x) == mDepth) nPaths
-    in
-      case filtered of {
-        [] -> [[]] ;
-        _ -> filtered
-      }
-maxPath _ (TMeta _) = [[]]
+maxPath depth tree =
+  let
+    paths = findPaths depth tree
+    maxLen = maximum (map length paths)
+  in
+    sort $ filter (\path -> length path == maxLen) paths
 
 -- Finds all paths to leaves that are no metas
 findPaths :: Int -> TTree -> [Path]
@@ -267,6 +251,25 @@ findPaths maxDepth (TNode _ _ trees) =
         _ -> paths
       }
 findPaths _ (TMeta _) = [[]]
+
+findPaths' :: Int -> TTree -> [Path]
+findPaths' 0 _ = [[]]
+findPaths' _ (TNode _ _ []) = [[]]
+findPaths' _ (TMeta _) = [[]]
+findPaths' maxDepth (TNode _ _ trees) =
+    let
+        branches :: [(Pos, TTree)] -- List of branch positions and subtrees 
+        branches = (zip [0..(length trees)] trees)
+        relevantPaths :: [(Pos, [Path])] -- List of the maximum pathes of the subtrees for each branch
+        relevantPaths = map (\(p,t) -> (p,(findPaths (maxDepth - 1) t)))  branches
+        paths :: [Path]
+        paths = concat $ map (\(p,ps) -> map (\s -> p:s) ps ) relevantPaths
+    in
+     case paths of {
+       [] -> [[]] ;
+       _ -> paths
+     }
+
 
 -- Prune all subtrees to a certain depth
 prune :: TTree -> Int -> [MetaTTree]
