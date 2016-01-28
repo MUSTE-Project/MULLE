@@ -80,45 +80,69 @@ instance Show TTree where
   show (TNode name typ children) = "{" ++ (show name) ++ ":" ++ show typ ++ " " ++ ( unwords $ map show children ) ++ "}"
   show (TMeta cat) = "{?" ++ show cat ++ "}"
 
--- skipChar :: Char -> String -> String
--- skipChar _ [] = []
--- skipChar c str@(c1:rest)
---   | c == c1 = rest
---   | otherwise = str
--- readId :: String -> (CId,String)
--- readId str =
---     head $ readsPrec 0 str
+consumeChar :: Char -> String -> String
+consumeChar _ [] = []
+consumeChar c str@(c1:rest)
+   | c == c1 = rest
+   | otherwise = str
 
--- readFunType :: String -> (FunType,String)
--- readFunType str =
---   head $ readsPrec 0 str
--- {t:A -> B -> A {a:A} {g:B -> C -> B {b:B} {c:C}}}
--- A generic tree with types is in the Read class
--- instance Read TTree where
---   readsPrec _ sTree =
---      let
---        combine :: (a,b) -> (a -> c -> a) -> c -> (a,b)
---        combine (a,b) f aa = (f a aa, b)
---        readTrees :: String -> ([TTree],String)
---        readTrees [] = ([],"")
---        readTrees str =
---          let
---            (parse,rest) = trace str $ readTree $ skipChar ' ' str
---          in
---            if str /= rest then combine (readTrees rest) (++) [parse]
---            else ([parse],rest)
---        readTree :: String -> (TTree,String)
---        readTree str =
---          let
---            (id,str2) = readId $ skipChar '{' str
---            (ftype,str3) = trace ( show id ) $ readFunType $ skipChar ':' str2
---            (trees,str4) = trace ( show ftype) $ readTrees str3
---          in
---            ((TNode id ftype trees),skipChar '}' str4)
---      in
---        --fst $ readTree sTree
---        [readTree sTree]
-       
+readFunType :: String -> Maybe (FunType,String)
+readFunType str =
+  let
+    result = readsPrec 0 str
+  in
+    if result == [] then Nothing else Just $ head $ result
+
+readTree  :: String -> Maybe (TTree,String)
+readTree str =
+  let
+    result = readsPrec 0 str
+  in
+    if result == [] then Nothing else Just $ head $ result
+
+readTrees :: String -> ([TTree],String)
+readTrees "" = ([],"")
+readTrees sTrees =
+  let
+    maybeTree = readTree $ consumeChar ' ' sTrees
+  in
+    case maybeTree of {
+      Just tree ->
+          let
+            more = readTrees $ snd tree
+          in
+            (fst tree:fst more, snd more) ;
+         Nothing -> ([],sTrees) -- trace (show sTrees) $ ([],sTrees)
+      }
+    
+instance Read TTree where
+  readsPrec _ sTree =
+    -- Trees start with a {
+    case (consumeChar '{' sTree) of
+    {
+      ('?':cat) -> let ids = (readsPrec 0 cat) in map (\(a,b) -> ((TMeta a),consumeChar '}' b)) ids ;
+      rest ->
+        let
+          maybeId = (readId rest)
+        in
+          case maybeId of {
+            Just id ->
+                let
+                  maybeType = readFunType $ consumeChar ':' $ snd id
+                in
+                  case maybeType of {
+                    Just typ ->
+                        let
+                          bla = (consumeChar '{' $ consumeChar ' ' $ snd typ)
+                          trees = readTrees bla
+                        in
+                          [((TNode (fst $ id) (fst typ) (fst trees)),consumeChar '}' (snd trees))] ;
+                        Nothing -> [] -- trace ((++) "1:" $ show $ snd id) $ []
+                    } ;
+          Nothing -> [] --trace ((++) "2:" $ show rest) $ []
+          }
+    }
+    
 -- A generic tree with types is in the Eq class
 {-
   Two TTrees are equal when all types and categories are equal.
