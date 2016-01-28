@@ -60,6 +60,11 @@ instance TreeC TTree where
   selectBranch (TNode _ _ [] ) _ = Nothing
   selectBranch (TNode _ _ trees) i = Just (trees !! i)
 
+instance Show TTree where
+  show (TNode name typ []) = "{"++ (show name) ++ ":"  ++ show typ ++ "}";
+  show (TNode name typ children) = "{" ++ (show name) ++ ":" ++ show typ ++ " " ++ ( unwords $ map show children ) ++ "}"
+  show (TMeta cat) = "{?" ++ show cat ++ "}"
+
 -- skipChar :: Char -> String -> String
 -- skipChar _ [] = []
 -- skipChar c str@(c1:rest)
