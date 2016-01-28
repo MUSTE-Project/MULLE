@@ -8,27 +8,37 @@ import Data.Ord
 import Grammar
 import Debug.Trace
 
+-- Generic class for trees
 class TreeC t where
   showTree :: t -> String
   selectNode :: t -> Path -> Maybe t
   selectBranch :: t -> Int -> Maybe t
 
+-- Cost for matching two meta trees
 type Cost = Int
+
+-- Position in a path
 type Pos = Int
+
+-- Path in a tree
 type Path = [Pos]
 
+-- Rename GF abstract syntax tree (from PGF)
 type GFAbsTree = Tree
 
 -- A generic tree with types
-data TTree = TNode CId FunType [TTree]
-           | TMeta CId
+data TTree = TNode CId FunType [TTree] -- Regular node consisting of a function name, function type and possible subtrees
+           | TMeta CId -- A meta tree consisting just of a category type
 
+-- A meta tree - tuple of a generic tree with types and a list of possibly attachable subtrees
 data MetaTTree = MetaTTree {
+  -- A TTree that can contain meta nodes
   metaTree :: TTree,
+  -- List of subtrees that can be attached to the meta nodes determinded by the associated path
   subTrees :: [(Path,TTree)]
   }
-                
 
+-- A GF abstract syntax tree is in TreeC class
 instance TreeC GFAbsTree where
   showTree = show
   selectNode t [p] =
@@ -47,6 +57,7 @@ instance TreeC GFAbsTree where
   selectBranch _ _ = Nothing
   
 
+-- A generic tree with types is in TreeC class
 instance TreeC TTree where
   showTree = show
   selectNode t [] = Just t
@@ -63,6 +74,7 @@ instance TreeC TTree where
   selectBranch (TNode _ _ [] ) _ = Nothing
   selectBranch (TNode _ _ trees) i = Just (trees !! i)
 
+-- A generic tree with types is in the Show class
 instance Show TTree where
   show (TNode name typ []) = "{"++ (show name) ++ ":"  ++ show typ ++ "}";
   show (TNode name typ children) = "{" ++ (show name) ++ ":" ++ show typ ++ " " ++ ( unwords $ map show children ) ++ "}"
@@ -107,23 +119,32 @@ instance Show TTree where
 --        --fst $ readTree sTree
 --        [readTree sTree]
        
+-- A generic tree with types is in the Eq class
+{-
+  Two TTrees are equal when all types and categories are equal.
+  Differences in naming of functions are ignored
+-}
 instance Eq TTree where
   (==) (TMeta id1) (TMeta id2) = id1 == id2
   (==) (TNode _ typ1 trees1) (TNode _ typ2 trees2) = (typ1 == typ2) && (trees1 == trees2)
   (==) _ _ = False
-             
+
+-- A meta tree is in the Show class
 instance Show MetaTTree where
   show tree =
     "(" ++ show (metaTree tree) ++ 
     ", [" ++ unwords (map show (subTrees tree)) ++ "])\n"
 
+-- A meta tree is in the Eq class
+{-
+  Two meta trees are equal if both components are equal cmp. Eq TTree
+-}
 instance Eq MetaTTree where
   (==) t1 t2 =
       (metaTree t1 == metaTree t2) && (subTrees t1 == subTrees t2)
 
-
--- general helpers
--- replace an element in a list if the position exists
+-- List-related functions
+-- Replace an element in a list if the position exists
 listReplace :: [a] -> Pos -> a -> [a]
 listReplace list pos elem
   | 0 <= pos && pos < length list = -- pos in list -> replace it
@@ -145,6 +166,7 @@ isMeta :: TTree -> Bool
 isMeta (TMeta _) = True
 isMeta _ = False
 
+-- Get the root category of a tree
 getTreeCat :: TTree -> CId
 getTreeCat (TNode id typ _) =
   let
@@ -176,26 +198,28 @@ ttreeToGFAbsTree (TNode name _ ts) =
   in
     mkApp name nts
 
+-- Gets the length of the maximum path between root and a leaf (incl. meta nodes) of a tree
 maxDepth :: TTree -> Int
 maxDepth (TMeta _) = 1
 maxDepth (TNode _ _ []) = 1
 maxDepth (TNode _ _ trees) =
   1 + (maximum $ map maxDepth trees)
 
-
+-- Count all non-meta nodes in a tree
 countNodes :: TTree -> Int
 countNodes (TNode _ _ trees) = foldl (+) 1 (map countNodes trees)
-countNodes (TMeta _) = 0
+countNodes (TMeta _) = 0 -- ignore metas
+
 -- Create a meta tree by appending an empty subtree list
 makeMeta :: TTree -> MetaTTree
 makeMeta tree =
     MetaTTree tree []
 
--- replace a branch in a tree by a new tree if a subtree at the position exists
+-- Replace a branch in a tree by a new tree if a subtree at the position exists
 replaceBranch :: TTree -> Pos -> TTree  -> TTree
 replaceBranch (TNode id typ trees) pos newTree =
   let
-    newSubtrees = listReplace trees pos newTree
+    newSubtrees = listReplace trees pos newTree -- listReplace takes care of out-of-range positions
   in
     (TNode id typ newSubtrees)
 replaceBranch tree _ _ = t
@@ -203,7 +227,7 @@ replaceBranch tree _ _ = t
 -- replace a subtree given by path by a new tree
 replaceNode :: TTree -> Path -> TTree -> TTree
 replaceNode oldTree@(TNode _ _ trees) path@(pos:ps) newTree
-  | pos < length trees = 
+  | pos < length trees =  -- subtree must exist
     let
       branch = fromJust $ selectBranch oldTree pos
     in
@@ -212,7 +236,7 @@ replaceNode oldTree@(TNode _ _ trees) path@(pos:ps) newTree
 replaceNode oldTree [] newTree =
   newTree -- at the end of the path just give the new tree to be inserted
 
--- Replace a node given by a path with a meta
+-- Replace a node given by a path with a meta node of the same category
 replaceNodeByMeta :: MetaTTree -> Path -> MetaTTree
 replaceNodeByMeta tree@(MetaTTree oldMetaTree oldSubTrees) path = 
   let
@@ -222,7 +246,7 @@ replaceNodeByMeta tree@(MetaTTree oldMetaTree oldSubTrees) path =
   in
     MetaTTree newTree ((path,newSubTree):oldSubTrees)
 
--- Find the maximum length paths not ending in metas
+-- Find the maximum length paths not ending in metas and up to a certain threshold
 maxPath :: Int -> TTree -> [Path]
 maxPath depth tree =
   let
@@ -252,6 +276,7 @@ findPaths maxDepth (TNode _ _ trees) =
       }
 findPaths _ (TMeta _) = [[]]
 
+-- Finds all paths to leaves that are no metas
 findPaths' :: Int -> TTree -> [Path]
 findPaths' 0 _ = [[]]
 findPaths' _ (TNode _ _ []) = [[]]
