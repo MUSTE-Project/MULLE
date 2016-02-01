@@ -437,12 +437,12 @@ generate grammar cat depth =
       nub $ loop depth [startTree]
 
 -- Computes the cost for matching trees. It is the sum of nodes in each of the trees plus the sum of the nodes in all deleted trees
-computeCosts :: (TTree,TTree,[TTree],[TTree]) -> Cost
-computeCosts (gTree,pTree,_,deleted) =
-  foldl (+) (countNodes gTree + countNodes pTree) (map countNodes deleted)
+computeCosts :: TTree -> TTree -> [TTree] -> Cost
+computeCosts generatedTree prunedTree deletedTrees =
+  foldl (+) (countNodes generatedTree + countNodes prunedTree) (map countNodes deletedTrees)
 
-combineTrees :: (TTree,TTree,[TTree],[TTree]) -> TTree
-combineTrees (gTree,_,subTrees,_) =
+combineTrees :: TTree -> [TTree] -> TTree
+combineTrees generatedTree subTrees =
   let
     combineTree :: TTree -> [TTree] -> TTree
     combineTree tree [] = tree
@@ -454,7 +454,7 @@ combineTrees (gTree,_,subTrees,_) =
         -- Here be dragons -> what happens with multiple paths
         combineTree (replaceNode tree (head paths) subTree) subTrees 
   in
-    combineTree gTree subTrees 
+    combineTree generatedTree subTrees
 match :: MetaTTree -> MetaTTree -> [(Cost, TTree)]
 match prunedTree@(MetaTTree pMetaTree pSubTrees) generatedTree@(MetaTTree gMetaTree gSubTrees) =
   let
@@ -467,11 +467,11 @@ match prunedTree@(MetaTTree pMetaTree pSubTrees) generatedTree@(MetaTTree gMetaT
     extractTrees :: [(Path,TTree)] -> [TTree]
     extractTrees trees =
       map (\(_,t) -> t) trees
-    magicQuadruple :: [(TTree,TTree,[TTree],[TTree])]
-    magicQuadruple = map (\replaceTrees -> let deletedTrees = (extractTrees pSubTrees \\ extractTrees replaceTrees) in (gMetaTree,pMetaTree,extractTrees replaceTrees,deletedTrees)) combinations
+    tempResults :: [(TTree,TTree,[TTree],[TTree])]
+    tempResults = map (\replaceTrees -> let deletedTrees = (extractTrees pSubTrees \\ extractTrees replaceTrees) in (gMetaTree,pMetaTree,extractTrees replaceTrees,deletedTrees)) combinations
     newTrees :: [TTree]
-    newTrees = map combineTrees magicQuadruple
+    newTrees = map (\(p1,_,p3,_) -> combineTrees p1 p3) tempResults
     costs :: [Cost]
-    costs = map computeCosts magicQuadruple
+    costs = map (\(p1,p2,_,p4) -> computeCosts p1 p2 p4) tempResults
   in
     sortBy (\(c1,_) (c2,_) -> compare c1 c2) $ zip costs newTrees
