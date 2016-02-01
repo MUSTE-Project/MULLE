@@ -283,29 +283,8 @@ maxPath depth tree =
 findPaths :: Int -> TTree -> [Path]
 findPaths 0 _ = [[]]
 findPaths _ (TNode _ _ []) = [[]]
-findPaths maxDepth (TNode _ _ trees) =
-    let
-        branches :: [(Pos, TTree)] -- List of branch positions and subtrees 
-        branches = (zip [0..(length trees)] trees)
-        relevantBranches :: [(Pos, TTree)] -- List of all branches that don't end in a meta
-        relevantBranches = (filter (\t -> case t of { (_, (TNode _ _ _)) -> True ; _ -> False } ) branches)
-        relevantPaths :: [(Pos, [Path])] -- List of the maximum pathes of the subtrees for each branch
-        relevantPaths = map (\(p,t) -> (p,(findPaths (maxDepth - 1) t)))  relevantBranches
-        paths :: [Path]
-        paths = concat $ map (\(p,ps) -> map (\s -> p:s) ps ) relevantPaths
-    in
-      case paths of {
-        [] -> [[]] ;
-        _ -> paths
-      }
 findPaths _ (TMeta _) = [[]]
-
--- Finds all paths to leaves that are no metas
-findPaths' :: Int -> TTree -> [Path]
-findPaths' 0 _ = [[]]
-findPaths' _ (TNode _ _ []) = [[]]
-findPaths' _ (TMeta _) = [[]]
-findPaths' maxDepth (TNode _ _ trees) =
+findPaths maxDepth (TNode _ _ trees) =
     let
         branches :: [(Pos, TTree)] -- List of branch positions and subtrees 
         branches = (zip [0..(length trees)] trees)
