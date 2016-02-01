@@ -441,37 +441,49 @@ computeCosts :: TTree -> TTree -> [TTree] -> Cost
 computeCosts generatedTree prunedTree deletedTrees =
   foldl (+) (countNodes generatedTree + countNodes prunedTree) (map countNodes deletedTrees)
 
+-- Combines a tree with a list of subtrees to a new tree
 combineTrees :: TTree -> [TTree] -> TTree
 combineTrees generatedTree subTrees =
   let
     combineTree :: TTree -> [TTree] -> TTree
     combineTree tree [] = tree
     combineTree tree (subTree:subTrees) =
-
       let
+        -- Get all pathes to compatible meta-leaves
         paths = map fst $ filter (\(_,cat) -> cat == (getTreeCat subTree)) $ getMetaPaths tree
       in
-        -- Here be dragons -> what happens with multiple paths
+        -- Use the first of the above paths to combine it to a new tree
+        -- Here be dragons -> whatshould we do with the other paths multiple paths
         combineTree (replaceNode tree (head paths) subTree) subTrees 
   in
     combineTree generatedTree subTrees
+
+-- Combines a pruned tree with a generated tree and gives all these combinations ordered by cost for matching
 match :: MetaTTree -> MetaTTree -> [(Cost, TTree)]
 match prunedTree@(MetaTTree pMetaTree pSubTrees) generatedTree@(MetaTTree gMetaTree gSubTrees) =
   let
+    -- Get all the meta categories from the generated MetaTTree (more speficically from the subTree part)
     replaceCats :: [CId] 
     replaceCats = map (\(_,(TMeta cat)) -> cat) gSubTrees
+    -- Find the matching subtrees in the pruned tree
     replaceSubTrees :: [(Path,TTree)]
     replaceSubTrees = filter (\(_,t) -> isInfixOf [getTreeCat t] replaceCats) pSubTrees
+    -- Get all possible combinations of them
     combinations :: [[(Path,TTree)]]
     combinations = powerList replaceSubTrees
+    -- Tiny wrapper to extract the second part of the tuples
     extractTrees :: [(Path,TTree)] -> [TTree]
     extractTrees trees =
       map snd trees
+    -- Pack the parameters and results into one tuple - the generated tree, the pruned tree, the trees used to match the tree, and the removed subtrees
     tempResults :: [(TTree,TTree,[TTree],[TTree])]
     tempResults = map (\replaceTrees -> let deletedTrees = (extractTrees pSubTrees \\ extractTrees replaceTrees) in (gMetaTree,pMetaTree,extractTrees replaceTrees,deletedTrees)) combinations
+    -- Combine the new possible trees
     newTrees :: [TTree]
     newTrees = map (\(p1,_,p3,_) -> combineTrees p1 p3) tempResults
+    -- Compute the costs for each of these trees
     costs :: [Cost]
     costs = map (\(p1,p2,_,p4) -> computeCosts p1 p2 p4) tempResults
   in
+    -- Sort by cost
     sortBy (\(c1,_) (c2,_) -> compare c1 c2) $ zip costs newTrees
