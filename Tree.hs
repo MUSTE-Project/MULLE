@@ -466,7 +466,7 @@ match prunedTree@(MetaTTree pMetaTree pSubTrees) generatedTree@(MetaTTree gMetaT
     combinations = powerList replaceSubTrees
     extractTrees :: [(Path,TTree)] -> [TTree]
     extractTrees trees =
-      map (\(_,t) -> t) trees
+      map snd trees
     tempResults :: [(TTree,TTree,[TTree],[TTree])]
     tempResults = map (\replaceTrees -> let deletedTrees = (extractTrees pSubTrees \\ extractTrees replaceTrees) in (gMetaTree,pMetaTree,extractTrees replaceTrees,deletedTrees)) combinations
     newTrees :: [TTree]
