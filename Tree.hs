@@ -246,7 +246,7 @@ replaceBranch (TNode id typ trees) pos newTree =
     newSubtrees = listReplace trees pos newTree -- listReplace takes care of out-of-range positions
   in
     (TNode id typ newSubtrees)
-replaceBranch tree _ _ = t
+replaceBranch tree _ _ = tree
 
 -- replace a subtree given by path by a new tree
 replaceNode :: TTree -> Path -> TTree -> TTree
