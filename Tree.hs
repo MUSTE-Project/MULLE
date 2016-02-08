@@ -80,12 +80,14 @@ instance Show TTree where
   show (TNode name typ children) = "{" ++ (show name) ++ ":" ++ show typ ++ " " ++ ( unwords $ map show children ) ++ "}"
   show (TMeta cat) = "{?" ++ show cat ++ "}"
 
+-- Removes a given char at the start of a string if it matches
 consumeChar :: Char -> String -> String
 consumeChar _ [] = []
 consumeChar c str@(c1:rest)
    | c == c1 = rest
    | otherwise = str
 
+-- Read wrapper for a function type that returns just the first parse
 readFunType :: String -> Maybe (FunType,String)
 readFunType str =
   let
@@ -93,6 +95,7 @@ readFunType str =
   in
     if result == [] then Nothing else Just $ head $ result
 
+-- Read wrapper for a TTree type that returns just the first parse
 readTree  :: String -> Maybe (TTree,String)
 readTree str =
   let
@@ -100,6 +103,7 @@ readTree str =
   in
     if result == [] then Nothing else Just $ head $ result
 
+-- reads list of multiple trees
 readTrees :: String -> ([TTree],String)
 readTrees "" = ([],"")
 readTrees sTrees =
@@ -115,31 +119,39 @@ readTrees sTrees =
          Nothing -> ([],sTrees) -- trace (show sTrees) $ ([],sTrees)
       }
     
+-- A generic tree with types is in the Read class
 instance Read TTree where
   readsPrec _ sTree =
     -- Trees start with a {
     case (consumeChar '{' sTree) of
     {
+      -- It is a meta
       ('?':cat) -> let ids = (readsPrec 0 cat) in map (\(a,b) -> ((TMeta a),consumeChar '}' b)) ids ;
+      -- or something else
       rest ->
         let
+          -- read the id
           maybeId = (readId rest)
         in
           case maybeId of {
             Just id ->
                 let
+                  -- read the type
                   maybeType = readFunType $ consumeChar ':' $ snd id
                 in
                   case maybeType of {
                     Just typ ->
                         let
-                          bla = (consumeChar '{' $ consumeChar ' ' $ snd typ)
-                          trees = readTrees bla
+                          -- read the subtrees
+                          strees = (consumeChar '{' $ consumeChar ' ' $ snd typ)
+                          trees = readTrees strees
                         in
-                          [((TNode (fst $ id) (fst typ) (fst trees)),consumeChar '}' (snd trees))] ;
-                        Nothing -> [] -- trace ((++) "1:" $ show $ snd id) $ []
-                    } ;
-          Nothing -> [] --trace ((++) "2:" $ show rest) $ []
+                          [(fixTypes (TNode (fst $ id) (fst typ) (fst trees)),consumeChar '}' (snd trees))] ;
+                    -- No type found
+                    Nothing -> [] -- trace ((++) "1:" $ show $ snd id) $ []
+                  } ;
+            -- No id found
+            Nothing -> [] --trace ((++) "2:" $ show rest) $ []
           }
     }
     
