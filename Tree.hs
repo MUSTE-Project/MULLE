@@ -202,7 +202,7 @@ instance Ord TTree where
 instance Show MetaTTree where
   show tree =
     "(" ++ show (metaTree tree) ++ 
-    ", [" ++ unwords (map show (subTrees tree)) ++ "])\n"
+    ", [" ++ unwords (map show (sort $ subTrees tree)) ++ "])\n"
 
 -- A meta tree is in the Eq class
 {-
