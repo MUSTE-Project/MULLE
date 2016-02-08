@@ -280,6 +280,7 @@ test_hu_prune =
         sorted2 = sort $ result
     --putStrLn $ show (prune tree 2)
     runTestTT ((show sorted1) ~?= (show sorted2)) -- FIXME matches with show but not without
+    
 -- grammar = [("f", "A", ["A","B"]), ("g", "B", ["B","C"]),
 --            ("a", "A", []), ("b", "B", []), ("c", "C", [])]
 grammar = Grammar (mkCId "A")
@@ -349,6 +350,13 @@ hunit_tests =
     test_hu_read3
     test_hu_read4
     test_hu_read5
+    test_hu_ord1
+    test_hu_ord2
+    test_hu_ord3
+    test_hu_ord4
+    test_hu_ord5
+    test_hu_ord6
+    test_hu_sort
     test_hu_prune
     test_hu_generate
     test_hu_match1
