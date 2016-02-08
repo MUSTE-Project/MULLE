@@ -378,8 +378,7 @@ prune tree depth =
                  nub $ finishedTree : (pruneTrees origTree (nub $ tail trees ++ todoTrees) depth)
           }
   in
-    reverse $ pruneTrees (makeMeta tree) [(makeMeta tree)] depth
-
+    reverse $ (makeMeta tree) : (pruneTrees (makeMeta tree) [(makeMeta tree)] depth)
 -- Generates list of all meta leaves
 getMetaLeaves :: TTree -> [CId]
 getMetaLeaves (TMeta id) = [id]
