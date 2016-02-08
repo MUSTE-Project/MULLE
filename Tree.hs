@@ -165,6 +165,17 @@ instance Eq TTree where
   (==) (TNode _ typ1 trees1) (TNode _ typ2 trees2) = (typ1 == typ2) && (trees1 == trees2)
   (==) _ _ = False
 
+-- A generic tree with types is in the Eq class
+{-
+  A tree is smaller if it is not as deep, the category is lexicaly smaller and/or the subtrees are smaller 
+-}
+instance Ord TTree where
+  (<=) t1@(TNode c1 _ ts1) t2@(TNode c2 _ ts2) = if t1 == t2 then True
+               else
+                 maxDepth t1 <= maxDepth t2 && c1 <= c2 && ts1 <= ts2
+  (<=) (TMeta c1) (TMeta c2) = c1 <= c2
+  (<=) (TMeta _) (TNode _ _ _) = True
+  (<=) _ _ = False
 -- A meta tree is in the Show class
 instance Show MetaTTree where
   show tree =
@@ -179,6 +190,15 @@ instance Eq MetaTTree where
   (==) t1 t2 =
       (metaTree t1 == metaTree t2) && (subTrees t1 == subTrees t2)
 
+-- A meta tree is in the Ord class
+{-
+  Two meta trees are equal if both components are equal cmp. Eq TTree
+-}
+instance Ord MetaTTree where
+  (<=) t1 t2 = if t1 == t2 then True
+               else
+                 metaTree t1 < metaTree t2 && subTrees t1 <= subTrees t2
+                 
 -- List-related functions
 -- Replace an element in a list if the position exists
 listReplace :: [a] -> Pos -> a -> [a]
