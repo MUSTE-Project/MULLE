@@ -5,7 +5,16 @@ import Grammar
 import Data.List
 import Test.HUnit.Text
 import Test.HUnit.Base
-    
+import System.Random
+
+randomize :: StdGen -> [a] -> [a]
+randomize _ [] = []
+randomize gen list =
+  let
+    (rnd, ngen) = randomR (0,length list - 1) gen
+    (part1,_:part2) = splitAt rnd list
+  in
+    (list !! rnd) : (randomize ngen (part1 ++ part2))
 -- HUnit tests
 -- Basic tests
 -- Test read
@@ -69,6 +78,14 @@ test_hu_read5 =
 
 t3 = let (MetaTTree (TNode _ typ trees) subTrees) = replaceNodeByMeta (replaceNodeByMeta (makeMeta t1) [1,0]) [1,1] in (MetaTTree (TNode (mkCId "t3") typ trees) subTrees)
 
+test_hu_sort =
+  do
+    let list = [t1,t2,t4]
+    gen <- getStdGen
+    putStrLn "Sort tree order Test"
+--    runTestTT ((sort $ randomize list gen) ~?= [t4,t1,t2])
+    runTestTT ((sort $ randomize gen list) ~?= (sort $ sort $ randomize gen $ sort $ randomize gen list))
+    
 g2 = Grammar (mkCId "A")
      [
       Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "A")]),
