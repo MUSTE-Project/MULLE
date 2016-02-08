@@ -189,19 +189,23 @@ rt2 =
 --      ({{f:A {a:A} {g:B ?B ?C}}}, [([1,0], {{b:B}}), ([1,1], {{c:C}})]),
 --      ]
 test_hu_prune =
-    let
-        tree :: TTree
-        tree = read "{f:A {a:A} {g:B {b:B} {c:C}}}"
-        result :: [MetaTTree]
-        result = [(MetaTTree (read "{?A}" :: TTree) [([], read "{f:(A -> B -> A) {a:A} {g:B {b:B} {c:C}}}" :: TTree)]),
+  do
+    putStrLn "Check prune Test"
+    let tree = (read "{f:(A -> B -> A) {a:A} {g:B {b:B} {c:C}}}") :: TTree
+    let result = [(MetaTTree (read "{?A}") [([], read "{f:(A -> B -> A) {a:A} {g:B {b:B} {c:C}}}")]),
                   (MetaTTree (read "{f:(A -> B -> A) {?A} {?B}}") [([0], read "{a:A}"), ([1], read "{g:(B -> C -> B) {b:B} {c:C}}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {a:A} ?B}") [([1], read "{g:(B -> C -> B) {b:B} {c:C}}")]),
+                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {?B}}") [([1], read "{g:(B -> C -> B) {b:B} {c:C}}")]),
                   (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {?C}}}") [([0], read "{a:A}"), ([1,0], read "{b:B}"), ([1,1], read "{c:C}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {?B} {?C}}}") [([1,0], read "{b:B}"), ([1,1], read "{c:C}")])
+                  (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {b:B} {?C}}}") [([0], read "{a:A}"), ([1,1], read "{c:C}")]),
+                  (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {c:C}}}") [([0], read "{a:A}"), ([1,0], read "{b:B}")]),
+                  (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {b:B} {c:C}}}") [([0], read "{a:A}"), ([1,1], read "{c:C}")]),
+                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {?B} {?C}}}") [([1,0], read "{b:B}"), ([1,1], read "{c:C}")]),
+                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {?C}}}") [([1,1], read "{c:C}")]),
+                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {?B} {c:C}}}") [([1,0], read "{b:B}")]),
+                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {c:C}}}") [])
                  ]
-    in
-      putStrLn $ show (prune tree 2)
---      runTestTT (prune tree 2 ~?= result)
+    --putStrLn $ show (prune tree 2)
+    runTestTT ((sort $ prune tree 2) ~?= (sort result))
 -- grammar = [("f", "A", ["A","B"]), ("g", "B", ["B","C"]),
 --            ("a", "A", []), ("b", "B", []), ("c", "C", [])]
 grammar = Grammar (mkCId "A")
@@ -247,8 +251,9 @@ test_hu_generate =
 -- -- (the cost 1 is because the splitted_tree has 1 node, and 3 is because the generated_tree has 3 nodes)
 test_hu_match1 =
     do
-      let tree1 = (MetaTTree (read "{f:A {?A} {?B}}") [([0], read "{a:A}"), ([1], read "{g:B {b:B} {c:C}}")])
-      let tree2 = (MetaTTree (read "{f:A {f:A ?A ?B} {b:B}}") [([0,0], read "{?A}"), ([0,1], read "{?B}")])
+      putStrLn "Check match Test 1"
+      let tree1 = (MetaTTree (read "{f:(A -> B -> A) {?A} {?B}}") [([0], read "{a:A}"), ([1], read "{g:(B -> C -> B) {b:B} {c:C}}")])
+      let tree2 = (MetaTTree (read "{f:(A -> B -> A) {f:(A -> B -> A) {?A} {?B}} {b:B}}") [([0,0], read "{?A}"), ([0,1], read "{?B}")])
       let result = (1+3, read "{f:(A -> B -> A) {f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {c:C}}} {b:B}}") :: (Cost,TTree)
       runTestTT ((head $ match tree1 tree2) ~?= result)
 -- match ({{f:A ?A ?B}}, [([0], {{a:A}}), ([1], {{g:B {b:B} {c:C}}})])
@@ -257,9 +262,11 @@ test_hu_match1 =
 -- -- (the cost 1 is because the splitted_tree has 1 node, and 2 is because the generated_tree has 2 nodes; the cost 3 is because the B tree was removed, and it has 3 nodes)
 test_hu_match2 =
     do
-      let tree1 = (MetaTTree (read "{f:A ?A ?B}") [([0], read "{a:A}"), ([1], read "{g:B {b:B} {c:C}}")])
-      let tree2 = (MetaTTree (read "{f:A ?A {b:B}}") [([0], read "{?A}")])
+      putStrLn "Check match Test 2"
+      let tree1 = (MetaTTree (read "{f:A {?A} {?B}}") [([0], read "{a:A}"), ([1], read "{g:B {b:B} {c:C}}")])
+      let tree2 = (MetaTTree (read "{f:A {?A} {b:B}}") [([0], read "{?A}")])
       let result = (1+2+3, read "{f:A {a:A} {b:B}}") :: (Cost,TTree)
+
       runTestTT ((head $ match tree1 tree2) ~?= result)
 hunit_tests =
   do
