@@ -17,7 +17,7 @@ test_hu_read1 =
     runTestTT (t1 ~?= (read ts1 :: TTree))
             
 t2 = (TNode (mkCId "t2") (Fun (mkCId "F") [(mkCId "A"), (mkCId "G")]) [(TMeta (mkCId "A")), (TNode (mkCId "g") (Fun (mkCId "G") [(mkCId "B"), (mkCId "H")]) [(TMeta (mkCId "B")), (TNode (mkCId "h") (Fun (mkCId "H") [(mkCId "C"), (mkCId "I")]) [(TMeta (mkCId "C")), (TNode (mkCId "i") (Fun (mkCId "I") [(mkCId "D"),(mkCId "E")]) [(TMeta (mkCId "D")), (TMeta (mkCId "E"))])])])])
-ts2 = "{t2:(A -> G -> F) {?A} {g:(B -> H -> G) {?B} {h:(C -> I -> H) {?C} {i:(D -> E -> I) {?D ?E}}}}}"
+ts2 = "{t2:(A -> G -> F) {?A} {g:(B -> H -> G) {?B} {h:(C -> I -> H) {?C} {i:(D -> E -> I) {?D} {?E}}}}}"
 test_hu_read2 =
   do
     putStrLn "Check read equality Test 2"
