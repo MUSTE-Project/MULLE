@@ -95,6 +95,28 @@ readFunType str =
   in
     if result == [] then Nothing else Just $ head $ result
 
+-- Extracts the root category of each childtree
+getChildCats :: TTree -> [CId]
+getChildCats (TMeta _) = []
+getChildCats (TNode _ _ trees) =
+  let
+    extract :: TTree -> CId
+    extract (TMeta cat) = cat
+    extract (TNode _ NoType _) = mkCId "?"
+    extract (TNode _ (Fun cat _) _) = cat
+  in
+    map extract trees
+
+-- goes through a tree and fixes type problems when only a root type is given for each subtree
+fixTypes :: TTree -> TTree
+fixTypes t@(TNode name typ trees) =
+  let
+    newType = (Fun (case typ of { NoType -> (mkCId "?") ; (Fun cat _) -> cat }) (getChildCats t))
+    newTrees = map fixTypes trees
+  in
+    (TNode name newType newTrees)
+fixTypes t = t
+
 -- Read wrapper for a TTree type that returns just the first parse
 readTree  :: String -> Maybe (TTree,String)
 readTree str =
@@ -118,7 +140,7 @@ readTrees sTrees =
             (fst tree:fst more, snd more) ;
          Nothing -> ([],sTrees) -- trace (show sTrees) $ ([],sTrees)
       }
-    
+
 -- A generic tree with types is in the Read class
 instance Read TTree where
   readsPrec _ sTree =
