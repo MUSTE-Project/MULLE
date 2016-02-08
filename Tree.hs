@@ -176,7 +176,7 @@ instance Read TTree where
             Nothing -> [] --trace ((++) "2:" $ show rest) $ []
           }
     }
-    
+
 -- A generic tree with types is in the Eq class
 {-
   Two TTrees are equal when all types and categories are equal.
@@ -480,7 +480,8 @@ generate grammar cat depth =
         loop count oldTrees =
            let
              -- Extend all trees in the working list and remove the ones that have a too great height
-               newTrees = filter (\t -> maxDepth (metaTree t) <= depth) $ (concat $ map (extendTree grammar) oldTrees)
+               --newTrees = filter (\t -> maxDepth (metaTree t) <= depth) $ (concat $ map (extendTree grammar) oldTrees)
+             newTrees = (concat $ map (extendTree grammar) oldTrees)
            in
              -- Continue and count down depth
              oldTrees ++ (loop (count - 1) newTrees)
