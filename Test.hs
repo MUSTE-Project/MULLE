@@ -62,7 +62,7 @@ test_hu_read3 =
 ts6 = "{t2:F {?A} {g:G {?B} {h:H {?C} {i:I {?D} {?E}}}}}"
 test_hu_read4 =
   do
-    putStrLn "Check read equality Test 5"
+    putStrLn "Check read equality Test 4"
     runTestTT (t2 ~?= (read ts6 :: TTree))
 
 -- read equality Test 5
@@ -73,7 +73,7 @@ test_hu_read4 =
 ts7 = "{t4:A {?A} {?A}}"
 test_hu_read5 =
   do
-    putStrLn "Check read equality Test 6"
+    putStrLn "Check read equality Test 5"
     runTestTT (t4 ~?= (read ts7 :: TTree))
 
 t3 = let (MetaTTree (TNode _ typ trees) subTrees) = replaceNodeByMeta (replaceNodeByMeta (makeMeta t1) [1,0]) [1,1] in (MetaTTree (TNode (mkCId "t3") typ trees) subTrees)
