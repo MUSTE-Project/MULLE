@@ -76,6 +76,61 @@ test_hu_read5 =
     putStrLn "Check read equality Test 5"
     runTestTT (t4 ~?= (read ts7 :: TTree))
 
+-- ord Test 1
+{-
+  checks trees t1 <= t2
+-}          
+test_hu_ord1 =
+  do
+    putStrLn "Check tree order Test 1"
+    runTestTT (t1 <= t2 ~?= True)
+
+-- ord Test 2
+{-
+  checks trees t1 < t2
+-}          
+test_hu_ord2 =
+  do
+    putStrLn "Check tree order Test 2"
+    runTestTT (t1 < t2 ~?= True)
+
+-- ord Test 3
+{-
+  checks trees t1 == t2
+-}          
+test_hu_ord3 =
+  do
+    putStrLn "Check tree order Test 3"
+    runTestTT (t1 == t2 ~?= False)
+
+-- ord Test 4
+{-
+  checks trees t1 > t2
+-}          
+test_hu_ord4 =
+  do
+    putStrLn "Check tree order Test 4"
+    runTestTT (t1 > t2 ~?= False)
+
+-- ord Test 5
+{-
+  checks trees t1 == t1
+-}          
+test_hu_ord5 =
+  do
+    putStrLn "Check tree order Test 5"
+    runTestTT (t1 == t1 ~?= True)
+
+-- ord Test 6
+{-
+  checks trees t1 <= t1
+-}          
+test_hu_ord6 =
+  do
+    putStrLn "Check tree order Test 6"
+    runTestTT (t1 <= t1 ~?= True)
+
+    
 t3 = let (MetaTTree (TNode _ typ trees) subTrees) = replaceNodeByMeta (replaceNodeByMeta (makeMeta t1) [1,0]) [1,1] in (MetaTTree (TNode (mkCId "t3") typ trees) subTrees)
 
 test_hu_sort =
