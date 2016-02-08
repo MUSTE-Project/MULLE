@@ -45,6 +45,27 @@ test_hu_read3 =
     putStrLn "Check read equality Test 3"
     runTestTT (t4 ~?= (read ts4 :: TTree))
 
+-- read equality Test 4
+{-
+  reads the tree as a string and compares with the data structure
+  also fixes the types
+-}          
+ts6 = "{t2:F {?A} {g:G {?B} {h:H {?C} {i:I {?D} {?E}}}}}"
+test_hu_read4 =
+  do
+    putStrLn "Check read equality Test 5"
+    runTestTT (t2 ~?= (read ts6 :: TTree))
+
+-- read equality Test 5
+{-
+  reads the tree as a string and compares with the data structure
+  also fixes the types
+-}          
+ts7 = "{t4:A {?A} {?A}}"
+test_hu_read5 =
+  do
+    putStrLn "Check read equality Test 6"
+    runTestTT (t4 ~?= (read ts7 :: TTree))
 
 t3 = let (MetaTTree (TNode _ typ trees) subTrees) = replaceNodeByMeta (replaceNodeByMeta (makeMeta t1) [1,0]) [1,1] in (MetaTTree (TNode (mkCId "t3") typ trees) subTrees)
 
@@ -230,6 +251,8 @@ hunit_tests =
     test_hu_read1
     test_hu_read2
     test_hu_read3
+    test_hu_read4
+    test_hu_read5
     test_hu_prune
     test_hu_match1
     test_hu_match2
