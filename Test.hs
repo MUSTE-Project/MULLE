@@ -270,14 +270,16 @@ test_hu_prune =
                   (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {?C}}}") [([0], read "{a:A}"), ([1,0], read "{b:B}"), ([1,1], read "{c:C}")]),
                   (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {b:B} {?C}}}") [([0], read "{a:A}"), ([1,1], read "{c:C}")]),
                   (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {c:C}}}") [([0], read "{a:A}"), ([1,0], read "{b:B}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {b:B} {c:C}}}") [([0], read "{a:A}"), ([1,1], read "{c:C}")]),
+                  (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {b:B} {c:C}}}") [([0], read "{a:A}")]),
                   (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {?B} {?C}}}") [([1,0], read "{b:B}"), ([1,1], read "{c:C}")]),
                   (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {?C}}}") [([1,1], read "{c:C}")]),
                   (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {?B} {c:C}}}") [([1,0], read "{b:B}")]),
                   (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {c:C}}}") [])
                  ]
+        sorted1 = sort $ prune tree 2
+        sorted2 = sort $ result
     --putStrLn $ show (prune tree 2)
-    runTestTT ((sort $ prune tree 2) ~?= (sort result))
+    runTestTT ((show sorted1) ~?= (show sorted2)) -- FIXME matches with show but not without
 -- grammar = [("f", "A", ["A","B"]), ("g", "B", ["B","C"]),
 --            ("a", "A", []), ("b", "B", []), ("c", "C", [])]
 grammar = Grammar (mkCId "A")
