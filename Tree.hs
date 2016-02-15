@@ -4,6 +4,8 @@ import PGF hiding (showType)
 import PGF.Internal hiding (showType)
 import Data.Maybe
 import Data.List
+import Data.Set (Set,toList,fromList,empty)
+import qualified Data.Set as Set
 import Data.Ord
 import Grammar
 import Debug.Trace
@@ -35,7 +37,7 @@ data MetaTTree = MetaTTree {
   -- A TTree that can contain meta nodes
   metaTree :: TTree,
   -- List of subtrees that can be attached to the meta nodes determinded by the associated path
-  subTrees :: [(Path,TTree)]
+  subTrees :: Set (Path,TTree)
   }
 
 -- A GF abstract syntax tree is in TreeC class
@@ -197,7 +199,7 @@ instance Ord TTree where
 instance Show MetaTTree where
   show tree =
     "(" ++ show (metaTree tree) ++ 
-    ", [" ++ unwords (map show (sort $ subTrees tree)) ++ "])\n"
+    ", [" ++ unwords (map show $ toList $ subTrees tree) ++ "])\n"
 
 -- A meta tree is in the Eq class
 {-
@@ -284,7 +286,7 @@ countNodes (TMeta _) = 0 -- ignore metas
 -- Create a meta tree by appending an empty subtree list
 makeMeta :: TTree -> MetaTTree
 makeMeta tree =
-    MetaTTree tree []
+    MetaTTree tree empty
 
 -- Replace a branch in a tree by a new tree if a subtree at the position exists
 replaceBranch :: TTree -> Pos -> TTree  -> TTree
@@ -315,7 +317,7 @@ replaceNodeByMeta tree@(MetaTTree oldMetaTree oldSubTrees) path =
     cat = getTreeCat $ newSubTree
     newTree = replaceNode (oldMetaTree) path (TMeta cat)
   in
-    MetaTTree newTree ((path,newSubTree):oldSubTrees)
+    MetaTTree newTree (Set.insert (path,newSubTree) oldSubTrees)
 
 -- Find the maximum length paths not ending in metas and up to a certain threshold
 maxPath :: Int -> TTree -> [Path]
@@ -347,7 +349,7 @@ findPaths maxDepth (TNode _ _ trees) =
 
 
 -- Prune all subtrees to a certain depth
-prune :: TTree -> Int -> [MetaTTree]
+prune :: TTree -> Int -> Set MetaTTree
 prune tree depth =
   let
     -- Prunes on multiple nodes
@@ -356,8 +358,8 @@ prune tree depth =
     multiplePrune tree (p:ps) =
       multiplePrune (replaceNodeByMeta tree p) ps
     -- Works through a list of trees
-    pruneTrees :: MetaTTree -> [MetaTTree] -> Int -> [MetaTTree]
-    pruneTrees origTree [] _ = []
+    pruneTrees :: MetaTTree -> [MetaTTree] -> Int -> Set MetaTTree
+    pruneTrees origTree [] _ = empty
     pruneTrees origTree trees depth =
       let
         tree = head trees
@@ -366,7 +368,7 @@ prune tree depth =
       in
         case paths of {
           -- No pathes found -> prune at the root
-          [[]] -> nub $ [(replaceNodeByMeta origTree [])] ;
+          [[]] -> Set.singleton (replaceNodeByMeta origTree []) ;
           _ ->
               let
                 -- generate a new tree by pruning the original (unpruned) tree with all the paths from the pruned trees
@@ -375,14 +377,14 @@ prune tree depth =
                 todoTrees = map (replaceNodeByMeta tree) paths
                in
                  -- Always remove duplicates (algorithm recreates the same trees sometimes), keep the finished tree and continue with the remainig queue of unfinished trees
-                 nub $ finishedTree : (pruneTrees origTree (nub $ tail trees ++ todoTrees) depth)
+                 Set.insert finishedTree (pruneTrees origTree (nub $ tail trees ++ todoTrees) depth)
           }
   in
-    reverse $ (makeMeta tree) : (pruneTrees (makeMeta tree) [(makeMeta tree)] depth)
+    Set.insert (makeMeta tree) (pruneTrees (makeMeta tree) [(makeMeta tree)] depth)
 -- Generates list of all meta leaves
-getMetaLeaves :: TTree -> [CId]
-getMetaLeaves (TMeta id) = [id]
-getMetaLeaves (TNode _ _ trees) = concat $ map getMetaLeaves trees
+getMetaLeaves :: TTree -> Set CId
+getMetaLeaves (TMeta id) = Set.singleton id
+getMetaLeaves (TNode _ _ trees) = Set.unions $ map getMetaLeaves trees
 
 -- Generates list of all pathes to metas
 getMetaPaths :: TTree -> [(Path,CId)]
@@ -415,11 +417,11 @@ applyRule :: MetaTTree -> Rule -> [Path] -> MetaTTree
 applyRule tree@(MetaTTree oldMetaTree oldSubTrees) rule@(Function name ftype@(Fun cat cats)) (path:pathes) =
   let
     newMetaSubTree = (TNode name ftype (map (TMeta) cats)) -- Tree converted from the rule
-    newSubTrees = map (\(subPath,id) -> (path ++ subPath, (TMeta id))) (getMetaPaths newMetaSubTree) -- Convert list of meta categories to list of TMeta-trees and extended paths that can be used in MetaTrees
+    newSubTrees = fromList $ map (\(subPath,id) -> (path ++ subPath, (TMeta id))) (getMetaPaths newMetaSubTree) -- Convert list of meta categories to list of TMeta-trees and extended paths that can be used in MetaTrees
     newTree = (replaceNode (metaTree tree) path newMetaSubTree) -- Get new tree by replacing a meta given by path with the new rule
    in
     -- Combine to new MetaTTree and continue applying until no more paths exist
-    applyRule (MetaTTree newTree (oldSubTrees ++ newSubTrees)) rule pathes
+    applyRule (MetaTTree newTree (Set.union oldSubTrees newSubTrees)) rule pathes
 applyRule tree rule [] = tree
 
 -- Apply a rule to a meta tree generating all possible new meta trees
@@ -437,7 +439,7 @@ combine tree@(MetaTTree oldMetaTree oldSubTrees) rule =
             -- Apply rule to the pathes and then split up the MetaTTree into the main tree and the subtrees
             (MetaTTree newMetaTree intermSubTrees) = applyRule tree rule pathes
             -- Do some filtering to remove all subtrees that are now replaced by the new rules
-            newSubTrees = nub $ filter (\(p,_) -> let st = selectNode newMetaTree p in (isJust st) && (isMeta $ fromJust st)) (intermSubTrees ++ oldSubTrees) 
+            newSubTrees = Set.filter (\(p,_) -> let st = selectNode newMetaTree p in (isJust st) && (isMeta $ fromJust st)) (Set.union intermSubTrees oldSubTrees) 
           in
             -- Recombine to a new tree
             (MetaTTree newMetaTree newSubTrees)
@@ -451,14 +453,14 @@ extendTree grammar tree =
       -- Split up MetaTTree
       mTree :: TTree
       mTree = metaTree tree
-      sTrees :: [(Path,TTree)]
+      sTrees :: Set (Path,TTree)
       sTrees = subTrees tree
       -- Get all meta-leaves ...
-      metaLeaves :: [CId]
-      metaLeaves = nub $ getMetaLeaves mTree
+      metaLeaves :: Set CId
+      metaLeaves = getMetaLeaves mTree
       -- ... and grammar rules for them
       rules :: [Rule]
-      rules = getRules grammar metaLeaves
+      rules = getRules grammar $ toList metaLeaves
   in
     -- Combine tree with the rules
     nub $ concat $ map (combine tree) rules
@@ -478,7 +480,7 @@ generate grammar cat depth =
              -- Continue and count down depth
              oldTrees ++ (loop (count - 1) newTrees)
         -- Generate basic tree from startcta
-        startTree = MetaTTree (TMeta cat) [([],(TMeta cat))]
+        startTree = MetaTTree (TMeta cat) $ Set.singleton ([],(TMeta cat))
     in
       -- Loop depth times
       nub $ loop depth [startTree]
@@ -511,20 +513,20 @@ match prunedTree@(MetaTTree pMetaTree pSubTrees) generatedTree@(MetaTTree gMetaT
   let
     -- Get all the meta categories from the generated MetaTTree (more speficically from the subTree part)
     replaceCats :: [CId] 
-    replaceCats = map (\(_,(TMeta cat)) -> cat) gSubTrees
+    replaceCats = map (\(_,(TMeta cat)) -> cat) $ toList gSubTrees
     -- Find the matching subtrees in the pruned tree
-    replaceSubTrees :: [(Path,TTree)]
-    replaceSubTrees = filter (\(_,t) -> isInfixOf [getTreeCat t] replaceCats) pSubTrees
+    replaceSubTrees :: Set (Path,TTree)
+    replaceSubTrees = Set.filter (\(_,t) -> isInfixOf [getTreeCat t] replaceCats) pSubTrees
     -- Get all possible combinations of them
     combinations :: [[(Path,TTree)]]
-    combinations = powerList replaceSubTrees
+    combinations = powerList $ toList $ replaceSubTrees
     -- Tiny wrapper to extract the second part of the tuples
     extractTrees :: [(Path,TTree)] -> [TTree]
     extractTrees trees =
       map snd trees
     -- Pack the parameters and results into one tuple - the generated tree, the pruned tree, the trees used to match the tree, and the removed subtrees
     tempResults :: [(TTree,TTree,[TTree],[TTree])]
-    tempResults = map (\replaceTrees -> let deletedTrees = (extractTrees pSubTrees \\ extractTrees replaceTrees) in (gMetaTree,pMetaTree,extractTrees replaceTrees,deletedTrees)) combinations
+    tempResults = map (\replaceTrees -> let deletedTrees = (extractTrees (toList pSubTrees) \\ extractTrees replaceTrees) in (gMetaTree,pMetaTree,extractTrees replaceTrees,deletedTrees)) combinations
     -- Combine the new possible trees
     newTrees :: [TTree]
     newTrees = map (\(p1,_,p3,_) -> combineTrees p1 p3) tempResults

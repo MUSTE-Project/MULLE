@@ -6,7 +6,7 @@ import Data.List
 import Test.HUnit.Text
 import Test.HUnit.Base
 import System.Random
-
+import Data.Set (Set,fromList,toList,empty)
 randomize :: StdGen -> [a] -> [a]
 randomize _ [] = []
 randomize gen list =
@@ -162,16 +162,15 @@ mt11 =
        (TMeta (mkCId "B"))
     ]
    )
-   ([([0], (TNode (mkCId "a") (Fun (mkCId "A") []) [])),
-     ([1], (TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])
-            [
-              (TNode (mkCId "b") (Fun (mkCId "B") []) []),
-              (TNode (mkCId "c") (Fun (mkCId "C") []) [])
-            ]
-           )
-     )
-    ]
-   )
+   $ fromList [([0], (TNode (mkCId "a") (Fun (mkCId "A") []) [])),
+               ([1], (TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])
+                      [
+                        (TNode (mkCId "b") (Fun (mkCId "B") []) []),
+                        (TNode (mkCId "c") (Fun (mkCId "C") []) [])
+                      ]
+                     )
+               )
+              ]
   )
 mt12 =
   (MetaTTree
@@ -186,7 +185,7 @@ mt12 =
       (TNode (mkCId "b") (Fun (mkCId "B") []) [])
     ]
    )
-   [([0,0], (TMeta (mkCId "A"))),
+   $ fromList [([0,0], (TMeta (mkCId "A"))),
     ([0,1], (TMeta (mkCId "B")))
    ]
   )
@@ -218,7 +217,7 @@ mt21 =
       (TMeta (mkCId "B"))
     ]
    )
-   [
+   $ fromList [
      ([0], (TNode (mkCId "a") (Fun (mkCId "A") []) [])),
      ([1], (TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"), (mkCId "C")])
             [
@@ -237,7 +236,7 @@ mt22 =
       (TNode (mkCId "b") (Fun (mkCId "B") []) [])
     ]
    )
-   [
+   $ fromList [
      ([0], (TMeta (mkCId "A")))
    ]
   )
@@ -264,22 +263,22 @@ test_hu_prune =
   do
     putStrLn "Check prune Test"
     let tree = (read "{f:(A -> B -> A) {a:A} {g:B {b:B} {c:C}}}") :: TTree
-    let result = [(MetaTTree (read "{?A}") [([], read "{f:(A -> B -> A) {a:A} {g:B {b:B} {c:C}}}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {?A} {?B}}") [([0], read "{a:A}"), ([1], read "{g:(B -> C -> B) {b:B} {c:C}}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {?B}}") [([1], read "{g:(B -> C -> B) {b:B} {c:C}}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {?C}}}") [([0], read "{a:A}"), ([1,0], read "{b:B}"), ([1,1], read "{c:C}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {b:B} {?C}}}") [([0], read "{a:A}"), ([1,1], read "{c:C}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {c:C}}}") [([0], read "{a:A}"), ([1,0], read "{b:B}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {b:B} {c:C}}}") [([0], read "{a:A}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {?B} {?C}}}") [([1,0], read "{b:B}"), ([1,1], read "{c:C}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {?C}}}") [([1,1], read "{c:C}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {?B} {c:C}}}") [([1,0], read "{b:B}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {c:C}}}") [])
+    let result = fromList $ [(MetaTTree (read "{?A}") $ fromList [([], read "{f:(A -> B -> A) {a:A} {g:B {b:B} {c:C}}}")]),
+                  (MetaTTree (read "{f:(A -> B -> A) {?A} {?B}}") $ fromList [([0], read "{a:A}"), ([1], read "{g:(B -> C -> B) {b:B} {c:C}}")]),
+                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {?B}}") $ fromList [([1], read "{g:(B -> C -> B) {b:B} {c:C}}")]),
+                  (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {?C}}}") $ fromList [([0], read "{a:A}"), ([1,0], read "{b:B}"), ([1,1], read "{c:C}")]),
+                  (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {b:B} {?C}}}") $ fromList [([0], read "{a:A}"), ([1,1], read "{c:C}")]),
+                  (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {c:C}}}") $ fromList [([0], read "{a:A}"), ([1,0], read "{b:B}")]),
+                  (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {b:B} {c:C}}}") $ fromList [([0], read "{a:A}")]),
+                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {?B} {?C}}}") $ fromList [([1,0], read "{b:B}"), ([1,1], read "{c:C}")]),
+                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {?C}}}") $ fromList [([1,1], read "{c:C}")]),
+                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {?B} {c:C}}}") $ fromList [([1,0], read "{b:B}")]),
+                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {c:C}}}") empty)
                  ]
-        sorted1 = sort $ prune tree 2
-        sorted2 = sort $ result
+        sorted1 = prune tree 2
+        sorted2 = result
     --putStrLn $ show (prune tree 2)
-    runTestTT ((show sorted1) ~?= (show sorted2)) -- FIXME matches with show but not without
+    runTestTT ((sorted1) ~?= (sorted2)) -- FIXME matches with show but not without
     
 -- grammar = [("f", "A", ["A","B"]), ("g", "B", ["B","C"]),
 --            ("a", "A", []), ("b", "B", []), ("c", "C", [])]
@@ -307,16 +306,16 @@ grammar = Grammar (mkCId "A")
 test_hu_generate =
   do
     putStrLn "Check generate Test 1"
-    let result= [(MetaTTree (read "{?A}") [([], read "{?A}")]),
-                 (MetaTTree (read "{a:A}") []),
-                 (MetaTTree (read "{f:A {?A} {?B}}") [([0], read "{?A}"), ([1], read "{?B}")]),
-                 (MetaTTree (read "{f:A {a:A} {?B}}") [([1], read "{?B}")]),
-                 (MetaTTree (read "{f:A {f:A {?A} {?B}} {?B}}") [([0,0], read "{?A}"), ([0,1], read "{?B}"), ([1], read "{?B}")]),
-                 (MetaTTree (read "{f:A {?A} {b:B}") [([0], read "{?A}")]),
-                 (MetaTTree (read "{f:A {a:A} {b:B}}") []),
-                 (MetaTTree (read "{f:A {f:A {?A} {?B}} {b:B}}") [([0,0], read "{?A}"), ([0,1], read "{?B}")]),
-                 (MetaTTree (read "{f:A {?A} {b:B}}") [([0], read "{?A}")]),
-                 (MetaTTree (read "{f:A {a:A} {g:B {?B} {?C}}}") [([1,0], read "{b:B}"), ([1,1], read "{c:C}")])
+    let result= [(MetaTTree (read "{?A}") $ fromList [([], read "{?A}")]),
+                 (MetaTTree (read "{a:A}") empty),
+                 (MetaTTree (read "{f:A {?A} {?B}}") $ fromList [([0], read "{?A}"), ([1], read "{?B}")]),
+                 (MetaTTree (read "{f:A {a:A} {?B}}") $ fromList [([1], read "{?B}")]),
+                 (MetaTTree (read "{f:A {f:A {?A} {?B}} {?B}}") $ fromList [([0,0], read "{?A}"), ([0,1], read "{?B}"), ([1], read "{?B}")]),
+                 (MetaTTree (read "{f:A {?A} {b:B}") $ fromList [([0], read "{?A}")]),
+                 (MetaTTree (read "{f:A {a:A} {b:B}}") empty),
+                 (MetaTTree (read "{f:A {f:A {?A} {?B}} {b:B}}") $ fromList [([0,0], read "{?A}"), ([0,1], read "{?B}")]),
+                 (MetaTTree (read "{f:A {?A} {b:B}}") $ fromList [([0], read "{?A}")]),
+                 (MetaTTree (read "{f:A {a:A} {g:B {?B} {?C}}}") $ fromList [([1,0], read "{b:B}"), ([1,1], read "{c:C}")])
                 ]:: [MetaTTree]
     runTestTT ((Tree.generate grammar (mkCId "A") 2) ~?= result)
     
@@ -327,8 +326,8 @@ test_hu_generate =
 test_hu_match1 =
     do
       putStrLn "Check match Test 1"
-      let tree1 = (MetaTTree (read "{f:(A -> B -> A) {?A} {?B}}") [([0], read "{a:A}"), ([1], read "{g:(B -> C -> B) {b:B} {c:C}}")])
-      let tree2 = (MetaTTree (read "{f:(A -> B -> A) {f:(A -> B -> A) {?A} {?B}} {b:B}}") [([0,0], read "{?A}"), ([0,1], read "{?B}")])
+      let tree1 = (MetaTTree (read "{f:(A -> B -> A) {?A} {?B}}") $ fromList [([0], read "{a:A}"), ([1], read "{g:(B -> C -> B) {b:B} {c:C}}")])
+      let tree2 = (MetaTTree (read "{f:(A -> B -> A) {f:(A -> B -> A) {?A} {?B}} {b:B}}") $ fromList [([0,0], read "{?A}"), ([0,1], read "{?B}")])
       let result = (1+3, read "{f:(A -> B -> A) {f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {c:C}}} {b:B}}") :: (Cost,TTree)
       runTestTT ((head $ match tree1 tree2) ~?= result)
 -- match ({{f:A ?A ?B}}, [([0], {{a:A}}), ([1], {{g:B {b:B} {c:C}}})])
@@ -338,8 +337,8 @@ test_hu_match1 =
 test_hu_match2 =
     do
       putStrLn "Check match Test 2"
-      let tree1 = (MetaTTree (read "{f:A {?A} {?B}}") [([0], read "{a:A}"), ([1], read "{g:B {b:B} {c:C}}")])
-      let tree2 = (MetaTTree (read "{f:A {?A} {b:B}}") [([0], read "{?A}")])
+      let tree1 = (MetaTTree (read "{f:A {?A} {?B}}") $ fromList [([0], read "{a:A}"), ([1], read "{g:B {b:B} {c:C}}")])
+      let tree2 = (MetaTTree (read "{f:A {?A} {b:B}}") $ fromList [([0], read "{?A}")])
       let result = (1+2+3, read "{f:A {a:A} {b:B}}") :: (Cost,TTree)
 
       runTestTT ((head $ match tree1 tree2) ~?= result)
@@ -369,20 +368,20 @@ instance Arbitrary TTree where
       let generated = Tree.generate grammar (mkCId "A") 5
       elements (map metaTree generated)
 
-prop_metaTest :: TTree -> Bool
-prop_metaTest tree =
-  (getMetaLeaves tree) == map snd (getMetaPaths tree)
-test_qc_meta1 =
-  quickCheckWith stdArgs { maxSuccess = 500 } prop_metaTest
+-- prop_metaTest :: TTree -> Bool
+-- prop_metaTest tree =
+--   (getMetaLeaves tree) == map snd (getMetaPaths tree)
+-- test_qc_meta1 =
+--   quickCheckWith stdArgs { maxSuccess = 500 } prop_metaTest
 
 -- prop_generateTest :: Int -> Bool
 -- prop_generateTest depth =
 --   (Tree.generate g1 (mkCId "A") depth) ==  (generate' g1 (mkCId "A") depth)
 
-quickcheck_tests =
-  do
-    putStrLn "Quickcheck MetaEquality"
-    test_qc_meta1
+-- quickcheck_tests =
+--   do
+--     putStrLn "Quickcheck MetaEquality"
+--     test_qc_meta1
 -- Main
 main =
   do
