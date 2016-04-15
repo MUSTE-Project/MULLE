@@ -428,8 +428,10 @@ applyRule tree rule [] = tree
 combine :: MetaTTree -> Int -> Rule -> Set MetaTTree
 combine tree@(MetaTTree oldMetaTree oldSubTrees) depth rule =
   let
+    ruleCat :: CId
     ruleCat = getRuleCat rule
     -- Find all meta-nodes that match the category of the rule
+    filteredMetas :: [(Path,CId)]
     filteredMetas = filter (\(p,c) -> ruleCat == c) $ getMetaPaths (metaTree tree)
     -- Generate all possible combinations (powerset)
     pathesLists = powerList $ map fst filteredMetas
