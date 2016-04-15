@@ -404,13 +404,13 @@ getMetaPaths tree =
     withPath tree []
     
 -- Find all rules in grammar that have a certain category
-getRules :: Grammar -> [CId] -> [Rule]
+getRules :: Grammar -> [CId] -> Set Rule
 getRules grammar cats =
     let
       rs = rules grammar
     in
       -- Convert rules from GF format to our only one
-      concat $ map (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rs) cats
+      fromList $ concat $ map (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rs) cats
 
 -- expands a tree according to a rule and a path
 applyRule :: MetaTTree -> Rule -> [Path] -> MetaTTree
@@ -425,8 +425,8 @@ applyRule tree@(MetaTTree oldMetaTree oldSubTrees) rule@(Function name ftype@(Fu
 applyRule tree rule [] = tree
 
 -- Apply a rule to a meta tree generating all possible new meta trees
-combine :: MetaTTree -> Rule -> [MetaTTree]
-combine tree@(MetaTTree oldMetaTree oldSubTrees) rule =
+combine :: MetaTTree -> Int -> Rule -> Set MetaTTree
+combine tree@(MetaTTree oldMetaTree oldSubTrees) depth rule =
   let
     ruleCat = getRuleCat rule
     -- Find all meta-nodes that match the category of the rule
@@ -434,7 +434,7 @@ combine tree@(MetaTTree oldMetaTree oldSubTrees) rule =
     -- Generate all possible combinations (powerset)
     pathesLists = powerList $ map fst filteredMetas
   in
-    map (\pathes ->
+    fromList $ map (\pathes ->
           let
             -- Apply rule to the pathes and then split up the MetaTTree into the main tree and the subtrees
             (MetaTTree newMetaTree intermSubTrees) = applyRule tree rule pathes
@@ -447,8 +447,8 @@ combine tree@(MetaTTree oldMetaTree oldSubTrees) rule =
     
 
 -- Extend a tree by applying all possible rules once
-extendTree :: Grammar -> MetaTTree -> [MetaTTree]
-extendTree grammar tree =
+extendTree :: Grammar -> MetaTTree -> Int -> Set MetaTTree
+extendTree grammar tree depth =
   let
       -- Split up MetaTTree
       mTree :: TTree
@@ -459,14 +459,14 @@ extendTree grammar tree =
       metaLeaves :: Set CId
       metaLeaves = getMetaLeaves mTree
       -- ... and grammar rules for them
-      rules :: [Rule]
+      rules :: Set Rule
       rules = getRules grammar $ toList metaLeaves
   in
     -- Combine tree with the rules
-    nub $ concat $ map (combine tree) rules
+    trace (show rules) $ Set.unions $ toList $ Set.map (combine tree depth) rules
 
--- Generates a new MetaTTree with given root-category and height
-generate :: Grammar -> CId -> Int -> [MetaTTree]
+-- Generates a new MetaTTree with given root-category and maximum height
+generate :: Grammar -> CId -> Int -> Set MetaTTree
 generate grammar cat depth =
     let
         loop :: Int -> [MetaTTree] -> [MetaTTree]
