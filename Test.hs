@@ -306,17 +306,18 @@ grammar = Grammar (mkCId "A")
 test_hu_generate =
   do
     putStrLn "Check generate Test 1"
-    let result= [(MetaTTree (read "{?A}") $ fromList [([], read "{?A}")]),
+    let result= fromList [(MetaTTree (read "{?A}") $ fromList [([], read "{?A}")]),
                  (MetaTTree (read "{a:A}") empty),
                  (MetaTTree (read "{f:A {?A} {?B}}") $ fromList [([0], read "{?A}"), ([1], read "{?B}")]),
                  (MetaTTree (read "{f:A {a:A} {?B}}") $ fromList [([1], read "{?B}")]),
                  (MetaTTree (read "{f:A {f:A {?A} {?B}} {?B}}") $ fromList [([0,0], read "{?A}"), ([0,1], read "{?B}"), ([1], read "{?B}")]),
                  (MetaTTree (read "{f:A {?A} {b:B}") $ fromList [([0], read "{?A}")]),
+                 (MetaTTree (read "{f:A {?A} {g:B {?B} {?C}}}") $ fromList [([0], read "{?A}"),([1,0], read "{?B}"),([1,1], read "{?C}")]),
                  (MetaTTree (read "{f:A {a:A} {b:B}}") empty),
+                 (MetaTTree (read "{f:A {a:A} {g:B {?B} {?C}}}") $ fromList [([1,0], read "{?B}"),([1,1], read "{?C}")]),
                  (MetaTTree (read "{f:A {f:A {?A} {?B}} {b:B}}") $ fromList [([0,0], read "{?A}"), ([0,1], read "{?B}")]),
-                 (MetaTTree (read "{f:A {?A} {b:B}}") $ fromList [([0], read "{?A}")]),
-                 (MetaTTree (read "{f:A {a:A} {g:B {?B} {?C}}}") $ fromList [([1,0], read "{b:B}"), ([1,1], read "{c:C}")])
-                ]:: [MetaTTree]
+                 (MetaTTree (read "{f:A {f:A {?A} {?B}} {g:B {?B} {?C}}}") $ fromList [([0,0], read "{?A}"), ([0,1], read "{?B}"),([1,0], read "{?B}"), ([1,1], read "{?C}")])
+                ]:: Set MetaTTree
     runTestTT ((Tree.generate grammar (mkCId "A") 2) ~?= result)
     
 -- match ({{f:A ?A ?B}}, [([0], {{a:A}}), ([1], {{g:B {b:B} {c:C}}})])
