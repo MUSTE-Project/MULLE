@@ -505,7 +505,7 @@ generate grammar cat depth =
         extended = extendTree grammar tree depth -- these are already part of the result
         activeTrees = trees ++ (filter (filterTree depth) $ toList (Set.delete tree extended))
       in
-        trace (show activeTrees) $ Set.union (Set.singleton tree) $ Set.union extended (loop activeTrees)
+        Set.union (Set.singleton tree) $ Set.union extended (loop activeTrees)
   in
     loop [(MetaTTree (TMeta cat) (Set.singleton ([], (TMeta cat))))]
     
