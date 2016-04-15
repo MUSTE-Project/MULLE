@@ -1,3 +1,5 @@
+{- | Implements several tests to control the validy of the program
+-}
 import Test.QuickCheck
 import PGF
 import Tree
@@ -19,33 +21,27 @@ randomize gen list =
 -- Basic tests
 -- Test read
 -- read equality Test 1
-{-
-  reads the tree as a string and compares with the data structure
-  simple tree
--}
 t1 = (TNode (mkCId "t1") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "a") (Fun (mkCId "A") []) []),(TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")]) [(TNode (mkCId "b") (Fun (mkCId "B") []) []),(TNode (mkCId "c") (Fun (mkCId "C") []) [])])])
 ts1 = "{t1:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {c:C}}}"
+{- | The test 'test_hu_read1' reads the tree as a string and compares with the data structure, a simple tree
+-}
 test_hu_read1 =
   do
     putStrLn "Check read equality Test 1"
     runTestTT (t1 ~?= (read ts1 :: TTree))
 
 -- read equality Test 2
-{-
-  reads the tree as a string and compares with the data structure
-  quite deep tree
--}
 t2 = (TNode (mkCId "t2") (Fun (mkCId "F") [(mkCId "A"), (mkCId "G")]) [(TMeta (mkCId "A")), (TNode (mkCId "g") (Fun (mkCId "G") [(mkCId "B"), (mkCId "H")]) [(TMeta (mkCId "B")), (TNode (mkCId "h") (Fun (mkCId "H") [(mkCId "C"), (mkCId "I")]) [(TMeta (mkCId "C")), (TNode (mkCId "i") (Fun (mkCId "I") [(mkCId "D"),(mkCId "E")]) [(TMeta (mkCId "D")), (TMeta (mkCId "E"))])])])])
 ts2 = "{t2:(A -> G -> F) {?A} {g:(B -> H -> G) {?B} {h:(C -> I -> H) {?C} {i:(D -> E -> I) {?D} {?E}}}}}"
+{- | The test 'test_hu_read2' reads the tree as a string and compares with the data structure, a quite deep tree
+-}
 test_hu_read2 =
   do
     putStrLn "Check read equality Test 2"
     runTestTT (t2 ~?= (read ts2 :: TTree))
 
 -- read equality Test 3
-{-
-  reads the tree as a string and compares with the data structure
-  all subtrees are metas
+{- | The test 'test_hu_read3' reads the tree as a string and compares with the data structure, all subtrees are metas
 -}
 t4 = (TNode (mkCId "t4") (Fun (mkCId "A") [(mkCId "A"),(mkCId "A")]) [(TMeta (mkCId "A")), (TMeta (mkCId "A"))])
 ts4 = "{t4:(A -> A -> A) {?A} {?A}}"

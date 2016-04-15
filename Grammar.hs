@@ -1,28 +1,29 @@
 {-# LANGUAGE FlexibleInstances #-}
+{- | This Module gives an abstraction from the PGF format provided by GF -}
 module Grammar where
 import PGF
 import PGF.Internal
 import Data.Maybe
 
--- first CId is the the result category and [CId] are the parameter categories
+-- | Type 'FunType' consists of a CId that is the the result category and [CId] are the parameter categories
 data FunType = Fun CId [CId] | NoType deriving (Ord)
 
--- CId is the function name
+-- | Type 'Rule' consists of a CId as the function name and a 'FunType' as the Type
 data Rule = Function CId FunType deriving (Ord,Eq)
 
--- A Grammar consists of a start categorie and a list of rules
+-- | Type 'Grammar' consists of a start categorie and a list of rules
 data Grammar = Grammar {
   startcat :: CId,
   rules :: [Rule]
   }
 
--- A grammar is in the Show class
+-- | A 'Grammar' is in the Show class
 instance Show Grammar where
   show (Grammar startcat rules) =
     "Startcat: " ++ show startcat ++ "\nRules:\n " ++
     (unwords $ map show rules)
 
--- A funtype is in the Show class
+-- | A 'FunType' is in the Show class
 instance Show FunType where
   show (Fun cat []) =
     "(" ++ show cat ++ ")"
@@ -30,6 +31,7 @@ instance Show FunType where
     "(" ++ (foldl (\a -> \b -> a ++ " -> " ++ (show b)) (show $ head cats) (tail cats) ++ " -> " ++ show cat) ++ ")"
   show (NoType) = "()"
 
+-- | The function 'readId' is a helper to read a 'FunType'
 readId :: String -> Maybe (CId,String)
 readId str =
   let
@@ -37,7 +39,7 @@ readId str =
   in
     if result == [] then Nothing else Just $ head result
   
--- A funtype is in the Read class
+-- | A 'FunType' is in the Read class
 instance Read FunType where
   readsPrec _ sType =
     let
@@ -63,19 +65,19 @@ instance Read FunType where
     in
       [((Fun (last cats) (init cats)),snd result)]
 
--- A funtype is a member of Eq class
+-- | A 'FunType' is a member of Eq class
 {-
   Function types are equal if all hypothesises and the resulting category are equal
 -}
 instance Eq FunType where
   (==) (Fun id1 pre1) (Fun id2 pre2) = (id1 == id2) && (pre1 == pre2) 
 
--- A rule is member of the Show class
+-- | A 'Rule' is member of the Show class
 instance Show Rule where
   show (Function name funtype) =
     show name ++ " : " ++ show funtype ;
 
--- Given a function name extracts its type from a grammar
+-- | The function 'getFunType' extracts the function type from a grammar given a function name
 getFunType :: PGF -> CId -> FunType
 getFunType grammar id =
   let
@@ -85,15 +87,15 @@ getFunType grammar id =
   in
     (Fun typeid cats) ;
 
--- Extracts the result category from a function type
+-- | The function 'getFunCat' extracts the result category from a function type
 getFunCat :: FunType -> CId
 getFunCat (Fun cat _) = cat
 
--- Extracts the result category of a rule
+-- | The function 'getRuleCat' extracts the result category of a rule
 getRuleCat :: Rule -> CId
 getRuleCat (Function _ funType) = getFunCat funType 
 
--- Transform a PGF grammar to a simpler data structure
+-- | The function 'pgfToGrammar' transforms a PGF grammar to a simpler grammar data structure
 pgfToGrammar :: PGF -> Grammar
 pgfToGrammar pgf =
   let

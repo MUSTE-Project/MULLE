@@ -1,5 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
-module Tree where
+{- | This module provides implementations of different kinds of syntax trees
+-}
+module Tree (MetaTTree,TTree,Path,Pos,prune,generate,match) where
 import PGF hiding (showType)
 import PGF.Internal hiding (showType)
 import Data.Maybe
@@ -10,29 +12,29 @@ import Data.Ord
 import Grammar
 import Debug.Trace
 
--- Generic class for trees
+-- | Generic class for trees
 class TreeC t where
   showTree :: t -> String
   selectNode :: t -> Path -> Maybe t
   selectBranch :: t -> Int -> Maybe t
 
--- Cost for matching two meta trees
+-- | Cost for matching two meta trees
 type Cost = Int
 
--- Position in a path
+-- | Position in a path
 type Pos = Int
 
--- Path in a tree
+-- | Path in a tree
 type Path = [Pos]
 
--- Rename GF abstract syntax tree (from PGF)
+-- | Rename GF abstract syntax tree (from PGF)
 type GFAbsTree = Tree
 
--- A generic tree with types
+-- | A generic tree with types
 data TTree = TNode CId FunType [TTree] -- Regular node consisting of a function name, function type and possible subtrees
            | TMeta CId -- A meta tree consisting just of a category type
 
--- A meta tree - tuple of a generic tree with types and a list of possibly attachable subtrees
+-- | A meta tree - tuple of a generic tree with types and a list of possibly attachable subtrees
 data MetaTTree = MetaTTree {
   -- A TTree that can contain meta nodes
   metaTree :: TTree,
@@ -40,7 +42,7 @@ data MetaTTree = MetaTTree {
   subTrees :: Set (Path,TTree)
   }
 
--- A GF abstract syntax tree is in TreeC class
+-- | A GF abstract syntax tree is in TreeC class
 instance TreeC GFAbsTree where
   showTree = show
   selectNode t [p] =
@@ -59,7 +61,7 @@ instance TreeC GFAbsTree where
   selectBranch _ _ = Nothing
   
 
--- A generic tree with types is in TreeC class
+-- | A generic tree with types is in TreeC class
 instance TreeC TTree where
   showTree = show
   selectNode t [] = Just t
@@ -76,20 +78,20 @@ instance TreeC TTree where
   selectBranch (TNode _ _ [] ) _ = Nothing
   selectBranch (TNode _ _ trees) i = Just (trees !! i)
 
--- A generic tree with types is in the Show class
+-- | A generic tree with types is in the Show class
 instance Show TTree where
   show (TNode name typ []) = "{"++ (show name) ++ ":"  ++ show typ ++ "}";
   show (TNode name typ children) = "{" ++ (show name) ++ ":" ++ show typ ++ " " ++ ( unwords $ map show children ) ++ "}"
   show (TMeta cat) = "{?" ++ show cat ++ "}"
 
--- Removes a given char at the start of a string if it matches
+-- | The function 'consumeChar' removes a given char at the start of a string if it matches
 consumeChar :: Char -> String -> String
 consumeChar _ [] = []
 consumeChar c str@(c1:rest)
    | c == c1 = rest
    | otherwise = str
 
--- Read wrapper for a function type that returns just the first parse
+-- The function 'readFunType' is a read wrapper for a function type that returns just the first parse
 readFunType :: String -> Maybe (FunType,String)
 readFunType str =
   let
@@ -348,7 +350,7 @@ findPaths maxDepth (TNode _ _ trees) =
      }
 
 
--- Prune all subtrees to a certain depth
+-- | The function 'prune' runes a 'TTree' to a certain depth ans stores all removed subtrees 
 prune :: TTree -> Int -> Set MetaTTree
 prune tree depth =
   let
@@ -465,9 +467,9 @@ extendTree grammar tree depth =
       rules = getRules grammar $ toList metaLeaves
   in
     -- Combine tree with the rules
-    trace (show rules) $ Set.unions $ toList $ Set.map (combine tree depth) rules
+    Set.unions $ toList $ Set.map (combine tree depth) rules
 
--- Generates a new MetaTTree with given root-category and maximum height
+-- | The function 'generate' generates all possible 'MetaTTree's with given root-category up to a maximum height
 generate :: Grammar -> CId -> Int -> Set MetaTTree
 generate grammar cat depth =
 --     let
@@ -529,7 +531,7 @@ combineTrees generatedTree subTrees =
   in
     combineTree generatedTree subTrees
 
--- Combines a pruned tree with a generated tree and gives all these combinations ordered by cost for matching
+-- | The function 'match' combines a pruned tree with a generated tree and gives all these combinations ordered by cost for matching
 match :: MetaTTree -> MetaTTree -> [(Cost, TTree)]
 match prunedTree@(MetaTTree pMetaTree pSubTrees) generatedTree@(MetaTTree gMetaTree gSubTrees) =
   let
