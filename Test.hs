@@ -1,5 +1,6 @@
 {- | Implements several tests to control the validy of the program
 -}
+module Test where
 import Test.QuickCheck
 import PGF
 import Tree
