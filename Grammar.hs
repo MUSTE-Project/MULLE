@@ -5,10 +5,10 @@ import PGF.Internal
 import Data.Maybe
 
 -- first CId is the the result category and [CId] are the parameter categories
-data FunType = Fun CId [CId] | NoType
+data FunType = Fun CId [CId] | NoType deriving (Ord)
 
 -- CId is the function name
-data Rule = Function CId FunType
+data Rule = Function CId FunType deriving (Ord,Eq)
 
 -- A Grammar consists of a start categorie and a list of rules
 data Grammar = Grammar {
