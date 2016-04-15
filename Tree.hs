@@ -505,7 +505,7 @@ generate grammar cat depth =
       in
         trace (show activeTrees) $ Set.union (Set.singleton tree) $ Set.union extended (loop activeTrees)
   in
-    loop [(makeMeta (TMeta cat))]
+    loop [(MetaTTree (TMeta cat) (Set.singleton ([], (TMeta cat))))]
     
 -- Computes the cost for matching trees. It is the sum of nodes in each of the trees plus the sum of the nodes in all deleted trees
 computeCosts :: TTree -> TTree -> [TTree] -> Cost
