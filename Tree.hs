@@ -432,7 +432,7 @@ combine tree@(MetaTTree oldMetaTree oldSubTrees) depth rule =
     ruleCat = getRuleCat rule
     -- Find all meta-nodes that match the category of the rule
     filteredMetas :: [(Path,CId)]
-    filteredMetas = filter (\(p,c) -> ruleCat == c) $ getMetaPaths (metaTree tree)
+    filteredMetas = filter (\(p,c) -> ruleCat == c && length p <= depth - 1) $ getMetaPaths (metaTree tree)
     -- Generate all possible combinations (powerset)
     pathesLists = powerList $ map fst filteredMetas
   in
@@ -470,23 +470,43 @@ extendTree grammar tree depth =
 -- Generates a new MetaTTree with given root-category and maximum height
 generate :: Grammar -> CId -> Int -> Set MetaTTree
 generate grammar cat depth =
-    let
-        loop :: Int -> [MetaTTree] -> [MetaTTree]
-        loop 0 oldTrees = oldTrees
-        loop count oldTrees =
-           let
-             -- Extend all trees in the working list and remove the ones that have a too great height
-               --newTrees = filter (\t -> maxDepth (metaTree t) <= depth) $ (concat $ map (extendTree grammar) oldTrees)
-             newTrees = (concat $ map (extendTree grammar) oldTrees)
-           in
-             -- Continue and count down depth
-             oldTrees ++ (loop (count - 1) newTrees)
-        -- Generate basic tree from startcta
-        startTree = MetaTTree (TMeta cat) $ Set.singleton ([],(TMeta cat))
-    in
-      -- Loop depth times
-      nub $ loop depth [startTree]
-
+--     let
+--         loop :: Int -> [MetaTTree] -> [MetaTTree]
+--         loop 0 oldTrees = oldTrees
+--         loop count oldTrees =
+--            let
+--              -- Extend all trees in the working list and remove the ones that have a too great height
+--                --newTrees = filter (\t -> maxDepth (metaTree t) <= depth) $ (concat $ map (extendTree grammar) oldTrees)
+--              newTrees = (concat $ map (extendTree grammar) oldTrees)
+--            in
+--              -- Continue and count down depth
+--              oldTrees ++ (loop (count - 1) newTrees)
+--         -- Generate basic tree from startcta
+--         startTree = MetaTTree (TMeta cat) $ Set.singleton ([],(TMeta cat))
+--     in
+--       -- Loop depth times
+--       nub $ loop depth [startTree]
+  let
+    -- Filter all trees that cannot be extended either because they grow too big or have no free meta nodes
+    filterTree :: Int -> MetaTTree -> Bool
+    filterTree depth tree =
+      let
+        metaPaths = filter (\(p,c) -> if length p <= depth - 1 then True else False) $ getMetaPaths (metaTree tree)
+      in
+        if metaPaths == [] then False -- No more metas to replace
+        else True
+    -- Generate all trees
+    loop :: [MetaTTree] -> Set MetaTTree
+    loop [] = empty -- no more "active" trees
+    loop (tree:trees) = 
+      let
+        extended = extendTree grammar tree depth -- these are already part of the result
+        activeTrees = trees ++ (filter (filterTree depth) $ toList (Set.delete tree extended))
+      in
+        trace (show activeTrees) $ Set.union (Set.singleton tree) $ Set.union extended (loop activeTrees)
+  in
+    loop [(makeMeta (TMeta cat))]
+    
 -- Computes the cost for matching trees. It is the sum of nodes in each of the trees plus the sum of the nodes in all deleted trees
 computeCosts :: TTree -> TTree -> [TTree] -> Cost
 computeCosts generatedTree prunedTree deletedTrees =
