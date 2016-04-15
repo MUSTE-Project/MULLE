@@ -472,22 +472,6 @@ extendTree grammar tree depth =
 -- | The function 'generate' generates all possible 'MetaTTree's with given root-category up to a maximum height
 generate :: Grammar -> CId -> Int -> Set MetaTTree
 generate grammar cat depth =
---     let
---         loop :: Int -> [MetaTTree] -> [MetaTTree]
---         loop 0 oldTrees = oldTrees
---         loop count oldTrees =
---            let
---              -- Extend all trees in the working list and remove the ones that have a too great height
---                --newTrees = filter (\t -> maxDepth (metaTree t) <= depth) $ (concat $ map (extendTree grammar) oldTrees)
---              newTrees = (concat $ map (extendTree grammar) oldTrees)
---            in
---              -- Continue and count down depth
---              oldTrees ++ (loop (count - 1) newTrees)
---         -- Generate basic tree from startcta
---         startTree = MetaTTree (TMeta cat) $ Set.singleton ([],(TMeta cat))
---     in
---       -- Loop depth times
---       nub $ loop depth [startTree]
   let
     -- Filter all trees that cannot be extended either because they grow too big or have no free meta nodes
     filterTree :: Int -> MetaTTree -> Bool
