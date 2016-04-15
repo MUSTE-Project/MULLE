@@ -366,7 +366,7 @@ hunit_tests =
 instance Arbitrary TTree where
   arbitrary =
     do
-      let generated = Tree.generate grammar (mkCId "A") 5
+      let generated = toList $ Tree.generate grammar (mkCId "A") 5
       elements (map metaTree generated)
 
 -- prop_metaTest :: TTree -> Bool
