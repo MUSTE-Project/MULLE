@@ -544,3 +544,23 @@ match prunedTree@(MetaTTree pMetaTree pSubTrees) generatedTree@(MetaTTree gMetaT
   in
     -- Sort by cost
     sortBy (\(c1,_) (c2,_) -> compare c1 c2) $ zip costs newTrees
+
+
+
+
+-- Code ideas provided by Peter
+    -- tempResults :: [(TTree,TTree,[TTree],[TTree])]
+    -- tempResults = [ (gMetaTree, pMetaTree, extractedTrees, deletedTrees, newTree, cost)
+    --               |
+    --                 replaceTrees <- combinations,
+    --                 let deletedTrees = extractTrees (toList pSubTrees) \\ extractTrees replaceTrees,
+    --                 let extractedTree = extractTrees replaceTrees,
+    --                 let newTree = combineTrees gMetaTree extractedTrees,
+    --                 let cost = computeCosts gMetaTree pMetaTree deletedTrees
+    --               ]
+    -- -- Combine the new possible trees
+    -- newTrees :: [TTree]
+    -- newTrees = map (\(p1,_,p3,_) -> combineTrees p1 p3) tempResults
+    -- -- Compute the costs for each of these trees
+    -- costs :: [Cost]
+    -- costs = map (\(p1,p2,_,p4) -> computeCosts p1 p2 p4) tempResults
