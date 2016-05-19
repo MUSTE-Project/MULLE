@@ -14,12 +14,13 @@ data Rule = Function CId FunType deriving (Ord,Eq)
 -- | Type 'Grammar' consists of a start categorie and a list of rules
 data Grammar = Grammar {
   startcat :: CId,
-  rules :: [Rule]
+  rules :: [Rule],
+  pgf :: PGF
   }
 
 -- | A 'Grammar' is in the Show class
 instance Show Grammar where
-  show (Grammar startcat rules) =
+  show (Grammar startcat rules _) =
     "Startcat: " ++ show startcat ++ "\nRules:\n " ++
     (unwords $ map show rules)
 
@@ -108,6 +109,6 @@ pgfToGrammar pgf =
     -- Get the startcat from the PGF
     (_, startcat, _) = unType (startCat pgf)
   in
-    Grammar startcat rules
+    Grammar startcat rules pgf
 
 
