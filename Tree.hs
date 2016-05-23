@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {- | This module provides implementations of different kinds of syntax trees
 -}
-module Tree (MetaTTree,TTree,Path,Pos,prune,generate,match) where
+module Tree (MetaTTree(..),TTree(..),LTree(..),Path,Pos,prune,generate,match,ttreeToGFAbsTree) where
 import PGF hiding (showType)
 import PGF.Internal hiding (showType)
 import Data.Maybe
@@ -41,6 +41,9 @@ data MetaTTree = MetaTTree {
   -- List of subtrees that can be attached to the meta nodes determinded by the associated path
   subTrees :: Set (Path,TTree)
   }
+
+-- | A labeled tree - just a template to match labels to paths
+data LTree = LNode CId Int [LTree] | LLeaf deriving (Show)
 
 -- | A GF abstract syntax tree is in TreeC class
 instance TreeC GFAbsTree where
