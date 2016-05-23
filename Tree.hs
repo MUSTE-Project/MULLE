@@ -253,7 +253,7 @@ getTreeCat (TNode id typ _) =
     cat
 getTreeCat (TMeta cat) = cat
 
--- Creates a generic tree from an abstract syntax tree
+-- | Creates a generic tree from an abstract syntax tree
 gfAbsTreeToTTree :: PGF -> GFAbsTree -> TTree
 gfAbsTreeToTTree pgf (EFun f) =
   let
@@ -267,7 +267,7 @@ gfAbsTreeToTTree pgf (EApp e1 e2) =
   in
     (TNode name typ (sts ++ [st2]))
 
--- Creates a GF abstract syntax Tree from a generic tree
+-- | Creates a GF abstract syntax Tree from a generic tree
 ttreeToGFAbsTree :: TTree -> GFAbsTree
 ttreeToGFAbsTree tree =
   let
