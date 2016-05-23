@@ -4,10 +4,52 @@
 module Muste where
 import qualified Data.Set as S
 import Tree
+import Grammar
+import PGF
+import Debug.Trace
+import Data.Maybe
 
 -- | The 'linearizeTree' function linearizes a MetaTTree to a list of tokens and pathes to the nodes that create it
-linearizeTree :: MetaTTree -> [(String,Path)]
-linearizeTree tree = [] -- TODO
+linearizeTree :: Grammar -> Language -> MetaTTree -> [(String,Path)]
+linearizeTree grammar lang tree = -- TODO
+  let
+    getPath :: Int -> LTree -> Path
+    getPath id ltree = 
+      let
+        getPathWithPos :: Int -> Pos -> LTree -> Path
+        getPathWithPos id pos (LLeaf) = []
+        getPathWithPos id pos (LNode cat nid []) = if nid == id then [pos] else []
+        getPathWithPos id pos (LNode cat nid ns) =
+          if
+            id == nid then [pos]
+          else
+            let
+              path = head $ map (\(pos,node) -> getPathWithPos id pos node) (zip [0..(length ns)] ns)
+            in
+              if path /= [] then pos:path
+              else []
+      in
+        getPathWithPos id 0 ltree
+    idToPath :: Int -> TTree -> Path
+    idToPath id ttree =
+      let
+        labeledTree =  ttreeToLTree ttree
+      in
+        getPath id labeledTree
+    doSomethingWithBrackets :: BracketedString -> [(String,Path)]
+    doSomethingWithBrackets (Bracket _ fid _ _ _ [(Leaf token)]) =
+      [(token,idToPath fid ttree)]
+      -- [(token,[fid])]
+    doSomethingWithBrackets (Bracket _ fid _ _ _ bss) =
+      concat $ map doSomethingWithBrackets bss
+    ttree = metaTree tree
+    abstree = ttreeToGFAbsTree ttree
+    pgfGrammar = pgf grammar
+    brackets = bracketedLinearize pgfGrammar lang abstree
+  in
+    
+    --trace (showBracketedString $ head brackets) $
+    doSomethingWithBrackets $ head brackets
 
 -- | The 'linearizeList' functions linearizes a token list to a string
 linearizeList :: [(String,Path)] -> Bool -> String
