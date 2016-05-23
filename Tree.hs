@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {- | This module provides implementations of different kinds of syntax trees
 -}
-module Tree (MetaTTree(..),TTree(..),LTree(..),Path,Pos,prune,generate,match,ttreeToGFAbsTree) where
+module Tree (MetaTTree(..),TTree(..),LTree(..),Path,Pos,prune,generate,match,ttreeToGFAbsTree,ttreeToLTree) where
 import PGF hiding (showType)
 import PGF.Internal hiding (showType)
 import Data.Maybe
@@ -295,6 +295,35 @@ ttreeToGFAbsTree tree =
       in (label2,mkApp name [tree,trees])
     in snd $ convert tree 0
 
+-- | Creates a labeled LTree from a TTree
+ttreeToLTree :: TTree -> LTree
+ttreeToLTree tree =
+  let
+    -- Convert structure without caring about labels
+    convert (TMeta cat) = LNode cat (-1) [(LNode (mkCId "_") (-1) [LLeaf])]
+    convert (TNode _ (Fun cat _) []) = LNode cat (-1) []
+    convert (TNode _ (Fun cat _) ts) = LNode cat (-1) (map convert ts)
+    -- Update the labels in a tree
+    update :: Int -> LTree -> (Int, LTree)
+    update pos (LLeaf) = (pos, LLeaf)
+    update pos (LNode cat id []) = (pos + 1, (LNode cat pos []))
+    update pos (LNode cat id ns) =
+      let
+        (npos,ults) = updates pos ns
+      in
+        (npos + 1, LNode cat npos ults)
+    -- Update a list of trees
+    updates :: Int -> [LTree] -> (Int, [LTree])
+    updates pos [] = (pos, [])
+    updates pos (lt:lts) =
+      let
+        (npos1,ult) = update pos lt
+        (npos,ults) = (updates npos1 lts)
+      in
+        (npos, ult:ults)
+    
+  in
+    snd $ update 0 $ convert tree
 -- Gets the length of the maximum path between root and a leaf (incl. meta nodes) of a tree
 maxDepth :: TTree -> Int
 maxDepth (TMeta _) = 1
