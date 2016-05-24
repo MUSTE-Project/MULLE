@@ -8,11 +8,13 @@ import Grammar
 import PGF
 import Debug.Trace
 import Data.Maybe
+import Data.List
 
 -- | The 'linearizeTree' function linearizes a MetaTTree to a list of tokens and pathes to the nodes that create it
 linearizeTree :: Grammar -> Language -> MetaTTree -> [(String,Path)]
 linearizeTree grammar lang tree = -- TODO
   let
+        -- Finds a path to a token in a ltree
     getPath :: Int -> LTree -> Path
     getPath id ltree = 
       let
@@ -24,32 +26,32 @@ linearizeTree grammar lang tree = -- TODO
             id == nid then [pos]
           else
             let
-              path = head $ map (\(pos,node) -> getPathWithPos id pos node) (zip [0..(length ns)] ns)
+              path = head $ sortBy (\a -> \b -> compare b a) $ map (\(pos,node) -> getPathWithPos id pos node) (zip [0..(length ns)] ns)
             in
               if path /= [] then pos:path
               else []
       in
         getPathWithPos id 0 ltree
+    -- Finds a path to a token in a ttree
     idToPath :: Int -> TTree -> Path
     idToPath id ttree =
       let
         labeledTree =  ttreeToLTree ttree
       in
         getPath id labeledTree
-    doSomethingWithBrackets :: BracketedString -> [(String,Path)]
-    doSomethingWithBrackets (Bracket _ fid _ _ _ [(Leaf token)]) =
+    -- Convert the BracketedString to the list of string/path tuples
+    bracketsToTuples :: BracketedString -> [(String,Path)]
+    bracketsToTuples (Bracket _ fid _ _ _ [(Leaf token)]) =
       [(token,idToPath fid ttree)]
       -- [(token,[fid])]
-    doSomethingWithBrackets (Bracket _ fid _ _ _ bss) =
-      concat $ map doSomethingWithBrackets bss
+    bracketsToTuples (Bracket _ fid _ _ _ bss) =
+      concat $ map bracketsToTuples bss
     ttree = metaTree tree
     abstree = ttreeToGFAbsTree ttree
     pgfGrammar = pgf grammar
     brackets = bracketedLinearize pgfGrammar lang abstree
   in
-    
-    --trace (showBracketedString $ head brackets) $
-    doSomethingWithBrackets $ head brackets
+    bracketsToTuples $ head brackets
 
 -- | The 'linearizeList' functions linearizes a token list to a string
 linearizeList :: [(String,Path)] -> Bool -> String
