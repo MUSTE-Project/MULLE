@@ -53,13 +53,13 @@ linearizeTree grammar lang tree = -- TODO
   in
     bracketsToTuples $ head brackets
 
--- | The 'linearizeList' functions linearizes a token list to a string
-linearizeList :: [(String,Path)] -> Bool -> String
-linearizeList list debug =
+-- | The 'linearizeList' functions concatenates a token list to a string
+linearizeList :: Bool -> [(String,Path)] -> String
+linearizeList debug list =
   if debug then unwords $ map (\(s,p) -> s ++ " " ++ show p) list
   else unwords $ map (\(s,_) -> s) list
 
--- | The 'getSuggestions' function generates a list of suggestions given a tree and a position in the token list
+-- | The 'getSuggestions' function generates a list of similar trees given a tree and a position in the token list
 getSuggestions :: MetaTTree -> Pos -> S.Set String
 getSuggestions tree clickPos =
   treesToStrings $ getNewTrees tree clickPos
