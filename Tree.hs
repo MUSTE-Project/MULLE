@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {- | This module provides implementations of different kinds of syntax trees
 -}
-module Tree (MetaTTree(..),TTree(..),LTree(..),Path,Pos,prune,generate,match,ttreeToGFAbsTree,ttreeToLTree) where
+module Tree (MetaTTree(..),TTree(..),LTree(..),Path,Pos,TreeC(..),getTreeCat,prune,generate,match,ttreeToGFAbsTree,ttreeToLTree,makeMeta) where
 import PGF hiding (showType)
 import PGF.Internal hiding (showType)
 import Data.Maybe
@@ -244,7 +244,7 @@ isMeta :: TTree -> Bool
 isMeta (TMeta _) = True
 isMeta _ = False
 
--- Get the root category of a tree
+-- | Get the root category of a tree
 getTreeCat :: TTree -> CId
 getTreeCat (TNode id typ _) =
   let
@@ -336,7 +336,7 @@ countNodes :: TTree -> Int
 countNodes (TNode _ _ trees) = foldl (+) 1 (map countNodes trees)
 countNodes (TMeta _) = 0 -- ignore metas
 
--- Create a meta tree by appending an empty subtree list
+-- | Create a meta tree by appending an empty subtree list
 makeMeta :: TTree -> MetaTTree
 makeMeta tree =
     MetaTTree tree empty
