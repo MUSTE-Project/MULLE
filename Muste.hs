@@ -114,3 +114,21 @@ getNewTrees grammar tokens tree clickPos =
 treesToStrings :: Grammar -> Language -> S.Set MetaTTree -> S.Set String
 treesToStrings grammar lang trees =
   S.map (linearizeList False) $ S.map (linearizeTree grammar lang) trees
+
+
+mt = (MetaTTree
+      (read "{s:(A -> S) {f:(A -> B -> A) {f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {c:C}}} {b:(B)}}")
+      $ S.fromList [([0,0], (read "{?A}")),
+                  ([0,1], (read "{?B}"))
+                 ]
+     )
+t = (read "{s:(A -> S) {f:(A -> B -> A) {a:A} {b:B}}") :: TTree
+
+t2 = (read "{s:(A -> S) {f:(A -> B -> A) {f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {c:C}}} {b:(B)}}") :: TTree
+
+main =
+  do
+    pgf <- readPGF "gf/Levels.pgf"
+    let grammar = pgfToGrammar pgf
+    putStrLn $ show $ generate grammar (mkCId "Level0") 100
+    return ()
