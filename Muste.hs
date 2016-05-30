@@ -12,6 +12,12 @@ import Data.List
 
 type LinToken = (String,Path)
 
+-- Constant depth for tree generation
+depth = 5
+
+-- Constant for the language
+lang = fromJust $ readLanguage "LevelsConc"
+
 -- | The 'linearizeTree' function linearizes a MetaTTree to a list of tokens and pathes to the nodes that create it
 linearizeTree :: Grammar -> Language -> MetaTTree ->  [LinToken]
 linearizeTree grammar lang tree = -- TODO
@@ -62,14 +68,49 @@ linearizeList debug list =
   else unwords $ map (\(s,_) -> s) list
 
 -- | The 'getSuggestions' function generates a list of similar trees given a tree and a position in the token list
-getSuggestions :: MetaTTree -> Pos -> S.Set String
-getSuggestions tree clickPos =
-  treesToStrings $ getNewTrees tree clickPos
+getSuggestions :: Grammar -> Language -> [LinToken] -> MetaTTree -> Pos -> S.Set String
+getSuggestions grammar lang tokens tree clickPos =
+  treesToStrings grammar lang $ getNewTrees grammar tokens tree clickPos
 
 -- | The 'getNewTrees' function generates a set of related trees given a MetaTTree and a position in a token list 
-getNewTrees :: MetaTTree -> Pos -> S.Set MetaTTree
-getNewTrees tree clickPos = S.empty -- TODO
+getNewTrees :: Grammar -> [LinToken] -> MetaTTree -> Pos -> S.Set MetaTTree
+getNewTrees grammar tokens tree clickPos =
+  let
+    -- Get Path from token list
+    (token,path) = tokens !! clickPos
+    -- Get Subtree at Path
+    subTree :: TTree
+    subTree = fromJust $ selectNode (metaTree tree) path
+    -- Get category at path
+    cat :: CId
+    cat = getTreeCat subTree
+    -- Generate Trees with same category
+    newTrees :: S.Set MetaTTree
+    newTrees = generate grammar cat depth
+    -- Filter trees
+    -- costList = S.map (match (MetaTTree subtree S.empty)) newTrees
+    -- TODO: Something with the costList
+    -- Idea: linearize subtree and each of newTrees and then order newTrees according to matching pre- and suffixes
+    subTreeLin :: [LinToken]
+    subTreeLin = linearizeTree grammar lang $ makeMeta subTree
+    -- newTreesLin :: [MetaTTree]
+    -- newTreesLin = doFilterMagic subTreeLin $ map (\t -> (t,linearizeTree grammar lang t)) $ S.toList newTrees
+    doFilterMagic :: [LinToken] -> [(MetaTTree,[LinToken])] -> [MetaTTree]
+    doFilterMagic subTree trees =
+      let
+        preAndSuffix :: [LinToken] -> [LinToken] -> Int
+        preAndSuffix [] _ = 0
+        preAndSuffix (a:resta) (b:restb) =
+          if a == b then 1 + preAndSuffix resta restb else preAndSuffix (reverse resta) (reverse restb)
+        magic :: [LinToken] -> (MetaTTree,[LinToken]) -> (MetaTTree,Int)
+        magic subTreeLin (tree,lin) = (tree,preAndSuffix subTreeLin lin)
+      in
+        map (\t -> fst $ magic subTree t ) trees -- be more clever here
+        
+  in
+    S.empty -- TODO
 
 -- | The 'treesToStrings' generates a list of strings based on the differences in similar trees
-treesToStrings :: S.Set MetaTTree -> S.Set String
-treesToStrings trees = S.empty -- TODO
+treesToStrings :: Grammar -> Language -> S.Set MetaTTree -> S.Set String
+treesToStrings grammar lang trees =
+  S.map (linearizeList False) $ S.map (linearizeTree grammar lang) trees
