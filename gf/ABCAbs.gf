@@ -1,15 +1,13 @@
 abstract ABCAbs = {
   flags
-    startcat = G;
+    startcat = S ;
   cat
-    A; B; C; D; E; F; G;
+    S; A; B; C;
   fun
-    a : B -> A ;
-    aa : A ;
+    s : A -> S;
+    a : A ;
     b : B ;
-    c : D -> E -> F -> C ;
-    d : D ;
-    e : E ;
-    f : F ;
-    g : A -> C -> G ;
+    c : C ;
+    f : A -> B -> A ;
+    g : B -> C -> B ;
 }
