@@ -10,8 +10,10 @@ import Debug.Trace
 import Data.Maybe
 import Data.List
 
+type LinToken = (String,Path)
+
 -- | The 'linearizeTree' function linearizes a MetaTTree to a list of tokens and pathes to the nodes that create it
-linearizeTree :: Grammar -> Language -> MetaTTree -> [(String,Path)]
+linearizeTree :: Grammar -> Language -> MetaTTree ->  [LinToken]
 linearizeTree grammar lang tree = -- TODO
   let
         -- Finds a path to a token in a ltree
@@ -40,7 +42,7 @@ linearizeTree grammar lang tree = -- TODO
       in
         getPath id labeledTree
     -- Convert the BracketedString to the list of string/path tuples
-    bracketsToTuples :: BracketedString -> [(String,Path)]
+    bracketsToTuples :: BracketedString -> [LinToken]
     bracketsToTuples (Bracket _ fid _ _ _ [(Leaf token)]) =
       [(token,idToPath fid ttree)]
       -- [(token,[fid])]
@@ -54,7 +56,7 @@ linearizeTree grammar lang tree = -- TODO
     bracketsToTuples $ head brackets
 
 -- | The 'linearizeList' functions concatenates a token list to a string
-linearizeList :: Bool -> [(String,Path)] -> String
+linearizeList :: Bool -> [LinToken] -> String
 linearizeList debug list =
   if debug then unwords $ map (\(s,p) -> s ++ " " ++ show p) list
   else unwords $ map (\(s,_) -> s) list
