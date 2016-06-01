@@ -105,7 +105,7 @@ getNewTrees grammar tokens tree clickPos =
         magic :: [LinToken] -> (MetaTTree,[LinToken]) -> (MetaTTree,Int)
         magic subTreeLin (tree,lin) = (tree,preAndSuffix subTreeLin lin)
       in
-        map (\t -> fst $ magic subTree t ) trees -- be more clever here
+        map (\t -> fst $ magic subTree t ) $ sortBy (\(_,s1) -> \(_,s2) -> compare s1 s2 ) trees -- be more clever here
         
   in
     S.empty -- TODO
