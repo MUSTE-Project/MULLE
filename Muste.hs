@@ -115,6 +115,7 @@ treesToStrings :: Grammar -> Language -> S.Set MetaTTree -> S.Set String
 treesToStrings grammar lang trees =
   S.map (linearizeList False) $ S.map (linearizeTree grammar lang) trees
 
+t = (read "{l0:(Level1 -> Level0) {l1o0:(Level2 -> Level1) {l2:(Token0 -> Token1 -> Token2 -> Level2) {t0:Token0} {t1o0:Token0} {t2:Token2}}}") :: TTree
 
 mt = (MetaTTree
       (read "{s:(A -> S) {f:(A -> B -> A) {f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {c:C}}} {b:(B)}}")
