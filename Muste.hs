@@ -131,5 +131,6 @@ main =
   do
     pgf <- readPGF "gf/Levels.pgf"
     let grammar = pgfToGrammar pgf
-    putStrLn $ show $ generate grammar (mkCId "Level0") 100
+    putStrLn $ show $ ttreeToGFAbsTree t
+    putStrLn $ show $ linearizeTree grammar lang (makeMeta t)
     return ()
