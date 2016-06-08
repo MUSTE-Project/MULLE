@@ -372,6 +372,39 @@ test_hu_match2 =
       let result = (1+2+3, read "{f:A {a:A} {b:B}}") :: (Cost,TTree)
 
       runTestTT ((head $ match tree1 tree2) ~?= result)
+
+test_hu_ttreetogfabstree1 =
+  do
+    putStrLn "Check ttreeToGFAbsTree Test 1"
+    let abstree = (EFun (mkCId "foo"))
+    let ttree = read "{foo:()}" :: TTree
+    runTestTT (ttreeToGFAbsTree ttree ~?= abstree)
+
+test_hu_typecheck = 
+  do
+    putStrLn "Check typecheck Test 1"
+    let ttree = read "{foo:(Bar -> Baz) {bar:Bar2}}" :: TTree
+    runTestTT (typecheck ttree ~?= False)
+    putStrLn "Check typecheck Test 2"
+    let ttree = read "{baz:(Foo -> Bar -> Baz) {foo:Foo}}" :: TTree
+    runTestTT (typecheck ttree ~?= False)
+    putStrLn "Check typecheck Test 3"
+    let ttree = read "{foo:(Bar)}" :: TTree
+    runTestTT (typecheck ttree ~?= True)
+
+test_hu_getchildcats =
+  do
+    putStrLn "Check getchildcat Test 1"
+    let ttree = read "{foo:(Bar -> Baz) {bar:Bar2}}" :: TTree
+    runTestTT (getChildCats ttree ~?= [(mkCId "Bar2")])
+    putStrLn "Check getchildcat Test 2"
+    let ttree = read "{baz:(Foo -> Bar -> Baz) {foo:Foo} {bar:(Bla -> Blubb -> Bar) {bla:Bla} {blubb:Blubb}}}" :: TTree
+    runTestTT (getChildCats ttree ~?= [(mkCId "Foo"),(mkCId "Bar")])
+      
+test_hu_gfabstreetottree =
+  do
+    pgf <- readPGF "gf/ABCAbs.pgf"
+    runTestTT (1 ~?= 0)
 hunit_tests =
   do
     test_hu_read1
@@ -390,7 +423,11 @@ hunit_tests =
     test_hu_generate
     test_hu_match1
     test_hu_match2
-    
+    test_hu_ttreetogfabstree1
+--    test_hu_ttreetogfabstree2
+    test_hu_typecheck
+    test_hu_getchildcats
+    test_hu_gfabstreetottree
 -- Quickcheck tests
 instance Arbitrary TTree where
   arbitrary =
