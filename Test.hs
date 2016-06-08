@@ -3,6 +3,7 @@
 module Test where
 import Test.QuickCheck
 import PGF
+import PGF.Internal
 import Tree
 import Grammar
 import Data.List
@@ -144,6 +145,7 @@ g2 = Grammar (mkCId "A")
       Function (mkCId "a") (Fun (mkCId "A") []) -- ,
 --      Function (mkCId "aa") (Fun (mkCId "A") [(mkCId "A")])
      ]
+  emptyPGF
 
 r1 = Function (mkCId "b") (Fun (mkCId "B") [])
 
@@ -316,6 +318,7 @@ grammar = Grammar (mkCId "A")
       Function (mkCId "b") (Fun (mkCId "B") []),
       Function (mkCId "c") (Fun (mkCId "C") [])
      ]
+  emptyPGF
 --           generate grammar 2
 -- ==> [({?A}, [([], {?A})]),
 --      ({{a:A}}, []),
