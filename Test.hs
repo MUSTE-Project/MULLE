@@ -304,7 +304,7 @@ test_hu_prune =
         sorted1 = prune tree 2
         sorted2 = result
     --putStrLn $ show (prune tree 2)
-    runTestTT ((sorted1) ~?= (sorted2)) -- FIXME matches with show but not without
+    runTestTT ((sorted1) ~?= (sorted2)) 
     
 -- grammar = [("f", "A", ["A","B"]), ("g", "B", ["B","C"]),
 --            ("a", "A", []), ("b", "B", []), ("c", "C", [])]
