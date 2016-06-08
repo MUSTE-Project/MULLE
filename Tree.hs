@@ -1,7 +1,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 {- | This module provides implementations of different kinds of syntax trees
 -}
-module Tree (MetaTTree(..),TTree(..),LTree(..),Path,Pos,TreeC(..),getTreeCat,prune,generate,match,ttreeToGFAbsTree,ttreeToLTree,makeMeta) where
+module Tree (MetaTTree(..),TTree(..),LTree(..),Path,Pos,TreeC(..),Cost(..),getTreeCat,prune,generate,match,ttreeToGFAbsTree,gfAbsTreeToTTree,ttreeToLTree,makeMeta,replaceNodeByMeta,typecheck,getChildCats) where
+--module Tree (MetaTTree(..),TTree(..),LTree(..),Path,Pos,TreeC(..),getTreeCat,prune,generate,ttreeToGFAbsTree,gfAbsTreeToTTree,ttreeToLTree,makeMeta) where
 import PGF hiding (showType)
 import PGF.Internal hiding (showType)
 import Data.Maybe
@@ -113,6 +114,12 @@ getChildCats (TNode _ _ trees) =
     extract (TNode _ (Fun cat _) _) = cat
   in
     map extract trees
+
+-- Typechecks a TTree
+typecheck :: TTree -> Bool
+typecheck (TMeta _) = True
+typecheck t@(TNode name (Fun fcat ccats) trees) =
+  trace (show ccats) $ getChildCats t == ccats
 
 -- goes through a tree and fixes type problems when only a root type is given for each subtree
 fixTypes :: TTree -> TTree
