@@ -81,7 +81,9 @@ instance TreeC TTree where
       }
   selectBranch (TMeta _) _ = Nothing
   selectBranch (TNode _ _ [] ) _ = Nothing
-  selectBranch (TNode _ _ trees) i = Just (trees !! i)
+  selectBranch (TNode _ _ trees) i
+    | i < 0 || i >= length trees = Nothing
+    | otherwise = Just (trees !! i)
 
 -- | A generic tree with types is in the Show class
 instance Show TTree where
