@@ -3,8 +3,8 @@
 -}
 module Muste where
 import qualified Data.Set as S
-import Tree
-import Grammar
+import Muste.Tree
+import Muste.Grammar
 import PGF
 import Debug.Trace
 import Data.Maybe

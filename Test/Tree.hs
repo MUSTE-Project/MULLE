@@ -1,16 +1,18 @@
 {- | Implements several tests to control the validy of the program
 -}
-module Test where
+module Test.Tree where
 import Test.QuickCheck
 import PGF
 import PGF.Internal
-import Tree
-import Grammar
+import Muste.Tree.Internal
+import Muste.Grammar
 import Data.List
 import Test.HUnit.Text
 import Test.HUnit.Base
 import System.Random
 import Data.Set (Set,fromList,toList,empty)
+import Test.Data
+
 randomize :: StdGen -> [a] -> [a]
 randomize _ [] = []
 randomize gen list =
@@ -23,8 +25,7 @@ randomize gen list =
 -- Basic tests
 -- Test read
 -- read equality Test 1
-t1 = (TNode (mkCId "t1") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "a") (Fun (mkCId "A") []) []),(TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")]) [(TNode (mkCId "b") (Fun (mkCId "B") []) []),(TNode (mkCId "c") (Fun (mkCId "C") []) [])])])
-ts1 = "{t1:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {c:C}}}"
+
 {- | The test 'test_hu_read1' reads the tree as a string and compares with the data structure, a simple tree
 -}
 test_hu_read1 =
@@ -33,8 +34,6 @@ test_hu_read1 =
     runTestTT (t1 ~?= (read ts1 :: TTree))
 
 -- read equality Test 2
-t2 = (TNode (mkCId "t2") (Fun (mkCId "F") [(mkCId "A"), (mkCId "G")]) [(TMeta (mkCId "A")), (TNode (mkCId "g") (Fun (mkCId "G") [(mkCId "B"), (mkCId "H")]) [(TMeta (mkCId "B")), (TNode (mkCId "h") (Fun (mkCId "H") [(mkCId "C"), (mkCId "I")]) [(TMeta (mkCId "C")), (TNode (mkCId "i") (Fun (mkCId "I") [(mkCId "D"),(mkCId "E")]) [(TMeta (mkCId "D")), (TMeta (mkCId "E"))])])])])
-ts2 = "{t2:(A -> G -> F) {?A} {g:(B -> H -> G) {?B} {h:(C -> I -> H) {?C} {i:(D -> E -> I) {?D} {?E}}}}}"
 {- | The test 'test_hu_read2' reads the tree as a string and compares with the data structure, a quite deep tree
 -}
 test_hu_read2 =
@@ -45,8 +44,6 @@ test_hu_read2 =
 -- read equality Test 3
 {- | The test 'test_hu_read3' reads the tree as a string and compares with the data structure, all subtrees are metas
 -}
-t4 = (TNode (mkCId "t4") (Fun (mkCId "A") [(mkCId "A"),(mkCId "A")]) [(TMeta (mkCId "A")), (TMeta (mkCId "A"))])
-ts4 = "{t4:(A -> A -> A) {?A} {?A}}"
 test_hu_read3 =
   do
     putStrLn "Check read equality Test 3"
@@ -56,19 +53,18 @@ test_hu_read3 =
 {-
   reads the tree as a string and compares with the data structure
   also fixes the types
--}          
-ts6 = "{t2:F {?A} {g:G {?B} {h:H {?C} {i:I {?D} {?E}}}}}"
+-}
+
 test_hu_read4 =
   do
     putStrLn "Check read equality Test 4"
     runTestTT (t2 ~?= (read ts6 :: TTree))
-
+    
 -- read equality Test 5
 {-
   reads the tree as a string and compares with the data structure
   also fixes the types
 -}          
-ts7 = "{t4:A {?A} {?A}}"
 test_hu_read5 =
   do
     putStrLn "Check read equality Test 5"
@@ -138,145 +134,8 @@ test_hu_sort =
     putStrLn "Sort tree order Test"
 --    runTestTT ((sort $ randomize list gen) ~?= [t4,t1,t2])
     runTestTT ((sort $ randomize gen list) ~?= (sort $ sort $ randomize gen $ sort $ randomize gen list))
-    
-g2 = Grammar (mkCId "A")
-     [
-      Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "A")]),
-      Function (mkCId "a") (Fun (mkCId "A") []) -- ,
---      Function (mkCId "aa") (Fun (mkCId "A") [(mkCId "A")])
-     ]
-  emptyPGF
-
-r1 = Function (mkCId "b") (Fun (mkCId "B") [])
-
-r2 = Function (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])
-
-r3 = Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "A")])
      
-mt11 =
-  -- (MetaTTree 
-  --  (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"), (mkCId "B")])
-  --   [
-  --      (TMeta (mkCId "A")),
-  --      (TMeta (mkCId "B"))
-  --   ]
-  --  )
-  --  $ fromList [([0], (TNode (mkCId "a") (Fun (mkCId "A") []) [])),
-  --              ([1], (TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])
-  --                     [
-  --                       (TNode (mkCId "b") (Fun (mkCId "B") []) []),
-  --                       (TNode (mkCId "c") (Fun (mkCId "C") []) [])
-  --                     ]
-  --                    )
-  --              )
-  --             ]
-  -- )
-  (MetaTTree 
-   (read "{f:(A -> B -> A) {?A} {?B}}")
-   $ fromList [([0], (read "{a(A)}")),
-               ([1], (read "{g:(B -> C -> B) {b:(B)} {c:(C)}}"))
-              ]
-  )
-mt12 =
-  -- (MetaTTree
-  --  (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
-  --   [
-  --     (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
-  --      [
-  --        (TMeta (mkCId "A")),
-  --        (TMeta (mkCId "B"))
-  --      ]
-  --     ),
-  --     (TNode (mkCId "b") (Fun (mkCId "B") []) [])
-  --   ]
-  --  )
-  --  $ fromList [([0,0], (TMeta (mkCId "A"))),
-  --   ([0,1], (TMeta (mkCId "B")))
-  --  ]
-  -- )
-  (MetaTTree
-   (read "{f:(A -> B -> A) {f:(A -> B -> A) {?A} {?B}} {b:(B)}}")
-   $ fromList [([0,0], (read "{?A}")),
-    ([0,1], (read "{?B}"))
-   ]
-  )
-rt1 =
-  -- (4,
-  --  (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
-  --   [
-  --     (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
-  --      [
-  --        (TNode (mkCId "a") (Fun (mkCId "A") []) []),
-  --        (TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])
-  --         [
-  --           (TNode (mkCId "b") (Fun (mkCId "B") []) []),
-  --           (TNode (mkCId "c") (Fun (mkCId "C") []) [])
-  --         ]
-  --        )
-  --      ]),
-  --     (TNode (mkCId "b") (Fun (mkCId "B") []) [])
-  --   ]
-  --  )
-  -- )
-  (4, (read "{f:(A -> B -> A) {f:(A -> B -> A) {a:(A)} {g:(B -> C -> B) {b:(B)} {c:C}}}}") :: TTree)
--- (the cost 1 is because the splitted_tree has 1 node, and 3 is because the generated_tree has 3 nodes)
--- Not working yet
-mt21 =
-  -- (MetaTTree
-  --  (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"), (mkCId "B")])
-  --   [
-  --     (TMeta (mkCId "A")),
-  --     (TMeta (mkCId "B"))
-  --   ]
-  --  )
-  --  $ fromList [
-  --    ([0], (TNode (mkCId "a") (Fun (mkCId "A") []) [])),
-  --    ([1], (TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"), (mkCId "C")])
-  --           [
-  --             (TNode (mkCId "b") (Fun (mkCId "B") []) []),
-  --             (TNode (mkCId "c") (Fun (mkCId "C") []) [])
-  --           ]
-  --          )
-  --    )
-  --  ]
-  -- )
-  (MetaTTree
-   (read "{f:(A -> B -> A) {?A} {?B}}")
-   $ fromList [
-     ([0], (read "{a:(A)}")),
-     ([1], (read "{g:(B -> C -> B) {b:B} {c:C}}"))
-   ]
-  )
-mt22 =
-  -- (MetaTTree
-  --  (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"), (mkCId "B")])
-  --   [
-  --     (TMeta (mkCId "A")),
-  --     (TNode (mkCId "b") (Fun (mkCId "B") []) [])
-  --   ]
-  --  )
-  --  $ fromList [
-  --    ([0], (TMeta (mkCId "A")))
-  --  ]
-  -- )
-  (MetaTTree
-   (read "{f:(A -> B -> A) {?A} {b:B}}")
-   $ fromList [
-     ([0], (read "{?A}"))
-   ]
-  )
-rt2 =
-  -- ( 6,
-  --  (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"), (mkCId "B")])
-  --   [
-  --     (TNode (mkCId "a") (Fun (mkCId "A") []) []),
-  --     (TNode (mkCId "b") (Fun (mkCId "B") []) [])
-  --   ]
-  --  )
-  -- )
-  (6,
-   (read "{f:(A -> B -> A) {a:(A)} {b:B}}") :: TTree
-  )
+
 -- (the cost 1 is because the splitted_tree has 1 node, and 2 is because the generated_tree has 2 nodes; the cost 3 is because the B tree was removed, and it has 3 nodes)
 
 -- Must in haskell mail
@@ -347,7 +206,7 @@ test_hu_generate =
                  (MetaTTree (read "{f:A {f:A {?A} {?B}} {b:B}}") $ fromList [([0,0], read "{?A}"), ([0,1], read "{?B}")]),
                  (MetaTTree (read "{f:A {f:A {?A} {?B}} {g:B {?B} {?C}}}") $ fromList [([0,0], read "{?A}"), ([0,1], read "{?B}"),([1,0], read "{?B}"), ([1,1], read "{?C}")])
                 ]:: Set MetaTTree
-    runTestTT ((Tree.generate grammar (mkCId "A") 2) ~?= result)
+    runTestTT ((Muste.Tree.Internal.generate grammar (mkCId "A") 2) ~?= result)
     
 -- match ({{f:A ?A ?B}}, [([0], {{a:A}}), ([1], {{g:B {b:B} {c:C}}})])
 --       ({{f:A {f:A ?A ?B} {b:B}}}, [([0,0], {?A}), ([0,1], {?B})])
@@ -432,7 +291,7 @@ hunit_tests =
 instance Arbitrary TTree where
   arbitrary =
     do
-      let generated = toList $ Tree.generate grammar (mkCId "A") 5
+      let generated = toList $ Muste.Tree.Internal.generate grammar (mkCId "A") 5
       elements (map metaTree generated)
 
 -- prop_metaTest :: TTree -> Bool
