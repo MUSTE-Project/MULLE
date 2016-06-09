@@ -12,7 +12,7 @@ import Test.HUnit.Base
 import System.Random
 import Data.Set (Set,fromList,toList,empty)
 import Test.Data
-
+import Data.Maybe
 randomize :: StdGen -> [a] -> [a]
 randomize _ [] = []
 randomize gen list =
@@ -21,278 +21,196 @@ randomize gen list =
     (part1,_:part2) = splitAt rnd list
   in
     (list !! rnd) : (randomize ngen (part1 ++ part2))
+
 -- HUnit tests
--- Basic tests
--- Test read
--- read equality Test 1
 
-{- | The test 'test_hu_read1' reads the tree as a string and compares with the data structure, a simple tree
--}
-test_hu_read1 =
-  do
-    putStrLn "Check read equality Test 1"
-    runTestTT (t1 ~?= (read ts1 :: TTree))
+hunit_TreeC_GFAbsTree_showTree_test =
+  let
+    tree = (EApp (EFun (mkCId "A")) (EFun (mkCId "B")))
+  in
+    TestList [
+    TestLabel "Single example" $ ( showTree tree ~=? "EApp (EFun A) (EFun B)" )
+    ]
 
--- read equality Test 2
-{- | The test 'test_hu_read2' reads the tree as a string and compares with the data structure, a quite deep tree
--}
-test_hu_read2 =
-  do
-    putStrLn "Check read equality Test 2"
-    runTestTT (t2 ~?= (read ts2 :: TTree))
+hunit_TreeC_GFAbsTree_selectNode_test =
+  let
+    tree = (EApp (EApp (EApp (EFun (mkCId "1")) (EApp (EFun (mkCId "2")) (EFun (mkCId "3")))) (EFun (mkCId "4"))) (EFun (mkCId "5")))
+  in
+    TestList [
+    ( TestLabel "Existing Path 1" $ selectNode tree [0,0,0] ~?= Just (EFun (mkCId "1")) ),
+    ( TestLabel "Existing Path 2" $ selectNode tree [0,0,1,0] ~?= Just (EFun (mkCId "2")) ),
+    ( TestLabel "Path too deep" $ selectNode tree [0,0,0,0] ~?= Nothing ),
+    ( TestLabel "Branch out of range" $ selectNode tree [0,2] ~?= Nothing ), 
+    ( TestLabel "Negative Branch" $ selectNode tree [-1] ~?= Nothing )
+    ]
 
--- read equality Test 3
-{- | The test 'test_hu_read3' reads the tree as a string and compares with the data structure, all subtrees are metas
--}
-test_hu_read3 =
-  do
-    putStrLn "Check read equality Test 3"
-    runTestTT (t4 ~?= (read ts4 :: TTree))
-
--- read equality Test 4
-{-
-  reads the tree as a string and compares with the data structure
-  also fixes the types
--}
-
-test_hu_read4 =
-  do
-    putStrLn "Check read equality Test 4"
-    runTestTT (t2 ~?= (read ts6 :: TTree))
+hunit_TreeC_GFAbsTree_selectBranch_test =
+  let
+    tree = (EApp (EFun (mkCId "1")) (EFun (mkCId "2")))
+  in
+    TestList [
+    ( TestLabel "Existing Branch 1" $ selectBranch tree 0 ~?= Just (EFun (mkCId "1")) ),
+    ( TestLabel "Existing Branch 2" $ selectBranch tree 1 ~?= Just (EFun (mkCId "2")) ),
+    ( TestLabel "Negative Branch" $ selectBranch tree (-1) ~?= Nothing ),
+    ( TestLabel "Branch out of range" $ selectBranch tree 2 ~?= Nothing )
+    ]
     
--- read equality Test 5
-{-
-  reads the tree as a string and compares with the data structure
-  also fixes the types
--}          
-test_hu_read5 =
-  do
-    putStrLn "Check read equality Test 5"
-    runTestTT (t4 ~?= (read ts7 :: TTree))
+hunit_TreeC_TTree_showTree_test =
+  let
+    tree1 = TMeta (mkCId "A")
+    tree2 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"), (mkCId "B")])
+      [
+       TMeta (mkCId "A"),
+       TMeta (mkCId "B")
+      ]
+    tree3 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"), (mkCId "B")])
+      [
+        TNode (mkCId "a") (Fun (mkCId "A") []) [],
+        TNode (mkCId "b") (Fun (mkCId "B") []) []
+      ]
+  in
+    TestList [
+    ( TestLabel "Meta tree" $ showTree tree1 ~?= "{?A}" ),
+    ( TestLabel "Simple tree with metas" $ showTree tree2 ~?= "{f:(A -> B -> A) {?A} {?B}}" ),
+    ( TestLabel "Simple tree" $ showTree tree3 ~?= "{f:(A -> B -> A) {a:(A)} {b:(B)}}" )
+    ]
 
--- ord Test 1
-{-
-  checks trees t1 <= t2
--}          
-test_hu_ord1 =
-  do
-    putStrLn "Check tree order Test 1"
-    runTestTT (t1 <= t2 ~?= True)
+hunit_TreeC_TTree_selectNode_test =
+  let
+    tree = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"), (mkCId "B")])
+      [
+        TNode (mkCId "a") (Fun (mkCId "A") []) [],
+        TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"), (mkCId "C")])
+        [
+          TNode (mkCId "b") (Fun (mkCId "B") []) [],
+          TNode (mkCId "c") (Fun (mkCId "C") []) []
+        ]
+      ]
+  in
+    TestList [
+    ( TestLabel "Existing Path" $ selectNode tree [1,0] ~?= Just ( TNode (mkCId "b") (Fun (mkCId "B") []) [] ) ),
+    ( TestLabel "Path too deep" $ selectNode tree [1,1,1] ~?= Nothing ),
+    ( TestLabel "Branch out of range" $ selectNode tree [0,2] ~?= Nothing ), 
+    ( TestLabel "Negative Branch" $ selectNode tree [-1] ~?= Nothing )
+    ]
 
--- ord Test 2
-{-
-  checks trees t1 < t2
--}          
-test_hu_ord2 =
-  do
-    putStrLn "Check tree order Test 2"
-    runTestTT (t1 < t2 ~?= True)
+hunit_TreeC_TTree_selectBranch_test =
+  let
+    tree = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"), (mkCId "B")])
+      [
+        TNode (mkCId "a") (Fun (mkCId "A") []) [],
+        TNode (mkCId "b") (Fun (mkCId "B") []) [],
+        TNode (mkCId "c") (Fun (mkCId "C") []) []
+      ]
+  in
+    TestList [
+    ( TestLabel "Existing Branch 1" $ selectBranch tree 0 ~?= Just (TNode (mkCId "a") (Fun (mkCId "A") []) []) ),
+    ( TestLabel "Existing Branch 2" $ selectBranch tree 1 ~?= Just (TNode (mkCId "b") (Fun (mkCId "B") []) []) ),
+    ( TestLabel "Existing Branch 2" $ selectBranch tree 2 ~?= Just (TNode (mkCId "c") (Fun (mkCId "C") []) []) ),
+    ( TestLabel "Negative Branch" $ selectBranch tree (-1) ~?= Nothing ),
+    ( TestLabel "Branch out of range" $ selectBranch tree 3 ~?= Nothing )
+    ]
 
--- ord Test 3
-{-
-  checks trees t1 == t2
--}          
-test_hu_ord3 =
-  do
-    putStrLn "Check tree order Test 3"
-    runTestTT (t1 == t2 ~?= False)
+hunit_consumeChar_test =
+  let
+    empty = ""
+    match = " 12345"
+    matched = "12345"
+    nonmatch = "_12345"
+  in
+    TestList [
+    ( TestLabel "Empty String" $ consumeChar ' ' empty ~?= empty ),
+    ( TestLabel "Matching String" $ consumeChar ' ' match ~?= matched ),
+    ( TestLabel "Non-Matching String" $ consumeChar ' ' nonmatch ~?= nonmatch )
+    ]
 
--- ord Test 4
-{-
-  checks trees t1 > t2
--}          
-test_hu_ord4 =
-  do
-    putStrLn "Check tree order Test 4"
-    runTestTT (t1 > t2 ~?= False)
+hunit_readFunType_test =
+  -- let
+  --   type1 = "A"
+  --   type2  = "(A)"
+  --   type3 = "(A -> B)"
+  --   type4 = "(A -> B -> A)"
+  --   type5 = "A -> B"
+  --   type6 = "(A->B)"
+  --   type7 = "A->B"
+  -- in
+  --   TestList [
+  --   ( TestLabel "Simple Type 1" $ readFunType type1 ~?= Just ((Fun (mkCId "A") []), "") ),
+  --   ( TestLabel "Simple Type 2" $ readFunType type2 ~?= Just ((Fun (mkCId "A") []), "") ),
+  --   ( TestLabel "Function Type 1" $ readFunType type3 ~?= Just ((Fun (mkCId "B") [(mkCId "A")]), "") ),
+  --   ( TestLabel "Function Type 2" $ readFunType type4 ~?= Just ((Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]), "") ),
+  --   ( TestLabel "Simple Type with rest 1" $ readFunType ( type1 ++ "###" ) ~?= Just ((Fun (mkCId "A") []), "###") ),
+  --   ( TestLabel "Simple Type with rest 2" $ readFunType ( type2 ++ "###" )~?= Just ((Fun (mkCId "A") []), "###") ),
+  --   ( TestLabel "Function Type with rest 1" $ readFunType ( type3 ++ "###" ) ~?= Just ((Fun (mkCId "B") [(mkCId "A")]), "###") ),
+  --   ( TestLabel "Function Type with rest 2" $ readFunType ( type4 ++ "###" ) ~?= Just ((Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]), "###") ),
+  --   ( TestLabel "Function Type without parentheses" $ readFunType type5 ~?= Just ((Fun (mkCId "B") [(mkCId "A")]), "") ),
+  --   ( TestLabel "Function Type without parentheses with rest" $ readFunType ( type5 ++ "###" ) ~?= Just ((Fun (mkCId "B") [(mkCId "A")]), "###") ),
+  --   ( TestLabel "Function Type without spaces" $ readFunType type6 ~?= Just ((Fun (mkCId "B") [(mkCId "A")]), "") ),
+  --   ( TestLabel "Function Type without parentheses with rest" $ readFunType ( type6 ++ "###" ) ~?= Just ((Fun (mkCId "B") [(mkCId "A")]), "###") )
+  --   ]
+  TestCase $ assertString "Has to be checked in Grammar"
 
--- ord Test 5
-{-
-  checks trees t1 == t1
--}          
-test_hu_ord5 =
-  do
-    putStrLn "Check tree order Test 5"
-    runTestTT (t1 == t1 ~?= True)
+hunit_getChildCats_test =
+  let
+    tree1 = TMeta (mkCId "A")
+    tree2 = TNode (mkCId "a") (Fun (mkCId "A") []) []
+    tree3 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TMeta (mkCId "A")),(TMeta (mkCId "B"))]
+    tree4 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "a") (Fun (mkCId "A") []) []) ,(TNode (mkCId "b") (Fun (mkCId "B") []) [])]
+  in
+    TestList [
+    ( TestLabel "Meta node" $ getChildCats tree1 ~?= [] ),
+    ( TestLabel "Simple tree without subtrees" $ getChildCats tree2 ~?= [] ),
+    ( TestLabel "Simple tree with meta nodes" $ getChildCats tree3 ~?= [(mkCId "A"),(mkCId "B")] ),
+    ( TestLabel "Simple tree with nodes" $ getChildCats tree4 ~?= [(mkCId "A"),(mkCId "B")] )
+    ]
 
--- ord Test 6
-{-
-  checks trees t1 <= t1
--}          
-test_hu_ord6 =
-  do
-    putStrLn "Check tree order Test 6"
-    runTestTT (t1 <= t1 ~?= True)
-
-    
-t3 = let (MetaTTree (TNode _ typ trees) subTrees) = replaceNodeByMeta (replaceNodeByMeta (makeMeta t1) [1,0]) [1,1] in (MetaTTree (TNode (mkCId "t3") typ trees) subTrees)
-
-test_hu_sort =
-  do
-    let list = [t1,t2,t4]
-    gen <- getStdGen
-    putStrLn "Sort tree order Test"
---    runTestTT ((sort $ randomize list gen) ~?= [t4,t1,t2])
-    runTestTT ((sort $ randomize gen list) ~?= (sort $ sort $ randomize gen $ sort $ randomize gen list))
-     
-
--- (the cost 1 is because the splitted_tree has 1 node, and 2 is because the generated_tree has 2 nodes; the cost 3 is because the B tree was removed, and it has 3 nodes)
-
--- Must in haskell mail
--- prune {{f:A {a:A} {g:B {b:B} {c:C}}}} 2
--- ==> [({?A}, [([], {{f:A {a:A} {g:B {b:B} {c:C}}}})]),
---      ({{f:A ?A ?B}}, [([0], {{a:A}}), ([1], {{g:B {b:B} {c:C}}})]),
---      ({{f:A {a:A} ?B}}, [([1], {{g:B {b:B} {c:C}}})]),
---      ({{f:A ?A {g:B ?B ?C}}}, [([0], {{a:A}}), ([1,0], {{b:B}}), ([1,1], {{c:C}})]),
---      ({{f:A {a:A} {g:B ?B ?C}}}, [([1,0], {{b:B}}), ([1,1], {{c:C}})]),
---      ]
-test_hu_prune =
-  do
-    putStrLn "Check prune Test"
-    let tree = (read "{f:(A -> B -> A) {a:A} {g:B {b:B} {c:C}}}") :: TTree
-    let result = fromList $ [(MetaTTree (read "{?A}") $ fromList [([], read "{f:(A -> B -> A) {a:A} {g:B {b:B} {c:C}}}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {?A} {?B}}") $ fromList [([0], read "{a:A}"), ([1], read "{g:(B -> C -> B) {b:B} {c:C}}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {?B}}") $ fromList [([1], read "{g:(B -> C -> B) {b:B} {c:C}}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {?C}}}") $ fromList [([0], read "{a:A}"), ([1,0], read "{b:B}"), ([1,1], read "{c:C}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {b:B} {?C}}}") $ fromList [([0], read "{a:A}"), ([1,1], read "{c:C}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {c:C}}}") $ fromList [([0], read "{a:A}"), ([1,0], read "{b:B}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {b:B} {c:C}}}") $ fromList [([0], read "{a:A}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {?B} {?C}}}") $ fromList [([1,0], read "{b:B}"), ([1,1], read "{c:C}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {?C}}}") $ fromList [([1,1], read "{c:C}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {?B} {c:C}}}") $ fromList [([1,0], read "{b:B}")]),
-                  (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {c:C}}}") empty)
-                 ]
-        sorted1 = prune tree 2
-        sorted2 = result
-    --putStrLn $ show (prune tree 2)
-    runTestTT ((sorted1) ~?= (sorted2)) 
-    
--- grammar = [("f", "A", ["A","B"]), ("g", "B", ["B","C"]),
---            ("a", "A", []), ("b", "B", []), ("c", "C", [])]
-grammar = Grammar (mkCId "A")
-     [
-      Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]),
-      Function (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")]),
-      Function (mkCId "a") (Fun (mkCId "A") []),
-      Function (mkCId "b") (Fun (mkCId "B") []),
-      Function (mkCId "c") (Fun (mkCId "C") [])
-     ]
-  emptyPGF
---           generate grammar 2
--- ==> [({?A}, [([], {?A})]),
---      ({{a:A}}, []),
---      ({{f:A ?A ?B}}, [([0], {?A}), ([1], {?B})]),
---      ({{f:A {a:A} ?B}}, [([1], {?B})]),
---      ({{f:A {f:A ?A ?B} ?B}}, [([0,0], {?A}), ([0,1], {?B}), ([1], {?B})]),
---      ({{f:A ?A {b:B}}}, [([0], {?A})]),
---      ({{f:A {a:A} {b:B}}}, []),
---      ({{f:A {f:A ?A ?B} {b:B}}}, [([0,0], {?A}), ([0,1], {?B})]),
---      ({{f:A ?A {b:B}}}, [([0], {?A})]),
---      ({{f:A {a:A} {g:B ?B ?C}}}, [([1,0], {{b:B}}), ([1,1], {{c:C}})]),
---      ...
---      ]
-test_hu_generate =
-  do
-    putStrLn "Check generate Test 1"
-    let result= fromList [(MetaTTree (read "{?A}") $ fromList [([], read "{?A}")]),
-                 (MetaTTree (read "{a:A}") empty),
-                 (MetaTTree (read "{f:A {?A} {?B}}") $ fromList [([0], read "{?A}"), ([1], read "{?B}")]),
-                 (MetaTTree (read "{f:A {a:A} {?B}}") $ fromList [([1], read "{?B}")]),
-                 (MetaTTree (read "{f:A {f:A {?A} {?B}} {?B}}") $ fromList [([0,0], read "{?A}"), ([0,1], read "{?B}"), ([1], read "{?B}")]),
-                 (MetaTTree (read "{f:A {?A} {b:B}") $ fromList [([0], read "{?A}")]),
-                 (MetaTTree (read "{f:A {?A} {g:B {?B} {?C}}}") $ fromList [([0], read "{?A}"),([1,0], read "{?B}"),([1,1], read "{?C}")]),
-                 (MetaTTree (read "{f:A {a:A} {b:B}}") empty),
-                 (MetaTTree (read "{f:A {a:A} {g:B {?B} {?C}}}") $ fromList [([1,0], read "{?B}"),([1,1], read "{?C}")]),
-                 (MetaTTree (read "{f:A {f:A {?A} {?B}} {b:B}}") $ fromList [([0,0], read "{?A}"), ([0,1], read "{?B}")]),
-                 (MetaTTree (read "{f:A {f:A {?A} {?B}} {g:B {?B} {?C}}}") $ fromList [([0,0], read "{?A}"), ([0,1], read "{?B}"),([1,0], read "{?B}"), ([1,1], read "{?C}")])
-                ]:: Set MetaTTree
-    runTestTT ((Muste.Tree.Internal.generate grammar (mkCId "A") 2) ~?= result)
-    
--- match ({{f:A ?A ?B}}, [([0], {{a:A}}), ([1], {{g:B {b:B} {c:C}}})])
---       ({{f:A {f:A ?A ?B} {b:B}}}, [([0,0], {?A}), ([0,1], {?B})])
--- ==> (1+3, {{f:A {f:A {a:A} {g:B {b:B} {c:C}}} {b:B}}})
--- -- (the cost 1 is because the splitted_tree has 1 node, and 3 is because the generated_tree has 3 nodes)
-test_hu_match1 =
-    do
-      putStrLn "Check match Test 1"
-      let tree1 = (MetaTTree (read "{f:(A -> B -> A) {?A} {?B}}") $ fromList [([0], read "{a:A}"), ([1], read "{g:(B -> C -> B) {b:B} {c:C}}")])
-      let tree2 = (MetaTTree (read "{f:(A -> B -> A) {f:(A -> B -> A) {?A} {?B}} {b:B}}") $ fromList [([0,0], read "{?A}"), ([0,1], read "{?B}")])
-      let result = (1+3, read "{f:(A -> B -> A) {f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {c:C}}} {b:B}}") :: (Cost,TTree)
-      runTestTT ((head $ match tree1 tree2) ~?= result)
--- match ({{f:A ?A ?B}}, [([0], {{a:A}}), ([1], {{g:B {b:B} {c:C}}})])
---       ({{f:A ?A {b:B}}}, [([0], {?A})])
--- ==> [(1+2+3, {{f:A {a:A} {b:B}}})]
--- -- (the cost 1 is because the splitted_tree has 1 node, and 2 is because the generated_tree has 2 nodes; the cost 3 is because the B tree was removed, and it has 3 nodes)
-test_hu_match2 =
-    do
-      putStrLn "Check match Test 2"
-      let tree1 = (MetaTTree (read "{f:A {?A} {?B}}") $ fromList [([0], read "{a:A}"), ([1], read "{g:B {b:B} {c:C}}")])
-      let tree2 = (MetaTTree (read "{f:A {?A} {b:B}}") $ fromList [([0], read "{?A}")])
-      let result = (1+2+3, read "{f:A {a:A} {b:B}}") :: (Cost,TTree)
-
-      runTestTT ((head $ match tree1 tree2) ~?= result)
-
-test_hu_ttreetogfabstree1 =
-  do
-    putStrLn "Check ttreeToGFAbsTree Test 1"
-    let abstree = (EFun (mkCId "foo"))
-    let ttree = read "{foo:()}" :: TTree
-    runTestTT (ttreeToGFAbsTree ttree ~?= abstree)
-
-test_hu_typecheck = 
-  do
-    putStrLn "Check typecheck Test 1"
-    let ttree = read "{foo:(Bar -> Baz) {bar:Bar2}}" :: TTree
-    runTestTT (typecheck ttree ~?= False)
-    putStrLn "Check typecheck Test 2"
-    let ttree = read "{baz:(Foo -> Bar -> Baz) {foo:Foo}}" :: TTree
-    runTestTT (typecheck ttree ~?= False)
-    putStrLn "Check typecheck Test 3"
-    let ttree = read "{foo:(Bar)}" :: TTree
-    runTestTT (typecheck ttree ~?= True)
-
-test_hu_getchildcats =
-  do
-    putStrLn "Check getchildcat Test 1"
-    let ttree = read "{foo:(Bar -> Baz) {bar:Bar2}}" :: TTree
-    runTestTT (getChildCats ttree ~?= [(mkCId "Bar2")])
-    putStrLn "Check getchildcat Test 2"
-    let ttree = read "{baz:(Foo -> Bar -> Baz) {foo:Foo} {bar:(Bla -> Blubb -> Bar) {bla:Bla} {blubb:Blubb}}}" :: TTree
-    runTestTT (getChildCats ttree ~?= [(mkCId "Foo"),(mkCId "Bar")])
-      
-test_hu_gfabstreetottree =
-  do
-    pgf <- readPGF "gf/ABCAbs.pgf"
-    runTestTT (1 ~?= 0)
+hunit_typeCheck_test =
+  let
+    tree1 = TMeta (mkCId "A")
+    tree2 = TNode (mkCId "a") (Fun (mkCId "A") []) []
+    tree3 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TMeta (mkCId "A")),(TMeta (mkCId "B"))]
+    tree4 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "a") (Fun (mkCId "A") []) []) ,(TNode (mkCId "b") (Fun (mkCId "B") []) [])]
+    tree5 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TMeta (mkCId "C")),(TMeta (mkCId "B"))]
+    tree6 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "a") (Fun (mkCId "C") []) []) ,(TNode (mkCId "b") (Fun (mkCId "B") []) [])]
+    tree7 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TMeta (mkCId "A")),(TMeta (mkCId "C"))]),(TMeta (mkCId "B"))]),(TMeta (mkCId "B"))]),(TMeta (mkCId "B"))]
+  in
+    TestList [
+    ( TestLabel "Meta node" $ typeCheck tree1 ~?= True ),
+    ( TestLabel "Simple tree without subtrees" $ typeCheck tree2 ~?= True ),
+    ( TestLabel "Simple tree with meta nodes" $ typeCheck tree3 ~?= True ),
+    ( TestLabel "Simple tree with nodes" $ typeCheck tree4 ~?= True ),
+    ( TestLabel "Simple tree with meta nodes" $ typeCheck tree5 ~?= False ),
+    ( TestLabel "Simple tree with nodes" $ typeCheck tree6 ~?= False ),
+    ( TestLabel "Deep tree with nodes" $ typeCheck tree7 ~?= False )
+    ]
+treec_tests = TestList [
+  TestLabel "TreeC GFAbsTree showTree" hunit_TreeC_GFAbsTree_showTree_test,
+  TestLabel "TreeC GFAbsTree selectNode" hunit_TreeC_GFAbsTree_selectNode_test,
+  TestLabel "TreeC GFAbsTree selectBranch" hunit_TreeC_GFAbsTree_selectBranch_test,
+  TestLabel "TreeC TTree showTree" hunit_TreeC_TTree_showTree_test,
+  TestLabel "TreeC TTree selectNode" hunit_TreeC_TTree_selectNode_test,
+  TestLabel "TreeC TTree selectBranch" hunit_TreeC_TTree_selectBranch_test
+  ]
+  
+tree_function_tests =
+  TestList [
+  TestLabel "consumeChar" hunit_consumeChar_test,
+  TestLabel "readFunType" hunit_readFunType_test,
+  TestLabel "getChildCats" hunit_getChildCats_test,
+  TestLabel "typeCheck" hunit_typeCheck_test
+  ]
+  
 hunit_tests =
   do
-    test_hu_read1
-    test_hu_read2
-    test_hu_read3
-    test_hu_read4
-    test_hu_read5
-    test_hu_ord1
-    test_hu_ord2
-    test_hu_ord3
-    test_hu_ord4
-    test_hu_ord5
-    test_hu_ord6
-    test_hu_sort
-    test_hu_prune
-    test_hu_generate
-    test_hu_match1
-    test_hu_match2
-    test_hu_ttreetogfabstree1
---    test_hu_ttreetogfabstree2
-    test_hu_typecheck
-    test_hu_getchildcats
-    test_hu_gfabstreetottree
+    let tests = TestList [treec_tests, tree_function_tests]
+    runTestTT tests
+    
 -- Quickcheck tests
-instance Arbitrary TTree where
-  arbitrary =
-    do
-      let generated = toList $ Muste.Tree.Internal.generate grammar (mkCId "A") 5
-      elements (map metaTree generated)
+-- instance Arbitrary TTree where
+--   arbitrary =
+--     do
+--       let generated = toList $ Muste.Tree.Internal.generate grammar (mkCId "A") 5
+--       elements (map metaTree generated)
 
 -- prop_metaTest :: TTree -> Bool
 -- prop_metaTest tree =
