@@ -6,7 +6,7 @@ import PGF.Internal
 import Data.Maybe
 
 -- | Type 'FunType' consists of a CId that is the the result category and [CId] are the parameter categories
-data FunType = Fun CId [CId] | NoType deriving (Ord)
+data FunType = Fun CId [CId] | NoType deriving (Ord,Eq)
 
 -- | Type 'Rule' consists of a CId as the function name and a 'FunType' as the Type
 data Rule = Function CId FunType deriving (Ord,Eq)
@@ -66,12 +66,6 @@ instance Read FunType where
     in
       [((Fun (last cats) (init cats)),snd result)]
 
--- | A 'FunType' is a member of Eq class
-{-
-  Function types are equal if all hypothesises and the resulting category are equal
--}
-instance Eq FunType where
-  (==) (Fun id1 pre1) (Fun id2 pre2) = (id1 == id2) && (pre1 == pre2) 
 
 -- | A 'Rule' is member of the Show class
 instance Show Rule where
