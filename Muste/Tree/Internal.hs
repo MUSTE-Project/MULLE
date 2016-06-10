@@ -2,9 +2,7 @@
 {- | This module provides implementations of different kinds of syntax trees
 -}
 module Muste.Tree.Internal where
-       -- (MetaTTree(..),TTree(..),LTree(..),Path,Pos,TreeC(..),Cost(..),getTreeCat,prune,generate,match,ttreeToGFAbsTree,gfAbsTreeToTTree,ttreeToLTree,makeMeta,replaceNodeByMeta,typecheck,getChildCats) where
---module Tree (MetaTTree(..),TTree(..),LTree(..),Path,Pos,TreeC(..),getTreeCat,prune,generate,ttreeToGFAbsTree,gfAbsTreeToTTree,ttreeToLTree,makeMeta) where
-import PGF hiding (showType)
+import PGF hiding (showType,checkType)
 import PGF.Internal hiding (showType)
 import Data.Maybe
 import Data.List
