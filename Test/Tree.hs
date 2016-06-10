@@ -183,6 +183,22 @@ hunit_checkType_test =
     ( TestLabel "Simple tree with nodes" $ checkType tree6 ~?= False ),
     ( TestLabel "Deep tree with nodes" $ checkType tree7 ~?= False )
     ]
+
+hunit_fixTypes_test =
+  let
+    tree1 = TNode (mkCId "f") (Fun (mkCId "A") []) [(TMeta (mkCId "A")),(TMeta (mkCId "B"))]
+    tree2 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TMeta (mkCId "A")),(TMeta (mkCId "B"))]
+    tree3 = TNode (mkCId "f") (Fun (mkCId "A") []) [(TNode (mkCId "f") (Fun (mkCId "A") []) [(TNode (mkCId "f") (Fun (mkCId "A") []) [(TNode (mkCId "f") (Fun (mkCId "A") []) [(TMeta (mkCId "A"))])])])]
+    tree4 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A")]) [(TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A")]) [(TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A")]) [(TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A")]) [(TMeta (mkCId "A"))])])])]
+    tree5 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "C")]) [(TMeta (mkCId "A")),(TMeta (mkCId "B"))]
+  in
+    TestList [
+    ( TestLabel "Fixable tree" $ fixTypes tree1 ~?= tree2 ),
+    ( TestLabel "Already fixed tree" $ fixTypes tree2 ~?= tree2 ),
+    ( TestLabel "Deep tree" $ fixTypes tree3 ~?= tree4 ),
+    ( TestCase $ assertBool "Already fixed tree with type errors" $ fixTypes tree5 /= tree2 && fixTypes tree5 == tree5 )
+    ]
+    
 treec_tests = TestList [
   TestLabel "TreeC GFAbsTree showTree" hunit_TreeC_GFAbsTree_showTree_test,
   TestLabel "TreeC GFAbsTree selectNode" hunit_TreeC_GFAbsTree_selectNode_test,
@@ -198,6 +214,7 @@ tree_function_tests =
   TestLabel "readFunType" hunit_readFunType_test,
   TestLabel "getChildCats" hunit_getChildCats_test,
   TestLabel "checkType" hunit_checkType_test,
+  TestLabel "fixTypes" hunit_fixTypes_test
   ]
   
 hunit_tests =
