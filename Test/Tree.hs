@@ -6,13 +6,12 @@ import PGF hiding (checkType)
 import PGF.Internal
 import Muste.Tree.Internal
 import Muste.Grammar
-import Data.List
 import Test.HUnit.Text
 import Test.HUnit.Base
 import System.Random
 import Data.Set (Set,fromList,toList,empty)
-import Test.Data
 import Data.Maybe
+
 randomize :: StdGen -> [a] -> [a]
 randomize _ [] = []
 randomize gen list =
@@ -23,7 +22,6 @@ randomize gen list =
     (list !! rnd) : (randomize ngen (part1 ++ part2))
 
 -- HUnit tests
-
 hunit_TreeC_GFAbsTree_showTree_test =
   let
     tree = (EApp (EFun (mkCId "A")) (EFun (mkCId "B")))
