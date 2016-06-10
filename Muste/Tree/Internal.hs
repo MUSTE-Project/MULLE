@@ -119,10 +119,10 @@ getChildCats (TNode _ _ trees) =
     map extract trees
 
 -- Typechecks a TTree
-typeCheck :: TTree -> Bool
-typeCheck (TMeta _) = True
-typeCheck t@(TNode name (Fun fcat ccats) trees) =
-  (getChildCats t == ccats) && (foldl (&&) True $ map typeCheck trees)
+checkType :: TTree -> Bool
+checkType (TMeta _) = True
+checkType t@(TNode name (Fun fcat ccats) trees) =
+  (getChildCats t == ccats) && (foldl (&&) True $ map checkType trees)
 
 -- goes through a tree and fixes type problems when only a root type is given for each subtree
 fixTypes :: TTree -> TTree
