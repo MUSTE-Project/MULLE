@@ -18,11 +18,6 @@ data Grammar = Grammar {
   pgf :: PGF
   }
 
--- | A 'Grammar' is in the Show class
-instance Show Grammar where
-  show (Grammar startcat rules _) =
-    "Startcat: " ++ show startcat ++ "\nRules:\n " ++
-    (unwords $ map show rules)
 
 -- | A 'FunType' is in the Show class
 instance Show FunType where
@@ -31,6 +26,17 @@ instance Show FunType where
   show (Fun cat cats) =
     "(" ++ (foldl (\a -> \b -> a ++ " -> " ++ (show b)) (show $ head cats) (tail cats) ++ " -> " ++ show cat) ++ ")"
   show (NoType) = "()"
+
+-- | A 'Rule' is member of the Show class
+instance Show Rule where
+  show (Function name funtype) =
+    show name ++ " : " ++ show funtype ;
+
+-- | A 'Grammar' is in the Show class
+instance Show Grammar where
+  show (Grammar startcat rules _) =
+    "Startcat: " ++ show startcat ++ "\nRules: \n" ++
+    (unwords $ map (\r -> "\t" ++ (show r) ++ "\n") rules)
 
 -- | The function 'readId' is a helper to read a 'FunType'
 readId :: String -> Maybe (CId,String)
@@ -67,10 +73,6 @@ instance Read FunType where
       [((Fun (last cats) (init cats)),snd result)]
 
 
--- | A 'Rule' is member of the Show class
-instance Show Rule where
-  show (Function name funtype) =
-    show name ++ " : " ++ show funtype ;
 
 -- | The function 'getFunType' extracts the function type from a grammar given a function name
 getFunType :: PGF -> CId -> FunType
