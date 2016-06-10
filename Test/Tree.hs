@@ -5,7 +5,7 @@ import Test.QuickCheck
 import PGF hiding (checkType)
 import PGF.Internal
 import Muste.Tree.Internal
-import Muste.Grammar
+import Muste.Grammar.Internal
 import Test.HUnit.Text
 import Test.HUnit.Base
 import System.Random
