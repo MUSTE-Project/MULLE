@@ -38,13 +38,6 @@ instance Show Grammar where
     "Startcat: " ++ show startcat ++ "\nRules: \n" ++
     (unwords $ map (\r -> "\t" ++ (show r) ++ "\n") rules)
 
--- | The function 'readId' is a helper to read a 'FunType'
-readId :: String -> Maybe (CId,String)
-readId str =
-  let
-    result = readsPrec 0 str
-  in
-    if result == [] then Nothing else Just $ head result
   
 -- | A 'FunType' is in the Read class
 instance Read FunType where
@@ -72,6 +65,22 @@ instance Read FunType where
     in
       [((Fun (last cats) (init cats)),snd result)]
 
+-- The function 'readId' is a helper to read a 'FunType'
+readId :: String -> Maybe (CId,String)
+-- Workaround for ? (used for unknown types)
+readId ('?':rest) =
+  let
+    tmp = readId rest
+  in
+    case tmp of {
+      Nothing -> Just ((mkCId "?"),"") ;
+      Just (id,rst) -> Just (mkCId  ("?" ++ (show id)),rst)
+      }
+readId str =
+  let
+    result = readsPrec 0 str
+  in
+    if result == [] then Nothing else Just $ head result
 
 
 -- | The function 'getFunType' extracts the function type from a grammar given a function name
