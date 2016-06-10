@@ -44,9 +44,10 @@ instance Read FunType where
   readsPrec _ sType =
     let
       readType :: String -> ([CId],String)
+      readType (' ':rest) = readType rest
       readType ('(':rest) = readType rest
       readType (')':rest) = ([],rest)
-      readType (' ':'-':'>':' ':rest) =
+      readType ('-':'>':rest) =
         let
           result = readType rest
         in
