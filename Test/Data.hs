@@ -1,7 +1,7 @@
 module Test.Data where
 import PGF
 import PGF.Internal
-import Muste.Grammar
+import Muste.Grammar.Internal
 import Muste.Tree
 import Data.Set
 

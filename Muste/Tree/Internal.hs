@@ -9,7 +9,7 @@ import Data.List
 import Data.Set (Set,toList,fromList,empty)
 import qualified Data.Set as Set
 import Data.Ord
-import Muste.Grammar
+import Muste.Grammar.Internal
 import Debug.Trace
 
 -- | Generic class for trees
