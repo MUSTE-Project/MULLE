@@ -2,7 +2,7 @@
 -}
 module Test.Tree where
 import Test.QuickCheck
-import PGF
+import PGF hiding (checkType)
 import PGF.Internal
 import Muste.Tree.Internal
 import Muste.Grammar
@@ -164,7 +164,7 @@ hunit_getChildCats_test =
     ( TestLabel "Simple tree with nodes" $ getChildCats tree4 ~?= [(mkCId "A"),(mkCId "B")] )
     ]
 
-hunit_typeCheck_test =
+hunit_checkType_test =
   let
     tree1 = TMeta (mkCId "A")
     tree2 = TNode (mkCId "a") (Fun (mkCId "A") []) []
@@ -175,13 +175,13 @@ hunit_typeCheck_test =
     tree7 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TMeta (mkCId "A")),(TMeta (mkCId "C"))]),(TMeta (mkCId "B"))]),(TMeta (mkCId "B"))]),(TMeta (mkCId "B"))]
   in
     TestList [
-    ( TestLabel "Meta node" $ typeCheck tree1 ~?= True ),
-    ( TestLabel "Simple tree without subtrees" $ typeCheck tree2 ~?= True ),
-    ( TestLabel "Simple tree with meta nodes" $ typeCheck tree3 ~?= True ),
-    ( TestLabel "Simple tree with nodes" $ typeCheck tree4 ~?= True ),
-    ( TestLabel "Simple tree with meta nodes" $ typeCheck tree5 ~?= False ),
-    ( TestLabel "Simple tree with nodes" $ typeCheck tree6 ~?= False ),
-    ( TestLabel "Deep tree with nodes" $ typeCheck tree7 ~?= False )
+    ( TestLabel "Meta node" $ checkType tree1 ~?= True ),
+    ( TestLabel "Simple tree without subtrees" $ checkType tree2 ~?= True ),
+    ( TestLabel "Simple tree with meta nodes" $ checkType tree3 ~?= True ),
+    ( TestLabel "Simple tree with nodes" $ checkType tree4 ~?= True ),
+    ( TestLabel "Simple tree with meta nodes" $ checkType tree5 ~?= False ),
+    ( TestLabel "Simple tree with nodes" $ checkType tree6 ~?= False ),
+    ( TestLabel "Deep tree with nodes" $ checkType tree7 ~?= False )
     ]
 treec_tests = TestList [
   TestLabel "TreeC GFAbsTree showTree" hunit_TreeC_GFAbsTree_showTree_test,
@@ -197,7 +197,7 @@ tree_function_tests =
   TestLabel "consumeChar" hunit_consumeChar_test,
   TestLabel "readFunType" hunit_readFunType_test,
   TestLabel "getChildCats" hunit_getChildCats_test,
-  TestLabel "typeCheck" hunit_typeCheck_test
+  TestLabel "checkType" hunit_checkType_test,
   ]
   
 hunit_tests =
