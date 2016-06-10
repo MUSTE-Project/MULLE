@@ -126,7 +126,11 @@ checkType t@(TNode name (Fun fcat ccats) trees) =
 fixTypes :: TTree -> TTree
 fixTypes t@(TNode name typ trees) =
   let
-    newType = (Fun (case typ of { NoType -> (mkCId "?") ; (Fun cat _) -> cat }) (getChildCats t))
+    newType = case typ of {
+      NoType -> (Fun (mkCId "?") []); -- No type at all
+      (Fun cat []) -> (Fun cat (getChildCats t)); -- No type info for the subtrees -> Copy categories
+      f@(Fun cat _) -> f -- Already typed -> Do nothing
+      }
     newTrees = map fixTypes trees
   in
     (TNode name newType newTrees)
