@@ -230,5 +230,5 @@ prop_metaTest :: TTree -> Bool
 prop_metaTest tree =
   (getMetaLeaves tree) == fromList (map snd (getMetaPaths tree))
 
- quickcheck_tests = [ ("Meta1",prop_metaTest) ]
+quickcheck_tests = [ ("Meta1",prop_metaTest) ]
 
