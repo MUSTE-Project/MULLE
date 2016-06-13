@@ -111,7 +111,32 @@ hunit_readId_test =
     TestLabel "Single Letter with rest 1" $ ( readId (str9 ++ "###") ~?= Just (mkCId "ABC","###") ),
     TestLabel "Single Letter with rest 2" $ ( readId (str9 ++ " ###") ~?= Just (mkCId "ABC"," ###") )
     ]
-    
+
+hunit_getFunType_test =
+  let
+    pgf = readPGF "Test/ABCAbs.pgf"
+  in
+    TestList [
+    TestLabel "Empty PGF" $ getFunType emptyPGF (mkCId "f") ~?= NoType,
+    TestLabel "Existing Constant" $ TestCase $ pgf >>= (\g -> getFunType g (mkCId "a") @?= (Fun (mkCId "A") [])),
+    TestLabel "Existing Function" $ TestCase $ pgf >>= (\g -> getFunType g (mkCId "f") @?= (Fun (mkCId "A") [(mkCId "A"), (mkCId "B")])),
+    TestLabel "Non-Existing Function" $ TestCase $ pgf >>= (\g -> getFunType g (mkCId "foo") @?= NoType)
+    ]
+
+hunit_getFunCat_test =
+  TestList [
+  TestLabel "NoType" $ getFunCat NoType ~?= wildCId,
+  TestLabel "Constant" $ getFunCat (Fun (mkCId "A") []) ~?= (mkCId "A"),
+  TestLabel "Constant" $ getFunCat (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) ~?= (mkCId "A")
+  ]
+
+hunit_getRuleCat_test =
+  TestList [
+  TestLabel "NoType" $ getRuleCat (Function (mkCId "f") NoType) ~?= wildCId,
+  TestLabel "Constant" $ getRuleCat (Function (mkCId "f") (Fun (mkCId "A") [])) ~?= (mkCId "A"),
+  TestLabel "Constant" $ getRuleCat (Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])) ~?= (mkCId "A")
+  ]
+  
 show_tests = TestList [
   TestLabel "Show FunType show" hunit_Show_FunType_show_test,
   TestLabel "Show Rule show" hunit_Show_Rule_show_test,
@@ -124,10 +149,10 @@ read_tests = TestList [
 
 grammar_function_tests =
   TestList [
-  TestLabel "readId" hunit_readId_test
-  -- TestLabel "readFunType" hunit_readFunType_test,
-  -- TestLabel "getChildCats" hunit_getChildCats_test,
-  -- TestLabel "typeCheck" hunit_typeCheck_test,
+  TestLabel "readId" hunit_readId_test,
+  TestLabel "getFunType" hunit_getFunType_test,
+  TestLabel "getFunCat" hunit_getFunCat_test,
+  TestLabel "getRuleCat" hunit_getRuleCat_test
   -- TestLabel "typeCheck" hunit_fixTypes_test
   ]
 
