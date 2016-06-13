@@ -11,6 +11,7 @@ import Test.HUnit.Base
 import System.Random
 import Data.Set (Set,fromList,toList,empty)
 import Data.Maybe
+import Test.Data (grammar)
 
 randomize :: StdGen -> [a] -> [a]
 randomize _ [] = []
@@ -215,37 +216,19 @@ tree_function_tests =
   TestLabel "fixTypes" hunit_fixTypes_test
   ]
   
-hunit_tests =
-  do
-    let tests = TestList [treec_tests, tree_function_tests]
-    runTestTT tests
+hunit_tests = TestList [treec_tests, tree_function_tests]
     
 -- Quickcheck tests
--- instance Arbitrary TTree where
---   arbitrary =
---     do
---       let generated = toList $ Muste.Tree.Internal.generate grammar (mkCId "A") 5
---       elements (map metaTree generated)
+instance Arbitrary TTree where
+  arbitrary =
+    do
+      let generated = toList $ Muste.Tree.Internal.generate grammar (mkCId "A") 3
+      elements (map metaTree generated)
 
--- prop_metaTest :: TTree -> Bool
--- prop_metaTest tree =
---   (getMetaLeaves tree) == map snd (getMetaPaths tree)
--- test_qc_meta1 =
---   quickCheckWith stdArgs { maxSuccess = 500 } prop_metaTest
+-- Just an example how to integrate quickcheck
+prop_metaTest :: TTree -> Bool
+prop_metaTest tree =
+  (getMetaLeaves tree) == fromList (map snd (getMetaPaths tree))
 
--- prop_generateTest :: Int -> Bool
--- prop_generateTest depth =
---   (Tree.generate g1 (mkCId "A") depth) ==  (generate' g1 (mkCId "A") depth)
-
--- quickcheck_tests =
---   do
---     putStrLn "Quickcheck MetaEquality"
---     test_qc_meta1
--- Main
-main =
-  do
-    putStrLn "HUnite tests:"
-    hunit_tests
-    --putStrLn "Quickcheck tests:"
-    --quickcheck_tests
+ quickcheck_tests = [ ("Meta1",prop_metaTest) ]
 

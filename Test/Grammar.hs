@@ -130,14 +130,5 @@ grammar_function_tests =
   -- TestLabel "typeCheck" hunit_typeCheck_test,
   -- TestLabel "typeCheck" hunit_fixTypes_test
   ]
-  
-hunit_tests =
-  do
-    let tests = TestList [show_tests,read_tests,grammar_function_tests] --, tree_function_tests]
-    runTestTT tests
-    
--- Main
-main =
-  do
-    putStrLn "HUnite tests:"
-    hunit_tests
+
+hunit_tests = TestList [show_tests,read_tests,grammar_function_tests] --, tree_function_tests]

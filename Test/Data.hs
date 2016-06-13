@@ -17,7 +17,7 @@ ts4 = "{t4:(A -> A -> A) {?A} {?A}}"
 ts6 = "{t2:F {?A} {g:G {?B} {h:H {?C} {i:I {?D} {?E}}}}}"
 ts7 = "{t4:A {?A} {?A}}"
 
-g2 = Grammar (mkCId "A")
+grammar = Grammar (mkCId "A")
      [
       Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "A")]),
       Function (mkCId "a") (Fun (mkCId "A") []) -- ,
