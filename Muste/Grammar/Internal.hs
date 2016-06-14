@@ -18,6 +18,10 @@ data Grammar = Grammar {
   pgf :: PGF
   }
 
+emptyGrammar = Grammar wildCId [] emptyPGF
+
+--instance Eq Grammar where
+  
 -- | A 'FunType' is in the Show class
 instance Show FunType where
   show (Fun cat []) =
@@ -64,6 +68,12 @@ instance Read FunType where
     in
       [((Fun (last cats) (init cats)),snd result)]
 
+-- | Predicate to check if a PGF is empty, i.e. when the absname is wildCId
+isEmptyPGF pgf = absname pgf == wildCId
+
+-- | Predicate to check if a Grammar is empty, i.e. when the startcat is wildCId and pgf is empty
+isEmptyGrammar grammar = startcat grammar == wildCId && isEmptyPGF (pgf grammar)
+
 -- The function 'readId' is a helper to read a 'FunType'
 readId :: String -> Maybe (CId,String)
 -- Workaround for ? (used for unknown types)
@@ -85,7 +95,7 @@ readId str =
 -- | The function 'getFunType' extracts the function type from a grammar given a function name
 getFunType :: PGF -> CId -> FunType
 getFunType grammar id
-  | absname grammar == wildCId = NoType -- Empty grammar
+  | isEmptyPGF grammar = NoType -- Empty grammar
   | otherwise =
     let
       typ = functionType grammar id
@@ -112,7 +122,7 @@ getRuleCat (Function _ funType) = getFunCat funType
 -- | The function 'pgfToGrammar' transforms a PGF grammar to a simpler grammar data structure
 pgfToGrammar :: PGF -> Grammar
 pgfToGrammar pgf 
-  | absname pgf == wildCId = emptyGrammar
+  | isEmptyPGF pgf = emptyGrammar
   | otherwise =
     let
       -- Get function names
