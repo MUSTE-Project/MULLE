@@ -7,6 +7,7 @@ import Muste.Grammar.Internal
 import Test.HUnit.Text
 import Test.HUnit.Base
 import Data.Maybe
+import Data.Map
 
 -- HUnit tests
 hunit_Show_FunType_show_test =
@@ -76,6 +77,22 @@ hunit_Read_FunType_readsPrec_test =
     TestLabel "Function Type with rest 2" $ ( readsPrec 0 ( str6 ++ "   ###" ) ~?= [(type2, "   ###")] )
     ]
 
+hunit_isEmptyPGF_test =
+  let
+    pgf = PGF empty (mkCId "Abs") (Abstr empty empty empty) empty
+    pgf2 = readPGF "gf/ABCAbs.pgf"
+  in
+  TestList [
+  TestLabel "Empty PGF" $ isEmptyPGF emptyPGF ~?= True,
+  TestLabel "Almost empty PGF with a name" $ isEmptyPGF pgf ~?= False,
+  TestLabel "Non-empty PGF" $ TestCase $ pgf2 >>= (\g -> isEmptyPGF g @?= False)
+  ]
+
+hunit_isEmptyGrammar_test =
+  TestList [
+  TestLabel "Empty Grammar" $ isEmptyGrammar emptyGrammar ~?= True
+  ]
+  
 hunit_readId_test =
   let
     str1 = " "
@@ -114,7 +131,7 @@ hunit_readId_test =
 
 hunit_getFunType_test =
   let
-    pgf = readPGF "Test/ABCAbs.pgf"
+    pgf = readPGF "gf/ABCAbs.pgf"
   in
     TestList [
     TestLabel "Empty PGF" $ getFunType emptyPGF (mkCId "f") ~?= NoType,
@@ -149,6 +166,8 @@ read_tests = TestList [
 
 grammar_function_tests =
   TestList [
+  TestLabel "isEmptyPGF" hunit_isEmptyPGF_test,
+  TestLabel "isEmptyGrammar" hunit_isEmptyGrammar_test,
   TestLabel "readId" hunit_readId_test,
   TestLabel "getFunType" hunit_getFunType_test,
   TestLabel "getFunCat" hunit_getFunCat_test,
