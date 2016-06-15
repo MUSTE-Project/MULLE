@@ -71,7 +71,9 @@ instance Read FunType where
       result = readType sType
       cats = fst result
     in
-      [((Fun (last cats) (init cats)),snd result)]
+      case cats of {
+        [] -> [(NoType,snd result)] ; -- Empty Result
+        _ ->[((Fun (last cats) (init cats)),snd result)] } 
 
 -- | Predicate to check if a PGF is empty, i.e. when the absname is wildCId
 isEmptyPGF pgf = absname pgf == wildCId

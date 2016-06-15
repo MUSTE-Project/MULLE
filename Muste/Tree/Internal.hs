@@ -102,7 +102,10 @@ readFunType str =
   let
     result = readsPrec 0 str
   in
-    if result == [] then Nothing else Just $ head $ result
+    case result of {
+      [(NoType,_)] -> Nothing ;
+      _ -> Just $ head $ result
+      }
 
 -- Extracts the root category of each childtree
 getChildCats :: TTree -> [CId]
