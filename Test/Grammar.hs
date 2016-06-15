@@ -8,8 +8,32 @@ import Test.HUnit.Text
 import Test.HUnit.Base
 import Data.Maybe
 import Data.Map
-
+import Control.Monad
 -- HUnit tests
+hunit_Eq_Grammar_eq_test =
+  let
+    grammar1 = Grammar (mkCId "S")
+      [
+        (Function (mkCId "a") (Fun (mkCId "A") [])),
+        (Function (mkCId "b") (Fun (mkCId "B") [])),
+        (Function (mkCId "c") (Fun (mkCId "C") [])),
+        (Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])),
+        (Function (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])),
+        (Function (mkCId "s") (Fun (mkCId "S") [(mkCId "A")]))
+      ]
+      emptyPGF
+    grammar2 = Grammar (mkCId "A") [] emptyPGF
+    pgf = readPGF "gf/ABCAbs.pgf"
+    grammar3 = pgf >>= (return . pgfToGrammar)
+  in
+    TestList [
+    TestLabel "Empty grammar" $ ( emptyGrammar == emptyGrammar ~?= True ),
+    TestLabel "Simple Grammar reflexivity" $ ( grammar1 == grammar1 ~?= True ),
+    TestLabel "Inequality 1" $ ( grammar1 == grammar2 ~?= False ),
+    TestLabel "Inequality 2" $ ( grammar2 == grammar1 ~?= False ),
+    TestLabel "Complex grammar" $ TestCase $ join $ liftM (\g -> grammar1 == g @?= True) grammar3
+    ]
+    
 hunit_Show_FunType_show_test =
   let
     type1 = NoType
@@ -89,9 +113,17 @@ hunit_isEmptyPGF_test =
   ]
 
 hunit_isEmptyGrammar_test =
-  TestList [
-  TestLabel "Empty Grammar" $ isEmptyGrammar emptyGrammar ~?= True
-  ]
+  let
+    grammar1 = Grammar (mkCId "S") [(Function (mkCId "f") (Fun (mkCId "S") [(mkCId "A")])),(Function (mkCId "a") (Fun (mkCId "A") []))] emptyPGF
+    pgf = readPGF "gf/ABCAbs.pgf"
+    grammar2 = pgf >>= (\p -> return $ Grammar wildCId [] p)
+  in
+    TestList [
+    TestLabel "Empty Grammar" $ isEmptyGrammar emptyGrammar ~?= True,
+    TestLabel "Almost empty Grammar with a name" $ isEmptyGrammar grammar1 ~?= False,
+    TestLabel "Grammar without a name" $ TestCase $ grammar2 >>= (\g -> isEmptyGrammar g @?= False),
+    TestLabel "Complete grammar from PGF" $ TestCase $ pgf >>= (\g -> isEmptyGrammar (pgfToGrammar g) @?= False)
+    ]
   
 hunit_readId_test =
   let
@@ -153,7 +185,29 @@ hunit_getRuleCat_test =
   TestLabel "Constant" $ getRuleCat (Function (mkCId "f") (Fun (mkCId "A") [])) ~?= (mkCId "A"),
   TestLabel "Constant" $ getRuleCat (Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])) ~?= (mkCId "A")
   ]
-  
+
+hunit_pgfToGrammar_test =
+  let
+    pgf = readPGF "gf/ABCAbs.pgf"
+    grammar = pgf >>= return . (Grammar
+      (mkCId "S")
+      [
+        (Function (mkCId "a") (Fun (mkCId "A") [])),
+        (Function (mkCId "b") (Fun (mkCId "B") [])),
+        (Function (mkCId "c") (Fun (mkCId "C") [])),
+        (Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])),
+        (Function (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])),
+        (Function (mkCId "s") (Fun (mkCId "S") [(mkCId "A")]))
+      ])
+  in
+    TestList [
+    TestLabel "Non-empty PGF" $ TestCase $ join $ liftM2 (@?=) (pgf >>= return . pgfToGrammar) grammar
+    ]
+
+eq_tests = TestList [
+  TestLabel "Eq Grammar ===" hunit_Eq_Grammar_eq_test
+  ]
+
 show_tests = TestList [
   TestLabel "Show FunType show" hunit_Show_FunType_show_test,
   TestLabel "Show Rule show" hunit_Show_Rule_show_test,
@@ -171,8 +225,8 @@ grammar_function_tests =
   TestLabel "readId" hunit_readId_test,
   TestLabel "getFunType" hunit_getFunType_test,
   TestLabel "getFunCat" hunit_getFunCat_test,
-  TestLabel "getRuleCat" hunit_getRuleCat_test
-  -- TestLabel "typeCheck" hunit_fixTypes_test
+  TestLabel "getRuleCat" hunit_getRuleCat_test,
+  TestLabel "pgfToGrammar" hunit_pgfToGrammar_test
   ]
 
-hunit_tests = TestList [show_tests,read_tests,grammar_function_tests] --, tree_function_tests]
+hunit_tests = TestList [eq_tests,show_tests,read_tests,grammar_function_tests] --, tree_function_tests]
