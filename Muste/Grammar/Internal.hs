@@ -20,8 +20,13 @@ data Grammar = Grammar {
 
 emptyGrammar = Grammar wildCId [] emptyPGF
 
---instance Eq Grammar where
-  
+-- | A 'Grammar' is in the EQ class
+instance Eq Grammar where
+  (==) g1@(Grammar s1 rs1 pgf1) g2@(Grammar s2 rs2 pgf2) =
+    s1 == s2 &&
+    rs1 == rs2
+    -- pgf1 == pgf2 -- To be fixed somehow
+    
 -- | A 'FunType' is in the Show class
 instance Show FunType where
   show (Fun cat []) =
