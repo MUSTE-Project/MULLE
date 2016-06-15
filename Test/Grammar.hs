@@ -86,6 +86,12 @@ hunit_Read_FunType_readsPrec_test =
     str6 = "(A -> B)"
     str7 = "( A -> B )"
     type2 = (Fun (mkCId "B") [(mkCId "A")])
+    str8 = ""
+    str9 = "_"
+    str10 = "###"
+    str11 = "->"
+    str12 = "-> A"
+    str13 = "A ->"
   in
     TestList [
     TestLabel "Simple Type 1" $ ( readsPrec 0 str1 ~?= [(type1, "")] ),
@@ -98,7 +104,14 @@ hunit_Read_FunType_readsPrec_test =
     TestLabel "Function Type 4" $ ( readsPrec 0 str6 ~?= [(type2, "")] ),
     TestLabel "Function Type 5" $ ( readsPrec 0 str7 ~?= [(type2, "")] ),
     TestLabel "Function Type with rest 1" $ ( readsPrec 0 ( str6 ++ "###" ) ~?= [(type2, "###")] ),
-    TestLabel "Function Type with rest 2" $ ( readsPrec 0 ( str6 ++ "   ###" ) ~?= [(type2, "   ###")] )
+    TestLabel "Function Type with rest 2" $ ( readsPrec 0 ( str6 ++ "   ###" ) ~?= [(type2, "   ###")] ),
+    TestLabel "Empty String" $ ( ( readsPrec 0 ( str8 ) :: [(FunType,String)] ) ~?= [(NoType,"")] ),
+    TestLabel "Wildcard" $ ( ( readsPrec 0 ( str9 ) :: [(FunType,String)] ) ~?= [(NoType,"_")] ),
+    TestLabel "Three Hashes" $ ( ( readsPrec 0 ( str10 ) :: [(FunType,String)] ) ~?= [(NoType,"###")] ),
+    -- Nor really intended, but does it any harm?
+    TestLabel "Arrow" $ ( ( readsPrec 0 ( str11 ) :: [(FunType,String)] ) ~?= [(NoType,"")] ),
+    TestLabel "Arrow A" $ ( ( readsPrec 0 ( str12 ) :: [(FunType,String)] ) ~?= [(type1,"")] ),
+    TestLabel "A Arrow" $ ( ( readsPrec 0 ( str13 ) :: [(FunType,String)] ) ~?= [(type1,"")] )
     ]
 
 hunit_isEmptyPGF_test =
