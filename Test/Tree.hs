@@ -124,30 +124,42 @@ hunit_consumeChar_test =
     ]
 
 hunit_readFunType_test =
-  -- let
-  --   type1 = "A"
-  --   type2  = "(A)"
-  --   type3 = "(A -> B)"
-  --   type4 = "(A -> B -> A)"
-  --   type5 = "A -> B"
-  --   type6 = "(A->B)"
-  --   type7 = "A->B"
-  -- in
-  --   TestList [
-  --   ( TestLabel "Simple Type 1" $ readFunType type1 ~?= Just ((Fun (mkCId "A") []), "") ),
-  --   ( TestLabel "Simple Type 2" $ readFunType type2 ~?= Just ((Fun (mkCId "A") []), "") ),
-  --   ( TestLabel "Function Type 1" $ readFunType type3 ~?= Just ((Fun (mkCId "B") [(mkCId "A")]), "") ),
-  --   ( TestLabel "Function Type 2" $ readFunType type4 ~?= Just ((Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]), "") ),
-  --   ( TestLabel "Simple Type with rest 1" $ readFunType ( type1 ++ "###" ) ~?= Just ((Fun (mkCId "A") []), "###") ),
-  --   ( TestLabel "Simple Type with rest 2" $ readFunType ( type2 ++ "###" )~?= Just ((Fun (mkCId "A") []), "###") ),
-  --   ( TestLabel "Function Type with rest 1" $ readFunType ( type3 ++ "###" ) ~?= Just ((Fun (mkCId "B") [(mkCId "A")]), "###") ),
-  --   ( TestLabel "Function Type with rest 2" $ readFunType ( type4 ++ "###" ) ~?= Just ((Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]), "###") ),
-  --   ( TestLabel "Function Type without parentheses" $ readFunType type5 ~?= Just ((Fun (mkCId "B") [(mkCId "A")]), "") ),
-  --   ( TestLabel "Function Type without parentheses with rest" $ readFunType ( type5 ++ "###" ) ~?= Just ((Fun (mkCId "B") [(mkCId "A")]), "###") ),
-  --   ( TestLabel "Function Type without spaces" $ readFunType type6 ~?= Just ((Fun (mkCId "B") [(mkCId "A")]), "") ),
-  --   ( TestLabel "Function Type without parentheses with rest" $ readFunType ( type6 ++ "###" ) ~?= Just ((Fun (mkCId "B") [(mkCId "A")]), "###") )
-  --   ]
-  TestCase $ assertString "Has to be checked in Grammar"
+  let
+    str1 = "A"
+    str2 = "(A)"
+    type1 = (Fun (mkCId "A") [])
+    str3 = "A->B"
+    str4 = "A -> B"
+    str5 = "(A->B)"
+    str6 = "(A -> B)"
+    str7 = "( A -> B )"
+    type2 = (Fun (mkCId "B") [(mkCId "A")])
+    str8 = ""
+    str9 = "_"
+    str10 = "###"
+    str11 = "->"
+    str12 = "-> A"
+    str13 = "A ->"
+  in
+    TestList [
+    TestLabel "Simple Type 1" $ ( readFunType str1 ~?= Just (type1, "") ),
+    TestLabel "Simple Type 2" $ ( readFunType str2 ~?= Just (type1, "") ),
+    TestLabel "Simple Type with rest 1" $ ( readFunType ( str2 ++ "###" ) ~?= Just (type1, "###") ),
+    TestLabel "Simple Type with rest 2" $ ( readFunType ( str2 ++ "   ###" ) ~?= Just (type1, "   ###") ),
+    TestLabel "Function Type 1" $ ( readFunType str3 ~?= Just (type2, "") ),
+    TestLabel "Function Type 2" $ ( readFunType str4 ~?= Just (type2, "") ),
+    TestLabel "Function Type 3" $ ( readFunType str5 ~?= Just (type2, "") ),
+    TestLabel "Function Type 4" $ ( readFunType str6 ~?= Just (type2, "") ),
+    TestLabel "Function Type 5" $ ( readFunType str7 ~?= Just (type2, "") ),
+    TestLabel "Function Type with rest 1" $ ( readFunType ( str6 ++ "###" ) ~?= Just (type2, "###") ),
+    TestLabel "Function Type with rest 2" $ ( readFunType ( str6 ++ "   ###" ) ~?= Just (type2, "   ###") ),
+    TestLabel "Empty String" $ ( readFunType ( str8 ) ~?= Nothing ),
+    TestLabel "Wildcard" $ ( readFunType ( str9 ) ~?= Nothing ),
+    TestLabel "Three Hashes" $ ( readFunType ( str10 ) ~?= Nothing ),
+    TestLabel "Arrow" $ ( readFunType ( str11 ) ~?= Nothing ),
+    TestLabel "Arrow A" $ ( readFunType ( str12 ) ~?= Just (type1, "") ),
+    TestLabel "A Arrow" $ ( readFunType ( str13 ) ~?= Just (type1, "") )
+    ]
 
 hunit_getChildCats_test =
   let
