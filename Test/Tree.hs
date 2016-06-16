@@ -210,7 +210,107 @@ hunit_fixTypes_test =
     ( TestCase $ assertBool "Already fixed tree with type errors" $ fixTypes tree5 /= tree2 && fixTypes tree5 == tree5 )
     ]
     
-treec_tests = TestList [
+hunit_readTree_test =
+  let
+    str1 = ""
+    str2 = "{}"
+    str3 = "_"
+    str4 = "###"
+    str5 = "{a:A}"
+    tree1 = (TNode (mkCId "a") (Fun (mkCId "A") []) [])
+    str6 = "{a:A"
+    str7 = "a:A}"
+    str8 = "a:A"
+    str9 = "{f:(A -> B -> A) {a:A} {b:B}}"
+    tree2 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+      [
+        (TNode (mkCId "a") (Fun (mkCId "A") []) []),
+        (TNode (mkCId "B") (Fun (mkCId "B") []) [])
+      ]
+    str10 = "{f:(A -> A) {f:(A -> A) {f:(A -> A) {f:(A -> A) {a:A}}}}}"
+    tree3 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A")])
+      [
+        TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A")])
+        [
+          TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A")])
+          [
+            TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A")])
+            [
+              TNode (mkCId "a") (Fun (mkCId "A") []) []
+            ]
+          ]
+        ]
+      ]
+  in
+    TestList [
+    TestLabel "Empty String" $ readTree str1 ~?= Nothing,
+    TestLabel "Curly Brackets" $ readTree str2 ~?= Nothing,
+    TestLabel "Wildcard" $ readTree str3 ~?= Nothing,
+    TestLabel "Simple Tree" $ readTree str5 ~?= Just (tree1,""),
+    TestLabel "Partial Simple Tree 1" $ readTree str6 ~?= Just (tree1,""),
+    TestLabel "Partial Simple Tree 2" $ readTree str7 ~?= Just (tree1,""),
+    TestLabel "Partial Simple Tree 3" $ readTree str8 ~?= Just (tree1,""),
+    TestLabel "Slightly more complex Tree" $ readTree str9 ~?= Just (tree2,""),
+    TestLabel "Slightly more complex Tree" $ readTree str10 ~?= Just (tree3,""),
+    TestLabel "Simple Tree with rest" $ readTree (str8 ++ "###") ~?= Just (tree1,"###"),
+    TestLabel "Simple Tree with rest" $ readTree (str8 ++ "   ###") ~?= Just (tree1,"###")
+    ]
+
+hunit_readTrees_test =
+  let
+    str1 = ""
+    str2 = "{} {}"
+    str3 = "{a:A} {b:B}"
+    trees1 = [(TNode (mkCId "a") (Fun (mkCId "A") []) []),(TNode (mkCId "b") (Fun (mkCId "B") []) [])]
+    str4 = "{f:(A -> B -> A) {a:A} {b:B}} {g:(B -> C -> B) {b:B} {c:C}}"
+    trees2 =
+      [
+        (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+         [
+           (TNode (mkCId "a") (Fun (mkCId "A") []) []),
+           (TNode (mkCId "b") (Fun (mkCId "B") []) [])
+         ]
+        ),
+        (TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])
+         [
+           (TNode (mkCId "b") (Fun (mkCId "B") []) []),
+           (TNode (mkCId "c") (Fun (mkCId "C") []) [])
+         ]
+        )
+      ]
+      -- And more e.g. meta
+  in
+    TestList [
+    TestLabel "Empty String" $ readTrees str1 ~?= ([],""),
+    TestLabel "Curly Brackets" $ readTrees str2 ~?= ([],"{} {}"),
+    TestLabel "Simple Trees" $ readTrees str3 ~?= (trees1,""),
+    TestLabel "Slightly more complex Trees" $ readTrees str4 ~?= (trees2,"")
+    ]
+
+hunit_Read_TTree_readsPrec_test =
+  let
+    str1 = ""
+    str2 = "{}"
+    str3 = "_"
+    str4 = "###"
+    str5 = "{a:A}"
+    tree1 = (TNode (mkCId "a") (Fun (mkCId "A") []) [])
+    -- And more
+  in
+    TestList [
+    TestLabel "Empty String" $ (readsPrec 0 str1 :: [(TTree,String)])~?= [],
+    TestLabel "Curly Brackets" $ (readsPrec 0 str2 :: [(TTree,String)])~?= [],
+    TestLabel "Wildcard" $ (readsPrec 0 str3 :: [(TTree,String)])~?= [],
+    TestLabel "Three hashes" $ (readsPrec 0 str4 :: [(TTree,String)])~?= [],
+    TestLabel "Simple Tree " $ readsPrec 0 str5 ~?= [(tree1,"")]
+    ]
+    
+read_tests =
+  TestList [
+  hunit_Read_TTree_readsPrec_test
+  ]
+treec_tests =
+  TestList [
   TestLabel "TreeC GFAbsTree showTree" hunit_TreeC_GFAbsTree_showTree_test,
   TestLabel "TreeC GFAbsTree selectNode" hunit_TreeC_GFAbsTree_selectNode_test,
   TestLabel "TreeC GFAbsTree selectBranch" hunit_TreeC_GFAbsTree_selectBranch_test,
@@ -225,10 +325,12 @@ tree_function_tests =
   TestLabel "readFunType" hunit_readFunType_test,
   TestLabel "getChildCats" hunit_getChildCats_test,
   TestLabel "checkType" hunit_checkType_test,
-  TestLabel "fixTypes" hunit_fixTypes_test
+  TestLabel "fixTypes" hunit_fixTypes_test,
+  TestLabel "readTree" hunit_readTree_test,
+  TestLabel "readTree" hunit_readTrees_test
   ]
   
-hunit_tests = TestList [treec_tests, tree_function_tests]
+hunit_tests = TestList [treec_tests, read_tests, tree_function_tests]
     
 -- Quickcheck tests
 instance Arbitrary TTree where
