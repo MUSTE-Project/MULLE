@@ -89,6 +89,12 @@ instance Show TTree where
   show (TNode name typ children) = "{" ++ (show name) ++ ":" ++ show typ ++ " " ++ ( unwords $ map show children ) ++ "}"
   show (TMeta cat) = "{?" ++ show cat ++ "}"
 
+-- A meta tree is in the Show class
+instance Show MetaTTree where
+  show tree =
+    "(" ++ show (metaTree tree) ++ 
+    ", [" ++ unwords (map show $ toList $ subTrees tree) ++ "])\n"
+
 -- | The function 'consumeChar' removes a given char at the start of a string if it matches
 consumeChar :: Char -> String -> String
 consumeChar _ [] = []
@@ -209,18 +215,6 @@ instance Eq TTree where
   (==) (TNode _ typ1 trees1) (TNode _ typ2 trees2) = (typ1 == typ2) && (trees1 == trees2)
   (==) _ _ = False
 
--- A generic tree with types is in the Eq class
-{-
-  A tree is smaller if it is not as deep, the category is lexicaly smaller and it has less subtrees
--}
-instance Ord TTree where
-  (<=) t1 t2 = show t1 <= show t2
--- A meta tree is in the Show class
-instance Show MetaTTree where
-  show tree =
-    "(" ++ show (metaTree tree) ++ 
-    ", [" ++ unwords (map show $ toList $ subTrees tree) ++ "])\n"
-
 -- A meta tree is in the Eq class
 {-
   Two meta trees are equal if both components are equal cmp. Eq TTree
@@ -228,6 +222,13 @@ instance Show MetaTTree where
 instance Eq MetaTTree where
   (==) t1 t2 =
       (metaTree t1 == metaTree t2) && (subTrees t1 == subTrees t2)
+
+-- A generic tree with types is in the Eq class
+{-
+  A tree is smaller if it is not as deep, the category is lexicaly smaller
+-}
+instance Ord TTree where
+  (<=) t1 t2 = show t1 <= show t2
 
 -- A meta tree is in the Ord class
 {-
@@ -339,6 +340,7 @@ ttreeToLTree tree =
     
   in
     snd $ update 0 $ convert tree
+    
 -- Gets the length of the maximum path between root and a leaf (incl. meta nodes) of a tree
 maxDepth :: TTree -> Int
 maxDepth (TMeta _) = 1
