@@ -110,6 +110,14 @@ hunit_TreeC_TTree_selectBranch_test =
     ( TestLabel "Branch out of range" $ selectBranch tree 3 ~?= Nothing )
     ]
 
+hunit_Show_TTree_show_test = -- TODO
+  TestList [
+  ]
+
+hunit_Show_MetaTTree_show_test = -- TODO
+  TestList [
+           ]
+  
 hunit_consumeChar_test =
   let
     empty = ""
@@ -422,10 +430,132 @@ hunit_Eq_TTree_eq_test =
      ]
 
 
+hunit_Ord_TTree_leq_test = -- TODO
+  let
+    tree1 = TMeta (mkCId "A")
+    tree2 = TMeta (mkCId "B")
+    tree3 = TMeta (mkCId "?")
+    tree4 = TNode (mkCId "a") (Fun (mkCId "A") []) []
+    tree5 = TNode (mkCId "a") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) []
+  in
+    TestList [
+    ]
+
+hunit_Ord_MetaTTree_leq_test = -- TODO
+  TestList [
+           ]
+
+hunit_listReplace_test = -- TODO
+  TestList [
+           ]
+
+hunit_powerSet_test = -- TODO
+  TestList [
+           ]
+
+hunit_isMeta_test = -- TODO
+  TestList [
+           ]
+
+hunit_getTreeCat_test = -- TODO
+  TestList [
+           ]
+
+hunit_gfAbsTreeToTTree_test = -- TODO
+  TestList [
+           ]
+
+hunit_ttreeToGFAbsTree_test = -- TODO
+  TestList [
+           ]
+
+hunit_ttreeToLTree_test = -- TODO
+  TestList [
+           ]
+  
+hunit_maxDepth_test = -- TODO
+  TestList [
+           ]
+
+hunit_countNodes_test = -- TODO
+  TestList [
+           ]
+
+hunit_makeMeta_test = -- TODO
+  TestList [
+           ]
+
+hunit_replaceBranch_test = -- TODO
+  TestList [
+           ]
+
+hunit_replaceNode_test = -- TODO
+  TestList [
+           ]
+
+hunit_replaceNodeByMeta_test = -- TODO
+  TestList [
+           ]
+
+hunit_maxPath_test = -- TODO
+  TestList [
+           ]
+
+hunit_findPaths_test = -- TODO
+  TestList [
+           ]
+
+hunit_prune_test = -- TODO
+  TestList [
+           ]
+
+hunit_getMetaLeaves_test = -- TODO
+  TestList [
+           ]
+
+hunit_getMetaPaths_test = -- TODO
+  TestList [
+           ]
+
+hunit_applyRule_test = -- TODO
+  TestList [
+           ]
+
+hunit_combine_test = -- TODO
+  TestList [
+           ]
+
+hunit_extendTree_test = -- TODO
+  TestList [
+           ]
+
+hunit_generate_test = -- TODO
+  TestList [
+           ]
+
+hunit_combineTrees_test = -- TODO
+  TestList [
+           ]
+
+hunit_computeCosts_test = -- TODO
+  TestList [
+           ]
+
+hunit_match_test = -- TODO
+  TestList [
+           ]
+  
+show_tests =
+  TestList [
+  TestLabel "Show TTree show" hunit_Show_TTree_show_test,
+  TestLabel "Show MetaTTree show" hunit_Show_MetaTTree_show_test
+  ]
+  
 read_tests =
   TestList [
   hunit_Read_TTree_readsPrec_test
   ]
+
 treec_tests =
   TestList [
   TestLabel "TreeC GFAbsTree showTree" hunit_TreeC_GFAbsTree_showTree_test,
@@ -441,6 +571,12 @@ eq_tests =
   TestLabel "Eq TTree ==" hunit_Eq_TTree_eq_test
   ]
 
+ord_tests =
+  TestList [
+  TestLabel "Ord TTree <=" hunit_Ord_TTree_leq_test,
+  TestLabel "Ord MetaTTree <=" hunit_Ord_MetaTTree_leq_test
+  ]
+
 tree_function_tests =
   TestList [
   TestLabel "consumeChar" hunit_consumeChar_test,
@@ -449,10 +585,39 @@ tree_function_tests =
   TestLabel "checkType" hunit_checkType_test,
   TestLabel "fixTypes" hunit_fixTypes_test,
   TestLabel "readTree" hunit_readTree_test,
-  TestLabel "readTree" hunit_readTrees_test
+  TestLabel "readTree" hunit_readTrees_test,
+  TestLabel "isMeta" hunit_isMeta_test,
+  TestLabel "getTreeCat" hunit_getTreeCat_test,
+  TestLabel "gfAbsTreeToTTree" hunit_gfAbsTreeToTTree_test,
+  TestLabel "gfAbsTreeToTTree" hunit_ttreeToGFAbsTree_test,
+  TestLabel "ttreeToLTree" hunit_ttreeToLTree_test,
+  TestLabel "maxDepth" hunit_maxDepth_test,
+  TestLabel "countNodes" hunit_countNodes_test,
+  TestLabel "makeMeta" hunit_makeMeta_test,
+  TestLabel "replaceBranch" hunit_replaceBranch_test,
+  TestLabel "replaceNode" hunit_replaceNode_test,
+  TestLabel "replaceNodeByMeta" hunit_replaceNodeByMeta_test,
+  TestLabel "maxPath" hunit_maxPath_test,
+  TestLabel "findPaths" hunit_findPaths_test,
+  TestLabel "prune" hunit_prune_test,
+  TestLabel "getMetaLeaves" hunit_getMetaLeaves_test,
+  TestLabel "getMetaPaths" hunit_getMetaPaths_test,
+  TestLabel "applyRule" hunit_applyRule_test,
+  TestLabel "combine" hunit_combine_test,
+  TestLabel "extendTree" hunit_extendTree_test,
+  TestLabel "generate" hunit_generate_test,
+  TestLabel "computeCosts" hunit_computeCosts_test,
+  TestLabel "combineTrees" hunit_combineTrees_test,
+  TestLabel "match" hunit_match_test
+  ]
+
+list_function_tests =
+  TestList [
+  TestLabel "ListReplace" hunit_listReplace_test,
+  TestLabel "powerSet" hunit_powerSet_test
   ]
   
-hunit_tests = TestList [treec_tests, read_tests, tree_function_tests]
+hunit_tests = TestList [treec_tests, read_tests, eq_tests, ord_tests, tree_function_tests, list_function_tests]
     
 -- Quickcheck tests
 instance Arbitrary TTree where
@@ -466,5 +631,6 @@ prop_metaTest :: TTree -> Bool
 prop_metaTest tree =
   (getMetaLeaves tree) == fromList (map snd (getMetaPaths tree))
 
+-- Conversion between GFAbsTrees and TTrees
 quickcheck_tests = [ ("Meta1",prop_metaTest) ]
 
