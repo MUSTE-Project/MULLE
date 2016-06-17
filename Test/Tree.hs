@@ -215,19 +215,20 @@ hunit_readTree_test =
     str1 = ""
     str2 = "{}"
     str3 = "_"
-    str4 = "###"
-    str5 = "{a:A}"
+    str4 = "?"
+    str5 = "###"
+    str6 = "{a:A}"
     tree1 = (TNode (mkCId "a") (Fun (mkCId "A") []) [])
-    str6 = "{a:A"
-    str7 = "a:A}"
-    str8 = "a:A"
-    str9 = "{f:(A -> B -> A) {a:A} {b:B}}"
+    str7 = "{a:A"
+    str8 = "a:A}"
+    str9 = "a:A"
+    str10 = "{f:(A -> B -> A) {a:A} {b:B}}"
     tree2 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
       [
         (TNode (mkCId "a") (Fun (mkCId "A") []) []),
         (TNode (mkCId "B") (Fun (mkCId "B") []) [])
       ]
-    str10 = "{f:(A -> A) {f:(A -> A) {f:(A -> A) {f:(A -> A) {a:A}}}}}"
+    str11 = "{f:(A -> A) {f:(A -> A) {f:(A -> A) {f:(A -> A) {a:A}}}}}"
     tree3 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A")])
       [
         TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A")])
@@ -241,19 +242,33 @@ hunit_readTree_test =
           ]
         ]
       ]
+    str12 = "?A"
+    str13 = "{?A}"
+    tree4 = TMeta (mkCId "A")
+    str14 = "{f:(A -> B -> A) {?A} {?B}}"
+    tree5 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+      [
+        (TMeta (mkCId "A")),
+        (TMeta (mkCId "B"))
+      ]
   in
     TestList [
     TestLabel "Empty String" $ readTree str1 ~?= Nothing,
     TestLabel "Curly Brackets" $ readTree str2 ~?= Nothing,
     TestLabel "Wildcard" $ readTree str3 ~?= Nothing,
-    TestLabel "Simple Tree" $ readTree str5 ~?= Just (tree1,""),
-    TestLabel "Partial Simple Tree 1" $ readTree str6 ~?= Just (tree1,""),
-    TestLabel "Partial Simple Tree 2" $ readTree str7 ~?= Just (tree1,""),
-    TestLabel "Partial Simple Tree 3" $ readTree str8 ~?= Just (tree1,""),
-    TestLabel "Slightly more complex Tree" $ readTree str9 ~?= Just (tree2,""),
-    TestLabel "Slightly more complex Tree" $ readTree str10 ~?= Just (tree3,""),
-    TestLabel "Simple Tree with rest" $ readTree (str8 ++ "###") ~?= Just (tree1,"###"),
-    TestLabel "Simple Tree with rest" $ readTree (str8 ++ "   ###") ~?= Just (tree1,"###")
+    TestLabel "Questionmark" $ readTree str4 ~?= Nothing,
+    TestLabel "Three Hashes" $ readTree str5 ~?= Nothing,
+    TestLabel "Simple Tree" $ readTree str6 ~?= Just (tree1,""),
+    TestLabel "Partial Simple Tree 1" $ readTree str7 ~?= Just (tree1,""),
+    TestLabel "Partial Simple Tree 2" $ readTree str8 ~?= Just (tree1,""),
+    TestLabel "Partial Simple Tree 3" $ readTree str9 ~?= Just (tree1,""),
+    TestLabel "Slightly more complex Tree" $ readTree str10 ~?= Just (tree2,""),
+    TestLabel "Slightly more complex Tree" $ readTree str11 ~?= Just (tree3,""),
+    TestLabel "Simple Meta Tree 1" $ readTree str12 ~?= Just (tree4,""),
+    TestLabel "Simple Meta Tree 2" $ readTree str13 ~?= Just (tree4,""),
+    TestLabel "More complex Meta Tree" $ readTree str14 ~?= Just (tree5,""),
+    TestLabel "Simple Tree with rest" $ readTree (str7 ++ "###") ~?= Just (tree1,"###"),
+    TestLabel "Simple Tree with rest" $ readTree (str7 ++ "   ###") ~?= Just (tree1,"###") -- Slightly unexpected
     ]
 
 hunit_readTrees_test =
@@ -278,13 +293,28 @@ hunit_readTrees_test =
          ]
         )
       ]
-      -- And more e.g. meta
+    str5 = "{a:A} {?B}"
+    trees3 =
+      [
+        TNode (mkCId "a") (Fun (mkCId "A") []) [],
+        TMeta (mkCId "B")
+      ]
+    str6 = "{?A} {b:B}"
+    trees4 =
+        [
+        TMeta (mkCId "A"),
+        TNode (mkCId "b") (Fun (mkCId "B") []) []
+      ]
   in
     TestList [
     TestLabel "Empty String" $ readTrees str1 ~?= ([],""),
     TestLabel "Curly Brackets" $ readTrees str2 ~?= ([],"{} {}"),
     TestLabel "Simple Trees" $ readTrees str3 ~?= (trees1,""),
-    TestLabel "Slightly more complex Trees" $ readTrees str4 ~?= (trees2,"")
+    TestLabel "Slightly more complex Trees" $ readTrees str4 ~?= (trees2,""),
+    TestLabel "Some Metas 1" $ readTrees str5 ~?= (trees3,""),
+    TestLabel "Some Metas 2" $ readTrees str6 ~?= (trees4,""),
+    TestLabel "Some trees plus some rest" $ readTrees (str4 ++ "###") ~?= (trees2,"###"),
+    TestLabel "Some trees plus some rest" $ readTrees (str4 ++ "   ###") ~?= (trees2,"   ###")
     ]
 
 hunit_Read_TTree_readsPrec_test =
@@ -292,17 +322,60 @@ hunit_Read_TTree_readsPrec_test =
     str1 = ""
     str2 = "{}"
     str3 = "_"
-    str4 = "###"
-    str5 = "{a:A}"
+    str4 = "?"
+    str5 = "###"
+    str6 = "{a:A}"
     tree1 = (TNode (mkCId "a") (Fun (mkCId "A") []) [])
-    -- And more
+    str7 = "{a:A"
+    str8 = "a:A}"
+    str9 = "a:A"
+    str10 = "{f:(A -> B -> A) {a:A} {b:B}}"
+    tree2 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+      [
+        (TNode (mkCId "a") (Fun (mkCId "A") []) []),
+        (TNode (mkCId "B") (Fun (mkCId "B") []) [])
+      ]
+    str11 = "{f:(A -> A) {f:(A -> A) {f:(A -> A) {f:(A -> A) {a:A}}}}}"
+    tree3 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A")])
+      [
+        TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A")])
+        [
+          TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A")])
+          [
+            TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A")])
+            [
+              TNode (mkCId "a") (Fun (mkCId "A") []) []
+            ]
+          ]
+        ]
+      ]
+    str12 = "?A"
+    str13 = "{?A}"
+    tree4 = TMeta (mkCId "A")
+    str14 = "{f:(A -> B -> A) {?A} {?B}}"
+    tree5 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+      [
+        (TMeta (mkCId "A")),
+        (TMeta (mkCId "B"))
+      ]
   in
     TestList [
     TestLabel "Empty String" $ (readsPrec 0 str1 :: [(TTree,String)])~?= [],
     TestLabel "Curly Brackets" $ (readsPrec 0 str2 :: [(TTree,String)])~?= [],
     TestLabel "Wildcard" $ (readsPrec 0 str3 :: [(TTree,String)])~?= [],
-    TestLabel "Three hashes" $ (readsPrec 0 str4 :: [(TTree,String)])~?= [],
-    TestLabel "Simple Tree " $ readsPrec 0 str5 ~?= [(tree1,"")]
+    TestLabel "Questionmark" $ (readsPrec 0 str3 :: [(TTree,String)])~?= [],
+    TestLabel "Three hashes" $ (readsPrec 0 str5 :: [(TTree,String)])~?= [],
+    TestLabel "Simple Tree" $ readsPrec 0 str6 ~?= [(tree1,"")],
+    TestLabel "Partial Simple Tree 1" $ readsPrec 0 str7 ~?= [(tree1,"")],
+    TestLabel "Partial Simple Tree 2" $ readsPrec 0 str8 ~?= [(tree1,"")],
+    TestLabel "Partial Simple Tree 3" $ readsPrec 0 str9 ~?= [(tree1,"")],
+    TestLabel "More complex Tree" $ readsPrec 0 str10 ~?= [(tree2,"")],
+    TestLabel "Complex Tree" $ readsPrec 0 str11 ~?= [(tree3,"")],
+    TestLabel "Meta Tree 1" $ readsPrec 0 str12 ~?= [(tree4,"")],
+    TestLabel "Meta Tree 2" $ readsPrec 0 str13 ~?= [(tree4,"")],
+    TestLabel "More complex Meta Tree" $ readsPrec 0 str14 ~?= [(tree5,"")],
+    TestLabel "More complex Tree plus Extra 1" $ readsPrec 0 (str10 ++ "###") ~?= [(tree2,"###")],
+    TestLabel "More complex Tree plus Extra 2" $ readsPrec 0 (str10 ++ "   ###") ~?= [(tree2,"   ###")]
     ]
     
 read_tests =
