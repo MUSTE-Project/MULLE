@@ -199,6 +199,9 @@ hunit_getRuleCat_test =
   TestLabel "Constant" $ getRuleCat (Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])) ~?= (mkCId "A")
   ]
 
+hunit_getRules_test = -- TODO
+  TestList [
+  ]
 hunit_pgfToGrammar_test =
   let
     pgf = readPGF "gf/ABCAbs.pgf"
@@ -239,6 +242,7 @@ grammar_function_tests =
   TestLabel "getFunType" hunit_getFunType_test,
   TestLabel "getFunCat" hunit_getFunCat_test,
   TestLabel "getRuleCat" hunit_getRuleCat_test,
+  TestLabel "getRules" hunit_getRuleCat_test,
   TestLabel "pgfToGrammar" hunit_pgfToGrammar_test
   ]
 

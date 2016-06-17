@@ -471,14 +471,6 @@ getMetaPaths tree =
   in
     withPath tree []
     
--- Find all rules in grammar that have a certain category
-getRules :: Grammar -> [CId] -> Set Rule
-getRules grammar cats =
-    let
-      rs = rules grammar
-    in
-      -- Convert rules from GF format to our only one
-      fromList $ concat $ map (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rs) cats
 
 -- expands a tree according to a rule and a path
 applyRule :: MetaTTree -> Rule -> [Path] -> MetaTTree

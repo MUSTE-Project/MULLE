@@ -4,6 +4,7 @@ module Muste.Grammar.Internal where
 import PGF
 import PGF.Internal
 import Data.Maybe
+import Data.Set (Set(..),fromList)
 
 -- | Type 'FunType' consists of a CId that is the the result category and [CId] are the parameter categories
 data FunType = Fun CId [CId] | NoType deriving (Ord,Eq)
@@ -125,6 +126,15 @@ getFunCat _ = wildCId
 -- | The function 'getRuleCat' extracts the result category of a rule
 getRuleCat :: Rule -> CId
 getRuleCat (Function _ funType) = getFunCat funType 
+
+-- Find all rules in grammar that have a certain category
+getRules :: Grammar -> [CId] -> Set Rule
+getRules grammar cats =
+    let
+      rs = rules grammar
+    in
+      -- Convert rules from GF format to our only one
+      fromList $ concat $ map (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rs) cats
 
 -- | The function 'pgfToGrammar' transforms a PGF grammar to a simpler grammar data structure
 pgfToGrammar :: PGF -> Grammar
