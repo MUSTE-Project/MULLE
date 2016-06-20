@@ -270,13 +270,13 @@ isMeta :: TTree -> Bool
 isMeta (TMeta _) = True
 isMeta _ = False
 
--- | Get the root category of a tree
+-- | Get the root category of a tree, returns wildCId on missing type
 getTreeCat :: TTree -> CId
 getTreeCat (TNode id typ _) =
-  let
-    (Fun cat _) = typ
-  in
-    cat
+  case typ of {
+    (Fun cat _) -> cat ;
+    NoType -> wildCId
+    }
 getTreeCat (TMeta cat) = cat
 
 -- | Creates a generic tree from an abstract syntax tree
