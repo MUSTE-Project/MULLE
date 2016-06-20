@@ -273,7 +273,7 @@ hunit_readTree_test =
     tree2 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
       [
         (TNode (mkCId "a") (Fun (mkCId "A") []) []),
-        (TNode (mkCId "B") (Fun (mkCId "B") []) [])
+        (TNode (mkCId "b") (Fun (mkCId "B") []) [])
       ]
     str11 = "{f:(A -> A) {f:(A -> A) {f:(A -> A) {f:(A -> A) {a:A}}}}}"
     tree3 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A")])
@@ -380,7 +380,7 @@ hunit_Read_TTree_readsPrec_test =
     tree2 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
       [
         (TNode (mkCId "a") (Fun (mkCId "A") []) []),
-        (TNode (mkCId "B") (Fun (mkCId "B") []) [])
+        (TNode (mkCId "b") (Fun (mkCId "B") []) [])
       ]
     str11 = "{f:(A -> A) {f:(A -> A) {f:(A -> A) {f:(A -> A) {a:A}}}}}"
     tree3 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A")])
