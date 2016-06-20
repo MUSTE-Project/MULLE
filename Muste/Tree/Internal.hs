@@ -93,7 +93,7 @@ instance Show TTree where
 instance Show MetaTTree where
   show tree =
     "(" ++ show (metaTree tree) ++ 
-    ", [" ++ unwords (map show $ toList $ subTrees tree) ++ "])\n"
+    ", [" ++ unwords (map show $ toList $ subTrees tree) ++ "])"
 
 -- | The function 'consumeChar' removes a given char at the start of a string if it matches
 consumeChar :: Char -> String -> String
