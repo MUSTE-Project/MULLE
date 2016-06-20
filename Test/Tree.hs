@@ -850,7 +850,7 @@ tree_function_tests =
 list_function_tests =
   TestList [
   TestLabel "ListReplace" hunit_listReplace_test,
-  TestLabel "powerSet" hunit_powerSet_test
+  TestLabel "powerList" hunit_powerList_test
   ]
   
 hunit_tests = TestList [treec_tests, show_tests, read_tests, tree_function_tests, list_function_tests]
