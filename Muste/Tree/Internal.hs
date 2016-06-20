@@ -43,7 +43,7 @@ data MetaTTree = MetaTTree {
   }
 
 -- | A labeled tree - just a template to match labels to paths
-data LTree = LNode CId Int [LTree] | LLeaf deriving (Show)
+data LTree = LNode CId Int [LTree] | LLeaf deriving (Show,Eq)
 
 -- | A GF abstract syntax tree is in TreeC class
 instance TreeC GFAbsTree where
