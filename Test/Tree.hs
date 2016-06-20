@@ -439,9 +439,20 @@ hunit_listReplace_test =
      TestLabel "Simple List Index out of range" $ listReplace list2 3 'a' ~?= list2
      ]
      
-hunit_powerSet_test = -- TODO
+hunit_powerList_test = 
+  let
+    list1 = [] :: [Int]
+    list2 = [[]] :: [[Int]]
+    list3 = [1]
+    list4 = [[],[1]]
+    list5 = ['a','b','c']
+    list6 = [[],['c'],['b'],['b','c'],['a'],['a','c'],['a','b'],['a','b','c']]
+  in
   TestList [
-           ]
+    TestLabel "Empty List" $ powerList list1 ~?= list2,
+    TestLabel "One Element" $ powerList list3 ~?= list4,
+    TestLabel "Three Elements" $ powerList list5 ~?= list6
+    ]
 
 hunit_isMeta_test =
   let
@@ -671,13 +682,75 @@ hunit_replaceNodeByMeta_test = -- TODO
   TestList [
            ]
 
-hunit_maxPath_test = -- TODO
-  TestList [
-           ]
+hunit_maxPath_test =
+  let
+    tree1 = TMeta (mkCId "A")
+    tree2 = TMeta wildCId
+    tree3 = TNode (mkCId "a") NoType []
+    tree4 = TNode (mkCId "f") (Fun (mkCId "E") [(mkCId "A"),(mkCId "B"),(mkCId "C"),(mkCId "D")])
+      [
+        (TMeta (mkCId "A")),
+        (TNode (mkCId "b") (Fun (mkCId "B") []) []),
+        (TNode (mkCId "g") (Fun (mkCId "C") [(mkCId "C"),(mkCId "B")])
+         [
+           (TNode (mkCId "c") (Fun (mkCId "C") []) []),
+           (TNode (mkCId "h") (Fun (mkCId "B") [(mkCId "B")])
+            [
+              (TNode (mkCId "h") (Fun (mkCId "B") [(mkCId "B")])
+               [
+                 (TNode (mkCId "b") (Fun (mkCId "B") []) [])
+               ])
+            ])
+         ]),
+        (TNode (mkCId "i") (Fun (mkCId "D") [(mkCId "D")])
+         [
+           (TNode (mkCId "i") (Fun (mkCId "D") [(mkCId "D")]) [])
+         ]
+        )
+      ]
+  in
+    TestList [
+    TestLabel "Meta" $ maxPath 3 tree1 ~?= [[]],
+    TestLabel "Meta with wildcard" $ maxPath 3 tree2 ~?= [[]],
+    TestLabel "Simple tree without type" $ maxPath 3 tree3 ~?= [[]],
+    TestLabel "Complex tree 1" $ maxPath 2 tree4 ~?= [[2,0],[2,1],[3,0]],
+    TestLabel "Complex tree 2" $ maxPath 9 tree4 ~?= [[2,1,0,0]]
+    ]
 
-hunit_findPaths_test = -- TODO
-  TestList [
-           ]
+hunit_findPaths_test =
+  let
+    tree1 = TMeta (mkCId "A")
+    tree2 = TMeta wildCId
+    tree3 = TNode (mkCId "a") NoType []
+    tree4 = TNode (mkCId "f") (Fun (mkCId "E") [(mkCId "A"),(mkCId "B"),(mkCId "C"),(mkCId "D")])
+      [
+        (TMeta (mkCId "A")),
+        (TNode (mkCId "b") (Fun (mkCId "B") []) []),
+        (TNode (mkCId "g") (Fun (mkCId "C") [(mkCId "C"),(mkCId "B")])
+         [
+           (TNode (mkCId "c") (Fun (mkCId "C") []) []),
+           (TNode (mkCId "h") (Fun (mkCId "B") [(mkCId "B")])
+            [
+              (TNode (mkCId "h") (Fun (mkCId "B") [(mkCId "B")])
+               [
+                 (TNode (mkCId "b") (Fun (mkCId "B") []) [])
+               ])
+            ])
+         ]),
+        (TNode (mkCId "i") (Fun (mkCId "D") [(mkCId "D")])
+         [
+           (TNode (mkCId "i") (Fun (mkCId "D") [(mkCId "D")]) [])
+         ]
+        )
+      ]
+  in
+    TestList [
+    TestLabel "Meta" $ findPaths 3 tree1 ~?= [[]],
+    TestLabel "Meta with wildcard" $ findPaths 3 tree2 ~?= [[]],
+    TestLabel "Simple tree without type" $ findPaths 3 tree3 ~?= [[]],
+    TestLabel "Complex tree 1" $ findPaths 2 tree4 ~?= [[1],[2,0],[2,1],[3,0]],
+    TestLabel "Complex tree 2" $ findPaths 9 tree4 ~?= [[1],[2,0],[2,1,0,0],[3,0]]
+    ]
 
 hunit_prune_test = -- TODO
   TestList [
