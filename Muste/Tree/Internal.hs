@@ -225,17 +225,27 @@ instance Eq MetaTTree where
 
 -- A generic tree with types is in the Eq class
 {-
-  A tree is smaller if it is not as deep, the category is lexicaly smaller
+  A tree is smaller if it is not as deep or it is lexicaly smaller
 -}
 instance Ord TTree where
-  (<=) t1 t2 = show t1 <= show t2
+  (<=) t1 t2 =
+    let
+      s1 = show t1
+      s2 = show t2
+    in
+      length s1 < length s2 || s1 <= s2
 
 -- A meta tree is in the Ord class
 {-
   Two meta trees are equal if both components are equal cmp. Eq TTree
 -}
 instance Ord MetaTTree where
-  (<=) t1 t2 = show t1 <= show t2
+  (<=) t1 t2 =
+    let
+      s1 = show t1
+      s2 = show t2
+    in
+      length s1 < length s2 || s1 <= s2
                  
 -- List-related functions
 -- Replace an element in a list if the position exists
