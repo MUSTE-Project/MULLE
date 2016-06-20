@@ -110,13 +110,52 @@ hunit_TreeC_TTree_selectBranch_test =
     TestLabel "Branch out of range" $ selectBranch tree 3 ~?= Nothing 
     ]
 
-hunit_Show_TTree_show_test = -- TODO
-  TestList [
-  ]
+hunit_Show_TTree_show_test =
+  let
+    tree1 = TMeta (mkCId "A")
+    str1 = "{?A}"
+    tree2 = TMeta wildCId
+    str2 = "{?_}"
+    tree3 = TNode (mkCId "a") NoType []
+    str3 = "{a:()}"
+    tree4 = TNode (mkCId "a") (Fun (mkCId "A") []) []
+    str4 = "{a:(A)}"
+    tree5 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TMeta (mkCId "A")),(TMeta (mkCId "B"))]
+    str5 = "{f:(A -> B -> A) {?A} {?B}}"
+    tree6 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "a") (Fun (mkCId "A") []) []),(TNode (mkCId "b") (Fun (mkCId "B") []) [])]
+    str6 = "{f:(A -> B -> A) {a:(A)} {b:(B)}}"
+    tree7 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "B")]) [(TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "A")]) [(TNode (mkCId "a") (Fun (mkCId "A") []) [])])]
+    str7 = "{f:(B -> A) {g:(A -> B) {a:(A)}}}"
+  in
+    TestList [
+    TestLabel "Simple Meta" $ show tree1 ~?= str1,
+    TestLabel "Wildcard Meta" $ show tree2 ~?= str2,
+    TestLabel "Simple tree without type" $ show tree3 ~?= str3,
+    TestLabel "Simple tree" $ show tree4 ~?= str4,
+    TestLabel "More complex tree with metas" $ show tree5 ~?= str5,
+    TestLabel "More complex tree" $ show tree6 ~?= str6 ,
+    TestLabel "Deep Tree" $ show tree7 ~?= str7
+    ]
 
-hunit_Show_MetaTTree_show_test = -- TODO
-  TestList [
-           ]
+hunit_Show_MetaTTree_show_test =
+  let
+    tree1 = MetaTTree (TMeta (mkCId "A")) (fromList [([0],TNode (mkCId "a") (Fun (mkCId "A") []) [])])
+    str1 = "({?A}, [([0],{a:(A)})])"
+    tree2 = MetaTTree (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TMeta (mkCId "A")),(TMeta (mkCId "B"))])
+      (fromList [
+          ([0],TNode (mkCId "a") (Fun (mkCId "A") []) []),
+          ([1],TNode (mkCId "b") (Fun (mkCId "B") []) [])
+          ])
+    str2 = "({f:(A -> B -> A) {?A} {?B}}, [([0],{a:(A)}) ([1],{b:(B)})])"
+    tree3 = MetaTTree (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "B")]) [(TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "A")]) [(TMeta(mkCId "A"))])])
+      (fromList [([0,0,0],(TNode (mkCId "a") (Fun (mkCId "A") []) []))])
+    str3 = "({f:(B -> A) {g:(A -> B) {?A}}}, [([0,0,0],{a:(A)})])"
+  in
+    TestList [
+    TestLabel "Simple tree with one pruned branch" $ show tree1 ~?= str1,
+    TestLabel "Simple tree with two pruned branches" $ show tree2 ~?= str2,
+    TestLabel "Deep tree" $ show tree3 ~?= str3
+    ]
   
 hunit_consumeChar_test =
   let
@@ -430,60 +469,260 @@ hunit_Eq_TTree_eq_test =
      ]
 
 
-hunit_Ord_TTree_leq_test = -- TODO
+hunit_Ord_TTree_leq_test = 
   let
     tree1 = TMeta (mkCId "A")
     tree2 = TMeta (mkCId "B")
-    tree3 = TMeta (mkCId "?")
-    tree4 = TNode (mkCId "a") (Fun (mkCId "A") []) []
-    tree5 = TNode (mkCId "a") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) []
+    tree3 = TNode (mkCId "a") (Fun (mkCId "A") []) []
+    tree4 = TNode (mkCId "a") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) []
   in
     TestList [
+    TestLabel "Same Meta less or equal" $ tree1 <= tree1 ~?= True,
+    TestLabel "Same Meta strictly less" $ tree1 < tree1 ~?= False,
+    TestLabel "Different Metas less or equal" $ tree1 <= tree2 ~?= True,
+    TestLabel "Different Metas strictly less" $ tree1 < tree2 ~?= True,
+    TestLabel "Different Metas less or equal (inverted arguments)" $ tree2 <= tree1 ~?= False,
+    TestLabel "Different Trees" $ tree3 <= tree4 ~?= True,
+    TestLabel "Tree and Meta" $ tree1 <= tree3 ~?= True
     ]
 
 hunit_Ord_MetaTTree_leq_test = -- TODO
   TestList [
            ]
 
-hunit_listReplace_test = -- TODO
-  TestList [
-           ]
-
+hunit_listReplace_test = 
+   let
+     list1 = []
+     list2 = ['a','a','b']
+     list3 = ['a','a','a']
+   in
+     TestList [
+     TestLabel "Empty List Positive Index" $ listReplace list1 2 'a' ~?= list1,
+     TestLabel "Empty List Negative Index" $ listReplace list1 (-2) 'a' ~?= list1,
+     TestLabel "Simple List Valid Index" $ listReplace list2 2 'a' ~?= list3,
+     TestLabel "Simple List Negative Index" $ listReplace list2 (-2) 'a' ~?= list2,
+     TestLabel "Simple List Index out of range" $ listReplace list2 3 'a' ~?= list2
+     ]
+     
 hunit_powerSet_test = -- TODO
   TestList [
            ]
 
-hunit_isMeta_test = -- TODO
-  TestList [
-           ]
+hunit_isMeta_test =
+  let
+    tree1 = TMeta (mkCId "A")
+    tree2 = TMeta wildCId
+    tree3 = TNode (mkCId "a") NoType []
+    tree4 = TNode (mkCId "a") (Fun (mkCId "A") []) []
+    tree5 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TMeta (mkCId "A")),(TMeta (mkCId "B"))]
+  in
+    TestList [
+    TestLabel "Meta" $ isMeta tree1 ~?= True,
+    TestLabel "Meta with wildcard" $ isMeta tree2 ~?= True,
+    TestLabel "Simple Tree without type" $ isMeta tree3 ~?= False,
+    TestLabel "Simple tree" $ isMeta tree4 ~?= False,
+    TestLabel "Tree" $ isMeta tree5 ~?= False
+    ]
 
-hunit_getTreeCat_test = -- TODO
-  TestList [
-           ]
+hunit_getTreeCat_test =
+  let
+    tree1 = TMeta (mkCId "A")
+    cat1 = mkCId "A"
+    tree2 = TMeta wildCId
+    cat2 = wildCId
+    tree3 = TNode (mkCId "a") NoType []
+    cat3 = wildCId
+    tree4 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TMeta (mkCId "A")),(TMeta (mkCId "B"))]
+  in
+    TestList [
+    TestLabel "Meta" $ getTreeCat tree1 ~?= cat1,
+    TestLabel "Meta with wildcard" $ getTreeCat tree2 ~?= cat2,
+    TestLabel "Simple Tree without type" $ getTreeCat tree3 ~?= cat3,
+    TestLabel "Tree" $ getTreeCat tree4 ~?= cat1
+    ]
 
-hunit_gfAbsTreeToTTree_test = -- TODO
-  TestList [
-           ]
+hunit_gfAbsTreeToTTree_test =
+  let
+    pgf = readPGF "gf/ABCAbs.pgf"
+    gtree1 = (EFun (mkCId "a"))
+    ttree1 = TNode (mkCId "a") (Fun (mkCId "A") []) []
+    gtree2 = (EFun wildCId)
+    ttree2 = TNode wildCId NoType []
+    gtree3 = (EApp (EApp (EFun (mkCId "f")) (EFun (mkCId "a"))) (EFun (mkCId "b")))
+    ttree3 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+      [
+        (TNode (mkCId "a") (Fun (mkCId "A") []) []),
+        (TNode (mkCId "b") (Fun (mkCId "B") []) [])
+      ]
+    gtree4 = (EApp (EApp (EFun (mkCId "f")) (EFun (mkCId "a"))) (EApp (EApp (EFun (mkCId "g")) (EFun (mkCId "b"))) (EFun (mkCId "c"))))
+    ttree4 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+      [
+        (TNode (mkCId "a") (Fun (mkCId "A") []) []),
+        (TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])
+         [
+           (TNode (mkCId "b") (Fun (mkCId "B") []) []),
+           (TNode (mkCId "c") (Fun (mkCId "C") []) [])
+         ])
+      ]
+    gtree5 = (ELit (LStr "Foo"))
+    ttree5 = TMeta wildCId
+  in
+    TestList [
+    TestLabel "EFun" $ TestCase $ pgf >>= (\p -> gfAbsTreeToTTree p gtree1 @?= ttree1),
+    TestLabel "EFun with wildcard" $ TestCase $ pgf >>= (\p -> gfAbsTreeToTTree p gtree2 @?= ttree2),
+    TestLabel "EApp 1" $ TestCase $ pgf >>= (\p -> gfAbsTreeToTTree p gtree3 @?= ttree3),
+    TestLabel "EApp2 " $ TestCase $ pgf >>= (\p -> gfAbsTreeToTTree p gtree4 @?= ttree4),
+    TestLabel "ELit" $ TestCase $ pgf >>= (\p -> gfAbsTreeToTTree p gtree5 @?= ttree5)
+    ]
 
-hunit_ttreeToGFAbsTree_test = -- TODO
-  TestList [
-           ]
+hunit_ttreeToGFAbsTree_test = 
+  let
+    ttree1 = TNode (mkCId "a") (Fun (mkCId "A") []) []
+    gtree1 = (EFun (mkCId "a"))
+    ttree2 = TNode wildCId NoType []
+    gtree2 = (EFun wildCId)
+    ttree3 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+      [
+        (TNode (mkCId "a") (Fun (mkCId "A") []) []),
+        (TNode (mkCId "b") (Fun (mkCId "B") []) [])
+      ]
+    gtree3 = (EApp (EApp (EFun (mkCId "f")) (EFun (mkCId "a"))) (EFun (mkCId "b")))
+    ttree4 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+      [
+        (TNode (mkCId "a") (Fun (mkCId "A") []) []),
+        (TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])
+         [
+           (TNode (mkCId "b") (Fun (mkCId "B") []) []),
+           (TNode (mkCId "c") (Fun (mkCId "C") []) [])
+         ])
+      ]
+    gtree4 = (EApp (EApp (EFun (mkCId "f")) (EFun (mkCId "a"))) (EApp (EApp (EFun (mkCId "g")) (EFun (mkCId "b"))) (EFun (mkCId "c"))))
+    ttree5 = TMeta wildCId
+    gtree5 = (EMeta 0)
+    ttree6 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+      [
+        (TMeta (mkCId "A")),
+        (TMeta (mkCId "B"))
+      ]
+    gtree6 = (EApp (EApp (EFun (mkCId "f")) (EMeta 0)) (EMeta 1))
+  in
+    TestList [
+    TestLabel "Simple Tree" $ ttreeToGFAbsTree ttree1 ~=? gtree1,
+    TestLabel "Simple Tree with wildcard and without type" $ ttreeToGFAbsTree ttree2 ~=? gtree2,
+    TestLabel "More complex Tree" $ ttreeToGFAbsTree ttree3 ~=? gtree3,
+    TestLabel "More complex Tree" $ ttreeToGFAbsTree ttree4 ~=? gtree4,
+    TestLabel "Meta" $ ttreeToGFAbsTree ttree5 ~=? gtree5,
+    TestLabel "More Meta" $ ttreeToGFAbsTree ttree6 ~=? gtree6
+    ]
 
-hunit_ttreeToLTree_test = -- TODO
-  TestList [
-           ]
+hunit_ttreeToLTree_test =
+  let
+    ttree1 = TMeta (mkCId "A")
+    ltree1 = LNode (mkCId "A") 1 [LNode wildCId 0 [LLeaf]]
+    ttree2 = TMeta wildCId
+    ltree2 = LNode wildCId 1 [LNode wildCId 0 [LLeaf]]
+    ttree3 = TNode (mkCId "a") (Fun (mkCId "A") []) []
+    ltree3 = LNode (mkCId "A") 0 []
+    ttree4 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+      [
+        (TMeta (mkCId "A")),
+        (TMeta (mkCId "B"))
+      ]
+    ltree4 = LNode (mkCId "A") 4 [LNode (mkCId "A") 1 [LNode wildCId 0 [LLeaf]],LNode (mkCId "B") 3 [LNode wildCId 2 [LLeaf]]]
+    ttree5 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+      [
+        (TNode (mkCId "a") (Fun (mkCId "A") []) []),
+        (TNode (mkCId "b") (Fun (mkCId "B") []) [])
+      ]
+    ltree5 = LNode (mkCId "A") 2 [LNode (mkCId "A") 0 [],LNode (mkCId "B") 1 []]
+  in
+    TestList [
+    TestLabel "Meta" $ ttreeToLTree ttree1 ~?= ltree1,
+    TestLabel "Meta with wildcard" $ ttreeToLTree ttree2 ~?= ltree2,
+    TestLabel "Simple Tree" $ ttreeToLTree ttree3 ~?= ltree3,
+    TestLabel "Tree with Metas" $ ttreeToLTree ttree4 ~?= ltree4,
+    TestLabel "Tree" $ ttreeToLTree ttree5 ~?= ltree5
+    ]
   
-hunit_maxDepth_test = -- TODO
-  TestList [
-           ]
+hunit_maxDepth_test =
+  let
+    tree1 = TMeta (mkCId "A")
+    tree2 = TMeta wildCId
+    tree3 = TNode (mkCId "a") NoType []
+    tree4 = TNode (mkCId "f") (Fun (mkCId "E") [(mkCId "A"),(mkCId "B"),(mkCId "C"),(mkCId "D")])
+      [
+        (TMeta (mkCId "A")),
+        (TNode (mkCId "b") (Fun (mkCId "B") []) []),
+        (TNode (mkCId "g") (Fun (mkCId "C") [(mkCId "C"),(mkCId "B")])
+         [
+           (TNode (mkCId "c") (Fun (mkCId "C") []) []),
+           (TNode (mkCId "h") (Fun (mkCId "B") [(mkCId "B")])
+            [
+              (TNode (mkCId "h") (Fun (mkCId "B") [(mkCId "B")])
+               [
+                 (TNode (mkCId "b") (Fun (mkCId "B") []) [])
+               ])
+            ])
+         ]),
+        (TNode (mkCId "i") (Fun (mkCId "D") [(mkCId "D")])
+         [
+           (TNode (mkCId "i") (Fun (mkCId "D") [(mkCId "D")]) [])
+         ]
+        )
+      ]
+  in
+    TestList [
+    TestLabel "Meta" $ maxDepth tree1 ~?= 1,
+    TestLabel "Meta with wildcard" $ maxDepth tree2 ~?= 1,
+    TestLabel "Simple tree without type" $ maxDepth tree3 ~?= 1,
+    TestLabel "Complex tree" $ maxDepth tree4 ~?= 5
+    ]
 
-hunit_countNodes_test = -- TODO
-  TestList [
-           ]
+hunit_countNodes_test =
+  let
+    tree1 = TMeta (mkCId "A")
+    tree2 = TMeta wildCId
+    tree3 = TNode (mkCId "a") NoType []
+    tree4 = TNode (mkCId "f") (Fun (mkCId "E") [(mkCId "A"),(mkCId "B"),(mkCId "C"),(mkCId "D")])
+      [
+        (TMeta (mkCId "A")),
+        (TNode (mkCId "b") (Fun (mkCId "B") []) []),
+        (TNode (mkCId "g") (Fun (mkCId "C") [(mkCId "C"),(mkCId "B")])
+         [
+           (TNode (mkCId "c") (Fun (mkCId "C") []) []),
+           (TNode (mkCId "h") (Fun (mkCId "B") [(mkCId "B")])
+            [
+              (TNode (mkCId "h") (Fun (mkCId "B") [(mkCId "B")])
+               [
+                 (TNode (mkCId "b") (Fun (mkCId "B") []) [])
+               ])
+            ])
+         ]),
+        (TNode (mkCId "i") (Fun (mkCId "D") [(mkCId "D")])
+         [
+           (TNode (mkCId "i") (Fun (mkCId "D") [(mkCId "D")]) [])
+         ]
+        )
+      ]
+  in
+    TestList [
+    TestLabel "Meta" $ countNodes tree1 ~?= 0,
+    TestLabel "Meta with wildcard" $ countNodes tree2 ~?= 0,
+    TestLabel "Simple tree without type" $ countNodes tree3 ~?= 1,
+    TestLabel "Complex tree" $ countNodes tree4 ~?= 9
+             ]
 
-hunit_makeMeta_test = -- TODO
-  TestList [
-           ]
+hunit_makeMeta_test =
+  let
+    ttree1 = TMeta (mkCId "A")
+    mtree1 = MetaTTree (TMeta (mkCId "A")) empty
+    ttree2 = TNode (mkCId "a") (Fun (mkCId "A") []) []
+    mtree2 = MetaTTree (TNode (mkCId "a") (Fun (mkCId "A") []) []) empty
+    in
+    TestList [
+    TestLabel "Meta" $ makeMeta ttree1 ~?= mtree1,
+    TestLabel "Simple Tree" $ makeMeta ttree2 ~?= mtree2
+    ]
 
 hunit_replaceBranch_test = -- TODO
   TestList [
