@@ -33,6 +33,7 @@ type GFAbsTree = Tree
 -- | A generic tree with types
 data TTree = TNode CId FunType [TTree] -- Regular node consisting of a function name, function type and possible subtrees
            | TMeta CId -- A meta tree consisting just of a category type
+           deriving (Ord,Eq)
 
 -- | A meta tree - tuple of a generic tree with types and a list of possibly attachable subtrees
 data MetaTTree = MetaTTree {
@@ -41,6 +42,7 @@ data MetaTTree = MetaTTree {
   -- List of subtrees that can be attached to the meta nodes determinded by the associated path
   subTrees :: Set (Path,TTree)
   }
+               deriving (Eq,Ord)
 
 -- | A labeled tree - just a template to match labels to paths
 data LTree = LNode CId Int [LTree] | LLeaf deriving (Show,Eq)
@@ -204,48 +206,6 @@ instance Read TTree where
             Nothing -> [] --trace ((++) "2:" $ show rest) $ []
           }
     }
-
--- A generic tree with types is in the Eq class
-{-
-  Two TTrees are equal when all types and categories are equal.
-  Differences in naming of functions are ignored
--}
-instance Eq TTree where
-  (==) (TMeta id1) (TMeta id2) = id1 == id2
-  (==) (TNode _ typ1 trees1) (TNode _ typ2 trees2) = (typ1 == typ2) && (trees1 == trees2)
-  (==) _ _ = False
-
--- A meta tree is in the Eq class
-{-
-  Two meta trees are equal if both components are equal cmp. Eq TTree
--}
-instance Eq MetaTTree where
-  (==) t1 t2 =
-      (metaTree t1 == metaTree t2) && (subTrees t1 == subTrees t2)
-
--- A generic tree with types is in the Eq class
-{-
-  A tree is smaller if it is not as deep or it is lexicaly smaller
--}
-instance Ord TTree where
-  (<=) t1 t2 =
-    let
-      s1 = show t1
-      s2 = show t2
-    in
-      length s1 < length s2 || s1 <= s2
-
--- A meta tree is in the Ord class
-{-
-  Two meta trees are equal if both components are equal cmp. Eq TTree
--}
-instance Ord MetaTTree where
-  (<=) t1 t2 =
-    let
-      s1 = show t1
-      s2 = show t2
-    in
-      length s1 < length s2 || s1 <= s2
                  
 -- List-related functions
 -- Replace an element in a list if the position exists
@@ -484,7 +444,6 @@ getMetaPaths tree =
   in
     withPath tree []
     
-
 -- expands a tree according to a rule and a path
 applyRule :: MetaTTree -> Rule -> [Path] -> MetaTTree
 applyRule tree@(MetaTTree oldMetaTree oldSubTrees) rule@(Function name ftype@(Fun cat cats)) (path:pathes) =
