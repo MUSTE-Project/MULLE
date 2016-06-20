@@ -424,71 +424,6 @@ hunit_Read_TTree_readsPrec_test =
     TestLabel "More complex Tree plus Extra 1" $ readsPrec 0 (str10 ++ "###") ~?= [(tree2,"###")],
     TestLabel "More complex Tree plus Extra 2" $ readsPrec 0 (str10 ++ "   ###") ~?= [(tree2,"   ###")]
     ]
-    
-hunit_Eq_TTree_eq_test =
-   let
-     tree1 = (TMeta (mkCId "A"))
-     tree2 = (TMeta (mkCId "B"))
-     tree3 = (TMeta (mkCId "_"))
-     tree4 = (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
-              [
-                (TNode (mkCId "a") (Fun (mkCId "A") []) []),
-                (TNode (mkCId "b") (Fun (mkCId "B") []) [])
-              ]
-             )
-     tree5 = (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
-              [
-                (TNode (mkCId "a") (Fun (mkCId "B") []) []),
-                (TNode (mkCId "b") (Fun (mkCId "C") []) [])
-              ]
-             )
-     tree6 = (TNode (mkCId "f") NoType
-              [
-                (TNode (mkCId "a") NoType []),
-                (TNode (mkCId "b") NoType [])
-              ]
-             )
-     tree7 = (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
-              [
-                (TMeta (mkCId "A")),
-                (TMeta (mkCId "B"))
-              ]
-             )
-   in
-     TestList [
-     TestLabel "Same Meta Tree 1" $ tree1 == tree1 ~?= True,
-     TestLabel "Same Meta Tree 2" $ tree2 == tree2 ~?= True,
-     TestLabel "Same Meta Tree 3" $ tree3 == tree3 ~?= True,
-     TestLabel "Different Meta Trees 1" $ tree1 == tree3 ~?= False,
-     TestLabel "Different Meta Trees 2" $ tree3 == tree1 ~?= False,
-     TestLabel "Different Meta Trees 2" $ tree1 == tree2 ~?= False,
-     TestLabel "Different Meta Trees 2" $ tree2 == tree3 ~?= False,
-     TestLabel "Trees with different Types 1" $ tree4 == tree5 ~?= False,
-     TestLabel "Trees with different Types 2" $ tree4 == tree6 ~?= False,
-     TestLabel "Trees with and without Metas" $ tree4 == tree7 ~?= False
-     ]
-
-
-hunit_Ord_TTree_leq_test = 
-  let
-    tree1 = TMeta (mkCId "A")
-    tree2 = TMeta (mkCId "B")
-    tree3 = TNode (mkCId "a") (Fun (mkCId "A") []) []
-    tree4 = TNode (mkCId "a") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) []
-  in
-    TestList [
-    TestLabel "Same Meta less or equal" $ tree1 <= tree1 ~?= True,
-    TestLabel "Same Meta strictly less" $ tree1 < tree1 ~?= False,
-    TestLabel "Different Metas less or equal" $ tree1 <= tree2 ~?= True,
-    TestLabel "Different Metas strictly less" $ tree1 < tree2 ~?= True,
-    TestLabel "Different Metas less or equal (inverted arguments)" $ tree2 <= tree1 ~?= False,
-    TestLabel "Different Trees" $ tree3 <= tree4 ~?= True,
-    TestLabel "Tree and Meta" $ tree1 <= tree3 ~?= True
-    ]
-
-hunit_Ord_MetaTTree_leq_test = -- TODO
-  TestList [
-           ]
 
 hunit_listReplace_test = 
    let
@@ -805,17 +740,6 @@ treec_tests =
   TestLabel "TreeC TTree selectBranch" hunit_TreeC_TTree_selectBranch_test
   ]
   
-eq_tests =
-  TestList [
-  TestLabel "Eq TTree ==" hunit_Eq_TTree_eq_test
-  ]
-
-ord_tests =
-  TestList [
-  TestLabel "Ord TTree <=" hunit_Ord_TTree_leq_test,
-  TestLabel "Ord MetaTTree <=" hunit_Ord_MetaTTree_leq_test
-  ]
-
 tree_function_tests =
   TestList [
   TestLabel "consumeChar" hunit_consumeChar_test,
@@ -856,7 +780,7 @@ list_function_tests =
   TestLabel "powerSet" hunit_powerSet_test
   ]
   
-hunit_tests = TestList [treec_tests, show_tests, read_tests, eq_tests, ord_tests, tree_function_tests, list_function_tests]
+hunit_tests = TestList [treec_tests, show_tests, read_tests, tree_function_tests, list_function_tests]
     
 -- Quickcheck tests
 instance Arbitrary TTree where
