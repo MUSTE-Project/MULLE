@@ -617,7 +617,7 @@ list_function_tests =
   TestLabel "powerSet" hunit_powerSet_test
   ]
   
-hunit_tests = TestList [treec_tests, read_tests, eq_tests, ord_tests, tree_function_tests, list_function_tests]
+hunit_tests = TestList [treec_tests, show_tests, read_tests, eq_tests, ord_tests, tree_function_tests, list_function_tests]
     
 -- Quickcheck tests
 instance Arbitrary TTree where
