@@ -279,7 +279,7 @@ getTreeCat (TNode id typ _) =
     }
 getTreeCat (TMeta cat) = cat
 
--- | Creates a generic tree from an abstract syntax tree
+-- | Creates a generic tree from an abstract syntax tree. Handles only EApp and EFun. Generates TMeta wildCId in unsupported Cases
 gfAbsTreeToTTree :: PGF -> GFAbsTree -> TTree
 gfAbsTreeToTTree pgf (EFun f) =
   let
@@ -292,6 +292,7 @@ gfAbsTreeToTTree pgf (EApp e1 e2) =
     st2 = gfAbsTreeToTTree pgf e2
   in
     (TNode name typ (sts ++ [st2]))
+gfAbsTreeToTTree pgf _ = TMeta wildCId
 
 -- | Creates a GF abstract syntax Tree from a generic tree
 ttreeToGFAbsTree :: TTree -> GFAbsTree
