@@ -36,11 +36,11 @@ hunit_TreeC_GFAbsTree_selectNode_test =
     tree = (EApp (EApp (EApp (EFun (mkCId "1")) (EApp (EFun (mkCId "2")) (EFun (mkCId "3")))) (EFun (mkCId "4"))) (EFun (mkCId "5")))
   in
     TestList [
-    ( TestLabel "Existing Path 1" $ selectNode tree [0,0,0] ~?= Just (EFun (mkCId "1")) ),
-    ( TestLabel "Existing Path 2" $ selectNode tree [0,0,1,0] ~?= Just (EFun (mkCId "2")) ),
-    ( TestLabel "Path too deep" $ selectNode tree [0,0,0,0] ~?= Nothing ),
-    ( TestLabel "Branch out of range" $ selectNode tree [0,2] ~?= Nothing ), 
-    ( TestLabel "Negative Branch" $ selectNode tree [-1] ~?= Nothing )
+    TestLabel "Existing Path 1" $ selectNode tree [0,0,0] ~?= Just (EFun (mkCId "1")),
+    TestLabel "Existing Path 2" $ selectNode tree [0,0,1,0] ~?= Just (EFun (mkCId "2")),
+    TestLabel "Path too deep" $ selectNode tree [0,0,0,0] ~?= Nothing,
+    TestLabel "Branch out of range" $ selectNode tree [0,2] ~?= Nothing, 
+    TestLabel "Negative Branch" $ selectNode tree [-1] ~?= Nothing
     ]
 
 hunit_TreeC_GFAbsTree_selectBranch_test =
@@ -48,10 +48,10 @@ hunit_TreeC_GFAbsTree_selectBranch_test =
     tree = (EApp (EFun (mkCId "1")) (EFun (mkCId "2")))
   in
     TestList [
-    ( TestLabel "Existing Branch 1" $ selectBranch tree 0 ~?= Just (EFun (mkCId "1")) ),
-    ( TestLabel "Existing Branch 2" $ selectBranch tree 1 ~?= Just (EFun (mkCId "2")) ),
-    ( TestLabel "Negative Branch" $ selectBranch tree (-1) ~?= Nothing ),
-    ( TestLabel "Branch out of range" $ selectBranch tree 2 ~?= Nothing )
+    TestLabel "Existing Branch 1" $ selectBranch tree 0 ~?= Just (EFun (mkCId "1")),
+    TestLabel "Existing Branch 2" $ selectBranch tree 1 ~?= Just (EFun (mkCId "2")),
+    TestLabel "Negative Branch" $ selectBranch tree (-1) ~?= Nothing,
+    TestLabel "Branch out of range" $ selectBranch tree 2 ~?= Nothing
     ]
     
 hunit_TreeC_TTree_showTree_test =
@@ -69,9 +69,9 @@ hunit_TreeC_TTree_showTree_test =
       ]
   in
     TestList [
-    ( TestLabel "Meta tree" $ showTree tree1 ~?= "{?A}" ),
-    ( TestLabel "Simple tree with metas" $ showTree tree2 ~?= "{f:(A -> B -> A) {?A} {?B}}" ),
-    ( TestLabel "Simple tree" $ showTree tree3 ~?= "{f:(A -> B -> A) {a:(A)} {b:(B)}}" )
+    TestLabel "Meta tree" $ showTree tree1 ~?= "{?A}",
+    TestLabel "Simple tree with metas" $ showTree tree2 ~?= "{f:(A -> B -> A) {?A} {?B}}",
+    TestLabel "Simple tree" $ showTree tree3 ~?= "{f:(A -> B -> A) {a:(A)} {b:(B)}}"
     ]
 
 hunit_TreeC_TTree_selectNode_test =
@@ -87,10 +87,10 @@ hunit_TreeC_TTree_selectNode_test =
       ]
   in
     TestList [
-    ( TestLabel "Existing Path" $ selectNode tree [1,0] ~?= Just ( TNode (mkCId "b") (Fun (mkCId "B") []) [] ) ),
-    ( TestLabel "Path too deep" $ selectNode tree [1,1,1] ~?= Nothing ),
-    ( TestLabel "Branch out of range" $ selectNode tree [0,2] ~?= Nothing ), 
-    ( TestLabel "Negative Branch" $ selectNode tree [-1] ~?= Nothing )
+    TestLabel "Existing Path" $ selectNode tree [1,0] ~?= Just ( TNode (mkCId "b") (Fun (mkCId "B") []) [] ),
+    TestLabel "Path too deep" $ selectNode tree [1,1,1] ~?= Nothing,
+    TestLabel "Branch out of range" $ selectNode tree [0,2] ~?= Nothing, 
+    TestLabel "Negative Branch" $ selectNode tree [-1] ~?= Nothing
     ]
 
 hunit_TreeC_TTree_selectBranch_test =
@@ -103,11 +103,11 @@ hunit_TreeC_TTree_selectBranch_test =
       ]
   in
     TestList [
-    ( TestLabel "Existing Branch 1" $ selectBranch tree 0 ~?= Just (TNode (mkCId "a") (Fun (mkCId "A") []) []) ),
-    ( TestLabel "Existing Branch 2" $ selectBranch tree 1 ~?= Just (TNode (mkCId "b") (Fun (mkCId "B") []) []) ),
-    ( TestLabel "Existing Branch 2" $ selectBranch tree 2 ~?= Just (TNode (mkCId "c") (Fun (mkCId "C") []) []) ),
-    ( TestLabel "Negative Branch" $ selectBranch tree (-1) ~?= Nothing ),
-    ( TestLabel "Branch out of range" $ selectBranch tree 3 ~?= Nothing )
+    TestLabel "Existing Branch 1" $ selectBranch tree 0 ~?= Just (TNode (mkCId "a") (Fun (mkCId "A") []) []),
+    TestLabel "Existing Branch 2" $ selectBranch tree 1 ~?= Just (TNode (mkCId "b") (Fun (mkCId "B") []) []),
+    TestLabel "Existing Branch 2" $ selectBranch tree 2 ~?= Just (TNode (mkCId "c") (Fun (mkCId "C") []) []) ,
+    TestLabel "Negative Branch" $ selectBranch tree (-1) ~?= Nothing,
+    TestLabel "Branch out of range" $ selectBranch tree 3 ~?= Nothing 
     ]
 
 hunit_Show_TTree_show_test = -- TODO
@@ -126,9 +126,9 @@ hunit_consumeChar_test =
     nonmatch = "_12345"
   in
     TestList [
-    ( TestLabel "Empty String" $ consumeChar ' ' empty ~?= empty ),
-    ( TestLabel "Matching String" $ consumeChar ' ' match ~?= matched ),
-    ( TestLabel "Non-Matching String" $ consumeChar ' ' nonmatch ~?= nonmatch )
+    TestLabel "Empty String" $ consumeChar ' ' empty ~?= empty,
+    TestLabel "Matching String" $ consumeChar ' ' match ~?= matched,
+    TestLabel "Non-Matching String" $ consumeChar ' ' nonmatch ~?= nonmatch
     ]
 
 hunit_readFunType_test =
@@ -177,10 +177,10 @@ hunit_getChildCats_test =
     tree4 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "a") (Fun (mkCId "A") []) []) ,(TNode (mkCId "b") (Fun (mkCId "B") []) [])]
   in
     TestList [
-    ( TestLabel "Meta node" $ getChildCats tree1 ~?= [] ),
-    ( TestLabel "Simple tree without subtrees" $ getChildCats tree2 ~?= [] ),
-    ( TestLabel "Simple tree with meta nodes" $ getChildCats tree3 ~?= [(mkCId "A"),(mkCId "B")] ),
-    ( TestLabel "Simple tree with nodes" $ getChildCats tree4 ~?= [(mkCId "A"),(mkCId "B")] )
+    TestLabel "Meta node" $ getChildCats tree1 ~?= [],
+    TestLabel "Simple tree without subtrees" $ getChildCats tree2 ~?= [],
+    TestLabel "Simple tree with meta nodes" $ getChildCats tree3 ~?= [(mkCId "A"),(mkCId "B")],
+    TestLabel "Simple tree with nodes" $ getChildCats tree4 ~?= [(mkCId "A"),(mkCId "B")]
     ]
 
 hunit_checkType_test =
@@ -194,13 +194,13 @@ hunit_checkType_test =
     tree7 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [(TMeta (mkCId "A")),(TMeta (mkCId "C"))]),(TMeta (mkCId "B"))]),(TMeta (mkCId "B"))]),(TMeta (mkCId "B"))]
   in
     TestList [
-    ( TestLabel "Meta node" $ checkType tree1 ~?= True ),
-    ( TestLabel "Simple tree without subtrees" $ checkType tree2 ~?= True ),
-    ( TestLabel "Simple tree with meta nodes" $ checkType tree3 ~?= True ),
-    ( TestLabel "Simple tree with nodes" $ checkType tree4 ~?= True ),
-    ( TestLabel "Simple tree with meta nodes" $ checkType tree5 ~?= False ),
-    ( TestLabel "Simple tree with nodes" $ checkType tree6 ~?= False ),
-    ( TestLabel "Deep tree with nodes" $ checkType tree7 ~?= False )
+    TestLabel "Meta node" $ checkType tree1 ~?= True,
+    TestLabel "Simple tree without subtrees" $ checkType tree2 ~?= True,
+    TestLabel "Simple tree with meta nodes" $ checkType tree3 ~?= True,
+    TestLabel "Simple tree with nodes" $ checkType tree4 ~?= True,
+    TestLabel "Simple tree with meta nodes" $ checkType tree5 ~?= False,
+    TestLabel "Simple tree with nodes" $ checkType tree6 ~?= False,
+    TestLabel "Deep tree with nodes" $ checkType tree7 ~?= False
     ]
 
 hunit_fixTypes_test =
@@ -212,10 +212,10 @@ hunit_fixTypes_test =
     tree5 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "C")]) [(TMeta (mkCId "A")),(TMeta (mkCId "B"))]
   in
     TestList [
-    ( TestLabel "Fixable tree" $ fixTypes tree1 ~?= tree2 ),
-    ( TestLabel "Already fixed tree" $ fixTypes tree2 ~?= tree2 ),
-    ( TestLabel "Deep tree" $ fixTypes tree3 ~?= tree4 ),
-    ( TestCase $ assertBool "Already fixed tree with type errors" $ fixTypes tree5 /= tree2 && fixTypes tree5 == tree5 )
+    TestLabel "Fixable tree" $ fixTypes tree1 ~?= tree2,
+    TestLabel "Already fixed tree" $ fixTypes tree2 ~?= tree2,
+    TestLabel "Deep tree" $ fixTypes tree3 ~?= tree4,
+    TestCase $ assertBool "Already fixed tree with type errors" $ fixTypes tree5 /= tree2 && fixTypes tree5 == tree5
     ]
     
 hunit_readTree_test =
