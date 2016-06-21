@@ -7,7 +7,7 @@ import Muste.Grammar.Internal
 import Test.HUnit.Text
 import Test.HUnit.Base
 import Data.Maybe
-import Data.Map
+import qualified Data.Map as M
 import Control.Monad
 -- HUnit tests
 hunit_Eq_Grammar_eq_test =
@@ -116,7 +116,7 @@ hunit_Read_FunType_readsPrec_test =
 
 hunit_isEmptyPGF_test =
   let
-    pgf = PGF empty (mkCId "Abs") (Abstr empty empty empty) empty
+    pgf = PGF M.empty (mkCId "Abs") (Abstr M.empty M.empty M.empty) M.empty
     pgf2 = readPGF "gf/ABCAbs.pgf"
   in
   TestList [
