@@ -127,7 +127,7 @@ getFunCat _ = wildCId
 getRuleCat :: Rule -> CId
 getRuleCat (Function _ funType) = getFunCat funType 
 
--- Find all rules in grammar that have a certain category
+-- Find all rules in grammar that have a certain result category
 getRules :: Grammar -> [CId] -> Set Rule
 getRules grammar cats =
     let
