@@ -670,17 +670,66 @@ hunit_makeMeta_test =
     TestLabel "Simple Tree" $ makeMeta ttree2 ~?= mtree2
     ]
 
-hunit_replaceBranch_test = -- TODO
-  TestList [
-           ]
+hunit_replaceBranch_test = 
+  let
+    new = TMeta wildCId
+    tree1 = TMeta (mkCId "A")
+    tree2 = TNode (mkCId "f") NoType []
+    tree3 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B"),(mkCId "C"),(mkCId "D")])
+      [
+        (TNode (mkCId "a") (Fun (mkCId "A") []) []),
+        (TMeta (mkCId "B")),
+        (TNode (mkCId "g") (Fun (mkCId "C") [(mkCId "C")]) [(TMeta (mkCId "C"))]),
+        (TNode (mkCId "d") (Fun (mkCId "D") []) [])
+      ]
+  in
+    TestList [
+    TestLabel "Meta" $ replaceBranch tree1 0 new ~?= tree1,    
+    TestLabel "Meta negative index" $ replaceBranch tree1 (-1) new ~?= tree1,
+    TestLabel "Meta index out of range" $ replaceBranch tree1 1 new ~?= tree1,
+    TestLabel "Simple Tree without type" $ replaceBranch tree2 0 new ~?= tree2,
+    TestLabel "Simple Tree without type and negative index" $ replaceBranch tree2 (-1) new ~?= tree2,
+    TestLabel "Simple Tree without type and index out of range" $ replaceBranch tree2 1 new ~?= tree2,
+    TestLabel "Tree" $ selectBranch (replaceBranch tree3 0 new) 0 ~?= Just new,
+    TestLabel "Tree" $ selectBranch (replaceBranch tree3 1 new) 1 ~?= Just new,
+    TestLabel "Tree" $ selectBranch (replaceBranch tree3 2 new) 2 ~?= Just new,
+    TestLabel "Tree" $ selectBranch (replaceBranch tree3 3 new) 3 ~?= Just new,
+    TestLabel "Tree negative index" $ replaceBranch tree3 (-1) new ~?= tree3,
+    TestLabel "Tree index out of range" $ replaceBranch tree3 5 new ~?= tree3
+    ]
 
-hunit_replaceNode_test = -- TODO
-  TestList [
-           ]
+hunit_replaceNode_test =
+  let
+    new = TMeta wildCId
+    tree1 = TMeta (mkCId "A")
+    tree2 = TNode (mkCId "f") NoType []
+    tree3 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B"),(mkCId "C"),(mkCId "D")])
+      [
+        (TNode (mkCId "a") (Fun (mkCId "A") []) []),
+        (TMeta (mkCId "B")),
+        (TNode (mkCId "g") (Fun (mkCId "C") [(mkCId "C")]) [(TMeta (mkCId "C"))]),
+        (TNode (mkCId "d") (Fun (mkCId "D") []) [])
+      ]
+  in
+    TestList [
+    TestLabel "Meta empty path" $ replaceNode tree1 [] new ~?= new,
+    TestLabel "Meta path too long" $ replaceNode tree1 [0] new ~?= tree1,
+    TestLabel "Simple tree empty path" $ replaceNode tree2 [] new ~?= new,
+    TestLabel "Simple tree path too long" $ replaceNode tree2 [0] new ~?= tree2,
+    TestLabel "Tree empty path" $ replaceNode tree3 [] new ~?= new,
+    TestLabel "Tree 1" $ selectNode (replaceNode tree3 [0] new) [0] ~?= Just new,
+    TestLabel "Tree 2" $ selectNode (replaceNode tree3 [1] new) [1] ~?= Just new,
+    TestLabel "Tree 3" $ selectNode (replaceNode tree3 [2] new) [2] ~?= Just new,
+    TestLabel "Tree 2" $ selectNode (replaceNode tree3 [2,0] new) [2,0] ~?= Just new,
+    TestLabel "Tree 2" $ selectNode (replaceNode tree3 [3] new) [3] ~?= Just new,
+    TestLabel "Tree negative path" $ replaceNode tree3 [-1] new ~?= tree3,
+    TestLabel "Tree path out of range" $ replaceNode tree3 [4] new ~?= tree3
+    
+    ]
 
 hunit_replaceNodeByMeta_test = -- TODO
-  TestList [
-           ]
+    TestList [
+    ]
 
 hunit_maxPath_test =
   let
@@ -756,13 +805,81 @@ hunit_prune_test = -- TODO
   TestList [
            ]
 
-hunit_getMetaLeaves_test = -- TODO
-  TestList [
-           ]
+hunit_getMetaLeaveCats_test =
+  let
+    tree1 = TMeta (mkCId "A")
+    tree2 = TNode (mkCId "a") (Fun (mkCId "A") []) []
+    tree3 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+      [
+        (TMeta (mkCId "A")),
+        (TMeta wildCId)
+      ]
+    tree4 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "A")])
+      [
+        (TMeta (mkCId "A")),
+        (TMeta (mkCId "A"))
+      ]
+    tree5 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+      [
+        TNode (mkCId "g") (Fun (mkCId "A") [(mkCId "A")])
+        [
+          TNode (mkCId "g") (Fun (mkCId "A") [(mkCId "A")])
+          [
+            TNode (mkCId "g") (Fun (mkCId "A") [(mkCId "A")])
+            [
+              (TMeta (mkCId "A"))
 
-hunit_getMetaPaths_test = -- TODO
-  TestList [
-           ]
+            ]
+          ]
+        ],
+        (TMeta (mkCId "B"))
+      ]
+  in
+    TestList [
+    TestLabel "Meta" $ getMetaLeaveCats tree1 ~?= fromList [(mkCId "A")],
+    TestLabel "Simple tree without metas" $ getMetaLeaveCats tree2 ~?= empty,
+    TestLabel "Simple tree 1" $ getMetaLeaveCats tree3 ~?= fromList [(mkCId "A"),wildCId],
+    TestLabel "Simple tree 2" $ getMetaLeaveCats tree4 ~?= fromList [(mkCId "A")],
+    TestLabel "Tree" $ getMetaLeaveCats tree5 ~?= fromList [(mkCId "A"),(mkCId "B")]
+    ]
+
+hunit_getMetaPaths_test = 
+  let
+    tree1 = TMeta (mkCId "A")
+    tree2 = TNode (mkCId "a") (Fun (mkCId "A") []) []
+    tree3 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+      [
+        (TMeta (mkCId "A")),
+        (TMeta wildCId)
+      ]
+    tree4 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "A")])
+      [
+        (TMeta (mkCId "A")),
+        (TMeta (mkCId "A"))
+      ]
+    tree5 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
+      [
+        TNode (mkCId "g") (Fun (mkCId "A") [(mkCId "A")])
+        [
+          TNode (mkCId "g") (Fun (mkCId "A") [(mkCId "A")])
+          [
+            TNode (mkCId "g") (Fun (mkCId "A") [(mkCId "A")])
+            [
+              (TMeta (mkCId "A"))
+
+            ]
+          ]
+        ],
+        (TMeta (mkCId "B"))
+      ]
+  in
+    TestList [
+    TestLabel "Meta" $ getMetaPaths tree1 ~?= [([],(mkCId "A"))],
+    TestLabel "Simple tree without metas" $ getMetaPaths tree2 ~?= [],
+    TestLabel "Simple tree" $ getMetaPaths tree3 ~?= [([0],(mkCId "A")),([1],wildCId)],
+    TestLabel "Simple tree" $ getMetaPaths tree4 ~?= [([0],(mkCId "A")),([1],(mkCId "A"))],
+    TestLabel "Tree" $ getMetaPaths tree5 ~?= [([0,0,0,0],(mkCId "A")),([1],(mkCId "B"))]
+    ]
 
 hunit_applyRule_test = -- TODO
   TestList [
