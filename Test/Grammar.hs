@@ -9,6 +9,7 @@ import Test.HUnit.Base
 import Data.Maybe
 import qualified Data.Map as M
 import Control.Monad
+import Data.Set (Set(..),empty,fromList)
 -- HUnit tests
 hunit_Eq_Grammar_eq_test =
   let
@@ -199,9 +200,26 @@ hunit_getRuleCat_test =
   TestLabel "Constant" $ getRuleCat (Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])) ~?= (mkCId "A")
   ]
 
-hunit_getRules_test = -- TODO
-  TestList [
-  ]
+hunit_getRules_test =
+  let
+    rule1 = (Function (mkCId "r1") (Fun (mkCId "A") []))
+    rule2 = (Function (mkCId "r2") (Fun (mkCId "A") [(mkCId "A")]))
+    rule3 = (Function (mkCId "r3") (Fun (mkCId "B") [(mkCId "A")]))
+    rule4 = (Function (mkCId "r4") (Fun (mkCId "A") [(mkCId "A"),(mkCId "A")]))
+    rule5 = (Function (mkCId "r5") NoType)
+    grammar = Grammar (mkCId "S")
+      [ rule1, rule2, rule3, rule4, rule5 ]
+      emptyPGF
+  in
+    TestList [
+    TestLabel "Empty Grammar" $ getRules emptyGrammar [] ~?= empty,
+    TestLabel "No categories" $ getRules grammar [] ~?= empty,
+    TestLabel "No match" $ getRules grammar [(mkCId "Z")] ~?= empty,
+    TestLabel "One match" $ getRules grammar [(mkCId "B")] ~?= fromList [rule3],
+    TestLabel "Three matches" $ getRules grammar [(mkCId "A")] ~?= fromList [rule1, rule2, rule4],
+    TestLabel "All matches" $ getRules grammar [(mkCId "A"),(mkCId "B"),wildCId] ~?= fromList (rules grammar)
+    ]
+    
 hunit_pgfToGrammar_test =
   let
     pgf = readPGF "gf/ABCAbs.pgf"
