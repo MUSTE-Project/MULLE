@@ -341,7 +341,7 @@ replaceBranch tree _ _ = tree
 -- replace a subtree given by path by a new tree
 replaceNode :: TTree -> Path -> TTree -> TTree
 replaceNode oldTree@(TNode _ _ trees) path@(pos:ps) newTree
-  | pos < length trees =  -- subtree must exist
+  | pos >= 0 && pos < length trees =  -- subtree must exist
     let
       branch = fromJust $ selectBranch oldTree pos
     in
@@ -349,6 +349,8 @@ replaceNode oldTree@(TNode _ _ trees) path@(pos:ps) newTree
   | otherwise = oldTree -- if branch does not exist just do nothing
 replaceNode oldTree [] newTree =
   newTree -- at the end of the path just give the new tree to be inserted
+replaceNode oldTree _ _ =
+  oldTree -- No more subtrees, cancel search
 
 -- Replace a node given by a path with a meta node of the same category
 replaceNodeByMeta :: MetaTTree -> Path -> MetaTTree
