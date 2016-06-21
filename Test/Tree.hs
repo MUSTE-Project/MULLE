@@ -836,7 +836,7 @@ tree_function_tests =
   TestLabel "maxPath" hunit_maxPath_test,
   TestLabel "findPaths" hunit_findPaths_test,
   TestLabel "prune" hunit_prune_test,
-  TestLabel "getMetaLeaves" hunit_getMetaLeaves_test,
+  TestLabel "getMetaLeaveCats" hunit_getMetaLeaveCats_test,
   TestLabel "getMetaPaths" hunit_getMetaPaths_test,
   TestLabel "applyRule" hunit_applyRule_test,
   TestLabel "combine" hunit_combine_test,

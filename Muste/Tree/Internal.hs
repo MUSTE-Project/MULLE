@@ -424,10 +424,10 @@ prune tree depth =
           }
   in
     Set.insert (makeMeta tree) (pruneTrees (makeMeta tree) [(makeMeta tree)] depth)
--- Generates list of all meta leaves
-getMetaLeaves :: TTree -> Set CId
-getMetaLeaves (TMeta id) = Set.singleton id
-getMetaLeaves (TNode _ _ trees) = Set.unions $ map getMetaLeaves trees
+-- Returns set of the categories of all meta leaves
+getMetaLeaveCats :: TTree -> Set CId
+getMetaLeaveCats (TMeta id) = Set.singleton id
+getMetaLeaveCats (TNode _ _ trees) = Set.unions $ map getMetaLeaveCats trees
 
 -- Generates list of all pathes to metas
 getMetaPaths :: TTree -> [(Path,CId)]
@@ -493,7 +493,7 @@ extendTree grammar tree depth =
       sTrees = subTrees tree
       -- Get all meta-leaves ...
       metaLeaves :: Set CId
-      metaLeaves = getMetaLeaves mTree
+      metaLeaves = getMetaLeaveCats mTree
       -- ... and grammar rules for them
       rules :: Set Rule
       rules = getRules grammar $ toList metaLeaves
