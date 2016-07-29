@@ -19,7 +19,7 @@ synopsis:            Multimodal semantics in Text editing
 -- description:         
 
 -- The license under which the package is released.
--- license:             
+license: OtherLicense
 
 -- The file containing the license text.
 license-file:        LICENSE
