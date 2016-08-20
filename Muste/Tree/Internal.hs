@@ -456,7 +456,8 @@ applyRule tree@(MetaTTree oldMetaTree oldSubTrees) rule@(Function name ftype@(Fu
    in
     -- Combine to new MetaTTree and continue applying until no more paths exist
     applyRule (MetaTTree newTree (Set.union oldSubTrees newSubTrees)) rule pathes
-applyRule tree rule [] = tree
+applyRule tree (Function _ NoType) _ = tree -- No rule type, same tree
+applyRule tree rule [] = tree -- No path, same tree
 
 -- Apply a rule to a meta tree generating all possible new meta trees
 combine :: MetaTTree -> Int -> Rule -> Set MetaTTree
