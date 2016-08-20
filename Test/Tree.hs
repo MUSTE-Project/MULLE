@@ -802,8 +802,32 @@ hunit_findPaths_test =
     ]
 
 hunit_prune_test = -- TODO
-  TestList [
-           ]
+  let
+    tree1 = (read "{f:(A -> B -> A) {a:A} {g:B {b:B} {c:C}}}") :: TTree
+    mtrees1 = fromList $ [
+      (MetaTTree (read "{?A}") $ fromList [([], read "{f:(A -> B -> A) {a:A} {g:B {b:B} {c:C}}}")]),
+      (MetaTTree (read "{f:(A -> B -> A) {?A} {?B}}") $ fromList [([0], read "{a:A}"), ([1], read "{g:(B -> C -> B) {b:B} {c:C}}")]),
+      (MetaTTree (read "{f:(A -> B -> A) {a:A} {?B}}") $ fromList [([1], read "{g:(B -> C -> B) {b:B} {c:C}}")]),
+      (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {?C}}}") $ fromList [([0], read "{a:A}"), ([1,0], read "{b:B}"), ([1,1], read "{c:C}")]),
+      (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {b:B} {?C}}}") $ fromList [([0], read "{a:A}"), ([1,1], read "{c:C}")]),
+      (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {c:C}}}") $ fromList [([0], read "{a:A}"), ([1,0], read "{b:B}")]),
+      (MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {b:B} {c:C}}}") $ fromList [([0], read "{a:A}")]),
+      (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {?B} {?C}}}") $ fromList [([1,0], read "{b:B}"), ([1,1], read "{c:C}")]),
+      (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {?C}}}") $ fromList [([1,1], read "{c:C}")]),
+      (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {?B} {c:C}}}") $ fromList [([1,0], read "{b:B}")]),
+      (MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {c:C}}}") empty)
+      ]
+  in
+    TestList [
+    -- prune {{f:A {a:A} {g:B {b:B} {c:C}}}} 2
+    -- [({?A}, [([], {{f:A {a:A} {g:B {b:B} {c:C}}}})]),
+    --  ({{f:A ?A ?B}}, [([0], {{a:A}}), ([1], {{g:B {b:B} {c:C}}})]),
+    --  ({{f:A {a:A} ?B}}, [([1], {{g:B {b:B} {c:C}}})]),
+    --  ({{f:A ?A {g:B ?B ?C}}}, [([0], {{a:A}}), ([1,0], {{b:B}}), ([1,1], {{c:C}})]),
+    --  ({{f:A {a:A} {g:B ?B ?C}}}, [([1,0], {{b:B}}), ([1,1], {{c:C}})]),
+    --  ]
+    TestLabel "Peters Example" $ prune tree1 2 ~?= mtrees1
+    ]
 
 hunit_getMetaLeaveCats_test =
   let
