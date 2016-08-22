@@ -918,7 +918,35 @@ hunit_extendTree_test = -- TODO
            ]
 
 hunit_generate_test = -- TODO
+  let
+    grammar =
+      Grammar
+      (mkCId "A")
+      [
+        (Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"), (mkCId "B")])),
+        (Function (mkCId "g") (Fun (mkCId "B") [(mkCId "B"), (mkCId "C")])),
+        (Function (mkCId "a") (Fun (mkCId "A") [])),
+        (Function (mkCId "b") (Fun (mkCId "B") [])),
+        (Function (mkCId "c") (Fun (mkCId "C") []))
+      ]
+      emptyPGF
+    result = fromList
+      [
+        (MetaTTree (read "{?A}") $ fromList [([], read "{?A}")]),
+        (MetaTTree (read "{a:A}") empty),
+        (MetaTTree (read "{f:A {?A} {?B}}") $ fromList [([0], read "{?A}"), ([1], read "{?B}")]),
+        (MetaTTree (read "{f:A {a:A} {?B}}") $ fromList [([1], read "{?B}")]),
+        (MetaTTree (read "{f:A {f:A {?A} {?B}} {?B}}") $ fromList [([0,0], read "{?A}"), ([0,1], read "{?B}"), ([1], read "{?B}")]),
+        (MetaTTree (read "{f:A {?A} {b:B}") $ fromList [([0], read "{?A}")]),
+        (MetaTTree (read "{f:A {?A} {g:B {?B} {?C}}}") $ fromList [([0], read "{?A}"),([1,0], read "{?B}"),([1,1], read "{?C}")]),
+        (MetaTTree (read "{f:A {a:A} {b:B}}") empty),
+        (MetaTTree (read "{f:A {a:A} {g:B {?B} {?C}}}") $ fromList [([1,0], read "{?B}"),([1,1], read "{?C}")]),
+        (MetaTTree (read "{f:A {f:A {?A} {?B}} {b:B}}") $ fromList [([0,0], read "{?A}"), ([0,1], read "{?B}")]),
+        (MetaTTree (read "{f:A {f:A {?A} {?B}} {g:B {?B} {?C}}}") $ fromList [([0,0], read "{?A}"), ([0,1], read "{?B}"),([1,0], read "{?B}"), ([1,1], read "{?C}")])
+      ]:: Set MetaTTree
+  in
   TestList [
+    TestLabel "Peters example" $ Muste.Tree.Internal.generate grammar (startcat grammar) 2 ~?= result
            ]
 
 hunit_combineTrees_test = -- TODO
