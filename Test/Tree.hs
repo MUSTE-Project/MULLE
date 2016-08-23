@@ -727,8 +727,28 @@ hunit_replaceNode_test =
     
     ]
 
-hunit_replaceNodeByMeta_test = -- TODO
+hunit_replaceNodeByMeta_test = 
+  let
+    tree1 = MetaTTree (TMeta (mkCId "A")) empty
+    tree2 = MetaTTree (TMeta (mkCId "A")) $ fromList [([],(TMeta (mkCId "A")))]
+    tree3 = MetaTTree (TNode (mkCId "a") (Fun (mkCId "A") []) []) empty
+    tree4 = MetaTTree (TMeta (mkCId "A")) $ fromList [([],(TNode (mkCId "a") (Fun (mkCId "A") []) []))]
+    tree5 = MetaTTree (read "{f:(A->B->A) {a:A} {g:(B->C->B) {b:B} {?C}}}") $ fromList [([1,1],read "{c:C}")]
+    tree6 = MetaTTree (read "{f:(A->B->A) {?A} {g:(B->C->B) {b:B} {?C}}}") $ fromList [([0],read "{a:A}"),([1,1],read "{c:C}")]
+    tree7 = MetaTTree (read "{f:(A->B->A) {a:A} {?B}") $ fromList [([1],read "{g:(B->C->B) {b:B} {?C}}"),([1,1],read "{c:C}")]
+    tree8 = MetaTTree (read "{f:(A->B->A) {a:A} {g:(B->C->B) {?B} {?C}}}") $ fromList [([1,0],read "{b:B}"),([1,1],read "{c:C}")]
+  in
     TestList [
+    TestLabel "Meta Tree with empty path 1" $ replaceNodeByMeta tree1 [] ~?= tree2,
+    TestLabel "Meta Tree with empty path 2" $ replaceNodeByMeta tree2 [] ~?= tree2,
+    TestLabel "Simple Tree with empty path" $ replaceNodeByMeta tree3 [] ~?= tree4,
+    TestLabel "Complex Tree with valid path 1" $ replaceNodeByMeta tree5 [0] ~?= tree6,
+    TestLabel "Complex Tree with valid path 2" $ replaceNodeByMeta tree5 [1] ~?= tree7,
+    TestLabel "Complex Tree with valid path 3" $ replaceNodeByMeta tree5 [1,0] ~?= tree8,
+    TestLabel "Complex Tree with invalid path 1" $ replaceNodeByMeta tree5 [-1] ~?= tree5,
+    TestLabel "Complex Tree with invalid path 2" $ replaceNodeByMeta tree5 [2] ~?= tree5,
+    TestLabel "Complex Tree with invalid path 3" $ replaceNodeByMeta tree5 [0,0] ~?= tree5,
+    TestLabel "Complex Tree with invalid path 4" $ replaceNodeByMeta tree5 [1,1,1] ~?= tree5
     ]
 
 hunit_maxPath_test =
