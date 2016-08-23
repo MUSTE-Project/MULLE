@@ -356,11 +356,15 @@ replaceNode oldTree _ _ =
 replaceNodeByMeta :: MetaTTree -> Path -> MetaTTree
 replaceNodeByMeta tree@(MetaTTree oldMetaTree oldSubTrees) path = 
   let
-    newSubTree = fromJust $ selectNode (oldMetaTree) path
-    cat = getTreeCat $ newSubTree
+    newSubTree = selectNode (oldMetaTree) path
+    cat = getTreeCat $ fromJust $ newSubTree -- scary but should work due to lazy evaluation
     newTree = replaceNode (oldMetaTree) path (TMeta cat)
   in
-    MetaTTree newTree (Set.insert (path,newSubTree) oldSubTrees)
+    case newSubTree of {
+      Just t -> MetaTTree newTree (Set.insert (path,t) oldSubTrees) ;
+      -- invalid path, just return the tree
+      _ -> tree
+      }
 
 -- Find the maximum length paths not ending in metas and up to a certain threshold
 maxPath :: Int -> TTree -> [Path]
