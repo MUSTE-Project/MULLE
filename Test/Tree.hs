@@ -958,8 +958,18 @@ hunit_computeCosts_test = -- TODO
            ]
 
 hunit_match_test = -- TODO
-  TestList [
-           ]
+  let
+    tree11 = (MetaTTree (read "{f:(A -> B -> A) {?A} {?B}}") $ fromList [([0], read "{a:A}"), ([1], read "{g:(B -> C -> B) {b:B} {c:C}}")])
+    tree12 = (MetaTTree (read "{f:(A -> B -> A) {f:(A -> B -> A) {?A} {?B}} {b:B}}") $ fromList [([0,0], read "{?A}"), ([0,1], read "{?B}")])
+    result1 = (1+3, read "{f:(A -> B -> A) {f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {c:C}}} {b:B}}") :: (Cost,TTree)
+    tree21 = (MetaTTree (read "{f:A {?A} {?B}}") $ fromList [([0], read "{a:A}"), ([1], read "{g:B {b:B} {c:C}}")])
+    tree22 = (MetaTTree (read "{f:A {?A} {b:B}}") $ fromList [([0], read "{?A}")])
+    result2 = (1+2+3, read "{f:A {a:A} {b:B}}") :: (Cost,TTree)
+  in
+    TestList [
+    TestLabel "Peters example 1" $ ( head $ match tree11 tree12 ) ~?= result1,
+    TestLabel "Peters example 2" $ ( head $ match tree21 tree22 )~?= result2
+    ]
   
 show_tests =
   TestList [
