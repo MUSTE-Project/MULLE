@@ -698,7 +698,7 @@ hunit_replaceBranch_test =
     TestLabel "Tree index out of range" $ replaceBranch tree3 5 new ~?= tree3
     ]
 
-hunit_replaceNode_test =
+hunit_replaceNode_test = 
   let
     new = TMeta wildCId
     tree1 = TMeta (mkCId "A")
@@ -821,7 +821,7 @@ hunit_findPaths_test =
     TestLabel "Complex tree 2" $ findPaths 9 tree4 ~?= [[1],[2,0],[2,1,0,0],[3,0]]
     ]
 
-hunit_prune_test = -- TODO
+hunit_prune_test = 
   let
     tree1 = (read "{f:(A -> B -> A) {a:A} {g:B {b:B} {c:C}}}") :: TTree
     mtrees1 = fromList $ [
@@ -937,7 +937,7 @@ hunit_extendTree_test = -- TODO
   TestList [
            ]
 
-hunit_generate_test = -- TODO
+hunit_generate_test = 
   let
     grammar =
       Grammar
@@ -977,7 +977,7 @@ hunit_computeCosts_test = -- TODO
   TestList [
            ]
 
-hunit_match_test = -- TODO
+hunit_match_test = 
   let
     tree11 = (MetaTTree (read "{f:(A -> B -> A) {?A} {?B}}") $ fromList [([0], read "{a:A}"), ([1], read "{g:(B -> C -> B) {b:B} {c:C}}")])
     tree12 = (MetaTTree (read "{f:(A -> B -> A) {f:(A -> B -> A) {?A} {?B}} {b:B}}") $ fromList [([0,0], read "{?A}"), ([0,1], read "{?B}")])
