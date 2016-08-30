@@ -459,7 +459,7 @@ applyRule tree@(MetaTTree oldMetaTree oldSubTrees) rule@(Function name ftype@(Fu
     newTree = (replaceNode (metaTree tree) path newMetaSubTree) -- Get new tree by replacing a meta given by path with the new rule
    in
     -- Combine to new MetaTTree and continue applying until no more paths exist
-    applyRule (MetaTTree newTree (Set.union oldSubTrees newSubTrees)) rule pathes
+    applyRule (MetaTTree newTree (Set.union (fromList $ dropWhile ((path ==) . fst) $ toList oldSubTrees) newSubTrees)) rule pathes
 applyRule tree (Function _ NoType) _ = tree -- No rule type, same tree
 applyRule tree rule [] = tree -- No path, same tree
 
