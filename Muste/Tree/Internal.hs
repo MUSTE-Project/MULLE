@@ -457,9 +457,10 @@ applyRule tree@(MetaTTree oldMetaTree oldSubTrees) rule@(Function name ftype@(Fu
     newMetaSubTree = (TNode name ftype (map (TMeta) cats)) -- Tree converted from the rule
     newSubTrees = fromList $ map (\(subPath,id) -> (path ++ subPath, (TMeta id))) (getMetaPaths newMetaSubTree) -- Convert list of meta categories to list of TMeta-trees and extended paths that can be used in MetaTrees
     newTree = (replaceNode (metaTree tree) path newMetaSubTree) -- Get new tree by replacing a meta given by path with the new rule
+    newOldSubTrees = Set.filter ((path /=) . fst) oldSubTrees -- remove all subtrees with the path that has been replaced
    in
     -- Combine to new MetaTTree and continue applying until no more paths exist
-    applyRule (MetaTTree newTree (Set.union (fromList $ dropWhile ((path ==) . fst) $ toList oldSubTrees) newSubTrees)) rule pathes
+    applyRule (MetaTTree newTree (Set.union newOldSubTrees newSubTrees)) rule pathes
 applyRule tree (Function _ NoType) _ = tree -- No rule type, same tree
 applyRule tree rule [] = tree -- No path, same tree
 
