@@ -925,13 +925,60 @@ hunit_getMetaPaths_test =
     TestLabel "Tree" $ getMetaPaths tree5 ~?= [([0,0,0,0],(mkCId "A")),([1],(mkCId "B"))]
     ]
 
-hunit_applyRule_test = -- TODO
-  TestList [
-           ]
-
-hunit_combine_test = -- TODO
-  TestList [
-           ]
+hunit_applyRule_test =
+  let
+    tree1 = makeMeta (TMeta (mkCId "A"))
+    rule1 = Function (mkCId "f") (Fun (mkCId "A") [(mkCId "B"),(mkCId "C")])
+    tree2 = MetaTTree (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "B"),(mkCId "C")]) [(TMeta (mkCId "B")),(TMeta (mkCId "C"))]) $ fromList [([0],TMeta (mkCId "B")),([1],TMeta (mkCId "C"))]
+    rule2 = Function (mkCId "b") (Fun (mkCId "B") [])
+    tree3 = MetaTTree (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "B"),(mkCId "C")]) [(TNode (mkCId "b") (Fun (mkCId "B") []) []),(TMeta (mkCId "C"))]) $ fromList [([1],TMeta (mkCId "C"))]
+    tree4 = MetaTTree (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "B"),(mkCId "C")]) [(TMeta (mkCId "B")),(TNode (mkCId "b") (Fun (mkCId "B") []) [])]) $ fromList [([0],TMeta (mkCId "B"))]
+    tree5 = MetaTTree (TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "B"),(mkCId "C")]) [(TNode (mkCId "b") (Fun (mkCId "B") []) []),(TNode (mkCId "b") (Fun (mkCId "B") []) [])]) $ empty
+  in
+    TestList [
+    TestLabel "No Pathes given" $ applyRule tree1 rule1 [] ~?= tree1, -- no pathes given, same tree
+    TestLabel "Empty Path given, replace whole tree" $ applyRule tree1 rule1 [[]] ~?= tree2,
+    TestLabel "Simple application 1" $ applyRule tree2 rule2 [[0]] ~?= tree3,
+    TestLabel "Simple application 2" $ applyRule tree2 rule2 [[1]] ~?= tree4,
+    TestLabel "Multiple applications" $ applyRule tree2 rule2 [[0],[1]] ~?= tree5,
+    TestLabel "Path out of range" $ applyRule tree2 rule2 [[2]] ~?= tree2,
+    TestLabel "Path too long" $ applyRule tree2 rule2 [[0,1]] ~?= tree2,
+    TestLabel "Ignore superfluous paths" $ applyRule tree2 rule2 [[1],[2],[0,1]] ~?= tree4
+             ]
+    
+hunit_combine_test = 
+  let
+    tree1 = makeMeta $ TMeta (mkCId "A")
+    rule1 = Function (mkCId "f") (Fun (mkCId "A") [(mkCId "B"),(mkCId "C")])
+    tree2 = MetaTTree (read "{f:(B->C->A) {?B} {?C}}" :: TTree) $ fromList [([0],(TMeta (mkCId "B"))),([1],(TMeta (mkCId "C")))]
+    tree3 = MetaTTree (read "{g:(A->B->A) {?A} {h:(B->A->B) {b:B} {?A}}}" :: TTree) $ fromList [([0],(TMeta (mkCId "A"))),([1,1],(TMeta (mkCId "A")))]
+    tree4 = MetaTTree (read "{g:(A->B->A) {f:(B->C->A) {?B} {?C}} {h:(B->A->B) {b:B} {?A}}}" :: TTree) $ fromList [([0,0],(TMeta (mkCId "B"))),([0,1],(TMeta (mkCId "C"))),([1,1],(TMeta (mkCId "A")))]
+    tree5 = MetaTTree (read "{g:(A->B->A) {?A} {h:(B->A->B) {b:B} {f:(B->C->A) {?B} {?C}}}}" :: TTree) $ fromList [([0],(TMeta (mkCId "A"))),([1,1,0],(TMeta (mkCId "B"))),([1,1,1],(TMeta (mkCId "C")))]
+    tree6 = MetaTTree (read "{g:(A->B->A) {f:(B->C->A) {?B} {?C}} {h:(B->A->B) {b:B} {f:(B->C->A) {?B} {?C}}}}" :: TTree) $ fromList [([0,0],(TMeta (mkCId "B"))),([0,1],(TMeta (mkCId "C"))),([1,1,0],(TMeta (mkCId "B"))),([1,1,1],(TMeta (mkCId "C")))]
+    rule2 = Function (mkCId "i") (Fun (mkCId "A") [(mkCId "A"),(mkCId "A")])
+    tree7 = MetaTTree (read "{i:(A->A->A) {?A} {?A}}" :: TTree) $ fromList [([0],(TMeta (mkCId "A"))),([1],(TMeta (mkCId "A")))]
+    tree8 = MetaTTree (read "{g:(A -> B -> A) {i:(A -> A -> A) {?A} {?A}} {h:(B -> A -> B) {b:(B)} {?A}}}" :: TTree) $ fromList [([0,0],(TMeta (mkCId "A"))),([0,1],(TMeta (mkCId "A"))),([1,1],(TMeta (mkCId "A")))]
+    tree9 = MetaTTree (read "{g:(A->B->A) {?A} {h:(B->A->B) {b:B} {i:(A->A->A) {?A} {?A}}}}" :: TTree) $ fromList [([0],(TMeta (mkCId "A"))),([1,1,0],(TMeta (mkCId "A"))),([1,1,1],(TMeta (mkCId "A")))]
+    tree10 = MetaTTree (read "{g:(A->B->A) {i:(A->A->A) {?A} {?A}} {h:(B->A->B) {b:B} {i:(A->A->A) {?A} {?A}}}}" :: TTree) $ fromList [([0,0],(TMeta (mkCId "A"))),([0,1],(TMeta (mkCId "A"))),([1,1,0],(TMeta (mkCId "A"))),([1,1,1],(TMeta (mkCId "A")))]
+  in
+    TestList [
+    TestLabel "Simple tree, Rule 1, Depth 0, no combination" $ combine tree1 0 rule1 ~?= Set.singleton tree1,
+    TestLabel "Simple tree, Rule 1, Depth 1, one combination" $ combine tree1 1 rule1 ~?= fromList [tree2,tree1],
+    TestLabel "Simple tree, Rule 1, Depth 2, one combination" $ combine tree1 2 rule1 ~?= fromList [tree2,tree1],
+    TestLabel "More complex Rule 1, tree, Depth 0, no combination" $ combine tree3 0 rule1 ~?= Set.singleton tree3,
+    TestLabel "More complex Rule 1, tree, Depth 1, no combination" $ combine tree3 1 rule1 ~?= Set.singleton tree3,
+    TestLabel "More complex Rule 1, tree, Depth 2, one combination" $ combine tree3 2 rule1 ~?= fromList [tree4,tree3],
+    TestLabel "More complex Rule 1, tree, Depth 3, three combination" $ combine tree3 3 rule1 ~?= fromList [tree6,tree5,tree4,tree3],
+    TestLabel "More complex Rule 1, tree, Depth 4, three combination" $ combine tree3 4 rule1 ~?= fromList [tree6,tree5,tree4,tree3],
+    TestLabel "Simple tree, Rule 2, Depth 0, no combination" $ combine tree1 0 rule2 ~?= Set.singleton tree1,
+    TestLabel "Simple tree, Rule 2, Depth 1, one combination" $ combine tree1 1 rule2 ~?= fromList [tree7,tree1],
+    TestLabel "Simple tree, Rule 2, Depth 2, one combination" $ combine tree1 2 rule2 ~?= fromList [tree7,tree1],
+    TestLabel "More complex Rule 2, tree, Depth 0, no combination" $ combine tree3 0 rule2 ~?= Set.singleton tree3,
+    TestLabel "More complex Rule 2, tree, Depth 1, no combination" $ combine tree3 1 rule2 ~?= Set.singleton tree3,
+    TestLabel "More complex Rule 2, tree, Depth 2, one combination" $ combine tree3 2 rule2 ~?= fromList [tree8,tree3],
+    TestLabel "More complex Rule 2, tree, Depth 3, three combination" $ combine tree3 3 rule2 ~?= fromList [tree10,tree9,tree8,tree3],
+    TestLabel "More complex Rule 2, tree, Depth 4, three combination" $ combine tree3 4 rule2 ~?= fromList [tree10,tree9,tree8,tree3]
+    ]
 
 hunit_extendTree_test = -- TODO
   TestList [
