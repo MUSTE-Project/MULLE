@@ -464,7 +464,7 @@ applyRule tree@(MetaTTree oldMetaTree oldSubTrees) rule@(Function name ftype@(Fu
 applyRule tree (Function _ NoType) _ = tree -- No rule type, same tree
 applyRule tree rule [] = tree -- No path, same tree
 
--- Apply a rule to a meta tree generating all possible new meta trees
+-- Apply a rule to a meta tree generating all possible new meta trees, the depth parameter limits the search for metas to be replaced
 combine :: MetaTTree -> Int -> Rule -> Set MetaTTree
 combine tree@(MetaTTree oldMetaTree oldSubTrees) depth rule =
   let
