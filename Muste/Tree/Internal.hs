@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
-{- | This module provides implementations of different kinds of syntax trees
--}
+{- | This Module is the internal implementation behind the module 'Muste.Tree' -}
 module Muste.Tree.Internal where
 import PGF hiding (showType,checkType)
 import PGF.Internal hiding (showType)
@@ -15,7 +14,9 @@ import Debug.Trace
 -- | Generic class for trees
 class TreeC t where
   showTree :: t -> String
+  -- | The function 'selectNode' returns a subtree at given 'Path' if it exists
   selectNode :: t -> Path -> Maybe t
+  -- | The function 'selectNode' returns a subtree at given node if it exists
   selectBranch :: t -> Int -> Maybe t
 
 -- | Cost for matching two meta trees
@@ -85,13 +86,13 @@ instance TreeC TTree where
     | i < 0 || i >= length trees = Nothing
     | otherwise = Just (trees !! i)
 
--- | A generic tree with types is in the Show class
+-- | A generic 'TTree' with types is in the 'Show' class
 instance Show TTree where
   show (TNode name typ []) = "{"++ (show name) ++ ":"  ++ show typ ++ "}";
   show (TNode name typ children) = "{" ++ (show name) ++ ":" ++ show typ ++ " " ++ ( unwords $ map show children ) ++ "}"
   show (TMeta cat) = "{?" ++ show cat ++ "}"
 
--- A meta tree is in the Show class
+-- | A 'MetaTTree' is in the 'Show' class
 instance Show MetaTTree where
   show tree =
     "(" ++ show (metaTree tree) ++ 
@@ -104,7 +105,7 @@ consumeChar c str@(c1:rest)
    | c == c1 = rest
    | otherwise = str
 
--- The function 'readFunType' is a read wrapper for a function type that returns just the first parse
+-- | The function 'readFunType' is a read wrapper for a function type that returns just the first parse
 readFunType :: String -> Maybe (FunType,String)
 readFunType str =
   let
@@ -115,7 +116,7 @@ readFunType str =
       _ -> Just $ head $ result
       }
 
--- Extracts the root category of each childtree
+-- | The function 'getChildCats' extracts the root category of each childtree
 getChildCats :: TTree -> [CId]
 getChildCats (TMeta _) = []
 getChildCats (TNode _ _ trees) =
@@ -127,13 +128,13 @@ getChildCats (TNode _ _ trees) =
   in
     map extract trees
 
--- Typechecks a TTree
+-- | The function 'checkType' typechecks a 'TTree'
 checkType :: TTree -> Bool
 checkType (TMeta _) = True
 checkType t@(TNode name (Fun fcat ccats) trees) =
   (getChildCats t == ccats) && (foldl (&&) True $ map checkType trees)
 
--- goes through a tree and fixes type problems when only a root type is given for each subtree
+-- | The function 'fixTypes' goes through a 'TTree' and fixes type problems when only a root type is given for each subtree
 fixTypes :: TTree -> TTree
 fixTypes t@(TNode name typ trees) =
   let
@@ -147,7 +148,7 @@ fixTypes t@(TNode name typ trees) =
     (TNode name newType newTrees)
 fixTypes t = t
 
--- Read wrapper for a TTree type that returns just the first parse
+-- | The function 'readTree' is only a 'Read' wrapper for a 'TTree' type that returns just the first parse
 readTree  :: String -> Maybe (TTree,String)
 readTree str =
   let
@@ -155,7 +156,7 @@ readTree str =
   in
     if result == [] then Nothing else Just $ head $ result
 
--- reads list of multiple trees
+-- | The function 'readTrees' reads list of multiple 'TTree's
 readTrees :: String -> ([TTree],String)
 readTrees "" = ([],"")
 readTrees sTrees =
@@ -171,7 +172,7 @@ readTrees sTrees =
          Nothing -> ([],sTrees) -- trace (show sTrees) $ ([],sTrees)
       }
 
--- A generic tree with types is in the Read class
+-- | A generic 'TTree' with types is in the 'Read' class
 instance Read TTree where
   readsPrec _ sTree =
     -- Trees start with a {
@@ -208,7 +209,7 @@ instance Read TTree where
     }
                  
 -- List-related functions
--- Replace an element in a list if the position exists
+-- | The function 'listReplace' replaces an element in a 'List' if the position exists
 listReplace :: [a] -> Pos -> a -> [a]
 listReplace list pos elem
   | 0 <= pos && pos < length list = -- pos in list -> replace it
@@ -218,19 +219,19 @@ listReplace list pos elem
         pre ++ (elem:post)
   | otherwise = list -- Element not in the list -> return the same list instead
 
--- generates a power set from a list
+-- | The function 'powerList' generates a power set from a 'List'
 powerList :: [a] -> [[a]]
 powerList [] = [[]]
 powerList (x:xs) = powerList xs ++ map (x:) (powerList xs)
 
 
 -- Tree-related functions
--- predicate if a tree is just a meta node
+-- | The funcion 'isMeta' is a predicate that is true if a 'TTree' is just a 'TMeta' node
 isMeta :: TTree -> Bool
 isMeta (TMeta _) = True
 isMeta _ = False
 
--- | Get the root category of a tree, returns wildCId on missing type
+-- | The function 'getTreeCat' gives the root category of a 'TTree', returns 'wildCId' on missing type
 getTreeCat :: TTree -> CId
 getTreeCat (TNode id typ _) =
   case typ of {
@@ -239,7 +240,7 @@ getTreeCat (TNode id typ _) =
     }
 getTreeCat (TMeta cat) = cat
 
--- | Creates a generic tree from an abstract syntax tree. Handles only EApp and EFun. Generates TMeta wildCId in unsupported Cases
+-- | The function 'gfAbsTreeToTTree' creates a 'TTree' from an GFabstract syntax 'Tree'. Handles only 'EApp' and 'EFun'. Generates 'TMeta' 'wildCId' in unsupported cases
 gfAbsTreeToTTree :: PGF -> GFAbsTree -> TTree
 gfAbsTreeToTTree pgf (EFun f) =
   let
@@ -312,14 +313,14 @@ ttreeToLTree tree =
   in
     snd $ update 0 $ convert tree
     
--- Gets the length of the maximum path between root and a leaf (incl. meta nodes) of a tree
+-- | The function 'maxDepth' gets the length of the maximum path between root and a leaf (incl. meta nodes) of a 'TTree'
 maxDepth :: TTree -> Int
 maxDepth (TMeta _) = 1
 maxDepth (TNode _ _ []) = 1
 maxDepth (TNode _ _ trees) =
   1 + (maximum $ map maxDepth trees)
 
--- Count all non-meta nodes in a tree
+-- | The function 'countNodes' count all non-meta nodes in a 'TTree'
 countNodes :: TTree -> Int
 countNodes (TNode _ _ trees) = foldl (+) 1 (map countNodes trees)
 countNodes (TMeta _) = 0 -- ignore metas
@@ -329,7 +330,7 @@ makeMeta :: TTree -> MetaTTree
 makeMeta tree =
     MetaTTree tree empty
 
--- Replace a branch in a tree by a new tree if a subtree at the position exists
+-- | The function 'replaceBranch' replaces a branch in a 'TTree' by a new 'TTree' if a subtree at the position exists
 replaceBranch :: TTree -> Pos -> TTree  -> TTree
 replaceBranch (TNode id typ trees) pos newTree =
   let
@@ -338,7 +339,7 @@ replaceBranch (TNode id typ trees) pos newTree =
     (TNode id typ newSubtrees)
 replaceBranch tree _ _ = tree
 
--- replace a subtree given by path by a new tree
+-- | The function 'replaceNode' replaces a subtree given by 'Path' in a 'TTree'
 replaceNode :: TTree -> Path -> TTree -> TTree
 replaceNode oldTree@(TNode _ _ trees) path@(pos:ps) newTree
   | pos >= 0 && pos < length trees =  -- subtree must exist
@@ -352,7 +353,7 @@ replaceNode oldTree [] newTree =
 replaceNode oldTree _ _ =
   oldTree -- No more subtrees, cancel search
 
--- Replace a node given by a path with a meta node of the same category
+-- | The function 'replaceNodeByMeta' replaces a node given by a 'Path' with a meta node of the same category
 replaceNodeByMeta :: MetaTTree -> Path -> MetaTTree
 replaceNodeByMeta tree@(MetaTTree oldMetaTree oldSubTrees) path = 
   let
@@ -366,7 +367,7 @@ replaceNodeByMeta tree@(MetaTTree oldMetaTree oldSubTrees) path =
       _ -> tree
       }
 
--- Find the maximum length paths not ending in metas and up to a certain threshold
+-- | The function 'maxPath' finds the maximum length paths not ending in metas and up to a certain threshold
 maxPath :: Int -> TTree -> [Path]
 maxPath depth tree =
   let
@@ -375,7 +376,7 @@ maxPath depth tree =
   in
     sort $ filter (\path -> length path == maxLen) paths
 
--- Finds all paths to leaves that are no metas
+-- | The function 'findPaths' finds all paths to leaves that are no metas
 findPaths :: Int -> TTree -> [Path]
 findPaths 0 _ = [[]]
 findPaths _ (TNode _ _ []) = [[]]
@@ -428,12 +429,12 @@ prune tree depth =
           }
   in
     Set.insert (makeMeta tree) (pruneTrees (makeMeta tree) [(makeMeta tree)] depth)
--- Returns set of the categories of all meta leaves
+-- | The function 'getMetaLeaveCats' returns set of the categories of all meta leaves
 getMetaLeaveCats :: TTree -> Set CId
 getMetaLeaveCats (TMeta id) = Set.singleton id
 getMetaLeaveCats (TNode _ _ trees) = Set.unions $ map getMetaLeaveCats trees
 
--- Generates list of all pathes to metas
+-- | The function 'getMetaPaths' generates alist of all pathes to metas
 getMetaPaths :: TTree -> [(Path,CId)]
 getMetaPaths tree =
   let
@@ -450,7 +451,7 @@ getMetaPaths tree =
   in
     withPath tree []
     
--- expands a tree according to a rule and a path
+-- | The function 'applyRule' expands a 'MetaTTree' according to a 'Rule' and a 'Path'
 applyRule :: MetaTTree -> Rule -> [Path] -> MetaTTree
 applyRule tree@(MetaTTree oldMetaTree oldSubTrees) rule@(Function name ftype@(Fun cat cats)) (path:pathes) =
   let
@@ -464,7 +465,7 @@ applyRule tree@(MetaTTree oldMetaTree oldSubTrees) rule@(Function name ftype@(Fu
 applyRule tree (Function _ NoType) _ = tree -- No rule type, same tree
 applyRule tree rule [] = tree -- No path, same tree
 
--- Apply a rule to a meta tree generating all possible new meta trees, the depth parameter limits the search for metas to be replaced
+-- | The function 'combine' applies a 'Rule' to a 'MetaTTree' generating all possible new meta trees, the depth parameter limits the search for metas to be replaced
 combine :: MetaTTree -> Int -> Rule -> Set MetaTTree
 combine tree@(MetaTTree oldMetaTree oldSubTrees) depth rule =
   let
@@ -488,7 +489,7 @@ combine tree@(MetaTTree oldMetaTree oldSubTrees) depth rule =
         ) pathesLists
     
 
--- Extend a tree by applying all possible rules once
+-- | The function 'extendTree' extends a 'MetaTTree' by applying all applicable rules from a 'Grammar' once
 extendTree :: Grammar -> MetaTTree -> Int -> Set MetaTTree
 extendTree grammar tree depth =
   let
@@ -531,12 +532,12 @@ generate grammar cat depth =
   in
     loop [(MetaTTree (TMeta cat) (Set.singleton ([], (TMeta cat))))]
     
--- Computes the cost for matching trees. It is the sum of nodes in each of the trees plus the sum of the nodes in all deleted trees
+-- | The function 'computeCosts' computes the cost for matching trees. It is the sum of nodes in each of the trees plus the sum of the nodes in all deleted trees
 computeCosts :: TTree -> TTree -> [TTree] -> Cost
 computeCosts generatedTree prunedTree deletedTrees =
   foldl (+) (countNodes generatedTree + countNodes prunedTree) (map countNodes deletedTrees)
 
--- Combines a tree with a list of subtrees to a new tree
+-- | The function 'combineTrees' combines a 'TTree' with a list of subtrees to a list of new trees
 combineTrees :: TTree -> [TTree] -> TTree
 combineTrees generatedTree subTrees =
   let

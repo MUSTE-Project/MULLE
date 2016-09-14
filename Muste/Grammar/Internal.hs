@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
-{- | This Module gives an abstraction from the PGF format provided by GF -}
+{- | This Module is the internal implementation behind the module 'Muste.Grammar' -}
 module Muste.Grammar.Internal where
 import PGF
 import PGF.Internal
@@ -19,6 +19,7 @@ data Grammar = Grammar {
   pgf :: PGF
   }
 
+-- | Constant for an empty 'Grammar' in line with 'emptyPGF'
 emptyGrammar = Grammar wildCId [] emptyPGF
 
 -- | A 'Grammar' is in the EQ class
@@ -82,7 +83,7 @@ isEmptyPGF pgf = absname pgf == wildCId
 -- | Predicate to check if a Grammar is empty, i.e. when the startcat is wildCId and pgf is empty
 isEmptyGrammar grammar = startcat grammar == wildCId && isEmptyPGF (pgf grammar)
 
--- The function 'readId' is a helper to read a 'FunType'
+-- | The function 'readId' is a helper to read a 'FunType'
 readId :: String -> Maybe (CId,String)
 -- Workaround for ? (used for unknown types)
 readId ('?':rest) =
@@ -127,7 +128,7 @@ getFunCat _ = wildCId
 getRuleCat :: Rule -> CId
 getRuleCat (Function _ funType) = getFunCat funType 
 
--- Find all rules in grammar that have a certain result category
+-- | The function 'getRules' finds all rules in grammar that have a certain result category
 getRules :: Grammar -> [CId] -> Set Rule
 getRules grammar cats =
     let
