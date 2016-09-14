@@ -538,19 +538,21 @@ computeCosts generatedTree prunedTree deletedTrees =
   foldl (+) (countNodes generatedTree + countNodes prunedTree) (map countNodes deletedTrees)
 
 -- | The function 'combineTrees' combines a 'TTree' with a list of subtrees to a list of new trees
-combineTrees :: TTree -> [TTree] -> TTree
+combineTrees :: TTree -> [TTree] -> [TTree]
 combineTrees generatedTree subTrees =
   let
-    combineTree :: TTree -> [TTree] -> TTree
-    combineTree tree [] = tree
+    combineTree :: TTree -> [TTree] -> [TTree]
+    combineTree tree [] = [tree]
     combineTree tree (subTree:subTrees) =
       let
         -- Get all pathes to compatible meta-leaves
         paths = map fst $ filter (\(_,cat) -> cat == (getTreeCat subTree)) $ getMetaPaths tree
       in
         -- Use the first of the above paths to combine it to a new tree
-        -- Here be dragons -> whatshould we do with the other paths multiple paths
-        combineTree (replaceNode tree (head paths) subTree) subTrees 
+        case paths of {
+          [] -> [tree] ;
+          pathes -> concat $ map (\p -> combineTree (replaceNode tree p subTree) subTrees) pathes ;
+          }
   in
     combineTree generatedTree subTrees
 
@@ -576,7 +578,7 @@ match prunedTree@(MetaTTree pMetaTree pSubTrees) generatedTree@(MetaTTree gMetaT
     tempResults = map (\replaceTrees -> let deletedTrees = (extractTrees (toList pSubTrees) \\ extractTrees replaceTrees) in (gMetaTree,pMetaTree,extractTrees replaceTrees,deletedTrees)) combinations
     -- Combine the new possible trees
     newTrees :: [TTree]
-    newTrees = map (\(p1,_,p3,_) -> combineTrees p1 p3) tempResults
+    newTrees = concat $ map (\(p1,_,p3,_) -> combineTrees p1 p3) tempResults
     -- Compute the costs for each of these trees
     costs :: [Cost]
     costs = map (\(p1,p2,_,p4) -> computeCosts p1 p2 p4) tempResults
