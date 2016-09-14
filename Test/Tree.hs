@@ -9,7 +9,8 @@ import Muste.Grammar.Internal
 import Test.HUnit.Text
 import Test.HUnit.Base
 import System.Random
-import Data.Set (Set,fromList,toList,empty)
+import Data.Set (Set,fromList,toList,empty,singleton)
+import qualified Data.Set as Set
 import Data.Maybe
 import Test.Data (grammar)
 
@@ -980,9 +981,53 @@ hunit_combine_test =
     TestLabel "More complex Rule 2, tree, Depth 4, three combination" $ combine tree3 4 rule2 ~?= fromList [tree10,tree9,tree8,tree3]
     ]
 
-hunit_extendTree_test = -- TODO
-  TestList [
-           ]
+hunit_extendTree_test = 
+  let
+    grammar1 = emptyGrammar
+    grammar2 = Grammar (mkCId "A") []  emptyPGF
+    tree1 = makeMeta (TMeta (mkCId "A"))
+    grammar3 = Grammar (mkCId "A")
+      [
+        Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A")])
+      ] emptyPGF
+    tree2 = MetaTTree (read "{f:(A->A) {?A}" :: TTree) $ fromList [([0],read "{?A}" :: TTree)]
+    grammar4 = Grammar (mkCId "A")
+      [
+        Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A")]),
+        Function (mkCId "g") (Fun (mkCId "A") [(mkCId "A"),(mkCId "A")]),
+        Function (mkCId "h") (Fun (mkCId "A") [(mkCId "B"),(mkCId "C")]),
+        Function (mkCId "i") (Fun (mkCId "A") [(mkCId "B")]),
+        Function (mkCId "k") (Fun (mkCId "B") [(mkCId "A")])
+      ] emptyPGF
+    tree3 = MetaTTree (read "{g:(A->A->A) {?A} {?A}}" :: TTree) $ fromList [([0],read "{?A}" :: TTree),([1],read "{?A}" :: TTree)]
+    tree4 = MetaTTree (read "{h:(B->C->A) {?B} {?C}}" :: TTree) $ fromList [([0],read "{?B}" :: TTree),([1],read "{?C}" :: TTree)]
+    tree5 = MetaTTree (read "{i:(B->A) {?B}}" :: TTree) $ fromList [([0],read "{?B}" :: TTree)]
+    tree6 = MetaTTree (read "{i:(B->A) {k:(A->B) {?A}}}" :: TTree) $ fromList [([0,0],read "{?A}" :: TTree)]
+    tree7 = MetaTTree (read "{i:(A->A->A) {?A} {f:(A->A) {?A}}}" :: TTree) $ fromList [([0],read "{?A}" :: TTree),([1,0],read "{?A}" :: TTree)]
+    tree8 = MetaTTree (read "{i:(A->A->A) {f:(A->A) {?A}} {f:(A->A) {?A}}}" :: TTree) $ fromList [([0,0],read "{?A}" :: TTree),([1,0],read "{?A}" :: TTree)]
+    tree9 = MetaTTree (read "{i:(A->A->A) {?A} {f:(A->A) {f:(A->A) {?A}}}}" :: TTree) $ fromList [([0],read "{?A}" :: TTree),([1,0,0],read "{?A}" :: TTree)]
+    tree10 = MetaTTree (read "{i:(A->A->A) {f:(A->A) {?A}} {f:(A->A) {f:(A->A) {?A}}}}" :: TTree) $ fromList [([0,0],read "{?A}" :: TTree),([1,0,0],read "{?A}" :: TTree)]
+    
+  in
+    TestList [
+    TestLabel "Empty grammar depth 0" $ extendTree grammar1 tree1 0 ~?= empty,
+    TestLabel "Empty grammar depth 1" $ extendTree grammar1 tree1 1 ~?= empty,
+    TestLabel "Grammar without rules depth 0" $ extendTree grammar2 tree1 0 ~?= empty,
+    TestLabel "Grammar without rules depth 1" $ extendTree grammar2 tree1 0 ~?= empty,
+    TestLabel "Simple Grammar 3 tree 1 depth 0" $ extendTree grammar3 tree1 0 ~?= singleton tree1,
+    TestLabel "Simple Grammar 3 tree 1 depth 1" $ extendTree grammar3 tree1 1 ~?= fromList [tree1,tree2],
+    TestLabel "Simple Grammar 3 tree 1 depth 2" $ extendTree grammar3 tree1 2 ~?= fromList [tree1,tree2],
+    TestLabel "Simple Grammar 3 tree 1 depth 3" $ extendTree grammar3 tree1 3 ~?= fromList [tree1,tree2],
+    TestLabel "Simple Grammar 4 tree 1 depth 0" $ extendTree grammar4 tree1 0 ~?= singleton tree1,
+    TestLabel "Simple Grammar 4 tree 1 depth 1" $ extendTree grammar4 tree1 1 ~?= fromList [tree1,tree2,tree3,tree4,tree5],
+    TestLabel "Simple Grammar 4 tree 1 depth 2" $ extendTree grammar4 tree1 2 ~?= fromList [tree1,tree2,tree3,tree4,tree5],
+    TestLabel "Simple Grammar 4 tree 1 depth 3" $ extendTree grammar4 tree1 3 ~?= fromList [tree1,tree2,tree3,tree4,tree5],
+    TestLabel "Simple Grammar 3 tree 7 depth 0" $ extendTree grammar3 tree7 0 ~?= singleton tree7,
+    TestLabel "Simple Grammar 3 tree 7 depth 1" $ extendTree grammar3 tree7 1 ~?= singleton tree7,
+    TestLabel "Simple Grammar 3 tree 7 depth 2" $ extendTree grammar3 tree7 2 ~?= fromList [tree7,tree8],
+    TestLabel "Simple Grammar 3 tree 7 depth 3" $ extendTree grammar3 tree7 3 ~?= fromList [tree7,tree8,tree9,tree10],
+    TestLabel "Simple Grammar 3 tree 7 depth 4" $ extendTree grammar3 tree7 4 ~?= fromList [tree7,tree8,tree9,tree10]
+    ]
 
 hunit_generate_test = 
   let
@@ -1016,11 +1061,33 @@ hunit_generate_test =
     TestLabel "Peters example" $ Muste.Tree.Internal.generate grammar (startcat grammar) 2 ~?= result
            ]
 
+hunit_computeCosts_test = 
+  let
+    tree1 = read "{?A}" :: TTree
+    tree2 = read "{?B}" :: TTree
+    tree3 = read "{f:(A->A) {?A}}" :: TTree
+    tree4 = read "{f:(A->A) {a:A}}" :: TTree
+  in
+    TestList [
+    TestLabel "Meta and no deleted trees 1" $ computeCosts tree1 tree1 [] ~?= 0,
+    TestLabel "Meta and no deleted trees 2" $ computeCosts tree1 tree2 [] ~?= 0,
+    TestLabel "Meta and no deleted trees 3" $ computeCosts tree2 tree1 [] ~?= 0,
+    TestLabel "Meta and deleted Meta" $ computeCosts tree1 tree1 [tree1] ~?= 0,
+    TestLabel "Combination of Trees with total cost 1 1" $ computeCosts tree3 tree1 [tree1] ~?= 1,
+    TestLabel "Combination of Trees with total cost 1 2" $ computeCosts tree1 tree3 [tree1] ~?= 1,
+    TestLabel "Combination of Trees with total cost 1 3" $ computeCosts tree1 tree1 [tree3] ~?= 1,
+    TestLabel "Combination of Trees with total cost 2" $ computeCosts tree1 tree1 [tree4] ~?= 2,
+    TestLabel "Combination of Trees with total cost 3 1" $ computeCosts tree4 tree3 [tree1] ~?= 3,
+    TestLabel "Combination of Trees with total cost 3 2" $ computeCosts tree4 tree1 [tree3] ~?= 3,
+    TestLabel "Combination of Trees with total cost 3 3" $ computeCosts tree3 tree4 [tree1] ~?= 3,
+    TestLabel "Combination of Trees with total cost 3 4" $ computeCosts tree3 tree1 [tree4] ~?= 3,
+    TestLabel "Combination of Trees with total cost 3 5" $ computeCosts tree1 tree4 [tree3] ~?= 3,
+    TestLabel "Combination of Trees with total cost 3 6" $ computeCosts tree1 tree3 [tree4] ~?= 3
+    ]
 hunit_combineTrees_test = -- TODO
   TestList [
            ]
 
-hunit_computeCosts_test = -- TODO
   TestList [
            ]
 
