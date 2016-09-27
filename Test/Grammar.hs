@@ -264,4 +264,4 @@ grammar_function_tests =
   TestLabel "pgfToGrammar" hunit_pgfToGrammar_test
   ]
 
-hunit_tests = TestList [eq_tests,show_tests,read_tests,grammar_function_tests] --, tree_function_tests]
+hunit_tests = TestList [eq_tests,show_tests,read_tests,grammar_function_tests]
