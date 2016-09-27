@@ -1084,12 +1084,22 @@ hunit_computeCosts_test =
     TestLabel "Combination of Trees with total cost 3 5" $ computeCosts tree1 tree4 [tree3] ~?= 3,
     TestLabel "Combination of Trees with total cost 3 6" $ computeCosts tree1 tree3 [tree4] ~?= 3
     ]
-hunit_combineTrees_test = -- TODO
-  TestList [
-           ]
 
-  TestList [
-           ]
+hunit_combineTrees_test =
+  TestList [    
+    TestLabel "Incompatible Metas 1" $ combineTrees (read "{?A}") [(read "{?B}")] ~?= [(read "{?A}")],
+    TestLabel "Incompatible Metas 2" $ combineTrees (read "{?B}") [(read "{?A}")] ~?= [(read "{?B}")],
+    TestLabel "Incompatible Trees" $ combineTrees (read "{f:(A->A) {?A}}") [(read "{b:B}")] ~?= [read "{f:(A->A) {?A}}"],
+    TestLabel "Complete Tree" $ combineTrees (read "{f:(A->A) {a:A}}") [(read "{a:A}")] ~?= [(read "{f:(A->A) {a:A}}")],
+    TestLabel "Compatible Trees 1" $ combineTrees (read "{?A}") [(read "{a:A}")] ~?= [(read "{a:A}")],
+    TestLabel "Compatible Trees 2" $ combineTrees (read "{f:(A->A) {?A}}") [(read "{a:A}")] ~?= [(read "{f:(A->A) {a:A}}")],
+    TestLabel "Multiple Compatible Trees 1" $ combineTrees (read "{f:(A->A) {?A}}") [read "{?A}",(read "{f:(A->A) {?A}}")] ~?= [(read "{f:(A->A) {?A}}"),(read "{f:(A->A) {f:(A->A) {?A}}}")],
+    TestLabel "Multiple Compatible Trees 2" $ combineTrees (read "{f:(A->A) {?A}}") [(read "{f:(A->A) {?A}}"),(read "{f:(A->A) {a:A}}")] ~?= [(read "{f:(A->A) {f:(A->A) {?A}}}"),(read "{f:(A->A) {f:(A->A) {a:A}}}")],
+    TestLabel "Compatible Trees 3" $ combineTrees (read "{f:(A->B->A) {?A} {?B}}") [(read "{a:A}")] ~?= [(read "{f:(A->B->A) {a:A} {?B}}")],
+    TestLabel "Compatible Trees 4" $ combineTrees (read "{f:(A->B->A) {?A} {?B}}") [(read "{a:A}"),(read "{b:B}")] ~?= [(read "{f:(A->B->A) {a:A} {b:B}}")], 
+    TestLabel "Multiple Compatible Trees 1" $ combineTrees (read "{f:(A->A->A) {?A} {?A}}") [(read "{a:A}")] ~?= [(read "{f:(A->A->A) {a:A} {?A}}"),(read "{f:(A->A->A) {?A} {a:A}}")],
+    TestLabel "Multiple Compatible Trees 2" $ combineTrees (read "{f:(A->B->A) {?A} {?B}}") [(read "{a:A}"),(read "{b:B}"),(read "{b2:B}")] ~?= [(read "{f:(A->B->A) {a:A} {b:B}}"),(read "{f:(A->B->A) {a:A} {b2:B}}")]
+    ]
 
 hunit_match_test = 
   let
