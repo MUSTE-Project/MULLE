@@ -224,7 +224,7 @@ powerList :: [a] -> [[a]]
 powerList [] = [[]]
 powerList (x:xs) = powerList xs ++ map (x:) (powerList xs)
 
-
+     
 -- Tree-related functions
 -- | The funcion 'isMeta' is a predicate that is true if a 'TTree' is just a 'TMeta' node
 isMeta :: TTree -> Bool
@@ -538,24 +538,79 @@ computeCosts generatedTree prunedTree deletedTrees =
   foldl (+) (countNodes generatedTree + countNodes prunedTree) (map countNodes deletedTrees)
 
 -- | The function 'combineTrees' combines a 'TTree' with a list of subtrees to a list of new trees
+-- combineTrees :: TTree -> [TTree] -> [TTree]
+-- combineTrees generatedTree subTrees =
+--   let
+--     combineTree :: TTree -> [TTree] -> Int -> [TTree]
+--     combineTree tree [] _ = [tree]
+--     combineTree tree (subTree:subTrees) maxDepth =
+--       let
+--         -- Get all pathes to compatible meta-leaves
+--         paths = map fst $ filter (\(path,cat) -> cat == (getTreeCat subTree) && length path < maxDepth) $ getMetaPaths tree
+--       in
+--         -- Use the first of the above paths to combine it to a new tree
+--         case paths of {
+--           -- No matches, continue with the remaining subtrees
+--           [] -> combineTree tree subTrees maxDepth ; --[tree] ;
+--           pathes ->
+--               let nTrees = map (\p -> replaceNode tree p subTree) pathes :: [TTree]
+--               in
+-- --                case (length pathes) of {
+-- --                  1 -> (concat $ map (\t -> combineTree t subTrees maxDepth) nTrees) ;
+-- --                  _ -> -- concat $ map (\p -> combineTree (replaceNode tree p subTree) subTrees maxDepth) pathes
+--                       (combineTree tree subTrees maxDepth) ++ (concat $ map (\t -> combineTree t subTrees maxDepth) nTrees)
+-- --                  }
+--           }
+--   in
+--     combineTree generatedTree subTrees (maxDepth generatedTree)
+
+
+
 combineTrees :: TTree -> [TTree] -> [TTree]
+combineTrees generatedTree [] = [generatedTree]
 combineTrees generatedTree subTrees =
   let
-    combineTree :: TTree -> [TTree] -> [TTree]
-    combineTree tree [] = [tree]
-    combineTree tree (subTree:subTrees) =
-      let
-        -- Get all pathes to compatible meta-leaves
-        paths = map fst $ filter (\(_,cat) -> cat == (getTreeCat subTree)) $ getMetaPaths tree
+    translateCategoriesToSubTrees :: [(Path,CId)] -> [TTree] -> [[(Path,TTree)]]
+    translateCategoriesToSubTrees [] _ = []
+    translateCategoriesToSubTrees _ [] = []
+    translateCategoriesToSubTrees ps ts =
+      let sts =
+            let
+              tsts = map (\p -> filter (\t -> snd p == getTreeCat t) ts) ps :: [[TTree]]
+              tcts = map (\(_,c) -> length $ filter (\(_,c2) -> c == c2) ps) ps :: [Int]
+            in
+              ( map (\(t,c) ->
+                      if length t < c then
+                        if length t == 0 then
+                          []
+                        else
+                          t ++ (replicate (c - length t) (TMeta $ getTreeCat $ head t))
+                      else t)
+                $ zip tsts tcts
+              ) :: [[TTree]]
+          combine :: [(Path,CId)] -> [[TTree]] -> [TTree] -> [[(Path,TTree)]]
+          combine [(p,_)] [ts] _ =
+            let tmp = map (\t -> [(p,t)]) ts
+            in if tmp == [] then [[]] else tmp -- list shall not be empty at the end
+          combine _ ([]:_) _ = trace "c2" $ [] 
+          combine ps@((p,_):rps) ts@(t:rts) used =
+            let
+              tree = head t
+              res = (combine rps (map (delete tree) rts) (tree:used)) :: [[(Path,TTree)]]
+              p1 = map ((p,tree) :) res :: [[(Path,TTree)]]
+              p2 = combine ps ((tail t):rts) used :: [[(Path,TTree)]]
+            in
+              p1 ++ p2
       in
-        -- Use the first of the above paths to combine it to a new tree
-        case paths of {
-          [] -> [tree] ;
-          pathes -> concat $ map (\p -> combineTree (replaceNode tree p subTree) subTrees) pathes ;
-          }
+        combine ps sts []
+    ps = getMetaPaths generatedTree 
+    ts = translateCategoriesToSubTrees ps subTrees :: [[(Path,TTree)]]
   in
-    combineTree generatedTree subTrees
-
+    if ps == [] || ts == [] then
+      [generatedTree]
+    else
+      map (foldl (\tree (path,subTree) -> replaceNode tree path subTree) generatedTree) ts
+  
 -- | The function 'match' combines a pruned tree with a generated tree and gives all these combinations ordered by cost for matching
 match :: MetaTTree -> MetaTTree -> [(Cost, TTree)]
 match prunedTree@(MetaTTree pMetaTree pSubTrees) generatedTree@(MetaTTree gMetaTree gSubTrees) =
