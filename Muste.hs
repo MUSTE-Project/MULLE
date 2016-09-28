@@ -10,7 +10,7 @@ import Debug.Trace
 import Data.Maybe
 import Data.List
 
-type LinToken = (String,Path)
+type LinToken = (Path,String)
 
 -- Constant depth for tree generation
 depth = 5
@@ -64,8 +64,8 @@ linearizeTree grammar lang tree = -- TODO
 -- | The 'linearizeList' functions concatenates a token list to a string
 linearizeList :: Bool -> [LinToken] -> String
 linearizeList debug list =
-  if debug then unwords $ map (\(s,p) -> s ++ " " ++ show p) list
-  else unwords $ map (\(s,_) -> s) list
+  if debug then unwords $ map (\(p,s) -> s ++ " " ++ show p) list
+  else unwords $ map (\(_,s) -> s) list
 
 -- | The 'getSuggestions' function generates a list of similar trees given a tree and a position in the token list
 getSuggestions :: Grammar -> Language -> [LinToken] -> MetaTTree -> Pos -> S.Set String
@@ -77,7 +77,7 @@ getNewTrees :: Grammar -> [LinToken] -> MetaTTree -> Pos -> S.Set MetaTTree
 getNewTrees grammar tokens tree clickPos =
   let
     -- Get Path from token list
-    (token,path) = tokens !! clickPos
+    (path,token) = tokens !! clickPos
     -- Get Subtree at Path
     subTree :: TTree
     subTree = fromJust $ selectNode (metaTree tree) path
