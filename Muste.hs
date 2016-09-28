@@ -62,16 +62,12 @@ linearizeTree grammar lang tree = -- TODO
     brackets = bracketedLinearize pgfGrammar lang abstree :: [BracketedString]
   in
     if not $ null brackets then bracketsToTuples $ head brackets else [([0],"?0")]
+    
 -- | The 'linearizeList' functions concatenates a token list to a string
 linearizeList :: Bool -> [LinToken] -> String
 linearizeList debug list =
   if debug then unwords $ map (\(p,s) -> s ++ " " ++ show p) list
   else unwords $ map (\(_,s) -> s) list
-
--- | The 'getSuggestions' function generates a list of similar trees given a tree and a position in the token list
-getSuggestions :: Grammar -> Language -> [LinToken] -> MetaTTree -> Pos -> S.Set String
-getSuggestions grammar lang tokens tree clickPos =
-  treesToStrings grammar lang $ getNewTrees grammar tokens tree clickPos
 
 -- | The 'getNewTrees' function generates a set of related trees given a MetaTTree and a position in a token list 
 getNewTrees :: Grammar -> [LinToken] -> MetaTTree -> Pos -> S.Set MetaTTree
@@ -116,7 +112,11 @@ treesToStrings :: Grammar -> Language -> S.Set MetaTTree -> S.Set String
 treesToStrings grammar lang trees =
   S.map (linearizeList False) $ S.map (linearizeTree grammar lang) trees
 
-
+-- | The 'getSuggestions' function generates a list of similar trees given a tree and a position in the token list
+getSuggestions :: Grammar -> Language -> [LinToken] -> MetaTTree -> Pos -> S.Set String
+getSuggestions grammar lang tokens tree clickPos =
+  treesToStrings grammar lang $ getNewTrees grammar tokens tree clickPos
+  
 mt = (MetaTTree
       (read "{s:(A -> S) {f:(A -> B -> A) {f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {c:C}}} {b:(B)}}")
       $ S.fromList [([0,0], (read "{?A}")),
