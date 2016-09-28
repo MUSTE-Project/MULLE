@@ -492,25 +492,13 @@ hunit_gfAbsTreeToTTree_test =
   let
     pgf = readPGF "gf/ABCAbs.pgf"
     gtree1 = (EFun (mkCId "a"))
-    ttree1 = TNode (mkCId "a") (Fun (mkCId "A") []) []
+    ttree1 = read "{a:A}" :: TTree 
     gtree2 = (EFun wildCId)
     ttree2 = TNode wildCId NoType []
     gtree3 = (EApp (EApp (EFun (mkCId "f")) (EFun (mkCId "a"))) (EFun (mkCId "b")))
-    ttree3 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
-      [
-        (TNode (mkCId "a") (Fun (mkCId "A") []) []),
-        (TNode (mkCId "b") (Fun (mkCId "B") []) [])
-      ]
+    ttree3 = read "{f:(A->B->A) {a:A} {b:B}}" :: TTree
     gtree4 = (EApp (EApp (EFun (mkCId "f")) (EFun (mkCId "a"))) (EApp (EApp (EFun (mkCId "g")) (EFun (mkCId "b"))) (EFun (mkCId "c"))))
-    ttree4 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
-      [
-        (TNode (mkCId "a") (Fun (mkCId "A") []) []),
-        (TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])
-         [
-           (TNode (mkCId "b") (Fun (mkCId "B") []) []),
-           (TNode (mkCId "c") (Fun (mkCId "C") []) [])
-         ])
-      ]
+    ttree4 = read "{f:(A->B->A) {a:A} {g:(B->C->B) {b:B} {c:C}}}" :: TTree
     gtree5 = (ELit (LStr "Foo"))
     ttree5 = TMeta wildCId
   in
@@ -524,33 +512,17 @@ hunit_gfAbsTreeToTTree_test =
 
 hunit_ttreeToGFAbsTree_test = 
   let
-    ttree1 = TNode (mkCId "a") (Fun (mkCId "A") []) []
+    ttree1 = read "{a:A}" :: TTree
     gtree1 = (EFun (mkCId "a"))
     ttree2 = TNode wildCId NoType []
     gtree2 = (EFun wildCId)
-    ttree3 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
-      [
-        (TNode (mkCId "a") (Fun (mkCId "A") []) []),
-        (TNode (mkCId "b") (Fun (mkCId "B") []) [])
-      ]
+    ttree3 = read "{f:(A->B->A) {a:A} {b:B}}" :: TTree 
     gtree3 = (EApp (EApp (EFun (mkCId "f")) (EFun (mkCId "a"))) (EFun (mkCId "b")))
-    ttree4 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
-      [
-        (TNode (mkCId "a") (Fun (mkCId "A") []) []),
-        (TNode (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])
-         [
-           (TNode (mkCId "b") (Fun (mkCId "B") []) []),
-           (TNode (mkCId "c") (Fun (mkCId "C") []) [])
-         ])
-      ]
+    ttree4 = read "{f:(A->B->A) {a:A} {g:(B->C->B) {b:B} {c:C}}}"
     gtree4 = (EApp (EApp (EFun (mkCId "f")) (EFun (mkCId "a"))) (EApp (EApp (EFun (mkCId "g")) (EFun (mkCId "b"))) (EFun (mkCId "c"))))
     ttree5 = TMeta wildCId
     gtree5 = (EMeta 0)
-    ttree6 = TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])
-      [
-        (TMeta (mkCId "A")),
-        (TMeta (mkCId "B"))
-      ]
+    ttree6 = read "{f:(A->B->A) {?A} {?B}}" :: TTree
     gtree6 = (EApp (EApp (EFun (mkCId "f")) (EMeta 0)) (EMeta 1))
   in
     TestList [
