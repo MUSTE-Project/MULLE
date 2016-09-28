@@ -22,7 +22,7 @@ lang = fromJust $ readLanguage "LevelsConc"
 linearizeTree :: Grammar -> Language -> MetaTTree ->  [LinToken]
 linearizeTree grammar lang tree = -- TODO
   let
-        -- Finds a path to a token in a ltree
+    -- Finds a path to a token in a ltree
     getPath :: Int -> LTree -> Path
     getPath id ltree = 
       let
@@ -34,9 +34,9 @@ linearizeTree grammar lang tree = -- TODO
             id == nid then [pos]
           else
             let
-              path = head $ sortBy (\a -> \b -> compare b a) $ map (\(pos,node) -> getPathWithPos id pos node) (zip [0..(length ns)] ns)
+              path = sortBy (\a -> \b -> compare b a) $ map (\(pos,node) -> getPathWithPos id pos node) (zip [0..(length ns)] ns)
             in
-              if path /= [] then pos:path
+              if not $ null path then pos:(head path)
               else []
       in
         getPathWithPos id 0 ltree
@@ -49,18 +49,19 @@ linearizeTree grammar lang tree = -- TODO
         getPath id labeledTree
     -- Convert the BracketedString to the list of string/path tuples
     bracketsToTuples :: BracketedString -> [LinToken]
-    bracketsToTuples (Bracket _ fid _ _ _ [(Leaf token)]) =
-      [(token,idToPath fid ttree)]
-      -- [(token,[fid])]
-    bracketsToTuples (Bracket _ fid _ _ _ bss) =
+    bracketsToTuples b@(Bracket _ fid _ _ _ []) =
+      []
+    bracketsToTuples b@(Bracket _ fid _ _ _ [(Leaf token)]) =
+      [(idToPath fid ttree, token)]
+    bracketsToTuples b@(Bracket _ fid _ _ _ bss) =
       concat $ map bracketsToTuples bss
     ttree = metaTree tree
     abstree = ttreeToGFAbsTree ttree
     pgfGrammar = pgf grammar
-    brackets = bracketedLinearize pgfGrammar lang abstree
+    abstree2 = head $ parse pgfGrammar (mkCId "ABC1") (fromJust $ readType "S") "a a a"
+    brackets = bracketedLinearize pgfGrammar lang abstree :: [BracketedString]
   in
-    bracketsToTuples $ head brackets
-
+    if not $ null brackets then bracketsToTuples $ head brackets else [([0],"?0")]
 -- | The 'linearizeList' functions concatenates a token list to a string
 linearizeList :: Bool -> [LinToken] -> String
 linearizeList debug list =
