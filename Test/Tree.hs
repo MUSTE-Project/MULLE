@@ -29,7 +29,7 @@ hunit_TreeC_GFAbsTree_showTree_test =
     tree = (EApp (EFun (mkCId "A")) (EFun (mkCId "B")))
   in
     TestList [
-    TestLabel "Single example" $ ( showTree tree ~=? "EApp (EFun A) (EFun B)" )
+    TestLabel "Single example" $ ( showTree tree ~?= "EApp (EFun A) (EFun B)" )
     ]
 
 hunit_TreeC_GFAbsTree_selectNode_test =
@@ -554,12 +554,12 @@ hunit_ttreeToGFAbsTree_test =
     gtree6 = (EApp (EApp (EFun (mkCId "f")) (EMeta 0)) (EMeta 1))
   in
     TestList [
-    TestLabel "Simple Tree" $ ttreeToGFAbsTree ttree1 ~=? gtree1,
-    TestLabel "Simple Tree with wildcard and without type" $ ttreeToGFAbsTree ttree2 ~=? gtree2,
-    TestLabel "More complex Tree" $ ttreeToGFAbsTree ttree3 ~=? gtree3,
-    TestLabel "More complex Tree" $ ttreeToGFAbsTree ttree4 ~=? gtree4,
-    TestLabel "Meta" $ ttreeToGFAbsTree ttree5 ~=? gtree5,
-    TestLabel "More Meta" $ ttreeToGFAbsTree ttree6 ~=? gtree6
+    TestLabel "Simple Tree" $ ttreeToGFAbsTree ttree1 ~?= gtree1,
+    TestLabel "Simple Tree with wildcard and without type" $ ttreeToGFAbsTree ttree2 ~?= gtree2,
+    TestLabel "More complex Tree" $ ttreeToGFAbsTree ttree3 ~?= gtree3,
+    TestLabel "More complex Tree" $ ttreeToGFAbsTree ttree4 ~?= gtree4,
+    TestLabel "Meta" $ ttreeToGFAbsTree ttree5 ~?= gtree5,
+    TestLabel "More Meta" $ ttreeToGFAbsTree ttree6 ~?= gtree6,
     ]
 
 hunit_ttreeToLTree_test =
