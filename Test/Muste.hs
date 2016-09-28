@@ -41,25 +41,25 @@ hunit_linearizeTree_test =
     TestLabel "Tree 8" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree8 @?= [([0,0,0],"a"),([0,0,1],"a"),([0,0,2],"a")])
     ]
   
-hunit_linearizeList_test =
+hunit_linearizeList_test = -- TODO
   -- The 'linearizeList' functions concatenates a token list to a string
   -- linearizeList :: Bool -> [LinToken] -> String
   TestList [
   ]
 
-hunit_getNewTrees_test =
+hunit_getNewTrees_test = -- TODO
   -- The 'getNewTrees' function generates a set of related trees given a MetaTTree and a position in a token list 
   -- getNewTrees :: Grammar -> [LinToken] -> MetaTTree -> Pos -> S.Set MetaTTree
   TestList [
   ]
 
-hunit_treesToStrings_test =
+hunit_treesToStrings_test = -- TODO
   -- The 'treesToStrings' generates a list of strings based on the differences in similar trees
   -- treesToStrings :: Grammar -> Language -> S.Set MetaTTree -> S.Set String
   TestList [
   ]
   
-hunit_getSuggestions_test = 
+hunit_getSuggestions_test = -- TODO
 -- The 'getSuggestions' function generates a list of similar trees given a tree and a position in the token list
 -- getSuggestions :: Grammar -> Language -> [LinToken] -> MetaTTree -> Pos -> S.Set String
   TestList [
