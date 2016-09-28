@@ -524,6 +524,10 @@ hunit_ttreeToGFAbsTree_test =
     gtree5 = (EMeta 0)
     ttree6 = read "{f:(A->B->A) {?A} {?B}}" :: TTree
     gtree6 = (EApp (EApp (EFun (mkCId "f")) (EMeta 0)) (EMeta 1))
+    ttree7 = read "{h:(A->A->A->A) {a:A} {a:A} {a:A}}" :: TTree
+    gtree7 = (EApp (EApp (EApp (EFun (mkCId "h")) (EFun (mkCId "a"))) (EFun (mkCId "a"))) (EFun (mkCId "a")))
+    ttree8 = read "{h:(A->A->A->A) {?A} {a:A} {f:(A->A->A) {a:A} {?A}}}" :: TTree
+    gtree8 = (EApp (EApp (EApp (EFun (mkCId "h")) (EMeta 0)) (EFun (mkCId "a"))) (EApp (EApp (EFun (mkCId "f")) (EFun (mkCId "a"))) (EMeta 1)))
   in
     TestList [
     TestLabel "Simple Tree" $ ttreeToGFAbsTree ttree1 ~?= gtree1,
@@ -532,6 +536,8 @@ hunit_ttreeToGFAbsTree_test =
     TestLabel "More complex Tree" $ ttreeToGFAbsTree ttree4 ~?= gtree4,
     TestLabel "Meta" $ ttreeToGFAbsTree ttree5 ~?= gtree5,
     TestLabel "More Meta" $ ttreeToGFAbsTree ttree6 ~?= gtree6,
+    TestLabel "More Children 1" $ ttreeToGFAbsTree ttree7 ~?= gtree7,
+    TestLabel "More Children 2" $ ttreeToGFAbsTree ttree8 ~?= gtree8
     ]
 
 hunit_ttreeToLTree_test =
