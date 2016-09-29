@@ -8,4 +8,5 @@ concrete ABC1 of ABCAbs = open Prelude in {
     c = ss "c" ;
     f a b = cc2 a b ;
     g b c = cc2 b c ;
+    h a1 a2 a3 = cc2 ( cc2 a1 a2 ) a3 ;
 }

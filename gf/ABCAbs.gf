@@ -10,4 +10,5 @@ abstract ABCAbs = {
     c : C ;
     f : A -> B -> A ;
     g : B -> C -> B ;
+    h : A -> A -> A -> A ;
 }
