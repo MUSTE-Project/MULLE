@@ -22,24 +22,6 @@ lang = fromJust $ readLanguage "LevelsConc"
 linearizeTree :: Grammar -> Language -> MetaTTree ->  [LinToken]
 linearizeTree grammar lang tree = -- TODO
   let
-    -- Finds a path to a token in a ltree
-    getPath :: Int -> LTree -> Path
-    getPath id ltree = 
-      let
-        getPathWithPos :: Int -> Pos -> LTree -> Path
-        getPathWithPos id pos (LLeaf) = []
-        getPathWithPos id pos (LNode cat nid []) = if nid == id then [pos] else []
-        getPathWithPos id pos (LNode cat nid ns) =
-          if
-            id == nid then [pos]
-          else
-            let
-              path = sortBy (\a -> \b -> compare b a) $ map (\(pos,node) -> getPathWithPos id pos node) (zip [0..(length ns)] ns)
-            in
-              if not $ null path then pos:(head path)
-              else []
-      in
-        getPathWithPos id 0 ltree
     -- Finds a path to a token in a ttree
     idToPath :: Int -> TTree -> Path
     idToPath id ttree =

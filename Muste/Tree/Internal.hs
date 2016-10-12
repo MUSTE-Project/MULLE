@@ -333,7 +333,26 @@ ttreeToLTree tree =
     
   in
     snd $ update 0 $ convert tree
-    
+
+-- | The function 'getPath' finds a path to a node with a given label in a labeled tree
+getPath :: LTree -> Int -> Path
+getPath ltree id = 
+  let
+    deep :: LTree -> Int -> Path -> Path
+    deep (LLeaf) _ _ = []
+--    deep (LNode cid fid []) id path = if fid == id then path else []
+    deep (LNode cid fid ns) id path = if fid == id then path else broad ns id path 0
+    broad :: [LTree] -> Int -> Path -> Pos -> Path
+    broad [] _ _ _ = []
+    broad (n:ns) id path pos =
+      let
+        d = deep n id (pos:path)
+        b = broad ns id path (pos + 1)
+      in
+        if not $ null d then d else b
+  in
+    reverse $ deep ltree id [] -- getPathWithPos id [] 0 ltree
+
 -- | The function 'maxDepth' gets the length of the maximum path between root and a leaf (incl. meta nodes) of a 'TTree'
 maxDepth :: TTree -> Int
 maxDepth (TMeta _) = 1

@@ -568,6 +568,29 @@ hunit_ttreeToLTree_test =
     TestLabel "Tree with Metas" $ ttreeToLTree ttree4 ~?= ltree4,
     TestLabel "Tree" $ ttreeToLTree ttree5 ~?= ltree5
     ]
+
+hunit_getPath_test =
+  let
+    tree1 = ttreeToLTree $ read "{?A}"
+    tree2 = ttreeToLTree $ read "{s:(A->S) {f:(A->B->A) {?A} {b:B}}}"
+    tree3 = ttreeToLTree $ read "{s:(A->S) {h:(A->A->A->A) {?A} {a1:A} {a2:A} {?A}}}"
+  in
+    TestList [
+    TestLabel "Meta Negative Id" $ getPath tree1 (-1) ~?= [],
+    TestLabel "Meta Matching Id" $ getPath tree1 0 ~?= [0],
+    TestLabel "Meta Id out of range" $ getPath tree1 1 ~?= [],
+    TestLabel "Tree 1 Matching Id 1" $ getPath tree2 0 ~?= [0,0,0],
+    TestLabel "Tree 1 Matching Id 2" $ getPath tree2 1 ~?= [0,0],
+    TestLabel "Tree 1 Matching Id 3" $ getPath tree2 2 ~?= [0,1],
+    TestLabel "Tree 2 Matching Id 1" $ getPath tree3 0 ~?= [0,0,0],
+    TestLabel "Tree 2 Matching Id 2" $ getPath tree3 1 ~?= [0,0],
+    TestLabel "Tree 2 Matching Id 3" $ getPath tree3 2 ~?= [0,1],
+    TestLabel "Tree 2 Matching Id 4" $ getPath tree3 3 ~?= [0,2],
+    TestLabel "Tree 2 Matching Id 5" $ getPath tree3 4 ~?= [0,3,0],
+    TestLabel "Tree 2 Matching Id 6" $ getPath tree3 5 ~?= [0,3],
+    TestLabel "Tree 2 Matching Id 7" $ getPath tree3 6 ~?= [0],
+    TestLabel "Tree 2 Matching Id 8" $ getPath tree3 7 ~?= []
+    ]
   
 hunit_maxDepth_test =
   let
@@ -1128,6 +1151,7 @@ tree_function_tests =
   TestLabel "gfAbsTreeToTTree" hunit_gfAbsTreeToTTree_test,
   TestLabel "gfAbsTreeToTTree" hunit_ttreeToGFAbsTree_test,
   TestLabel "ttreeToLTree" hunit_ttreeToLTree_test,
+  TestLabel "getPath" hunit_getPath_test,
   TestLabel "maxDepth" hunit_maxDepth_test,
   TestLabel "countNodes" hunit_countNodes_test,
   TestLabel "makeMeta" hunit_makeMeta_test,
