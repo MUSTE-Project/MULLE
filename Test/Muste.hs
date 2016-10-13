@@ -31,14 +31,14 @@ hunit_linearizeTree_test =
     tree8 = MetaTTree (read "{s:(A->S) {h:(A->A->A->A) {a:A} {a:A} {a:A}}}") $ empty
   in
     TestList [
-    TestLabel "Meta node" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree1 @?= [([0],"?0")]),
-    TestLabel "Simple node" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree2 @?= [([0],"a")]),
-    TestLabel "Simple tree" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree3 @?= [([0,0],"a")]),
-    TestLabel "Tree 1" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree4 @?= [([0,0,0],"?0"),([0,0,1],"b")]),
-    TestLabel "Tree 2" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree5 @?= [([0,0,0],"a"),([0,0,1],"?1")]),
-    TestLabel "Tree 3" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree6 @?= [([0,0,0],"?0"),([0,0,1],"?1")]),
-    TestLabel "Tree 4" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree7 @?= [([0,0,0],"a"),([0,0,1],"b")])
-    TestLabel "Tree 8" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree8 @?= [([0,0,0],"a"),([0,0,1],"a"),([0,0,2],"a")])
+    TestLabel "Meta node" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree1 @?= [([],"?0")]),
+    TestLabel "Simple node" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree2 @?= [([],"a")]),
+    TestLabel "Simple tree" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree3 @?= [([0],"a")]),
+    TestLabel "Tree 1" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree4 @?= [([0,0],"?0"),([0],"x"),([0,1],"b")]),
+    TestLabel "Tree 2" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree5 @?= [([0,0],"a"),([0],"x"),([0,1],"?0")]),
+    TestLabel "Tree 3" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree6 @?= [([0,0],"?0"),([0],"x"),([0,1],"?1")]),
+    TestLabel "Tree 4" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree7 @?= [([0,0],"a"),([0],"x"),([0,1],"b")]),
+    TestLabel "Tree 5" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree8 @?= [([0,0],"a"),([0,1],"a"),([0,2],"a")])
     ]
   
 hunit_linearizeList_test = -- TODO
