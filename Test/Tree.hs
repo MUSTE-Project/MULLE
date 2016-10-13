@@ -1,4 +1,6 @@
-{- | Implements several tests to control the validy of the program
+
+{-
+   | Implements several tests to control the validy of the program
 -}
 module Test.Tree where
 import Test.QuickCheck
