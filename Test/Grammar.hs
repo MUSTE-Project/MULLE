@@ -20,6 +20,7 @@ hunit_Eq_Grammar_eq_test =
         (Function (mkCId "c") (Fun (mkCId "C") [])),
         (Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])),
         (Function (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])),
+        (Function (mkCId "h") (Fun (mkCId "A") [(mkCId "A"),(mkCId "A"),(mkCId "A")])),
         (Function (mkCId "s") (Fun (mkCId "S") [(mkCId "A")]))
       ]
       emptyPGF
@@ -231,6 +232,7 @@ hunit_pgfToGrammar_test =
         (Function (mkCId "c") (Fun (mkCId "C") [])),
         (Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")])),
         (Function (mkCId "g") (Fun (mkCId "B") [(mkCId "B"),(mkCId "C")])),
+        (Function (mkCId "h") (Fun (mkCId "A") [(mkCId "A"),(mkCId "A"),(mkCId "A")])),
         (Function (mkCId "s") (Fun (mkCId "S") [(mkCId "A")]))
       ])
   in
