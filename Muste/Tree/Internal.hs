@@ -256,33 +256,6 @@ gfAbsTreeToTTree pgf (EApp e1 e2) =
 gfAbsTreeToTTree pgf _ = TMeta wildCId
 
 -- | Creates a GF abstract syntax Tree from a generic tree
--- ttreeToGFAbsTree :: TTree -> GFAbsTree
--- ttreeToGFAbsTree tree =
---   let
---     convertTrees :: CId -> [TTree] -> Int -> (Int, GFAbsTree)
---     convertTrees name (t:[]) label =
---       convert t label
---     convertTrees name (t:ts) label =
---        let
---          (nl,nt) = convert t label
---          (nls,nts) = convertTrees name ts nl
---        in
---          (nls, mkApp name [nt,nts])
---     convert :: TTree -> Int -> (Int, GFAbsTree)
---     convert (TMeta name) label = (label + 1, (EMeta label))
---     convert (TNode name _ []) label = (label, (EFun name))
---     convert (TNode name _ (t:[])) label =
---       let
---         (nlabel,ntree) = convert t label
---       in
---         (nlabel,mkApp name [ntree])
---     convert (TNode name _ (t:ts)) label =
---       let
---         (label1,tree) = convert t label
---         (label2,trees) = convertTrees name ts label1
---       in (label2,mkApp name [tree,trees])
---     in snd $ convert tree 0
-
 ttreeToGFAbsTree :: TTree -> GFAbsTree
 ttreeToGFAbsTree tree =
   let
