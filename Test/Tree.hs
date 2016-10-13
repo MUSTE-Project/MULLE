@@ -571,6 +571,10 @@ hunit_ttreeToLTree_test =
     TestLabel "Tree" $ ttreeToLTree ttree5 ~?= ltree5
     ]
 
+hunit_showBracket_test = -- TODO
+  TestList [
+  ]
+  
 hunit_getPath_test =
   let
     tree1 = ttreeToLTree $ read "{?A}"
@@ -1153,6 +1157,7 @@ tree_function_tests =
   TestLabel "gfAbsTreeToTTree" hunit_gfAbsTreeToTTree_test,
   TestLabel "gfAbsTreeToTTree" hunit_ttreeToGFAbsTree_test,
   TestLabel "ttreeToLTree" hunit_ttreeToLTree_test,
+  TestLabel "showBracket" hunit_showBracket_test,
   TestLabel "getPath" hunit_getPath_test,
   TestLabel "maxDepth" hunit_maxDepth_test,
   TestLabel "countNodes" hunit_countNodes_test,
