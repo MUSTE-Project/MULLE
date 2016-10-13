@@ -307,6 +307,11 @@ ttreeToLTree tree =
   in
     snd $ update 0 $ convert tree
 
+-- | The function 'showBracketed' shows a bracketed string in a more verbose way than 'showBracketedString' from 'PGF'
+showBracket (Bracket cid fid lindex cid2 exprs bs) =
+  "[Bracket (cid1:" ++ show cid ++ ") (fid:" ++ show fid ++ ") (lindex:" ++ show lindex ++ ") (cid2:" ++ show cid2 ++ ") (exprs:" ++ show exprs ++ ") (bs:[" ++ (unwords $ map showBracket bs) ++ "]) ]"
+showBracket (Leaf token) = "[Leaf (token:" ++ token ++ ")]"
+
 -- | The function 'getPath' finds a path to a node with a given label in a labeled tree
 getPath :: LTree -> Int -> Path
 getPath ltree id = 
