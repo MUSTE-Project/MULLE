@@ -6,7 +6,7 @@ concrete ABC2 of ABCAbs = open Prelude in {
     a = ss "a" ;
     b = ss "b" ;
     c = ss "c" ;
-    f a b = cc2 b a ;
+    f a b = cc2 b (cc2 (ss "x") a) ;
     g b c = cc2 b c ;
     h a1 a2 a3 = cc2 ( cc2 a1 a2 ) a3 ;
 }
