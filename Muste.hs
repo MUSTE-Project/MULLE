@@ -6,6 +6,7 @@ import qualified Data.Set as S
 import Muste.Tree
 import Muste.Grammar
 import PGF
+import PGF.Internal (Expr(..))
 import Debug.Trace
 import Data.Maybe
 import Data.List
@@ -22,28 +23,48 @@ lang = fromJust $ readLanguage "LevelsConc"
 linearizeTree :: Grammar -> Language -> MetaTTree ->  [LinToken]
 linearizeTree grammar lang tree = -- TODO
   let
-    -- Finds a path to a token in a ttree
-    idToPath :: Int -> TTree -> Path
-    idToPath id ttree =
-      let
-        labeledTree =  ttreeToLTree ttree
-      in
-        getPath id labeledTree
     -- Convert the BracketedString to the list of string/path tuples
-    bracketsToTuples :: BracketedString -> [LinToken]
-    bracketsToTuples b@(Bracket _ fid _ _ _ []) =
-      []
-    bracketsToTuples b@(Bracket _ fid _ _ _ [(Leaf token)]) =
-      [(idToPath fid ttree, token)]
-    bracketsToTuples b@(Bracket _ fid _ _ _ bss) =
-      concat $ map bracketsToTuples bss
+    bracketsToTuples :: LTree -> BracketedString -> [LinToken]
+    bracketsToTuples tree bs =
+      let
+        deep :: LTree -> BracketedString -> [LinToken]
+        deep _     (Bracket _ _   _ _ _ []) = []
+        -- Ordinary leaf
+        deep ltree (Bracket _ fid _ _ _ [(Leaf token)]) =
+          [(getPath ltree fid, token)]
+        -- Meta leaf
+        deep ltree (Bracket _ fid _ _ [n@(EMeta id)] _) =
+          [(getPath ltree fid, "?" ++ show id)]
+        -- In the middle of the tree
+        deep ltree (Bracket _ fid _ _ _ bs) =
+          broad ltree fid bs []
+        broad :: LTree -> Int -> [BracketedString] -> [LinToken] -> [LinToken]
+        -- End of node siblings
+        broad _     _   []                 ts = ts
+        -- Syncategorial word
+        broad ltree fid ((Leaf token):bss) ts =
+          let
+            b = broad ltree fid bss ts
+          in
+            (getPath ltree fid, token):b
+        -- In the middle of the nodes
+        broad ltree fid (bs:bss)           ts =
+          let
+            d = deep ltree bs
+            b = broad ltree fid bss ts
+          in
+            d ++ b
+      in
+        deep tree bs
+
     ttree = metaTree tree
+    ltree = ttreeToLTree ttree
     abstree = ttreeToGFAbsTree ttree
     pgfGrammar = pgf grammar
     abstree2 = head $ parse pgfGrammar (mkCId "ABC1") (fromJust $ readType "S") "a a a"
     brackets = bracketedLinearize pgfGrammar lang abstree :: [BracketedString]
   in
-    if not $ null brackets then bracketsToTuples $ head brackets else [([0],"?0")]
+    if not $ null brackets then bracketsToTuples ltree $ head brackets else [([],"?0")]
     
 -- | The 'linearizeList' functions concatenates a token list to a string
 linearizeList :: Bool -> [LinToken] -> String
