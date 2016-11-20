@@ -13,7 +13,10 @@ import Data.List
 
 type LinToken = (Path,String)
 
-
+-- | Type for a click that has both a position and a count
+type Count = Int
+type Click = (Pos,Count)
+    
 -- | The 'linearizeTree' function linearizes a MetaTTree to a list of tokens and pathes to the nodes that create it
 linearizeTree :: Grammar -> Language -> MetaTTree ->  [LinToken]
 linearizeTree grammar lang tree = -- TODO
