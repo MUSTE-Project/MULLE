@@ -44,7 +44,18 @@ hunit_linearizeTree_test =
 hunit_linearizeList_test = -- TODO
   -- The 'linearizeList' functions concatenates a token list to a string
   -- linearizeList :: Bool -> [LinToken] -> String
-  TestList [
+  let
+    list1 = []
+    list2 = [([0],"a")]
+    list3 = [([0,0],"a"),([0],"x"),([0,1],"b")]
+  in
+    TestList [
+    TestLabel "Empty List without Path" $ linearizeList False list1 ~?= "",
+    TestLabel "Empty List with Path" $ linearizeList True list1 ~?= "",
+    TestLabel "One Element without Path" $ linearizeList False list2 ~?= "a",
+    TestLabel "One Element with Path" $ linearizeList True list2 ~?= "a [0]",
+    TestLabel "Simple List without Path" $ linearizeList False list3 ~?= "a x b",
+    TestLabel "Simple List with Path" $ linearizeList True list3 ~?= "a [0,0] x [0] b [0,1]"
   ]
 
 hunit_getNewTrees_test = -- TODO
