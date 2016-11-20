@@ -13,11 +13,6 @@ import Data.List
 
 type LinToken = (Path,String)
 
--- Constant depth for tree generation
-depth = 5
-
--- Constant for the language
-lang = fromJust $ readLanguage "LevelsConc"
 
 -- | The 'linearizeTree' function linearizes a MetaTTree to a list of tokens and pathes to the nodes that create it
 linearizeTree :: Grammar -> Language -> MetaTTree ->  [LinToken]
@@ -72,9 +67,9 @@ linearizeList debug list =
   if debug then unwords $ map (\(p,s) -> s ++ " " ++ show p) list
   else unwords $ map (\(_,s) -> s) list
 
--- | The 'getNewTrees' function generates a set of related trees given a MetaTTree and a position in a token list 
-getNewTrees :: Grammar -> [LinToken] -> MetaTTree -> Pos -> S.Set MetaTTree
-getNewTrees grammar tokens tree clickPos =
+-- | The 'getNewTrees' function generates a set of related trees given a MetaTTree and a path
+getNewTrees :: Grammar -> Language -> MetaTTree -> Path -> Int -> S.Set MetaTTree
+getNewTrees grammar lang tree path depth =
   let
     -- Get Path from token list
     (path,token) = tokens !! clickPos
@@ -116,10 +111,14 @@ treesToStrings grammar lang trees =
   S.map (linearizeList False) $ S.map (linearizeTree grammar lang) trees
 
 -- | The 'getSuggestions' function generates a list of similar trees given a tree and a position in the token list
-getSuggestions :: Grammar -> Language -> [LinToken] -> MetaTTree -> Pos -> S.Set String
-getSuggestions grammar lang tokens tree clickPos =
-  treesToStrings grammar lang $ getNewTrees grammar tokens tree clickPos
-  
+getSuggestions :: Grammar -> Language -> [LinToken] -> MetaTTree -> Click -> Int -> S.Set (String, MetaTTree)
+getSuggestions grammar lang tokens tree click depth =
+  let
+    path = [] -- TODO something like take length - count from path at clickpos
+    nTrees = getNewTrees grammar lang tree path depth
+    suggestions = treesToStrings grammar lang $ nTrees
+  in
+    S.empty -- TODO something like zip suggestions (combineTrees tree nTrees)
 mt = (MetaTTree
       (read "{s:(A -> S) {f:(A -> B -> A) {f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {c:C}}} {b:(B)}}")
       $ S.fromList [([0,0], (read "{?A}")),
