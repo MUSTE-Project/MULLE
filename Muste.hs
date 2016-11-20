@@ -122,21 +122,4 @@ getSuggestions grammar lang tokens tree click depth =
     suggestions = treesToStrings grammar lang $ nTrees
   in
     S.empty -- TODO something like zip suggestions (combineTrees tree nTrees)
-mt = (MetaTTree
-      (read "{s:(A -> S) {f:(A -> B -> A) {f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {c:C}}} {b:(B)}}")
-      $ S.fromList [([0,0], (read "{?A}")),
-                  ([0,1], (read "{?B}"))
-                 ]
-     )
-t = (read "{s:(A -> S) {f:(A -> B -> A) {a:A} {b:B}}") :: TTree
 
-t2 = (read "{s:(A -> S) {f:(A -> B -> A) {f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {c:C}}} {b:(B)}}") :: TTree
-
-t3 = (read "{l0:(Level1 -> Level0) {l1o0:(Level2 -> Level1) {l2:(Token0 -> Token1 -> Token2 -> Level2) {t0:Token0} {t1o0:Token0} {t2:Token2}}}") :: TTree
-main =
-  do
-    pgf <- readPGF "gf/Levels.pgf"
-    let grammar = pgfToGrammar pgf
-    putStrLn $ show $ ttreeToGFAbsTree t3
-    putStrLn $ show $ linearizeTree grammar lang (makeMeta t)
-    return ()
