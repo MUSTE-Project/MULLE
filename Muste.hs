@@ -19,7 +19,7 @@ type Click = (Pos,Count)
     
 -- | The 'linearizeTree' function linearizes a MetaTTree to a list of tokens and pathes to the nodes that create it
 linearizeTree :: Grammar -> Language -> MetaTTree ->  [LinToken]
-linearizeTree grammar lang tree = -- TODO
+linearizeTree grammar lang tree = 
   let
     -- Convert the BracketedString to the list of string/path tuples
     bracketsToTuples :: LTree -> BracketedString -> [LinToken]
