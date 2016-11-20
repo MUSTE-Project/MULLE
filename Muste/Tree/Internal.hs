@@ -276,7 +276,7 @@ ttreeToGFAbsTree tree =
         (nid,mkApp name nts)
   in
     snd $ convert tree 0
-    
+
 -- | Creates a labeled LTree from a TTree
 ttreeToLTree :: TTree -> LTree
 ttreeToLTree tree =
