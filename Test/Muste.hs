@@ -59,10 +59,18 @@ hunit_linearizeList_test = -- TODO
   ]
 
 hunit_getNewTrees_test = -- TODO
-  -- The 'getNewTrees' function generates a set of related trees given a MetaTTree and a position in a token list 
-  -- getNewTrees :: Grammar -> [LinToken] -> MetaTTree -> Pos -> S.Set MetaTTree
-  TestList [
-  ]
+  -- | The 'getNewTrees' function generates a set of related trees given a MetaTTree and a path
+  -- getNewTrees :: Grammar -> MetaTTree -> Path -> S.Set MetaTTree
+  let
+    pgfFile = readPGF "gf/ABCAbs.pgf"
+    grammar = pgfFile >>= (\p -> return $ pgfToGrammar p)
+    tree1 = MetaTTree (read "{?A}") $ empty
+    path1 = []
+    tree2 = MetaTTree (read "{a:A}") $ empty
+  in
+    TestList [
+    TestLabel "Tree 2" $ TestCase $ grammar >>= (\g -> getNewTrees g (head $ languages $ pgf g) tree1 path1 5 @?= empty)
+    ]
 
 hunit_treesToStrings_test = -- TODO
   -- The 'treesToStrings' generates a list of strings based on the differences in similar trees
