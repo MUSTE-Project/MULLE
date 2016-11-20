@@ -571,9 +571,17 @@ hunit_ttreeToLTree_test =
     TestLabel "Tree" $ ttreeToLTree ttree5 ~?= ltree5
     ]
 
-hunit_showBracket_test = -- TODO
-  TestList [
-  ]
+hunit_showBracket_test = 
+  let
+    bracket1 = Leaf "foo";
+    bracket2 = Bracket (mkCId "foo") 0 0 (mkCId "bar") [] [];
+    bracket3 = Bracket (mkCId "foo") 0 0 (mkCId "bar") [(EFun (mkCId "baz"))] [(Leaf "baz")];
+  in
+    TestList [
+    TestLabel "Leaf" $ showBracket bracket1 ~?= "[Leaf (token:foo)]" ,
+    TestLabel "Simple Bracket" $ showBracket bracket2 ~?= "[Bracket (cid1:foo) (fid:0) (lindex:0) (cid2:bar) (exprs:[]) (bs:[]) ]",
+    TestLabel "Recursive Bracket" $ showBracket bracket3 ~?= "[Bracket (cid1:foo) (fid:0) (lindex:0) (cid2:bar) (exprs:[EFun baz]) (bs:[[Leaf (token:baz)]]) ]"
+    ]
   
 hunit_getPath_test =
   let
