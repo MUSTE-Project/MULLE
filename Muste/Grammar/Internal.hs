@@ -14,8 +14,8 @@ instance Show FunType where
   show (Fun cat []) =
     "(" ++ show cat ++ ")"
   show (Fun cat cats) =
-    "(" ++ (foldl (\a -> \b -> a ++ " -> " ++ (show b)) (show $ head cats) (tail cats) ++ " -> " ++ show cat) ++ ")"
-  show (NoType) = "()"
+    "(" ++ (foldl (\a b -> a ++ " -> " ++ show b) (show $ head cats) (tail cats) ++ " -> " ++ show cat) ++ ")"
+  show NoType = "()"
 
 -- | A 'FunType' is in the Read class
 instance Read FunType where
@@ -29,14 +29,14 @@ instance Read FunType where
         let
           result = readType rest
         in
-          (fst result, snd result)
+          result
       readType "" = ([],"")
       readType rest =
         let
           result = readId rest
         in
           case result of {
-            Just r -> let more = readType $ snd r in ((fst r):(fst more), snd more) ;
+            Just r -> let more = readType $ snd r in (fst r:fst more, snd more) ;
             _ -> ([],rest)
             }
       result = readType sType
@@ -44,8 +44,8 @@ instance Read FunType where
     in
       case cats of {
         [] -> [(NoType,snd result)] ; -- Empty Result
-        _ ->[((Fun (last cats) (init cats)),snd result)] }
-
+        _ ->[(Fun (last cats) (init cats),snd result)] }
+    
 -- | Type 'Rule' consists of a CId as the function name and a 'FunType' as the Type
 data Rule = Function CId FunType deriving (Ord,Eq)
 
@@ -72,7 +72,7 @@ instance Eq Grammar where
 instance Show Grammar where
   show (Grammar startcat rules _) =
     "Startcat: " ++ show startcat ++ "\nRules: \n" ++
-    (unwords $ map (\r -> "\t" ++ (show r) ++ "\n") rules)
+    unwords (map (\r -> "\t" ++ show r ++ "\n") rules)
 
 -- | Constant for an empty 'Grammar' in line with 'emptyPGF'
 emptyGrammar = Grammar wildCId [] emptyPGF
@@ -91,14 +91,14 @@ readId ('?':rest) =
     tmp = readId rest
   in
     case tmp of {
-      Nothing -> Just ((mkCId "?"),"") ;
-      Just (id,rst) -> Just (mkCId  ("?" ++ (show id)),rst)
+      Nothing -> Just (mkCId "?","") ;
+      Just (id,rst) -> Just (mkCId  ("?" ++ show id),rst)
       }
 readId str =
   let
-    result = readsPrec 0 str
+    result = reads str
   in
-    if result == [] then Nothing else Just $ head result
+    if null result then Nothing else Just $ head result
 
 
 -- | The function 'getFunType' extracts the function type from a grammar given a function name
@@ -114,9 +114,9 @@ getFunType grammar id
         Just t ->
         let
           (hypos,typeid,exprs) = unType t
-          cats = (map (\(_,_,DTyp _ cat _) -> cat) hypos)
+          cats = map (\(_,_,DTyp _ cat _) -> cat) hypos
         in
-          (Fun typeid cats) ;
+          Fun typeid cats
         }
 
 -- | The function 'getFunCat' extracts the result category from a function type
@@ -135,7 +135,7 @@ getRules grammar cats =
       rs = rules grammar
     in
       -- Convert rules from GF format to our only one
-      fromList $ concat $ map (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rs) cats
+      fromList $ concatMap (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rs) cats
 
 -- | The function 'pgfToGrammar' transforms a PGF grammar to a simpler grammar data structure
 pgfToGrammar :: PGF -> Grammar
@@ -148,7 +148,7 @@ pgfToGrammar pgf
       -- Get their types
       funtypes = map (getFunType pgf) funs
       -- Combine to a rule
-      rules = map (\(id,typ) -> Function id typ) (zip funs funtypes)
+      rules = zipWith Function funs funtypes
       -- Get the startcat from the PGF
       (_, startcat, _) = unType (startCat pgf)
     in
