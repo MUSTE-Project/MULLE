@@ -5,6 +5,7 @@ import PGF
 import PGF.Internal
 import Data.Maybe
 import Data.Set (Set(..),fromList)
+import Test.QuickCheck
 
 -- | Type 'FunType' consists of a CId that is the the result category and [CId] are the parameter categories
 data FunType = Fun CId [CId] | NoType deriving (Ord,Eq)
@@ -45,7 +46,19 @@ instance Read FunType where
       case cats of {
         [] -> [(NoType,snd result)] ; -- Empty Result
         _ ->[(Fun (last cats) (init cats),snd result)] }
-    
+
+-- A 'FunType' can be generated randomly
+instance Arbitrary FunType where
+  arbitrary =
+    frequency [(9,newFun),(1,return NoType)]
+    where
+      newFun = do
+        let ids = ['A'..'Z']
+        cat <- elements ids
+        cats <- listOf $ elements ids
+        return $ Fun (mkCId [cat]) (map (mkCId . charToString) cats)
+      charToString c = [c]
+
 -- | Type 'Rule' consists of a CId as the function name and a 'FunType' as the Type
 data Rule = Function CId FunType deriving (Ord,Eq)
 
