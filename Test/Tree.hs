@@ -4,6 +4,7 @@
 -}
 module Test.Tree where
 import Test.QuickCheck
+import Test.Framework
 import PGF hiding (checkType)
 import PGF.Internal
 import Muste.Tree.Internal
@@ -1205,8 +1206,9 @@ instance Arbitrary TTree where
 -- Just an example how to integrate quickcheck
 prop_metaTest :: TTree -> Bool
 prop_metaTest tree =
-  (getMetaLeaves tree) == fromList (map snd (getMetaPaths tree))
+  (getMetaLeaveCats tree) == fromList (map snd (getMetaPaths tree))
 
 -- Conversion between GFAbsTrees and TTrees
-quickcheck_tests = [ ("Meta1",prop_metaTest) ]
+quickcheck_tests :: [(TestName,Property)]
+quickcheck_tests = [ ("Meta1",property prop_metaTest) ]
 
