@@ -74,6 +74,8 @@ linearizeList debug list =
 getNewTrees :: Grammar -> Language -> MetaTTree -> Path -> Int -> S.Set MetaTTree
 getNewTrees grammar lang tree path depth =
   let
+    clickPos = 0 -- TODO
+    tokens = [] -- TODO
     -- Get Path from token list
     (path,token) = tokens !! clickPos
     -- Get Subtree at Path
