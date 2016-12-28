@@ -1,6 +1,8 @@
 {- | Implements several tests to control the validy of the program
 -}
 module Test.Grammar where
+import Test.QuickCheck
+import Test.Framework
 import PGF
 import PGF.Internal
 import Muste.Grammar.Internal
@@ -10,6 +12,7 @@ import Data.Maybe
 import qualified Data.Map as M
 import Control.Monad
 import Data.Set (Set(..),empty,fromList)
+
 -- HUnit tests
 hunit_Eq_Grammar_eq_test =
   let
@@ -266,4 +269,13 @@ grammar_function_tests =
   TestLabel "pgfToGrammar" hunit_pgfToGrammar_test
   ]
 
+prop_FunType_read_show_equality :: FunType -> Bool
+prop_FunType_read_show_equality fun =
+  (read $ show fun) == fun
+
 hunit_tests = TestList [eq_tests,show_tests,read_tests,grammar_function_tests]
+
+quickcheck_tests :: [(TestName,Property)]
+quickcheck_tests = [
+  ("Grammar FunType show read equality",property prop_FunType_read_show_equality)
+  ]
