@@ -9,26 +9,6 @@ import Data.Set (Set(..),fromList)
 -- | Type 'FunType' consists of a CId that is the the result category and [CId] are the parameter categories
 data FunType = Fun CId [CId] | NoType deriving (Ord,Eq)
 
--- | Type 'Rule' consists of a CId as the function name and a 'FunType' as the Type
-data Rule = Function CId FunType deriving (Ord,Eq)
-
--- | Type 'Grammar' consists of a start categorie and a list of rules
-data Grammar = Grammar {
-  startcat :: CId,
-  rules :: [Rule],
-  pgf :: PGF
-  }
-
--- | Constant for an empty 'Grammar' in line with 'emptyPGF'
-emptyGrammar = Grammar wildCId [] emptyPGF
-
--- | A 'Grammar' is in the EQ class
-instance Eq Grammar where
-  (==) g1@(Grammar s1 rs1 pgf1) g2@(Grammar s2 rs2 pgf2) =
-    s1 == s2 &&
-    rs1 == rs2
-    -- pgf1 == pgf2 -- To be fixed somehow
-    
 -- | A 'FunType' is in the Show class
 instance Show FunType where
   show (Fun cat []) =
@@ -36,17 +16,6 @@ instance Show FunType where
   show (Fun cat cats) =
     "(" ++ (foldl (\a -> \b -> a ++ " -> " ++ (show b)) (show $ head cats) (tail cats) ++ " -> " ++ show cat) ++ ")"
   show (NoType) = "()"
-
--- | A 'Rule' is member of the Show class
-instance Show Rule where
-  show (Function name funtype) =
-    show name ++ " : " ++ show funtype ;
-
--- | A 'Grammar' is in the Show class
-instance Show Grammar where
-  show (Grammar startcat rules _) =
-    "Startcat: " ++ show startcat ++ "\nRules: \n" ++
-    (unwords $ map (\r -> "\t" ++ (show r) ++ "\n") rules)
 
 -- | A 'FunType' is in the Read class
 instance Read FunType where
@@ -75,7 +44,38 @@ instance Read FunType where
     in
       case cats of {
         [] -> [(NoType,snd result)] ; -- Empty Result
-        _ ->[((Fun (last cats) (init cats)),snd result)] } 
+        _ ->[((Fun (last cats) (init cats)),snd result)] }
+
+-- | Type 'Rule' consists of a CId as the function name and a 'FunType' as the Type
+data Rule = Function CId FunType deriving (Ord,Eq)
+
+-- | A 'Rule' is member of the Show class
+instance Show Rule where
+  show (Function name funtype) =
+    show name ++ " : " ++ show funtype ;
+
+-- | Type 'Grammar' consists of a start categorie and a list of rules
+data Grammar = Grammar {
+  startcat :: CId,
+  rules :: [Rule],
+  pgf :: PGF
+  }
+
+-- | A 'Grammar' is in the EQ class
+instance Eq Grammar where
+  (==) g1@(Grammar s1 rs1 pgf1) g2@(Grammar s2 rs2 pgf2) =
+    s1 == s2 &&
+    rs1 == rs2
+    -- pgf1 == pgf2 -- To be fixed somehow
+    
+-- | A 'Grammar' is in the Show class
+instance Show Grammar where
+  show (Grammar startcat rules _) =
+    "Startcat: " ++ show startcat ++ "\nRules: \n" ++
+    (unwords $ map (\r -> "\t" ++ (show r) ++ "\n") rules)
+
+-- | Constant for an empty 'Grammar' in line with 'emptyPGF'
+emptyGrammar = Grammar wildCId [] emptyPGF
 
 -- | Predicate to check if a PGF is empty, i.e. when the absname is wildCId
 isEmptyPGF pgf = absname pgf == wildCId
