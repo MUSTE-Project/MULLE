@@ -6,6 +6,6 @@ import qualified Test.Grammar as G
 import qualified Test.Tree as T
 import qualified Test.Muste as M
 
-tests = (hUnitTestToTests $ TestList [ G.hunit_tests, T.hunit_tests, M.hunit_tests ]) ++ (map (uncurry testProperty) T.quickcheck_tests)
+tests = (hUnitTestToTests $ TestList [ G.hunit_tests, T.hunit_tests, M.hunit_tests ]) ++ (map (uncurry testProperty) $ G.quickcheck_tests ++ T.quickcheck_tests)
 
 main = defaultMain tests
