@@ -74,7 +74,7 @@ instance TreeC TTree where
   selectNode t [b] = selectBranch t b
   selectNode t (hd:tl) =
     let
-        branch = (selectBranch t hd)
+        branch = selectBranch t hd
     in
       case branch of {
         Just b -> selectNode b tl ;
@@ -88,8 +88,8 @@ instance TreeC TTree where
 
 -- | A generic 'TTree' with types is in the 'Show' class
 instance Show TTree where
-  show (TNode name typ []) = "{"++ (show name) ++ ":"  ++ show typ ++ "}";
-  show (TNode name typ children) = "{" ++ (show name) ++ ":" ++ show typ ++ " " ++ ( unwords $ map show children ) ++ "}"
+  show (TNode name typ []) = "{"++ show name ++ ":"  ++ show typ ++ "}";
+  show (TNode name typ children) = "{" ++ show name ++ ":" ++ show typ ++ " " ++ unwords ( map show children ) ++ "}"
   show (TMeta cat) = "{?" ++ show cat ++ "}"
 
 -- | A 'MetaTTree' is in the 'Show' class
@@ -109,11 +109,11 @@ consumeChar c str@(c1:rest)
 readFunType :: String -> Maybe (FunType,String)
 readFunType str =
   let
-    result = readsPrec 0 str
+    result = reads str
   in
     case result of {
       [(NoType,_)] -> Nothing ;
-      _ -> Just $ head $ result
+      _ -> Just $ head result
       }
 
 -- | The function 'getChildCats' extracts the root category of each childtree
@@ -132,15 +132,15 @@ getChildCats (TNode _ _ trees) =
 checkType :: TTree -> Bool
 checkType (TMeta _) = True
 checkType t@(TNode name (Fun fcat ccats) trees) =
-  (getChildCats t == ccats) && (foldl (&&) True $ map checkType trees)
+  (getChildCats t == ccats) && all checkType trees
 
 -- | The function 'fixTypes' goes through a 'TTree' and fixes type problems when only a root type is given for each subtree
 fixTypes :: TTree -> TTree
 fixTypes t@(TNode name typ trees) =
   let
     newType = case typ of {
-      NoType -> (Fun (mkCId "?") []); -- No type at all
-      (Fun cat []) -> (Fun cat (getChildCats t)); -- No type info for the subtrees -> Copy categories
+      NoType -> Fun (mkCId "?") []; -- No type at all
+      (Fun cat []) -> Fun cat (getChildCats t); -- No type info for the subtrees -> Copy categories
       f@(Fun cat _) -> f -- Already typed -> Do nothing
       }
     newTrees = map fixTypes trees
@@ -152,9 +152,9 @@ fixTypes t = t
 readTree  :: String -> Maybe (TTree,String)
 readTree str =
   let
-    result = readsPrec 0 str
+    result = reads str
   in
-    if result == [] then Nothing else Just $ head $ result
+    if null result then Nothing else Just $ head result
 
 -- | The function 'readTrees' reads list of multiple 'TTree's
 readTrees :: String -> ([TTree],String)
@@ -179,12 +179,12 @@ instance Read TTree where
     case (consumeChar '{' sTree) of
     {
       -- It is a meta
-      ('?':cat) -> let ids = (readsPrec 0 cat) in map (\(a,b) -> ((TMeta a),consumeChar '}' b)) ids ;
+      ('?':cat) -> let ids = reads in map (\(a,b) -> (TMeta a,consumeChar '}' b)) ids ;
       -- or something else
       rest ->
         let
           -- read the id
-          maybeId = (readId rest)
+          maybeId = readId rest
         in
           case maybeId of {
             Just id ->
@@ -196,10 +196,10 @@ instance Read TTree where
                     Just typ ->
                         let
                           -- read the subtrees
-                          strees = (consumeChar '{' $ consumeChar ' ' $ snd typ)
+                          strees = consumeChar '{' $ consumeChar ' ' $ snd typ
                           trees = readTrees strees
                         in
-                          [(fixTypes (TNode (fst $ id) (fst typ) (fst trees)),consumeChar '}' (snd trees))] ;
+                          [(fixTypes (TNode (fst id) (fst typ) (fst trees)),consumeChar '}' (snd trees))] ;
                     -- No type found
                     Nothing -> [] -- trace ((++) "1:" $ show $ snd id) $ []
                   } ;
@@ -252,7 +252,7 @@ gfAbsTreeToTTree pgf (EApp e1 e2) =
     (TNode name typ sts) = gfAbsTreeToTTree pgf e1
     st2 = gfAbsTreeToTTree pgf e2
   in
-    (TNode name typ (sts ++ [st2]))
+    TNode name typ (sts ++ [st2])
 gfAbsTreeToTTree pgf _ = TMeta wildCId
 
 -- | Creates a GF abstract syntax Tree from a generic tree
@@ -282,13 +282,13 @@ ttreeToLTree :: TTree -> LTree
 ttreeToLTree tree =
   let
     -- Convert structure without caring about labels
-    convert (TMeta cat) = LNode cat (-1) [(LNode (mkCId "_") (-1) [LLeaf])]
+    convert (TMeta cat) = LNode cat (-1) [LNode (mkCId "_") (-1) [LLeaf]]
     convert (TNode _ (Fun cat _) []) = LNode cat (-1) []
     convert (TNode _ (Fun cat _) ts) = LNode cat (-1) (map convert ts)
     -- Update the labels in a tree
     update :: Int -> LTree -> (Int, LTree)
-    update pos (LLeaf) = (pos, LLeaf)
-    update pos (LNode cat id []) = (pos + 1, (LNode cat pos []))
+    update pos LLeaf = (pos, LLeaf)
+    update pos (LNode cat id []) = (pos + 1, LNode cat pos [])
     update pos (LNode cat id ns) =
       let
         (npos,ults) = updates pos ns
@@ -300,7 +300,7 @@ ttreeToLTree tree =
     updates pos (lt:lts) =
       let
         (npos1,ult) = update pos lt
-        (npos,ults) = (updates npos1 lts)
+        (npos,ults) = updates npos1 lts
       in
         (npos, ult:ults)
     
@@ -309,7 +309,7 @@ ttreeToLTree tree =
 
 -- | The function 'showBracketed' shows a bracketed string in a more verbose way than 'showBracketedString' from 'PGF'
 showBracket (Bracket cid fid lindex cid2 exprs bs) =
-  "[Bracket (cid1:" ++ show cid ++ ") (fid:" ++ show fid ++ ") (lindex:" ++ show lindex ++ ") (cid2:" ++ show cid2 ++ ") (exprs:" ++ show exprs ++ ") (bs:[" ++ (unwords $ map showBracket bs) ++ "]) ]"
+  "[Bracket (cid1:" ++ show cid ++ ") (fid:" ++ show fid ++ ") (lindex:" ++ show lindex ++ ") (cid2:" ++ show cid2 ++ ") (exprs:" ++ show exprs ++ ") (bs:[" ++ unwords ( map showBracket bs) ++ "]) ]"
 showBracket (Leaf token) = "[Leaf (token:" ++ token ++ ")]"
 
 -- | The function 'getPath' finds a path to a node with a given label in a labeled tree
@@ -317,7 +317,7 @@ getPath :: LTree -> Int -> Path
 getPath ltree id = 
   let
     deep :: LTree -> Int -> Path -> Path
-    deep (LLeaf) _ _ = []
+    deep LLeaf _ _ = []
 --    deep (LNode cid fid []) id path = if fid == id then path else []
     deep (LNode cid fid ns) id path = if fid == id then path else broad ns id path 0
     broad :: [LTree] -> Int -> Path -> Pos -> Path
@@ -336,7 +336,7 @@ maxDepth :: TTree -> Int
 maxDepth (TMeta _) = 1
 maxDepth (TNode _ _ []) = 1
 maxDepth (TNode _ _ trees) =
-  1 + (maximum $ map maxDepth trees)
+  1 + maximum ( map maxDepth trees )
 
 -- | The function 'countNodes' count all non-meta nodes in a 'TTree'
 countNodes :: TTree -> Int
@@ -354,7 +354,7 @@ replaceBranch (TNode id typ trees) pos newTree =
   let
     newSubtrees = listReplace trees pos newTree -- listReplace takes care of out-of-range positions
   in
-    (TNode id typ newSubtrees)
+    TNode id typ newSubtrees
 replaceBranch tree _ _ = tree
 
 -- | The function 'replaceNode' replaces a subtree given by 'Path' in a 'TTree'
@@ -375,9 +375,9 @@ replaceNode oldTree _ _ =
 replaceNodeByMeta :: MetaTTree -> Path -> MetaTTree
 replaceNodeByMeta tree@(MetaTTree oldMetaTree oldSubTrees) path = 
   let
-    newSubTree = selectNode (oldMetaTree) path
-    cat = getTreeCat $ fromJust $ newSubTree -- scary but should work due to lazy evaluation
-    newTree = replaceNode (oldMetaTree) path (TMeta cat)
+    newSubTree = selectNode oldMetaTree path
+    cat = getTreeCat $ fromJust newSubTree -- scary but should work due to lazy evaluation
+    newTree = replaceNode oldMetaTree path (TMeta cat)
   in
     case newSubTree of {
       Just t -> MetaTTree newTree (Set.insert (path,t) oldSubTrees) ;
@@ -402,11 +402,11 @@ findPaths _ (TMeta _) = [[]]
 findPaths maxDepth (TNode _ _ trees) =
     let
         branches :: [(Pos, TTree)] -- List of branch positions and subtrees 
-        branches = (zip [0..(length trees)] trees)
+        branches = zip [0..(length trees)] trees
         relevantPaths :: [(Pos, [Path])] -- List of the maximum pathes of the subtrees for each branch that has not a meta as the next child
-        relevantPaths = map (\(p,t) -> (p,(findPaths (maxDepth - 1) t)))  (filter (\(_,t) -> case t of { TMeta _ -> False ; _ -> True }) branches)
+        relevantPaths = map (\(p,t) -> (p,findPaths (maxDepth - 1) t))  (filter (\(_,t) -> case t of { TMeta _ -> False ; _ -> True }) branches)
         paths :: [Path] -- List of trees and pathes where the current positon is appended to the path
-        paths = concat $ map (\(p,ps) -> map (\s -> p:s) ps ) relevantPaths
+        paths = concatMap (\(p,ps) -> map (\s -> p:s) ps ) relevantPaths
     in
      case paths of {
        [] -> [[]] ; -- Add at least one element to prevent problems
@@ -446,7 +446,7 @@ prune tree depth =
                  Set.insert finishedTree (pruneTrees origTree (nub $ tail trees ++ todoTrees) depth)
           }
   in
-    Set.insert (makeMeta tree) (pruneTrees (makeMeta tree) [(makeMeta tree)] depth)
+    Set.insert (makeMeta tree) (pruneTrees (makeMeta tree) [makeMeta tree] depth)
 -- | The function 'getMetaLeaveCats' returns set of the categories of all meta leaves
 getMetaLeaveCats :: TTree -> Set CId
 getMetaLeaveCats (TMeta id) = Set.singleton id
@@ -465,7 +465,7 @@ getMetaPaths tree =
       in
         -- Extend path and continue looking for metas
         -- Map over an empty list returns also an empty list
-        concat $ map (\(b,t) -> withPath t (path ++ [b])) numberedTrees
+        concatMap (\(b,t) -> withPath t (path ++ [b])) numberedTrees
   in
     withPath tree []
     
@@ -473,9 +473,9 @@ getMetaPaths tree =
 applyRule :: MetaTTree -> Rule -> [Path] -> MetaTTree
 applyRule tree@(MetaTTree oldMetaTree oldSubTrees) rule@(Function name ftype@(Fun cat cats)) (path:pathes) =
   let
-    newMetaSubTree = (TNode name ftype (map (TMeta) cats)) -- Tree converted from the rule
-    newSubTrees = fromList $ map (\(subPath,id) -> (path ++ subPath, (TMeta id))) (getMetaPaths newMetaSubTree) -- Convert list of meta categories to list of TMeta-trees and extended paths that can be used in MetaTrees
-    newTree = (replaceNode (metaTree tree) path newMetaSubTree) -- Get new tree by replacing a meta given by path with the new rule
+    newMetaSubTree = TNode name ftype (map TMeta cats) -- Tree converted from the rule
+    newSubTrees = fromList $ map (\(subPath,id) -> (path ++ subPath, TMeta id)) (getMetaPaths newMetaSubTree) -- Convert list of meta categories to list of TMeta-trees and extended paths that can be used in MetaTrees
+    newTree = replaceNode (metaTree tree) path newMetaSubTree -- Get new tree by replacing a meta given by path with the new rule
     newOldSubTrees = Set.filter ((path /=) . fst) oldSubTrees -- remove all subtrees with the path that has been replaced
    in
     -- Combine to new MetaTTree and continue applying until no more paths exist
@@ -500,10 +500,10 @@ combine tree@(MetaTTree oldMetaTree oldSubTrees) depth rule =
             -- Apply rule to the pathes and then split up the MetaTTree into the main tree and the subtrees
             (MetaTTree newMetaTree intermSubTrees) = applyRule tree rule pathes
             -- Do some filtering to remove all subtrees that are now replaced by the new rules
-            newSubTrees = Set.filter (\(p,_) -> let st = selectNode newMetaTree p in (isJust st) && (isMeta $ fromJust st)) (Set.union intermSubTrees oldSubTrees) 
+            newSubTrees = Set.filter (\(p,_) -> let st = selectNode newMetaTree p in isJust st && isMeta (fromJust st)) (Set.union intermSubTrees oldSubTrees) 
           in
             -- Recombine to a new tree
-            (MetaTTree newMetaTree newSubTrees)
+            MetaTTree newMetaTree newSubTrees
         ) pathesLists
     
 
@@ -534,21 +534,20 @@ generate grammar cat depth =
     filterTree :: Int -> MetaTTree -> Bool
     filterTree depth tree =
       let
-        metaPaths = filter (\(p,c) -> if length p <= depth - 1 then True else False) $ getMetaPaths (metaTree tree)
+        metaPaths = filter (\(p,c) -> length p <= depth - 1) $ getMetaPaths (metaTree tree)
       in
-        if metaPaths == [] then False -- No more metas to replace
-        else True
+        not $ null metaPaths
     -- Generate all trees
     loop :: [MetaTTree] -> Set MetaTTree
     loop [] = empty -- no more "active" trees
     loop (tree:trees) = 
       let
         extended = extendTree grammar tree depth -- these are already part of the result
-        activeTrees = trees ++ (filter (filterTree depth) $ toList (Set.delete tree extended))
+        activeTrees = trees ++ filter (filterTree depth) $ toList (Set.delete tree extended)
       in
         Set.union (Set.singleton tree) $ Set.union extended (loop activeTrees)
   in
-    loop [(MetaTTree (TMeta cat) (Set.singleton ([], (TMeta cat))))]
+    loop [MetaTTree (TMeta cat) (Set.singleton ([], TMeta cat))]
     
 -- | The function 'computeCosts' computes the cost for matching trees. It is the sum of nodes in each of the trees plus the sum of the nodes in all deleted trees
 computeCosts :: TTree -> TTree -> [TTree] -> Cost
@@ -599,24 +598,24 @@ combineTrees generatedTree subTrees =
             in
               ( map (\(t,c) ->
                       if length t < c then
-                        if length t == 0 then
+                        if null t then
                           []
                         else
-                          t ++ (replicate (c - length t) (TMeta $ getTreeCat $ head t))
+                          t ++ replicate (c - length t) (TMeta $ getTreeCat $ head t)
                       else t)
                 $ zip tsts tcts
               ) :: [[TTree]]
           combine :: [(Path,CId)] -> [[TTree]] -> [TTree] -> [[(Path,TTree)]]
           combine [(p,_)] [ts] _ =
             let tmp = map (\t -> [(p,t)]) ts
-            in if tmp == [] then [[]] else tmp -- list shall not be empty at the end
-          combine _ ([]:_) _ = trace "c2" $ [] 
+            in if null tmp then [[]] else tmp -- list shall not be empty at the end
+          combine _ ([]:_) _ = trace "c2" [] 
           combine ps@((p,_):rps) ts@(t:rts) used =
             let
               tree = head t
-              res = (combine rps (map (delete tree) rts) (tree:used)) :: [[(Path,TTree)]]
+              res = combine rps (map (delete tree) rts) (tree:used) :: [[(Path,TTree)]]
               p1 = map ((p,tree) :) res :: [[(Path,TTree)]]
-              p2 = combine ps ((tail t):rts) used :: [[(Path,TTree)]]
+              p2 = combine ps (tail t:rts) used :: [[(Path,TTree)]]
             in
               p1 ++ p2
       in
@@ -624,7 +623,7 @@ combineTrees generatedTree subTrees =
     ps = getMetaPaths generatedTree 
     ts = translateCategoriesToSubTrees ps subTrees :: [[(Path,TTree)]]
   in
-    if ps == [] || ts == [] then
+    if null ps || null ts then
       [generatedTree]
     else
       map (foldl (\tree (path,subTree) -> replaceNode tree path subTree) generatedTree) ts
@@ -635,23 +634,23 @@ match prunedTree@(MetaTTree pMetaTree pSubTrees) generatedTree@(MetaTTree gMetaT
   let
     -- Get all the meta categories from the generated MetaTTree (more speficically from the subTree part)
     replaceCats :: [CId] 
-    replaceCats = map (\(_,(TMeta cat)) -> cat) $ toList gSubTrees
+    replaceCats = map (\(_,TMeta cat) -> cat) $ toList gSubTrees
     -- Find the matching subtrees in the pruned tree
     replaceSubTrees :: Set (Path,TTree)
     replaceSubTrees = Set.filter (\(_,t) -> isInfixOf [getTreeCat t] replaceCats) pSubTrees
     -- Get all possible combinations of them
     combinations :: [[(Path,TTree)]]
-    combinations = powerList $ toList $ replaceSubTrees
+    combinations = powerList $ toList replaceSubTrees
     -- Tiny wrapper to extract the second part of the tuples
     extractTrees :: [(Path,TTree)] -> [TTree]
-    extractTrees trees =
-      map snd trees
+    extractTrees =
+      map snd
     -- Pack the parameters and results into one tuple - the generated tree, the pruned tree, the trees used to match the tree, and the removed subtrees
     tempResults :: [(TTree,TTree,[TTree],[TTree])]
     tempResults = map (\replaceTrees -> let deletedTrees = (extractTrees (toList pSubTrees) \\ extractTrees replaceTrees) in (gMetaTree,pMetaTree,extractTrees replaceTrees,deletedTrees)) combinations
     -- Combine the new possible trees
     newTrees :: [TTree]
-    newTrees = concat $ map (\(p1,_,p3,_) -> combineTrees p1 p3) tempResults
+    newTrees = concatMap (\(p1,_,p3,_) -> combineTrees p1 p3) tempResults
     -- Compute the costs for each of these trees
     costs :: [Cost]
     costs = map (\(p1,p2,_,p4) -> computeCosts p1 p2 p4) tempResults

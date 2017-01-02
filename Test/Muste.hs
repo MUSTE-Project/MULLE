@@ -20,25 +20,25 @@ hunit_linearizeTree_test =
   -- linearizeTree :: Grammar -> Language -> MetaTTree ->  [LinToken]
   let
     pgf = readPGF "gf/ABCAbs.pgf"
-    grammar = pgf >>= (\p -> return $ pgfToGrammar p)
-    tree1 = MetaTTree (read "{?A}") $ empty
-    tree2 = MetaTTree (read "{a:A}") $ empty
-    tree3 = MetaTTree (read "{s:(A->S) {a:A}}") $ empty
-    tree4 = MetaTTree (read "{s:(A->S) {f:(A->B->A) {?A} {b:B}}}") $ empty
-    tree5 = MetaTTree (read "{s:(A->S) {f:(A->B->A) {a:A} {?B}}}") $ empty
-    tree6 = MetaTTree (read "{s:(A->S) {f:(A->B->A) {?A} {?B}}}") $ empty
-    tree7 = MetaTTree (read "{s:(A->S) {f:(A->B->A) {a:A} {b:B}}}") $ empty
-    tree8 = MetaTTree (read "{s:(A->S) {h:(A->A->A->A) {a:A} {a:A} {a:A}}}") $ empty
+    grammar = fmap pgfToGrammar pgf
+    tree1 = MetaTTree (read "{?A}") empty
+    tree2 = MetaTTree (read "{a:A}") empty
+    tree3 = MetaTTree (read "{s:(A->S) {a:A}}") empty
+    tree4 = MetaTTree (read "{s:(A->S) {f:(A->B->A) {?A} {b:B}}}") empty
+    tree5 = MetaTTree (read "{s:(A->S) {f:(A->B->A) {a:A} {?B}}}") empty
+    tree6 = MetaTTree (read "{s:(A->S) {f:(A->B->A) {?A} {?B}}}") empty
+    tree7 = MetaTTree (read "{s:(A->S) {f:(A->B->A) {a:A} {b:B}}}") empty
+    tree8 = MetaTTree (read "{s:(A->S) {h:(A->A->A->A) {a:A} {a:A} {a:A}}}") empty
   in
     TestList [
-    TestLabel "Meta node" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree1 @?= [([],"?0")]),
-    TestLabel "Simple node" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree2 @?= [([],"a")]),
-    TestLabel "Simple tree" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree3 @?= [([0],"a")]),
-    TestLabel "Tree 1" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree4 @?= [([0,0],"?0"),([0],"x"),([0,1],"b")]),
-    TestLabel "Tree 2" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree5 @?= [([0,0],"a"),([0],"x"),([0,1],"?0")]),
-    TestLabel "Tree 3" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree6 @?= [([0,0],"?0"),([0],"x"),([0,1],"?1")]),
-    TestLabel "Tree 4" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree7 @?= [([0,0],"a"),([0],"x"),([0,1],"b")]),
-    TestLabel "Tree 5" $ TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree8 @?= [([0,0],"a"),([0,1],"a"),([0,2],"a")])
+    TestLabel "Meta node" ( TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree1 @?= [([],"?0")]) ),
+    TestLabel "Simple node" ( TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree2 @?= [([],"a")]) ),
+    TestLabel "Simple tree" ( TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree3 @?= [([0],"a")]) ),
+    TestLabel "Tree 1" ( TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree4 @?= [([0,0],"?0"),([0],"x"),([0,1],"b")]) ),
+    TestLabel "Tree 2" ( TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree5 @?= [([0,0],"a"),([0],"x"),([0,1],"?0")]) ),
+    TestLabel "Tree 3" ( TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree6 @?= [([0,0],"?0"),([0],"x"),([0,1],"?1")]) ),
+    TestLabel "Tree 4" (TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree7 @?= [([0,0],"a"),([0],"x"),([0,1],"b")]) ),
+    TestLabel "Tree 5" ( TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree8 @?= [([0,0],"a"),([0,1],"a"),([0,2],"a")]))
     ]
   
 hunit_linearizeList_test = -- TODO
@@ -50,12 +50,12 @@ hunit_linearizeList_test = -- TODO
     list3 = [([0,0],"a"),([0],"x"),([0,1],"b")]
   in
     TestList [
-    TestLabel "Empty List without Path" $ linearizeList False list1 ~?= "",
-    TestLabel "Empty List with Path" $ linearizeList True list1 ~?= "",
-    TestLabel "One Element without Path" $ linearizeList False list2 ~?= "a",
-    TestLabel "One Element with Path" $ linearizeList True list2 ~?= "a [0]",
-    TestLabel "Simple List without Path" $ linearizeList False list3 ~?= "a x b",
-    TestLabel "Simple List with Path" $ linearizeList True list3 ~?= "a [0,0] x [0] b [0,1]"
+    TestLabel "Empty List without Path" ( linearizeList False list1 ~?= "" ),
+    TestLabel "Empty List with Path" ( linearizeList True list1 ~?= "" ),
+    TestLabel "One Element without Path" ( linearizeList False list2 ~?= "a" ),
+    TestLabel "One Element with Path" ( linearizeList True list2 ~?= "a [0]" ),
+    TestLabel "Simple List without Path" ( linearizeList False list3 ~?= "a x b" ),
+    TestLabel "Simple List with Path" ( linearizeList True list3 ~?= "a [0,0] x [0] b [0,1]" )
   ]
 
 hunit_getNewTrees_test = -- TODO
@@ -63,13 +63,13 @@ hunit_getNewTrees_test = -- TODO
   -- getNewTrees :: Grammar -> MetaTTree -> Path -> S.Set MetaTTree
   let
     pgfFile = readPGF "gf/ABCAbs.pgf"
-    grammar = pgfFile >>= (\p -> return $ pgfToGrammar p)
-    tree1 = MetaTTree (read "{?A}") $ empty
+    grammar = fmap pgfToGrammar pgfFile
+    tree1 = MetaTTree (read "{?A}") empty
     path1 = []
-    tree2 = MetaTTree (read "{a:A}") $ empty
+    tree2 = MetaTTree (read "{a:A}") empty
   in
     TestList [
-    TestLabel "Tree 2" $ TestCase $ grammar >>= (\g -> getNewTrees g (head $ languages $ pgf g) tree1 path1 5 @?= empty)
+    TestLabel "Tree 2" (TestCase $ grammar >>= (\g -> getNewTrees g (head $ languages $ pgf g) tree1 path1 5 @?= empty) )
     ]
 
 hunit_treesToStrings_test = -- TODO
