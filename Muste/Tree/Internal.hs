@@ -145,7 +145,7 @@ fixTypes t@(TNode name typ trees) =
       }
     newTrees = map fixTypes trees
   in
-    (TNode name newType newTrees)
+    TNode name newType newTrees
 fixTypes t = t
 
 -- | The function 'readTree' is only a 'Read' wrapper for a 'TTree' type that returns just the first parse
@@ -176,10 +176,10 @@ readTrees sTrees =
 instance Read TTree where
   readsPrec _ sTree =
     -- Trees start with a {
-    case (consumeChar '{' sTree) of
+    case consumeChar '{' sTree of
     {
       -- It is a meta
-      ('?':cat) -> let ids = reads in map (\(a,b) -> (TMeta a,consumeChar '}' b)) ids ;
+      ('?':cat) -> let ids = reads cat in map (\(a,b) -> (TMeta a,consumeChar '}' b)) ids ;
       -- or something else
       rest ->
         let
@@ -420,9 +420,7 @@ prune tree depth =
   let
     -- Prunes on multiple nodes
     multiplePrune :: MetaTTree -> [Path] -> MetaTTree
-    multiplePrune tree [] = tree
-    multiplePrune tree (p:ps) =
-      multiplePrune (replaceNodeByMeta tree p) ps
+    multiplePrune = foldl replaceNodeByMeta
     -- Works through a list of trees
     pruneTrees :: MetaTTree -> [MetaTTree] -> Int -> Set MetaTTree
     pruneTrees origTree [] _ = empty
@@ -543,7 +541,7 @@ generate grammar cat depth =
     loop (tree:trees) = 
       let
         extended = extendTree grammar tree depth -- these are already part of the result
-        activeTrees = trees ++ filter (filterTree depth) $ toList (Set.delete tree extended)
+        activeTrees = trees ++ filter (filterTree depth) (toList (Set.delete tree extended))
       in
         Set.union (Set.singleton tree) $ Set.union extended (loop activeTrees)
   in
