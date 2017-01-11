@@ -15,7 +15,7 @@ import Data.Set (Set,fromList,toList,empty,singleton)
 import qualified Data.Set as Set
 import Data.Maybe
 -- Only needed for arbitrary trees at the moment
-import Test.Data (grammar)
+import Test.Data (grammar,tree1,tree2)
 
 randomize :: StdGen -> [a] -> [a]
 randomize _ [] = []
@@ -60,10 +60,10 @@ hunit_TreeC_GFAbsTree_selectBranch_test =
     
 hunit_TreeC_TTree_showTree_test =
   let
-    tree1 = TMeta (mkCId "A")
+    -- tree1 in Data.hs   
     tree2 = TNode (mkCId "f") (Fun (mkCId "A") [mkCId "A", mkCId "B"])
       [
-       TMeta (mkCId "A"),
+       tree1,
        TMeta (mkCId "B")
       ]
     tree3 = TNode (mkCId "f") (Fun (mkCId "A") [mkCId "A", mkCId "B"])
@@ -116,7 +116,7 @@ hunit_TreeC_TTree_selectBranch_test =
 
 hunit_Show_TTree_show_test =
   let
-    tree1 = TMeta (mkCId "A")
+    -- tree1 in Data.hs
     str1 = "{?A}"
     tree2 = TMeta wildCId
     str2 = "{?_}"
@@ -124,7 +124,7 @@ hunit_Show_TTree_show_test =
     str3 = "{a:()}"
     tree4 = TNode (mkCId "a") (Fun (mkCId "A") []) []
     str4 = "{a:(A)}"
-    tree5 = TNode (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "B"]) [TMeta (mkCId "A"),TMeta (mkCId "B")]
+    tree5 = TNode (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "B"]) [tree1,TMeta (mkCId "B")]
     str5 = "{f:(A -> B -> A) {?A} {?B}}"
     tree6 = TNode (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "B"]) [TNode (mkCId "a") (Fun (mkCId "A") []) [],TNode (mkCId "b") (Fun (mkCId "B") []) []]
     str6 = "{f:(A -> B -> A) {a:(A)} {b:(B)}}"
@@ -214,9 +214,9 @@ hunit_readFunType_test =
 
 hunit_getChildCats_test =
   let
-    tree1 = TMeta (mkCId "A")
-    tree2 = TNode (mkCId "a") (Fun (mkCId "A") []) []
-    tree3 = TNode (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "B"]) [TMeta (mkCId "A"),TMeta (mkCId "B")]
+    -- tree1 in Data.hs
+    -- tree2 in Data.hs
+    tree3 = TNode (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "B"]) [tree1,TMeta (mkCId "B")]
     tree4 = TNode (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "B"]) [TNode (mkCId "a") (Fun (mkCId "A") []) [] ,TNode (mkCId "b") (Fun (mkCId "B") []) []]
   in
     TestList [
@@ -228,8 +228,8 @@ hunit_getChildCats_test =
 
 hunit_checkType_test =
   let
-    tree1 = TMeta (mkCId "A")
-    tree2 = TNode (mkCId "a") (Fun (mkCId "A") []) []
+    -- tree1 in Data.hs
+    -- tree2 in Data.hs
     tree3 = TNode (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "B"]) [TMeta (mkCId "A"),TMeta (mkCId "B")]
     tree4 = TNode (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "B"]) [TNode (mkCId "a") (Fun (mkCId "A") []) [] ,TNode (mkCId "b") (Fun (mkCId "B") []) []]
     tree5 = TNode (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "B"]) [TMeta (mkCId "C"),TMeta (mkCId "B")]
@@ -458,7 +458,7 @@ hunit_powerList_test =
 
 hunit_isMeta_test =
   let
-    tree1 = TMeta (mkCId "A")
+    -- tree1 in Data.hs
     tree2 = TMeta wildCId
     tree3 = TNode (mkCId "a") NoType []
     tree4 = TNode (mkCId "a") (Fun (mkCId "A") []) []
@@ -474,7 +474,7 @@ hunit_isMeta_test =
 
 hunit_getTreeCat_test =
   let
-    tree1 = TMeta (mkCId "A")
+    -- tree1 in Data.hs
     cat1 = mkCId "A"
     tree2 = TMeta wildCId
     cat2 = wildCId
@@ -607,7 +607,7 @@ hunit_getPath_test =
   
 hunit_maxDepth_test =
   let
-    tree1 = TMeta (mkCId "A")
+    -- tree1 in Data.hs
     tree2 = TMeta wildCId
     tree3 = TNode (mkCId "a") NoType []
     tree4 = TNode (mkCId "f") (Fun (mkCId "E") [mkCId "A",mkCId "B",mkCId "C",mkCId "D"])
@@ -640,7 +640,7 @@ hunit_maxDepth_test =
 
 hunit_countNodes_test =
   let
-    tree1 = TMeta (mkCId "A")
+    -- tree1 in Data.hs
     tree2 = TMeta wildCId
     tree3 = TNode (mkCId "a") NoType []
     tree4 = TNode (mkCId "f") (Fun (mkCId "E") [mkCId "A",mkCId "B",mkCId "C",mkCId "D"])
@@ -673,8 +673,9 @@ hunit_countNodes_test =
 
 hunit_makeMeta_test =
   let
-    ttree1 = TMeta (mkCId "A")
-    mtree1 = MetaTTree (TMeta (mkCId "A")) empty
+    -- tree1 in Data.hs
+    ttree1 = tree1
+    mtree1 = MetaTTree tree1 empty
     ttree2 = TNode (mkCId "a") (Fun (mkCId "A") []) []
     mtree2 = MetaTTree (TNode (mkCId "a") (Fun (mkCId "A") []) []) empty
     in
@@ -686,7 +687,7 @@ hunit_makeMeta_test =
 hunit_replaceBranch_test = 
   let
     new = TMeta wildCId
-    tree1 = TMeta (mkCId "A")
+    -- tree1 in Data.hs
     tree2 = TNode (mkCId "f") NoType []
     tree3 = TNode (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "B",mkCId "C",mkCId "D"])
       [
@@ -714,7 +715,7 @@ hunit_replaceBranch_test =
 hunit_replaceNode_test = 
   let
     new = TMeta wildCId
-    tree1 = TMeta (mkCId "A")
+    -- tree1 in Data.hs
     tree2 = TNode (mkCId "f") NoType []
     tree3 = TNode (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "B",mkCId "C",mkCId "D"])
       [
@@ -766,12 +767,12 @@ hunit_replaceNodeByMeta_test =
 
 hunit_maxPath_test =
   let
-    tree1 = TMeta (mkCId "A")
+    -- tree1 in Data.hs
     tree2 = TMeta wildCId
     tree3 = TNode (mkCId "a") NoType []
     tree4 = TNode (mkCId "f") (Fun (mkCId "E") [mkCId "A",mkCId "B",mkCId "C",mkCId "D"])
       [
-        TMeta (mkCId "A"),
+        tree1,
         TNode (mkCId "b") (Fun (mkCId "B") []) [],
         TNode (mkCId "g") (Fun (mkCId "C") [mkCId "C",mkCId "B"])
          [
@@ -800,12 +801,12 @@ hunit_maxPath_test =
 
 hunit_findPaths_test =
   let
-    tree1 = TMeta (mkCId "A")
+    -- tree1 in Data.hs
     tree2 = TMeta wildCId
     tree3 = TNode (mkCId "a") NoType []
     tree4 = TNode (mkCId "f") (Fun (mkCId "E") [mkCId "A",mkCId "B",mkCId "C",mkCId "D"])
       [
-        TMeta (mkCId "A"),
+        tree1,
         TNode (mkCId "b") (Fun (mkCId "B") []) [],
         TNode (mkCId "g") (Fun (mkCId "C") [mkCId "C",mkCId "B"])
          [
@@ -862,17 +863,17 @@ hunit_prune_test =
 
 hunit_getMetaLeaveCats_test =
   let
-    tree1 = TMeta (mkCId "A")
-    tree2 = TNode (mkCId "a") (Fun (mkCId "A") []) []
+    -- tree1 in Data.hs
+    -- tree2 in Data.hs
     tree3 = TNode (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "B"])
       [
-        TMeta (mkCId "A"),
+        tree1,
         TMeta wildCId
       ]
     tree4 = TNode (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "A"])
       [
-        TMeta (mkCId "A"),
-        TMeta (mkCId "A")
+        tree1,
+        tree1
       ]
     tree5 = TNode (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "B"])
       [
@@ -882,7 +883,7 @@ hunit_getMetaLeaveCats_test =
           [
             TNode (mkCId "g") (Fun (mkCId "A") [mkCId "A"])
             [
-              TMeta (mkCId "A")
+              tree1
             ]
           ]
         ],
@@ -899,17 +900,17 @@ hunit_getMetaLeaveCats_test =
 
 hunit_getMetaPaths_test = 
   let
-    tree1 = TMeta (mkCId "A")
-    tree2 = TNode (mkCId "a") (Fun (mkCId "A") []) []
+    -- tree1 in Data.hs
+    -- tree2 in Data.hs
     tree3 = TNode (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "B"])
       [
-        TMeta (mkCId "A"),
+        tree1,
         TMeta wildCId
       ]
     tree4 = TNode (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "A"])
       [
-        TMeta (mkCId "A"),
-        TMeta (mkCId "A")
+        tree1,
+        tree1
       ]
     tree5 = TNode (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "B"])
       [
