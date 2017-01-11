@@ -552,35 +552,6 @@ computeCosts :: TTree -> TTree -> [TTree] -> Cost
 computeCosts generatedTree prunedTree deletedTrees =
   foldl (+) (countNodes generatedTree + countNodes prunedTree) (map countNodes deletedTrees)
 
--- | The function 'combineTrees' combines a 'TTree' with a list of subtrees to a list of new trees
--- combineTrees :: TTree -> [TTree] -> [TTree]
--- combineTrees generatedTree subTrees =
---   let
---     combineTree :: TTree -> [TTree] -> Int -> [TTree]
---     combineTree tree [] _ = [tree]
---     combineTree tree (subTree:subTrees) maxDepth =
---       let
---         -- Get all pathes to compatible meta-leaves
---         paths = map fst $ filter (\(path,cat) -> cat == (getTreeCat subTree) && length path < maxDepth) $ getMetaPaths tree
---       in
---         -- Use the first of the above paths to combine it to a new tree
---         case paths of {
---           -- No matches, continue with the remaining subtrees
---           [] -> combineTree tree subTrees maxDepth ; --[tree] ;
---           pathes ->
---               let nTrees = map (\p -> replaceNode tree p subTree) pathes :: [TTree]
---               in
--- --                case (length pathes) of {
--- --                  1 -> (concat $ map (\t -> combineTree t subTrees maxDepth) nTrees) ;
--- --                  _ -> -- concat $ map (\p -> combineTree (replaceNode tree p subTree) subTrees maxDepth) pathes
---                       (combineTree tree subTrees maxDepth) ++ (concat $ map (\t -> combineTree t subTrees maxDepth) nTrees)
--- --                  }
---           }
---   in
---     combineTree generatedTree subTrees (maxDepth generatedTree)
-
-
-
 combineTrees :: TTree -> [TTree] -> [TTree]
 combineTrees generatedTree [] = [generatedTree]
 combineTrees generatedTree subTrees =
