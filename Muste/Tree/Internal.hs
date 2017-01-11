@@ -627,8 +627,10 @@ match prunedTree@(MetaTTree pMetaTree pSubTrees) generatedTree@(MetaTTree gMetaT
     -- Sort by cost
     sortBy (\(c1,_) (c2,_) -> compare c1 c2) $ zip costs newTrees
 
-
-
+-- TODO comments and tests
+hasMetas :: TTree -> Bool
+hasMetas (TMeta _) = True
+hasMetas (TNode _ _ children) = or $ map hasMetas children
 
 -- Code ideas provided by Peter
     -- tempResults :: [(TTree,TTree,[TTree],[TTree])]
