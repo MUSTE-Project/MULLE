@@ -15,6 +15,9 @@ import Data.Set (Set(..),empty,fromList)
 
 -- HUnit tests
 
+hunit_updateClick_test = -- TODO
+  TestList []
+  
 hunit_linearizeTree_test =
   -- The 'linearizeTree' function linearizes a MetaTTree to a list of tokens and pathes to the nodes that create it
   -- linearizeTree :: Grammar -> Language -> MetaTTree ->  [LinToken]
@@ -41,7 +44,7 @@ hunit_linearizeTree_test =
     TestLabel "Tree 5" ( TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree8 @?= [([0,0],"a"),([0,1],"a"),([0,2],"a")]))
     ]
   
-hunit_linearizeList_test = -- TODO
+hunit_linearizeList_test = -- TODO missing cases for positions
   -- The 'linearizeList' functions concatenates a token list to a string
   -- linearizeList :: Bool -> [LinToken] -> String
   let
@@ -50,12 +53,12 @@ hunit_linearizeList_test = -- TODO
     list3 = [([0,0],"a"),([0],"x"),([0,1],"b")]
   in
     TestList [
-    TestLabel "Empty List without Path" ( linearizeList False list1 ~?= "" ),
-    TestLabel "Empty List with Path" ( linearizeList True list1 ~?= "" ),
-    TestLabel "One Element without Path" ( linearizeList False list2 ~?= "a" ),
-    TestLabel "One Element with Path" ( linearizeList True list2 ~?= "a [0]" ),
-    TestLabel "Simple List without Path" ( linearizeList False list3 ~?= "a x b" ),
-    TestLabel "Simple List with Path" ( linearizeList True list3 ~?= "a [0,0] x [0] b [0,1]" )
+    TestLabel "Empty List without Path" ( linearizeList False False list1 ~?= "" ),
+    TestLabel "Empty List with Path" ( linearizeList True False list1 ~?= "" ),
+    TestLabel "One Element without Path" ( linearizeList False False list2 ~?= "a" ),
+    TestLabel "One Element with Path" ( linearizeList True False list2 ~?= "a [0]" ),
+    TestLabel "Simple List without Path" ( linearizeList False False list3 ~?= "a x b" ),
+    TestLabel "Simple List with Path" ( linearizeList True False list3 ~?= "a [0,0] x [0] b [0,1]" )
   ]
 
 hunit_getNewTrees_test = -- TODO
@@ -83,7 +86,14 @@ hunit_getSuggestions_test = -- TODO
 -- getSuggestions :: Grammar -> Language -> [LinToken] -> MetaTTree -> Pos -> S.Set String
   TestList [
   ]
+
+prop_updateClick :: Maybe Click -> Pos -> Bool
+prop_updateClick click pos =
+  isJust $ updateClick click pos
   
+various_tests = TestList [
+  TestLabel "updateClick" hunit_updateClick_test
+  ]
 linearize_tests = TestList [
   TestLabel "linearizeTree" hunit_linearizeTree_test,
   TestLabel "linearizeList" hunit_linearizeList_test
@@ -96,4 +106,4 @@ suggestion_tests =
   TestLabel "getSuggestions" hunit_getSuggestions_test
   ]
 
-hunit_tests = TestList [linearize_tests, suggestion_tests]
+hunit_tests = TestList [various_tests,linearize_tests, suggestion_tests]
