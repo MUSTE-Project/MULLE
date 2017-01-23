@@ -34,7 +34,9 @@ handleClick grammar language tree wordList click clickPos =
     let suggestions = getSuggestions grammar language tree path extend depth 
     mapM_ (\(a,(b,_)) -> putStrLn $ show a ++ ". " ++ b) $ zip [1..] suggestions
     -- do something to the tree
-    putStrLn "Which replacement to you want to have?"
+    let cat = getTreeCat $ fromJust $ selectNode (metaTree tree) path
+    putStrLn $ "The category is " ++ showCId cat ++ ". Which replacement do you want to have?"
+    putStrLn "Just press Enter to go back"
     input <- getLine
     let selection = reads input :: ([(Int,String)])
     (_,newTree) <- if (not $ null selection) && ((snd $ head selection) == "") then handleSelection tree path suggestions (fst $ head selection) else handleCommand tree click input 
@@ -57,6 +59,7 @@ loop grammar language tree click =
     putStrLn $ linearizeList debug True wordList
     -- Ask for the click
     putStrLn "What position do you want to click on?"
+    putStrLn "Just press Enter to reset clicks"
     input <- getLine
     let selection = reads input :: [(Int,String)]
     -- (newClick,newTree) <- if not $ null input && (snd $ head input) == "" then trace "1" $ handleClick grammar language tree wordList click (fst $ head input) else if null input then trace "2" $ handleCommand tree click "" else trace "3" $ handleCommand tree click (snd $ head input)
