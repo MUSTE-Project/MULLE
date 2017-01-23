@@ -10,6 +10,7 @@ import PGF.Internal (Expr(..))
 import Debug.Trace
 import Data.Maybe
 import Data.List
+import Data.Monoid
 import Test.QuickCheck hiding (generate)
 import qualified Test.QuickCheck as Q
 
@@ -142,18 +143,19 @@ createSortedTreeList grammar language tree trees =
      costList :: [Int]
      costList = map (\t -> uncurry (\f s -> length f + length s) $ preAndSuffix referenceLin (map snd $ linearizeTree grammar language t)) treeList
   in
-    sortBy (\a b -> compare (length $ linearizeTree grammar language a) (length $ linearizeTree grammar language b)) $ map snd $ sortBy (\(a,_) (b,_) -> compare b a ) $ zip costList treeList
-    
+    -- Sort first by common pre/suffix, then by length of the linearized tree and finally by the linearization itself
+    map snd $ sortBy (\(a1,a2) (b1,b2) -> let la = linearizeTree grammar language a2 in let lb = linearizeTree grammar language b2 in compare b1 a1 <> compare (length la) (length lb) <> compare la lb) $ zip costList treeList
                                                         
   -- | The 'getSuggestions' function generates a list of similar subtrees given a tree and a position in the token list ordered by some measure
 getSuggestions :: Grammar -> Language -> MetaTTree -> Path -> Bool -> Int -> [(String, MetaTTree)]
 getSuggestions grammar language tree path extend depth =
   let
     extension = if extend then 1 else 0
-    subTree = flip MetaTTree S.empty $ fromJust $ selectNode (metaTree tree) path
-    nTrees = filter (\t -> ((length $ linearizeTree grammar language subTree) + extension) == (length $ linearizeTree grammar language t)) $ createSortedTreeList grammar language subTree $ S.filter (not . hasMetas . metaTree ) $ getNewTrees grammar language tree path depth
+    subTree = makeMeta $ fromJust $ selectNode (metaTree tree) path
+    linSubTree = map snd $ linearizeTree grammar language subTree
+    nTrees = filter (\t -> ((length $ linearizeTree grammar language subTree) + extension) >= (length $ linearizeTree grammar language t)) $ createSortedTreeList grammar language subTree $ S.filter (not . hasMetas . metaTree ) $ getNewTrees grammar language tree path depth
     suggestions = treesToStrings grammar language nTrees
   in
-    -- trace (show $ length nTrees) $ []
-    zip suggestions nTrees
+    -- Remove element if it is equal to the original tree or if it is bigger but has nothing in common (prefix and suffix empty)
+    filter (\(a,_) -> let wa = words a in wa /= linSubTree && let (pre,suf) = preAndSuffix wa linSubTree in (length wa == length linSubTree || length wa > length linSubTree && length pre + length suf /= 0)) $ zip suggestions nTrees
 
