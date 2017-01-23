@@ -2,7 +2,7 @@ import Muste
 import Muste.Tree
 import Muste.Grammar
 import PGF
-import Data.Set hiding (null)
+import Data.Set hiding (null,map)
 import Data.Maybe
 import System.Exit
 import Debug.Trace
@@ -32,7 +32,9 @@ handleClick grammar language tree wordList click clickPos =
     let extend = pos newClick `mod` 2 == 0 -- click between words
     -- Get suggestions
     let suggestions = getSuggestions grammar language tree path extend depth 
-    mapM_ (\(a,(b,_)) -> putStrLn $ show a ++ ". " ++ b) $ zip [1..] suggestions
+    -- mapM_ (\(a,(b,_)) -> putStrLn $ show a ++ ". " ++ b) $ zip [1..] suggestions
+    let linSubTree = map snd $ linearizeTree grammar language $ makeMeta $ fromJust $ selectNode (metaTree tree) path
+    mapM_ (\(a,(b,_)) -> putStrLn $ show a ++ ". " ++ printSuggestion linSubTree (words b)) $ zip [1..] suggestions
     -- do something to the tree
     let cat = getTreeCat $ fromJust $ selectNode (metaTree tree) path
     putStrLn $ "The category is " ++ showCId cat ++ ". Which replacement do you want to have?"
@@ -43,6 +45,17 @@ handleClick grammar language tree wordList click clickPos =
 
     return (Just newClick,newTree)
 
+-- | Takes the linearized old subtree and a new subtree to categorize as and insert, delete or replace
+printSuggestion :: [String] -> [String] -> String
+printSuggestion oldWords newWords =
+  let
+    (pre,suf) = preAndSuffix oldWords newWords
+  in
+    case compare (length oldWords) (length newWords) of
+      EQ -> "Replace " ++ (unwords oldWords) ++ " with " ++ (unwords newWords)
+      LT -> "Insert " ++ (unwords $ take (length newWords - (length pre + length suf))  $ drop (length pre) newWords)
+      GT -> "Remove " ++ (unwords $ take (length oldWords - (length pre + length suf)) $ drop (length pre)oldWords)
+      
 handleCommand :: MetaTTree -> Maybe Click -> String -> IO (Maybe Click,MetaTTree)
 handleCommand tree click command
   | command == "" = do return (click,tree)
