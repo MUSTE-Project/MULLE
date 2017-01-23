@@ -60,7 +60,7 @@ loop grammar language tree click =
     input <- getLine
     let selection = reads input :: [(Int,String)]
     -- (newClick,newTree) <- if not $ null input && (snd $ head input) == "" then trace "1" $ handleClick grammar language tree wordList click (fst $ head input) else if null input then trace "2" $ handleCommand tree click "" else trace "3" $ handleCommand tree click (snd $ head input)
-    (newClick,newTree) <- if (not $ null selection) && ((snd $ head selection) == "") then handleClick grammar language tree wordList click (fst $ head selection) else handleCommand tree click input
+    (newClick,newTree) <- if (not $ null selection) && ((snd $ head selection) == "") then handleClick grammar language tree wordList click (fst $ head selection) else handleCommand tree Nothing input
     loop grammar language newTree newClick
   
 main =
