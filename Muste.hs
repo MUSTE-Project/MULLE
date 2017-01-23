@@ -112,26 +112,25 @@ treesToStrings :: Grammar -> Language -> [MetaTTree] -> [String]
 treesToStrings grammar lang trees =
   map (linearizeList False False . linearizeTree grammar lang) trees
 
--- Comput sum of the length of the longest common suffix and suffix for linearized trees
-preAndSuffix :: Eq a => [a] -> [a] -> (Int,Int)
-preAndSuffix [] _  = (0,0)
-preAndSuffix _  [] = (0,0)
+-- Computes the longest common prefix and suffix for linearized trees
+preAndSuffix :: Eq a => [a] -> [a] -> ([a],[a])
+preAndSuffix [] _  = ([],[])
+preAndSuffix _  [] = ([],[])
 preAndSuffix a b =
---  if a == b then 1 + preAndSuffix resta restb else preAndSuffix (reverse resta) (reverse restb)
-  let prefix :: Eq a => [a] -> [a] -> Int -> Int ->(Int,Int)
+  let prefix :: Eq a => [a] -> [a] -> [a] -> [a] ->([a],[a])
       prefix [] _ pre suf = (pre,suf)
       prefix _ [] pre suf = (pre,suf)
       prefix (a:resta) (b:restb) pre suf
-        | a == b = prefix resta restb (pre + 1) suf
-        | otherwise = prefix resta restb pre (postfix (reverse (a:resta)) (reverse (b:restb)) 0)
-      postfix :: Eq a => [a] -> [a] -> Int -> Int
+        | a == b = prefix resta restb (pre ++ [a]) suf
+        | otherwise = prefix resta restb pre (postfix (reverse (a:resta)) (reverse (b:restb)) [])
+      postfix :: Eq a => [a] -> [a] -> [a] -> [a]
       postfix [] _ suf = suf
       postfix _ [] suf = suf
       postfix (a:resta) (b:restb) suf
-        | a == b = postfix resta restb (suf + 1)
+        | a == b = postfix resta restb (a:suf)
         | otherwise = suf
   in
-    prefix a b 0 0
+    prefix a b [] []
     
 createSortedTreeList :: Grammar -> Language ->MetaTTree -> S.Set MetaTTree -> [MetaTTree]
 createSortedTreeList grammar language tree trees =
@@ -141,7 +140,7 @@ createSortedTreeList grammar language tree trees =
      referenceLin :: [String]
      referenceLin = map snd $ linearizeTree grammar language tree
      costList :: [Int]
-     costList = map (\t -> uncurry (+) $ preAndSuffix referenceLin (map snd $ linearizeTree grammar language t)) treeList
+     costList = map (\t -> uncurry (\f s -> length f + length s) $ preAndSuffix referenceLin (map snd $ linearizeTree grammar language t)) treeList
   in
     sortBy (\a b -> compare (length $ linearizeTree grammar language a) (length $ linearizeTree grammar language b)) $ map snd $ sortBy (\(a,_) (b,_) -> compare b a ) $ zip costList treeList
     
