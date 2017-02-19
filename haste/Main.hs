@@ -9,7 +9,7 @@ import Data.Binary(decode)
 import Data.ByteString(fromUArray)
 import Haste.Binary(getBlobData,toUArray)
 
---loadPGF :: String -> IO PGF
+loadPGF :: String -> CIO PGF
 loadPGF url =
   do blob <- ajax GET (S.fromString url)
      pgf <- case blob of {
@@ -42,7 +42,7 @@ showLangs pgf =
       appendChild documentBody newList
       return ()
     
-main :: IO ()
+main :: CIO ()
 main =
   do
     pgf <- loadPGF "http://hackerbrau.se/haste/Foods.pgf"
