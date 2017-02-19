@@ -27,7 +27,7 @@ loadPGF url =
 
 showLangs pgf =
   let
-    addListElem :: IO Elem -> String -> IO Elem
+    -- addListElem :: IO Elem -> String -> IO Elem
     addListElem parent text =
       do
         child <- newElem "li"
