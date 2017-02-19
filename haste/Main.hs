@@ -9,20 +9,20 @@ import Data.Binary(decode)
 import Data.ByteString(fromUArray)
 import Haste.Binary(getBlobData,toUArray)
 
-loadPGF :: String -> IO PGF
+--loadPGF :: String -> IO PGF
 loadPGF url =
-  -- do blob <- ajax GET (S.fromString url)
-  --    let pgf = case blob of {
-  --          Left a -> error "AjaxError" ; 
-  --          Right blob -> do
-  --              writeLog (S.fromString ("Loaded pgf as Blob "++url))
-  --              blobdata <- getBlobData blob
-  --              writeLog $ toJSString "Got blobdata"
-  --              let bs = fromUArray (toUArray blobdata)
-  --              writeLog (S.fromString ("Loaded "++show (abstractName pgf)))
-  --                decode bs
-  --      }
-     return emptyPGF
+  do blob <- ajax GET (S.fromString url)
+     pgf <- case blob of {
+       Left a -> error "AjaxError" ; 
+       Right blob -> do
+           writeLog (S.fromString ("Loaded pgf as Blob "++url))
+           blobdata <- getBlobData blob
+           writeLog $ toJSString "Got blobdata"
+           let bs = fromUArray (toUArray blobdata)
+           decode bs
+        }
+     writeLog (S.fromString ("Loaded "++ show (abstractName pgf)))
+     return pgf
 
 showLangs pgf =
   let
