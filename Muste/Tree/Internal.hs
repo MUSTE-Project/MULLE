@@ -445,6 +445,7 @@ prune tree depth =
           }
   in
     Set.insert (makeMeta tree) (pruneTrees (makeMeta tree) [makeMeta tree] depth)
+
 -- | The function 'getMetaLeaveCats' returns set of the categories of all meta leaves
 getMetaLeaveCats :: TTree -> Set CId
 getMetaLeaveCats (TMeta id) = Set.singleton id
