@@ -49,12 +49,18 @@ handleClick grammar language tree wordList click clickPos =
 printSuggestion :: [String] -> [String] -> String
 printSuggestion oldWords newWords =
   let
-    (pre,suf) = preAndSuffix oldWords newWords
+    getDiff d1 d2 =
+      let (pre,suf) = preAndSuffix d1 d2
+      in
+        (unwords $ take (length d1 - (length pre + length suf))  $ drop (length pre) d1)
   in
     case compare (length oldWords) (length newWords) of
-      EQ -> "Replace " ++ (unwords oldWords) ++ " with " ++ (unwords newWords)
-      LT -> "Insert " ++ (unwords $ take (length newWords - (length pre + length suf))  $ drop (length pre) newWords)
-      GT -> "Remove " ++ (unwords $ take (length oldWords - (length pre + length suf)) $ drop (length pre)oldWords)
+      -- EQ -> "Replace " ++ (unwords oldWords) ++ " with " ++ (unwords newWords)
+      EQ -> "Replace " ++ (getDiff oldWords newWords) ++ " with " ++ (getDiff newWords oldWords)
+      -- LT -> "Insert " ++ (unwords $ take (length newWords - (length pre + length suf))  $ drop (length pre) newWords)
+      LT -> "Insert " ++ getDiff newWords oldWords
+      -- GT -> "Remove " ++ (unwords $ take (length oldWords - (length pre + length suf)) $ drop (length pre)oldWords)
+      GT -> "Remove " ++ getDiff oldWords newWords
       
 handleCommand :: MetaTTree -> Maybe Click -> String -> IO (Maybe Click,MetaTTree)
 handleCommand tree click command
