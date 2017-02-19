@@ -1,6 +1,7 @@
 import Haste
 import Haste.Ajax
 import Haste.DOM
+import Haste.Concurrent
 import PGF
 import PGF.Internal
 import Data.String as S
