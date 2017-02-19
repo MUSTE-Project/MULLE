@@ -45,6 +45,6 @@ showLangs pgf =
 main :: IO ()
 main =
   do
-    -- pgf <- loadPGF "http://hackerbrau.se/haste/Foods.pgf"
-    --showLangs pgf
+    pgf <- loadPGF "http://hackerbrau.se/haste/Foods.pgf"
+    showLangs pgf
     return ()
