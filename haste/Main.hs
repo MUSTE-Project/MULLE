@@ -10,42 +10,48 @@ import Data.Binary(decode)
 import Data.ByteString(fromUArray)
 import Haste.Binary(getBlobData,toUArray)
 
--- loadPGF :: String -> CIO PGF
+import Data.List
+
+loadPGF :: String -> CIO PGF
 loadPGF url =
   do blob <- ajax GET (S.fromString url)
      pgf <- case blob of {
        Left a -> error "AjaxError" ; 
        Right blob -> do
-           writeLog (S.fromString ("Loaded pgf as Blob "++url))
+           writeLog (S.fromString ("Loaded pgf as Blob "++url)) :: CIO ()
            blobdata <- getBlobData blob
            writeLog $ toJSString "Got blobdata"
            let bs = fromUArray (toUArray blobdata)
-           decode bs
+           return $ decode bs
         }
-     writeLog (S.fromString ("Loaded "++ show (abstractName pgf)))
+     writeLog (S.fromString ("Loaded "++ show (abstractName pgf))) :: CIO ()
      return pgf
 
+showLangs :: PGF -> IO ()
 showLangs pgf =
   let
-    -- addListElem :: IO Elem -> String -> IO Elem
+    addListElem :: Elem -> String -> IO ()
     addListElem parent text =
       do
+        writeLog (S.fromString $ "added " ++ text)
         child <- newElem "li"
         newTextElem text >>= appendChild child
-        parent >>= (flip appendChild child) 
-        parent
+        flip appendChild child parent
+        return ()
   in
     do
-      newList <- foldl addListElem (newElem "ul") $ map showCId $ languages pgf
+      writeLog (S.fromString $ show $ map showCId $ languages pgf)
+      newList <- newElem "ul"
+      sequence_ $ map (addListElem newList) $ map showCId $ languages pgf
       hl <- newElem "h1"
       newTextElem "Languages" >>= appendChild hl
       appendChild documentBody hl
       appendChild documentBody newList
       return ()
     
--- main :: CIO ()
+main :: IO ()
 main =
   do
-    pgf <- loadPGF "http://hackerbrau.se/haste/Foods.pgf"
-    showLangs pgf
+    let pgf = loadPGF "Foods.pgf" :: CIO PGF
+    withResult pgf showLangs
     return ()
