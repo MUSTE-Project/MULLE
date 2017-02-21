@@ -58,12 +58,12 @@ drawTree grammar language tree debug =
           gapSpan <- newElem "span" `with` [ attr "class" =: "gap" ]
           gapSpanText <- newTextElem " "
           appendChild gapSpan gapSpanText
-          onEvent gapSpan Haste.Events.Click (clickHandler grammar language tree p True gapSpan )
+          onEvent gapSpan Haste.Events.Click (wordClickHandler grammar language tree p True gapSpan )
           appendChild elem gapSpan
           wordSpan <- newElem "span" `with` [ attr "class" =: "word" ]
           wordSpanText <- newTextElem s
           appendChild wordSpan wordSpanText
-          onEvent wordSpan Haste.Events.Click (clickHandler grammar language tree p False wordSpan)
+          onEvent wordSpan Haste.Events.Click (wordClickHandler grammar language tree p False wordSpan)
           appendChild elem wordSpan
           if debug then
             (do
@@ -82,8 +82,8 @@ drawTree grammar language tree debug =
       sequence_ $ map (\t -> drawWord t linTreeDiv debug) $ wordList
       return ()
 
-clickHandler :: Grammar -> Language -> MetaTTree -> Path -> Bool -> Elem -> MouseData -> IO ()
-clickHandler grammar language tree path extend elem md =
+wordClickHandler :: Grammar -> Language -> MetaTTree -> Path -> Bool -> Elem -> MouseData -> IO ()
+wordClickHandler grammar language tree path extend elem md =
   do
     let (x,y) = mouseCoords md
     sglobalx <- (getProp elem "offsetLeft")
