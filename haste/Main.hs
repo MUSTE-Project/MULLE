@@ -47,9 +47,11 @@ musteMain pgfGrammar =
     let grammar = pgfToGrammar pgfGrammar
     let language = head $ languages pgfGrammar
     -- modify the tree, use the first language in the grammar. no previous click
+    onEvent documentBody Haste.Events.Click globalClickHandler
     drawTree grammar language startTree debug
     return ()
 
+-- Takes a tree and transforms it into a sequence of spans in a div
 drawTree :: Grammar -> Language -> MetaTTree -> Bool -> IO ()
 drawTree grammar language tree debug =
   let drawWord :: LinToken -> Elem -> Bool -> IO ()
@@ -82,9 +84,28 @@ drawTree grammar language tree debug =
       sequence_ $ map (\t -> drawWord t linTreeDiv debug) $ wordList
       return ()
 
+-- Removes the suggestion menu
+deleteMenu :: IO ()
+deleteMenu =
+  do
+    oldList <- elemById "suggestionList"
+    case oldList of {
+      Just e -> do { clearChildren e ; deleteChild documentBody e };
+      Nothing -> return ()
+      }
+
+-- On any click on body
+globalClickHandler :: MouseData -> IO ()
+globalClickHandler _ =
+  do
+    writeLog (S.fromString "global click" ) :: IO () ;
+    deleteMenu
+
+-- On click on a word
 wordClickHandler :: Grammar -> Language -> MetaTTree -> Path -> Bool -> Elem -> MouseData -> IO ()
 wordClickHandler grammar language tree path extend elem md =
   do
+    stopPropagation
     let (x,y) = mouseCoords md
     sglobalx <- (getProp elem "offsetLeft")
     let globalx = x + read sglobalx
@@ -93,21 +114,20 @@ wordClickHandler grammar language tree path extend elem md =
     
     writeLog (S.fromString ("Click on (" ++ show (globalx + x) ++ "," ++ show (globaly + y) ++ ")") ) :: IO () ;
     -- Cleanup of old list
-    oldList <- elemById "suggestionList"
-    case oldList of {
-      Just e -> do { clearChildren e ; deleteChild documentBody e };
-      Nothing -> return ()
-      }
+    deleteMenu
     -- Create new list
     let suggestions = getSuggestions grammar language tree path extend depth
     sList <- newElem "div" `with` [ attr "id" =: "suggestionList",
                                     style "top" =: (show globaly ++ "px"),
                                     style "left" =: (show globalx ++ "px")
                                   ]
-    sequence_ $ map (\(s,t) -> do { te <- newTextElem s ; le <- newElem "div" ; appendChild le te ; appendChild sList le } ) suggestions
+    sequence_ $ map (\(s,t) -> do { te <- newTextElem s ; le <- newElem "div" ; onEvent le Haste.Events.MouseOver (menuHoverHandler le); onEvent le Haste.Events.MouseOut (menuHoverHandler le) ; appendChild le te ; appendChild sList le } ) suggestions
     appendChild documentBody sList
     return ();
-    
+
+menuHoverHandler :: Elem -> MouseData -> IO ()
+menuHoverHandler elem _ = toggleClass elem "hover"
+
 main :: IO ()
 main =
   do
