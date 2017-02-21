@@ -58,12 +58,12 @@ drawTree grammar language tree debug =
           gapSpan <- newElem "span" `with` [ attr "class" =: "gap" ]
           gapSpanText <- newTextElem " "
           appendChild gapSpan gapSpanText
-          onEvent gapSpan Haste.Events.Click (clickHandler grammar language tree p True )
+          onEvent gapSpan Haste.Events.Click (clickHandler grammar language tree p True gapSpan )
           appendChild elem gapSpan
           wordSpan <- newElem "span" `with` [ attr "class" =: "word" ]
           wordSpanText <- newTextElem s
           appendChild wordSpan wordSpanText
-          onEvent wordSpan Haste.Events.Click (clickHandler grammar language tree p False)
+          onEvent wordSpan Haste.Events.Click (clickHandler grammar language tree p False wordSpan)
           appendChild elem wordSpan
           if debug then
             (do
@@ -82,11 +82,16 @@ drawTree grammar language tree debug =
       sequence_ $ map (\t -> drawWord t linTreeDiv debug) $ wordList
       return ()
 
-clickHandler :: Grammar -> Language -> MetaTTree -> Path -> Bool -> MouseData -> IO ()
-clickHandler grammar language tree path extend md =
+clickHandler :: Grammar -> Language -> MetaTTree -> Path -> Bool -> Elem -> MouseData -> IO ()
+clickHandler grammar language tree path extend elem md =
   do
     let (x,y) = mouseCoords md
-    writeLog (S.fromString ("Click on (" ++ show x ++ "," ++ show y ++ ")") ) :: IO () ;
+    sglobalx <- (getProp elem "offsetLeft")
+    let globalx = x + read sglobalx
+    sglobaly <- (getProp elem "offsetTop")
+    let globaly = y + read sglobaly
+    
+    writeLog (S.fromString ("Click on (" ++ show (globalx + x) ++ "," ++ show (globaly + y) ++ ")") ) :: IO () ;
     -- Cleanup of old list
     oldList <- elemById "suggestionList"
     case oldList of {
@@ -95,7 +100,10 @@ clickHandler grammar language tree path extend md =
       }
     -- Create new list
     let suggestions = getSuggestions grammar language tree path extend depth
-    sList <- newElem "div" `with` [ attr "id" =: "suggestionList" ]
+    sList <- newElem "div" `with` [ attr "id" =: "suggestionList",
+                                    style "top" =: (show globaly ++ "px"),
+                                    style "left" =: (show globalx ++ "px")
+                                  ]
     sequence_ $ map (\(s,t) -> do { te <- newTextElem s ; le <- newElem "div" ; appendChild le te ; appendChild sList le } ) suggestions
     appendChild documentBody sList
     return ();
