@@ -23,12 +23,15 @@ import Data.IORef
 
 import Control.Monad
 
+sampleTree = MetaTTree (read "{Pred:(Item->Quality->Comment) {These:(Kind->Item) {Fish:Kind}} {Boring:Quality}}") empty
+sampleLang = "FoodsEng"
 -- (Comment:9 (Item:6 this (Kind:5 pizza)) is (Quality:8 very (Quality:7 Italian)))
 -- Pred (This Pizza) (Very Italian)
-startTree = MetaTTree (read "{Pred:(Item->Quality->Comment) {This:(Kind->Item) {Pizza:Kind}} {Very:(Quality->Quality) {Italian:Quality}}}") empty --MetaTTree (TMeta wildCId) empty
+--startTree = MetaTTree (read "{Pred:(Item->Quality->Comment) {This:(Kind->Item) {Pizza:Kind}} {Very:(Quality->Quality) {Italian:Quality}}}") empty --MetaTTree (TMeta wildCId) empty
+startTree = MetaTTree (read "{Pred:(Item->Quality->Comment) {These:(Kind->Item) {Fish:Kind}} {Italian:Quality}}") empty
 grammarFile = "Foods.pgf"
-depth = 2 -- why???
-debug = False
+depth = 3 -- why???
+editLang = "FoodsEng"
 
 -- Context info necessary for lots of stuff
 data Context = Ctx { grammar :: Grammar, language :: Language, tree :: MetaTTree, click :: Maybe Muste.Click, totalClicks :: Int}
@@ -53,13 +56,17 @@ loadPGF url =
 musteMain :: PGF -> IO ()
 musteMain pgfGrammar =
   do
+    -- Initialize Context
     let grammar = pgfToGrammar pgfGrammar
-    let language = head $ languages pgfGrammar
+    -- let language = head $ languages pgfGrammar
     -- modify the tree, use the first language in the grammar. no previous click
-    context <- newIORef (Ctx grammar language startTree Nothing 0)
+    context <- newIORef (Ctx grammar (mkCId editLang) startTree Nothing 0)
+    -- Global handlers
     onEvent documentBody Haste.Events.Click (globalClickHandler context)
     Just menu <- elemById "menuButton"
     onEvent menu Haste.Events.Click (menuClickHandler menu context)
+    -- Print target tree
+    drawSampleTree context
     drawTree context
     return ()
 
@@ -72,23 +79,43 @@ drawScore context =
     clearChildren score
     te <- newTextElem (show $ totalClicks ctx)
     appendChild score te
-    
 
-drawWord :: Elem -> IORef Context -> LinToken -> Pos -> Bool -> Bool ->IO ()
-drawWord parent context (p,s) pos debug enableEvents =
+drawSampleTree :: IORef Context -> IO ()
+drawSampleTree context =
   do
-    gapSpan <- newElem "span" `with` [ attr "class" =: "gap" ]
-    gapSpanText <- newTextElem " "
-    appendChild gapSpan gapSpanText
+    -- Get context
+    ctx <- readIORef context
+    -- Get element
+    Just sampleTreeDiv <- elemById "sampleTree"
+    -- Clear content
+    clearChildren sampleTreeDiv
+    -- Check for debug
+    debug <- hasClass sampleTreeDiv "debug"
+    -- Show tree as text
+    sequence_ $ map (\t -> drawWord sampleTreeDiv context t 0 debug False False ) $ linearizeTree (grammar ctx) (mkCId sampleLang) sampleTree
+    return ()
 
-    appendChild parent gapSpan
+drawWord :: Elem -> IORef Context -> LinToken -> Pos -> Bool -> Bool -> Bool ->IO ()
+drawWord parent context (p,s) pos debug enableGaps enableEvents =
+  do
+    when enableGaps
+      (do
+          gapSpan <- newElem "span" `with` [ attr "class" =: "gap" ]
+          gapSpanText <- newTextElem " "
+          appendChild gapSpan gapSpanText
+          appendChild parent gapSpan
+          when enableEvents
+            (do
+                onEvent gapSpan Haste.Events.Click (wordClickHandler gapSpan context pos p True )
+                return ()
+            )
+      )
     wordSpan <- newElem "span" `with` [ attr "class" =: "word" ]
     wordSpanText <- newTextElem s
     appendChild wordSpan wordSpanText
     appendChild parent wordSpan
     when enableEvents
       (do
-          onEvent gapSpan Haste.Events.Click (wordClickHandler gapSpan context pos p True )
           onEvent wordSpan Haste.Events.Click (wordClickHandler wordSpan context pos p False)
           return ()
       )
@@ -111,7 +138,7 @@ drawTree context =
     Just editTreeDiv <- elemById "editTree"
     clearChildren editTreeDiv
     debug <- hasClass editTreeDiv "debug"
-    sequence_ $ map (\(p,t) -> drawWord editTreeDiv context t p debug True) $ zip [0..] wordList
+    sequence_ $ map (\(p,t) -> drawWord editTreeDiv context t p debug True True) $ zip [0..] wordList
     return ()
 
 -- Removes the suggestion menu
@@ -180,7 +207,6 @@ wordClickHandler elem context pos path extend md =
       -- Cleanup of old list
       deleteMenu "suggestionList"
       -- Create new list
---      let suggestions = getSuggestions (grammar ctx) (language ctx) (tree ctx) (take (length path - (count $ fromJust newClick)) path) extend depth
       let selectedPath = take (length path + 1 - (count $ fromJust newClick)) path
       writeLog (S.fromString ("Full path " ++ show path ++ " with selected path " ++ show selectedPath )) :: IO ()
       let suggestions = getSuggestions (grammar ctx) (language ctx) (tree ctx) selectedPath extend depth
@@ -203,16 +229,18 @@ menuClickHandler elem context _ =
     y <- (getProp elem "offsetTop")
     -- Cleanup of old list
     deleteMenu "menuList"
+    -- Create new list
     mList <- newElem "div" `with` [ attr "id" =: "menuList",
                                     attr "class" =: "menu",
                                     style "top" =: (y++ "px"),
                                     style "left" =: (show (x - 200) ++ "px")
                                   ]
-    newMenuPoint mList "Toggle Debug" (\_ -> do { Just e <- elemById "linTree" ; toggleClass e "debug" ; drawTree context })
+    -- 
+    newMenuPoint mList "Toggle Debug" (\_ -> do { Just e1 <- elemById "editTree" ; Just e2 <- elemById "sampleTree"; toggleClass e1 "debug" ; toggleClass e2 "debug" ; drawTree context ; drawSampleTree context })
     -- Change tree in context for reset and reset click
     ctx <- readIORef context
     resetContext <- newIORef (Ctx (grammar ctx) (language ctx) startTree Nothing 0)
-    newMenuPoint mList "Reset" (\_ -> do { drawTree resetContext ; updateScore resetContext; (readIORef resetContext) >>= (writeIORef context) } )
+    newMenuPoint mList "Reset" (\_ -> do { drawTree resetContext ; drawScore resetContext; (readIORef resetContext) >>= (writeIORef context) } )
     appendChild documentBody mList
     return ()
 
@@ -229,6 +257,12 @@ suggestionClickHandler context path subTree _ =
     let newTree = replaceNode (metaTree oldTree) path (metaTree subTree)
     writeLog (S.fromString ("Trying to replace " ++ (show $ fromJust $ selectNode (metaTree oldTree) path ) ++ " in " ++ show (metaTree oldTree) ++ " at " ++ show path ++ " with " ++ (show $ metaTree subTree) )) :: IO () ;
     writeIORef context (Ctx (grammar ctx) (language ctx) (makeMeta newTree) Nothing (totalClicks ctx + 1))
+    when (makeMeta newTree == sampleTree)
+      (do
+          Just score <- elemById "score"
+          toggleClass score "won"
+          alert . S.fromString $ "Congratulations! You won after " ++ show (totalClicks ctx + 1) ++ " Clicks"
+          )
     drawScore context
     drawTree context
 
