@@ -73,41 +73,46 @@ drawScore context =
     te <- newTextElem (show $ totalClicks ctx)
     appendChild score te
     
+
+drawWord :: Elem -> IORef Context -> LinToken -> Pos -> Bool -> Bool ->IO ()
+drawWord parent context (p,s) pos debug enableEvents =
+  do
+    gapSpan <- newElem "span" `with` [ attr "class" =: "gap" ]
+    gapSpanText <- newTextElem " "
+    appendChild gapSpan gapSpanText
+
+    appendChild parent gapSpan
+    wordSpan <- newElem "span" `with` [ attr "class" =: "word" ]
+    wordSpanText <- newTextElem s
+    appendChild wordSpan wordSpanText
+    appendChild parent wordSpan
+    when enableEvents
+      (do
+          onEvent gapSpan Haste.Events.Click (wordClickHandler gapSpan context pos p True )
+          onEvent wordSpan Haste.Events.Click (wordClickHandler wordSpan context pos p False)
+          return ()
+      )
+    when debug
+      (do
+          pathSpan <- newElem "span" `with` [ attr "class" =: "path" ]
+          pathSpanText <- newTextElem (show p)
+          appendChild pathSpan pathSpanText
+          appendChild parent pathSpan
+      )
+
 -- Takes a tree and transforms it into a sequence of spans in a div
 drawTree :: IORef Context -> IO ()
 drawTree context =
-  let drawWord :: Elem -> LinToken -> Pos -> Bool -> IO ()
-      drawWord parent (p,s) pos debug =
-        do
-          gapSpan <- newElem "span" `with` [ attr "class" =: "gap" ]
-          gapSpanText <- newTextElem " "
-          appendChild gapSpan gapSpanText
-          onEvent gapSpan Haste.Events.Click (wordClickHandler gapSpan context pos p True )
-          appendChild parent gapSpan
-          wordSpan <- newElem "span" `with` [ attr "class" =: "word" ]
-          wordSpanText <- newTextElem s
-          appendChild wordSpan wordSpanText
-          onEvent wordSpan Haste.Events.Click (wordClickHandler wordSpan context pos p False)
-          appendChild parent wordSpan
-          if debug then
-            (do
-                pathSpan <- newElem "span" `with` [ attr "class" =: "path" ]
-                pathSpanText <- newTextElem (show p)
-                appendChild pathSpan pathSpanText
-                appendChild parent pathSpan
-            )
-          else return ()
-  in
-    do
-  -- Show the linearized tree
-      ctx <- readIORef context
-      let wordList = linearizeTree (grammar ctx) (language ctx) (tree ctx)
-      writeLog (S.fromString $ show wordList) 
-      Just linTreeDiv <- elemById "linTree"
-      clearChildren linTreeDiv
-      debug <- hasClass linTreeDiv "debug"
-      sequence_ $ map (\(p,t) -> drawWord linTreeDiv t p debug) $ zip [0..] wordList
-      return ()
+  do
+    -- Show the linearized tree
+    ctx <- readIORef context
+    let wordList = linearizeTree (grammar ctx) (language ctx) (tree ctx)
+    writeLog (S.fromString $ show wordList) 
+    Just editTreeDiv <- elemById "editTree"
+    clearChildren editTreeDiv
+    debug <- hasClass editTreeDiv "debug"
+    sequence_ $ map (\(p,t) -> drawWord editTreeDiv context t p debug True) $ zip [0..] wordList
+    return ()
 
 -- Removes the suggestion menu
 deleteMenu :: String -> IO ()
