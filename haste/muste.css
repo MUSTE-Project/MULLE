@@ -4,6 +4,9 @@
 span.word { font-size: large; border: medium solid grey; border-radius: 2em; padding: 3px; background-color: lightgrey; margin-right: 0.5em; }
 span.gap { padding-right: 20px; border-bottom: thin solid lightgrey; margin-right: 3px }
 span.path { font-size: xx-small; position: relative; top: 5px; margin-right: 0.5em; }
-#suggestionList { position: absolute; font-size: large; border: medium solid grey; border-radius: 1em; padding: 5px; background-color: lightgrey; margin-right: 0.5em; list-style-type: null; }
+div.menu { position: absolute; font-size: large; border: medium solid grey; border-radius: 1em; padding: 5px; background-color: lightgrey; margin-right: 0.5em; list-style-type: null; }
 div.hover { background-color: darkblue; color: lightgrey; }
 #spacer { padding: 100%; }
+div.bar { width: 35px; height: 5px; background-color: black; margin: 6px 0; }
+#menuButton { margin-left: 60%; }
+#menuList { width: 200px; }
