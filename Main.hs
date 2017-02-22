@@ -9,18 +9,18 @@ import Debug.Trace
 
 -- (Comment:9 (Item:6 this (Kind:5 pizza)) is (Quality:8 very (Quality:7 Italian)))
 -- Pred (This Pizza) (Very Italian)
-startTree = MetaTTree (read "{Pred:(Item->Quality->Comment) {This:(Kind->Item) {Pizza:Kind}} {Very:(Quality->Quality) {Italian:Quality}}}") empty --MetaTTree (TMeta wildCId) empty
+startTree = (read "{Pred:(Item->Quality->Comment) {This:(Kind->Item) {Pizza:Kind}} {Very:(Quality->Quality) {Italian:Quality}}}")
 grammarFile = "gf/Foods.pgf"
 depth = 3 -- why???
 
 debug = False
 
-handleSelection :: MetaTTree -> Path -> [(String,MetaTTree)] -> Int -> IO (Maybe Click, MetaTTree)
+handleSelection :: TTree -> Path -> [(String,TTree)] -> Int -> IO (Maybe Click, TTree)
 handleSelection tree path suggestions selection =
   do
-    return (Nothing,MetaTTree (replaceNode (metaTree tree) path (metaTree $ snd $ suggestions !! ( selection - 1))) (subTrees tree))
+    return (Nothing,replaceNode tree path (snd $ suggestions !! ( selection - 1)))
     
-handleClick :: Grammar -> Language -> MetaTTree -> [LinToken] -> Maybe Click -> Int -> IO (Maybe Click, MetaTTree)
+handleClick :: Grammar -> Language -> TTree -> [LinToken] -> Maybe Click -> Int -> IO (Maybe Click, TTree)
 handleClick grammar language tree wordList click clickPos =
   do
     let newClick = fromJust $ updateClick click clickPos -- that should never be Nothing -> QuickCheck test for updateClick
@@ -33,10 +33,10 @@ handleClick grammar language tree wordList click clickPos =
     -- Get suggestions
     let suggestions = getSuggestions grammar language tree path extend depth 
     -- mapM_ (\(a,(b,_)) -> putStrLn $ show a ++ ". " ++ b) $ zip [1..] suggestions
-    let linSubTree = map snd $ linearizeTree grammar language $ makeMeta $ fromJust $ selectNode (metaTree tree) path
+    let linSubTree = map snd $ linearizeTree grammar language $ fromJust $ selectNode tree path
     mapM_ (\(a,(b,_)) -> putStrLn $ show a ++ ". " ++ printSuggestion linSubTree (words b)) $ zip [1..] suggestions
     -- do something to the tree
-    let cat = getTreeCat $ fromJust $ selectNode (metaTree tree) path
+    let cat = getTreeCat $ fromJust $ selectNode tree path
     putStrLn $ "The category is " ++ showCId cat ++ ". Which replacement do you want to have?"
     putStrLn "Just press Enter to go back"
     input <- getLine
@@ -62,7 +62,7 @@ printSuggestion oldWords newWords =
       -- GT -> "Remove " ++ (unwords $ take (length oldWords - (length pre + length suf)) $ drop (length pre)oldWords)
       GT -> "Remove " ++ getDiff oldWords newWords
       
-handleCommand :: MetaTTree -> Maybe Click -> String -> IO (Maybe Click,MetaTTree)
+handleCommand :: TTree -> Maybe Click -> String -> IO (Maybe Click,TTree)
 handleCommand tree click command
   | command == "" = do return (click,tree)
   | command == "quit" = exitSuccess 
@@ -70,7 +70,7 @@ handleCommand tree click command
     do
       putStrLn "I don't know what you want from me"
       return (click,tree)
-loop :: Grammar -> Language -> MetaTTree -> Maybe Click -> IO MetaTTree
+loop :: Grammar -> Language -> TTree -> Maybe Click -> IO TTree
 loop grammar language tree click =
   do
     -- Show the linearized tree

@@ -804,6 +804,42 @@ hunit_findPaths_test =
     -- tree1 in Data.hs
     tree2 = TMeta wildCId
     tree3 = TNode (mkCId "a") NoType []
+    tree4 = TNode (mkCId "a") (Fun (mkCId "A") [mkCId "A"])  [(TMeta (mkCId "A"))]
+    tree5 = TNode (mkCId "f") (Fun (mkCId "E") [mkCId "A",mkCId "B",mkCId "C",mkCId "D"])
+      [
+        tree1,
+        TNode (mkCId "b") (Fun (mkCId "B") []) [],
+        TNode (mkCId "g") (Fun (mkCId "C") [mkCId "C",mkCId "B"])
+         [
+           TNode (mkCId "c") (Fun (mkCId "C") []) [],
+           TNode (mkCId "h") (Fun (mkCId "B") [mkCId "B"])
+            [
+              TNode (mkCId "h") (Fun (mkCId "B") [mkCId "B"])
+               [
+                 TNode (mkCId "b") (Fun (mkCId "B") []) []
+               ]
+            ]
+         ],
+        TNode (mkCId "i") (Fun (mkCId "D") [mkCId "D"])
+         [
+           TNode (mkCId "i") (Fun (mkCId "D") [mkCId "D"]) []
+         ]
+      ]
+  in
+    TestList [
+    TestLabel "Meta" $ findPaths tree1 ~?= [],
+    TestLabel "Meta with wildcard" $ findPaths tree2 ~?= [],
+    TestLabel "Simple tree without type and children" $ findPaths tree3 ~?= [[]],
+    TestLabel "Simple tree" $ findPaths tree4 ~?= [[0]],
+    TestLabel "Complex tree" $ findPaths tree5 ~?= [[0],[1],[2],[3],[1,0],[2,0],[2,1]]
+    ]
+    
+hunit_findLeafPaths_test =
+  let
+    -- tree1 in Data.hs
+    tree2 = TMeta wildCId
+    tree3 = TNode (mkCId "a") NoType []
+--    {f:(A -> B -> C -> D -> E) {?A} {b:(B)} {g:(C -> B -> C) {c:(C)} {h:(B -> B) {h:(B -> B) {b:(B)}}}} {i:(D -> D) {i:(D -> D)}}}
     tree4 = TNode (mkCId "f") (Fun (mkCId "E") [mkCId "A",mkCId "B",mkCId "C",mkCId "D"])
       [
         tree1,
@@ -826,11 +862,11 @@ hunit_findPaths_test =
       ]
   in
     TestList [
-    TestLabel "Meta" $ findPaths 3 tree1 ~?= [[]],
-    TestLabel "Meta with wildcard" $ findPaths 3 tree2 ~?= [[]],
-    TestLabel "Simple tree without type" $ findPaths 3 tree3 ~?= [[]],
-    TestLabel "Complex tree 1" $ findPaths 2 tree4 ~?= [[1],[2,0],[2,1],[3,0]],
-    TestLabel "Complex tree 2" $ findPaths 9 tree4 ~?= [[1],[2,0],[2,1,0,0],[3,0]]
+    TestLabel "Meta" $ findLeafPaths 3 tree1 ~?= [[]],
+    TestLabel "Meta with wildcard" $ findLeafPaths 3 tree2 ~?= [[]],
+    TestLabel "Simple tree without type" $ findLeafPaths 3 tree3 ~?= [[]],
+    TestLabel "Complex tree 1" $ findLeafPaths 2 tree4 ~?= [[1],[2,0],[2,1],[3,0]],
+    TestLabel "Complex tree 2" $ findLeafPaths 9 tree4 ~?= [[1],[2,0],[2,1,0,0],[3,0]]
     ]
 
 hunit_prune_test = 
@@ -861,7 +897,7 @@ hunit_prune_test =
     TestLabel "Peters Example" $ prune tree1 2 ~?= mtrees1
     ]
 
-hunit_getMetaLeaveCats_test =
+hunit_getMetaLeafCats_test =
   let
     -- tree1 in Data.hs
     -- tree2 in Data.hs
@@ -891,11 +927,11 @@ hunit_getMetaLeaveCats_test =
       ]
   in
     TestList [
-    TestLabel "Meta" ( getMetaLeaveCats tree1 ~?= fromList [mkCId "A"] ),
-    TestLabel "Simple tree without metas" ( getMetaLeaveCats tree2 ~?= empty ),
-    TestLabel "Simple tree 1" ( getMetaLeaveCats tree3 ~?= fromList [mkCId "A",wildCId] ),
-    TestLabel "Simple tree 2" ( getMetaLeaveCats tree4 ~?= fromList [mkCId "A"] ),
-    TestLabel "Tree" ( getMetaLeaveCats tree5 ~?= fromList [mkCId "A",mkCId "B"] )
+    TestLabel "Meta" ( getMetaLeafCats tree1 ~?= fromList [mkCId "A"] ),
+    TestLabel "Simple tree without metas" ( getMetaLeafCats tree2 ~?= empty ),
+    TestLabel "Simple tree 1" ( getMetaLeafCats tree3 ~?= fromList [mkCId "A",wildCId] ),
+    TestLabel "Simple tree 2" ( getMetaLeafCats tree4 ~?= fromList [mkCId "A"] ),
+    TestLabel "Tree" ( getMetaLeafCats tree5 ~?= fromList [mkCId "A",mkCId "B"] )
     ]
 
 hunit_getMetaPaths_test = 
@@ -1169,8 +1205,9 @@ tree_function_tests =
   TestLabel "replaceNodeByMeta" hunit_replaceNodeByMeta_test,
   TestLabel "maxPath" hunit_maxPath_test,
   TestLabel "findPaths" hunit_findPaths_test,
+  TestLabel "findLeafPaths" hunit_findLeafPaths_test,
   TestLabel "prune" hunit_prune_test,
-  TestLabel "getMetaLeaveCats" hunit_getMetaLeaveCats_test,
+  TestLabel "getMetaLeafCats" hunit_getMetaLeafCats_test,
   TestLabel "getMetaPaths" hunit_getMetaPaths_test,
   TestLabel "applyRule" hunit_applyRule_test,
   TestLabel "combine" hunit_combine_test,
@@ -1199,7 +1236,7 @@ instance Arbitrary TTree where
 -- Just an example how to integrate quickcheck
 prop_metaTest :: TTree -> Bool
 prop_metaTest tree =
-  getMetaLeaveCats tree == fromList (map snd (getMetaPaths tree))
+  getMetaLeafCats tree == fromList (map snd (getMetaPaths tree))
 
 -- Conversion between GFAbsTrees and TTrees
 quickcheck_tests :: [(TestName,Property)]
