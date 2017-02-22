@@ -43,13 +43,13 @@ loadPGF url =
      pgf <- case blob of {
        Left a -> error "AjaxError" ; 
        Right blob -> do
-           writeLog (S.fromString ("Loaded pgf as Blob "++url)) :: CIO ()
+           -- writeLog (S.fromString ("Loaded pgf as Blob "++url)) :: CIO ()
            blobdata <- getBlobData blob
-           writeLog $ toJSString "Got blobdata"
+           -- writeLog $ toJSString "Got blobdata"
            let bs = fromUArray (toUArray blobdata)
            return $ decode bs
         }
-     writeLog (S.fromString ("Loaded "++ show (abstractName pgf))) :: CIO ()
+       -- writeLog (S.fromString ("Loaded "++ show (abstractName pgf))) :: CIO ()
      return pgf
 
 -- Main function that sets up everything
@@ -134,7 +134,7 @@ drawTree context =
     -- Show the linearized tree
     ctx <- readIORef context
     let wordList = linearizeTree (grammar ctx) (language ctx) (tree ctx)
-    writeLog (S.fromString $ show wordList) 
+    -- writeLog (S.fromString $ show wordList) 
     Just editTreeDiv <- elemById "editTree"
     clearChildren editTreeDiv
     debug <- hasClass editTreeDiv "debug"
@@ -155,7 +155,7 @@ deleteMenu name =
 globalClickHandler :: IORef Context -> MouseData -> IO ()
 globalClickHandler context _ =
   do
-    writeLog (S.fromString "global click" ) :: IO () ;
+    -- writeLog (S.fromString "global click" ) :: IO () ;
     -- Delete possible menus
     deleteMenu "suggestionList"
     deleteMenu "menuList"
@@ -203,12 +203,13 @@ wordClickHandler elem context pos path extend md =
       let globalx = x + read sglobalx
       sglobaly <- (getProp elem "offsetTop")
       let globaly = y + read sglobaly
-      writeLog (S.fromString ("Click on (" ++ show globalx ++ "," ++ show globaly ++ ")") ) :: IO () ;
+      -- writeLog (S.fromString ("Click on (" ++ show globalx ++ "," ++ show globaly ++ ")") ) :: IO () ;
       -- Cleanup of old list
       deleteMenu "suggestionList"
       -- Create new list
       let selectedPath = take (length path + 1 - (count $ fromJust newClick)) path
-      writeLog (S.fromString ("Full path " ++ show path ++ " with selected path " ++ show selectedPath )) :: IO ()
+      -- writeLog (S.fromString ("Full path " ++ show path ++ " with selected path " ++ show selectedPath )) :: IO ()
+      writeLog (S.fromString $ "Get suggestions for path " ++ show selectedPath  ++ if extend then " extending" else "")
       let suggestions = getSuggestions (grammar ctx) (language ctx) (tree ctx) selectedPath extend depth
       sList <- newElem "div" `with` [ attr "id" =: "suggestionList",
                                       attr "class" =: "menu",
@@ -224,7 +225,7 @@ menuClickHandler elem context _ =
   do
     -- Don't propagate click any further, keeps menu from disappearing immediatelly
     stopPropagation
-    writeLog (S.fromString ("Click on menu") ) :: IO () ;
+    -- writeLog (S.fromString ("Click on menu") ) :: IO () ;
     x <- (getProp elem "offsetLeft") >>= (return . read) :: IO Int
     y <- (getProp elem "offsetTop")
     -- Cleanup of old list
@@ -249,13 +250,13 @@ suggestionClickHandler context path subTree _ =
   do
     -- Don't propagate click any further, keeps menu from disappearing immediatelly
     stopPropagation
-    writeLog (S.fromString ("Click on suggestion") ) :: IO () ;
+    -- writeLog (S.fromString ("Click on suggestion") ) :: IO () ;
     -- Cleanup of suggestion list
     deleteMenu "suggestionList"
     ctx <- readIORef context
     let oldTree = tree ctx
     let newTree = replaceNode (metaTree oldTree) path (metaTree subTree)
-    writeLog (S.fromString ("Trying to replace " ++ (show $ fromJust $ selectNode (metaTree oldTree) path ) ++ " in " ++ show (metaTree oldTree) ++ " at " ++ show path ++ " with " ++ (show $ metaTree subTree) )) :: IO () ;
+    -- writeLog (S.fromString ("Trying to replace " ++ (show $ fromJust $ selectNode (metaTree oldTree) path ) ++ " in " ++ show (metaTree oldTree) ++ " at " ++ show path ++ " with " ++ (show $ metaTree subTree) )) :: IO () ;
     writeIORef context (Ctx (grammar ctx) (language ctx) (makeMeta newTree) Nothing (totalClicks ctx + 1))
     when (makeMeta newTree == sampleTree)
       (do
