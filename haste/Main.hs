@@ -5,6 +5,7 @@ import Haste.Concurrent
 import Haste.Events hiding (Click)
 import qualified Haste.Events
 import Haste.Foreign
+import Haste.Binary(getBlobData,toUArray)
 
 import PGF
 import PGF.Internal hiding (depth)
@@ -15,11 +16,12 @@ import Muste.Grammar
 import Data.String as S
 import Data.Binary(decode)
 import Data.ByteString(fromUArray)
-import Haste.Binary(getBlobData,toUArray)
 import Data.List
 import Data.Set hiding (null,map)
 import Data.Maybe
 import Data.IORef
+
+import Control.Monad
 
 -- (Comment:9 (Item:6 this (Kind:5 pizza)) is (Quality:8 very (Quality:7 Italian)))
 -- Pred (This Pizza) (Very Italian)
