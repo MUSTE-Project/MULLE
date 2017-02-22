@@ -64,8 +64,8 @@ musteMain pgfGrammar =
     return ()
 
 -- Updates the click counter
-updateScore :: IORef Context -> IO ()
-updateScore context =
+drawScore :: IORef Context -> IO ()
+drawScore context =
   do
     Just score <- elemById "score"
     ctx <- readIORef context
@@ -224,7 +224,7 @@ suggestionClickHandler context path subTree _ =
     let newTree = replaceNode (metaTree oldTree) path (metaTree subTree)
     writeLog (S.fromString ("Trying to replace " ++ (show $ fromJust $ selectNode (metaTree oldTree) path ) ++ " in " ++ show (metaTree oldTree) ++ " at " ++ show path ++ " with " ++ (show $ metaTree subTree) )) :: IO () ;
     writeIORef context (Ctx (grammar ctx) (language ctx) (makeMeta newTree) Nothing (totalClicks ctx + 1))
-    updateScore context
+    drawScore context
     drawTree context
 
 menuHoverHandler :: Elem -> MouseData -> IO ()
