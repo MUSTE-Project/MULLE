@@ -23,18 +23,18 @@ import Data.IORef
 
 import Control.Monad
 
-sampleTree = MetaTTree (read "{Pred:(Item->Quality->Comment) {These:(Kind->Item) {Fish:Kind}} {Boring:Quality}}") empty
+sampleTree = (read "{Pred:(Item->Quality->Comment) {These:(Kind->Item) {Fish:Kind}} {Boring:Quality}}")
 sampleLang = "FoodsEng"
 -- (Comment:9 (Item:6 this (Kind:5 pizza)) is (Quality:8 very (Quality:7 Italian)))
 -- Pred (This Pizza) (Very Italian)
 --startTree = MetaTTree (read "{Pred:(Item->Quality->Comment) {This:(Kind->Item) {Pizza:Kind}} {Very:(Quality->Quality) {Italian:Quality}}}") empty --MetaTTree (TMeta wildCId) empty
-startTree = MetaTTree (read "{Pred:(Item->Quality->Comment) {These:(Kind->Item) {Fish:Kind}} {Italian:Quality}}") empty
+startTree = (read "{Pred:(Item->Quality->Comment) {These:(Kind->Item) {Fish:Kind}} {Italian:Quality}}")
 grammarFile = "Foods.pgf"
 depth = 3 -- why???
 editLang = "FoodsEng"
 
 -- Context info necessary for lots of stuff
-data Context = Ctx { grammar :: Grammar, language :: Language, tree :: MetaTTree, click :: Maybe Muste.Click, totalClicks :: Int}
+data Context = Ctx { grammar :: Grammar, language :: Language, tree :: TTree, click :: Maybe Muste.Click, totalClicks :: Int}
 
 -- Loads a pgf file from an url
 loadPGF :: String -> CIO PGF
@@ -245,7 +245,7 @@ menuClickHandler elem context _ =
     appendChild documentBody mList
     return ()
 
-suggestionClickHandler :: IORef Context -> Path -> MetaTTree -> MouseData -> IO ()
+suggestionClickHandler :: IORef Context -> Path -> TTree -> MouseData -> IO ()
 suggestionClickHandler context path subTree _ =
   do
     -- Don't propagate click any further, keeps menu from disappearing immediatelly
@@ -255,10 +255,10 @@ suggestionClickHandler context path subTree _ =
     deleteMenu "suggestionList"
     ctx <- readIORef context
     let oldTree = tree ctx
-    let newTree = replaceNode (metaTree oldTree) path (metaTree subTree)
+    let newTree = replaceNode oldTree path subTree
     -- writeLog (S.fromString ("Trying to replace " ++ (show $ fromJust $ selectNode (metaTree oldTree) path ) ++ " in " ++ show (metaTree oldTree) ++ " at " ++ show path ++ " with " ++ (show $ metaTree subTree) )) :: IO () ;
-    writeIORef context (Ctx (grammar ctx) (language ctx) (makeMeta newTree) Nothing (totalClicks ctx + 1))
-    when (makeMeta newTree == sampleTree)
+    writeIORef context (Ctx (grammar ctx) (language ctx) newTree Nothing (totalClicks ctx + 1))
+    when (newTree == sampleTree)
       (do
           Just score <- elemById "score"
           toggleClass score "won"

@@ -33,8 +33,8 @@ updateClick (Just (Click pos count)) newPos
   | pos == newPos = Just $ Click pos (count + 1)
   | otherwise = Just $ Click newPos 1
   
--- | The 'linearizeTree' function linearizes a MetaTTree to a list of tokens and pathes to the nodes that create it
-linearizeTree :: Grammar -> Language -> MetaTTree ->  [LinToken]
+-- | The 'linearizeTree' function linearizes a TTree to a list of tokens and pathes to the nodes that create it
+linearizeTree :: Grammar -> Language -> TTree ->  [LinToken]
 linearizeTree grammar lang tree = 
   let
     -- Convert the BracketedString to the list of string/path tuples
@@ -71,7 +71,7 @@ linearizeTree grammar lang tree =
       in
         deep tree bs
 
-    ttree = metaTree tree
+    ttree = tree
     ltree = ttreeToLTree ttree
     abstree = ttreeToGFAbsTree ttree
     pgfGrammar = pgf grammar
@@ -93,23 +93,23 @@ linearizeList debug positions list =
     --else unwords $ map (\(pos,(_,s)) -> "(" ++ show pos ++ ") " ++ s) extendedList
     unwords $ map (\(pos,(path,s)) -> conditionalString positions ("(" ++ show pos ++ ") ") ++ s ++ conditionalString debug (" " ++ show path)) extendedList
 
--- | The 'getNewTrees' function generates a set of related subtrees given a MetaTTree and a path
-getNewTrees :: Grammar -> Language -> MetaTTree -> Path -> Int -> S.Set MetaTTree
+-- | The 'getNewTrees' function generates a set of related subtrees given a TTree and a path
+getNewTrees :: Grammar -> Language -> TTree -> Path -> Int -> S.Set TTree
 getNewTrees grammar lang tree path depth =
   let
     subTree :: TTree
-    subTree = fromJust $ selectNode (metaTree tree) path
+    subTree = fromJust $ selectNode tree path
     -- Get category at path
     cat :: CId
     cat = getTreeCat subTree
     -- Generate Trees with same category
-    newSubTrees :: S.Set MetaTTree
+    newSubTrees :: S.Set TTree
     newSubTrees = generate grammar cat depth
   in
     newSubTrees
     
 -- | The 'treesToStrings' generates a list of strings based on the differences in similar trees
-treesToStrings :: Grammar -> Language -> [MetaTTree] -> [String]
+treesToStrings :: Grammar -> Language -> [TTree] -> [String]
 treesToStrings grammar lang trees =
   map (linearizeList False False . linearizeTree grammar lang) trees
 
@@ -133,10 +133,10 @@ preAndSuffix a b =
   in
     prefix a b [] []
     
-createSortedTreeList :: Grammar -> Language ->MetaTTree -> S.Set MetaTTree -> [MetaTTree]
+createSortedTreeList :: Grammar -> Language -> TTree -> S.Set TTree -> [TTree]
 createSortedTreeList grammar language tree trees =
   let
-     treeList :: [MetaTTree]
+     treeList :: [TTree]
      treeList = S.toList trees
      referenceLin :: [String]
      referenceLin = map snd $ linearizeTree grammar language tree
@@ -147,15 +147,21 @@ createSortedTreeList grammar language tree trees =
     map snd $ sortBy (\(a1,a2) (b1,b2) -> let la = linearizeTree grammar language a2 in let lb = linearizeTree grammar language b2 in compare b1 a1 <> compare (length la) (length lb) <> compare la lb) $ zip costList treeList
                                                         
   -- | The 'getSuggestions' function generates a list of similar subtrees given a tree and a position in the token list ordered by some measure
-getSuggestions :: Grammar -> Language -> MetaTTree -> Path -> Bool -> Int -> [(String, MetaTTree)]
+getSuggestions :: Grammar -> Language -> TTree -> Path -> Bool -> Int -> [(String, TTree)]
 getSuggestions grammar language tree path extend depth =
   let
     extension = if extend then 1 else 0
-    subTree = makeMeta $ fromJust $ selectNode (metaTree tree) path
+    subTree = fromJust $ selectNode tree path
     linSubTree = map snd $ linearizeTree grammar language subTree
-    nTrees = filter (\t -> ((length $ linearizeTree grammar language subTree) + extension) >= (length $ linearizeTree grammar language t)) $ createSortedTreeList grammar language subTree $ S.filter (not . hasMetas . metaTree ) $ getNewTrees grammar language tree path depth
+    nTrees = filter (\t -> ((length $ linearizeTree grammar language subTree) + extension) >= (length $ linearizeTree grammar language t)) $ createSortedTreeList grammar language subTree $ S.filter (not . hasMetas ) $ getNewTrees grammar language tree path depth
     suggestions = treesToStrings grammar language nTrees
   in
     -- Remove element if it is equal to the original tree or if it is bigger but has nothing in common (prefix and suffix empty)
     filter (\(a,_) -> let wa = words a in wa /= linSubTree && let (pre,suf) = preAndSuffix wa linSubTree in (length wa == length linSubTree || length wa > length linSubTree && length pre + length suf /= 0)) $ zip suggestions nTrees
 
+type PrecomputedTrees = [String] -- TODO
+
+precomputeTrees :: Grammar -> Language -> TTree -> PrecomputedTrees
+precomputeTrees grammar language tree = [] -- TODO
+suggestionFromPrecomputed :: PrecomputedTrees -> Click -> [(String,TTree)]
+suggestionFromPrecomputed pre click = [] -- TODO
