@@ -389,22 +389,31 @@ replaceNodeByMeta tree@(MetaTTree oldMetaTree oldSubTrees) path =
 maxPath :: Int -> TTree -> [Path]
 maxPath depth tree =
   let
-    paths = findPaths depth tree
+    paths = findLeafPaths depth tree
     maxLen = maximum (map length paths)
   in
     sort $ filter (\path -> length path == maxLen) paths
 
--- | The function 'findPaths' finds all paths to leaves that are no metas
-findPaths :: Int -> TTree -> [Path]
-findPaths 0 _ = [[]]
-findPaths _ (TNode _ _ []) = [[]]
-findPaths _ (TMeta _) = [[]]
-findPaths maxDepth (TNode _ _ trees) =
+-- | The function 'findPaths' finds all paths
+findPaths :: TTree -> [Path]
+findPaths (TMeta _) = []
+findPaths (TNode _ _ trees) =
+  let
+    current = [[n] | n <- [0 .. length trees - 1]]
+  in
+    current ++ (concat $ map (\(x,xs) -> map (x:) xs) $ zip (concat current) (map findPaths trees))
+    
+-- | The function 'findLeafPaths' finds all paths to leaves that are no metas
+findLeafPaths :: Int -> TTree -> [Path]
+findLeafPaths 0 _ = [[]]
+findLeafPaths _ (TNode _ _ []) = [[]]
+findLeafPaths _ (TMeta _) = [[]]
+findLeafPaths maxDepth (TNode _ _ trees) =
     let
         branches :: [(Pos, TTree)] -- List of branch positions and subtrees 
         branches = zip [0..(length trees)] trees
         relevantPaths :: [(Pos, [Path])] -- List of the maximum pathes of the subtrees for each branch that has not a meta as the next child
-        relevantPaths = map (\(p,t) -> (p,findPaths (maxDepth - 1) t))  (filter (\(_,t) -> case t of { TMeta _ -> False ; _ -> True }) branches)
+        relevantPaths = map (\(p,t) -> (p,findLeafPaths (maxDepth - 1) t))  (filter (\(_,t) -> case t of { TMeta _ -> False ; _ -> True }) branches)
         paths :: [Path] -- List of trees and pathes where the current positon is appended to the path
         paths = concatMap (\(p,ps) -> map (\s -> p:s) ps ) relevantPaths
     in
@@ -428,7 +437,7 @@ prune tree depth =
       let
         tree = head trees
         -- Find all possible paths in the first (possibly already pruned tree)
-        paths = findPaths depth (metaTree tree)
+        paths = findLeafPaths depth (metaTree tree)
       in
         case paths of {
           -- No pathes found -> prune at the root
@@ -446,17 +455,17 @@ prune tree depth =
   in
     Set.insert (makeMeta tree) (pruneTrees (makeMeta tree) [makeMeta tree] depth)
 
--- | The function 'getMetaLeaveCats' returns set of the categories of all meta leaves
-getMetaLeaveCats :: TTree -> Set CId
-getMetaLeaveCats (TMeta id) = Set.singleton id
-getMetaLeaveCats (TNode _ _ trees) = Set.unions $ map getMetaLeaveCats trees
+-- | The function 'getMetaLeafCats' returns set of the categories of all meta leaves
+getMetaLeafCats :: TTree -> Set CId
+getMetaLeafCats (TMeta id) = Set.singleton id
+getMetaLeafCats (TNode _ _ trees) = Set.unions $ map getMetaLeafCats trees
 
 -- | The function 'getMetaPaths' generates alist of all pathes to metas
 getMetaPaths :: TTree -> [(Path,CId)]
 getMetaPaths tree =
   let
     withPath :: TTree -> Path -> [(Path,CId)]
-    -- On a meta leave return the id and the path to it
+    -- On a meta leaf return the id and the path to it
     withPath (TMeta id) path = [(path,id)]
     withPath (TNode _ _ trees) path =
       let
@@ -517,7 +526,7 @@ extendTree grammar tree depth =
       sTrees = subTrees tree
       -- Get all meta-leaves ...
       metaLeaves :: Set CId
-      metaLeaves = getMetaLeaveCats mTree
+      metaLeaves = getMetaLeafCats mTree
       -- ... and grammar rules for them
       rules :: Set Rule
       rules = getRules grammar $ toList metaLeaves
