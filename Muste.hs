@@ -153,11 +153,21 @@ getSuggestions grammar language tree path extend depth =
     extension = if extend then 1 else 0
     subTree = fromJust $ selectNode tree path
     linSubTree = map snd $ linearizeTree grammar language subTree
-    nTrees = filter (\t -> ((length $ linearizeTree grammar language subTree) + extension) >= (length $ linearizeTree grammar language t)) $ createSortedTreeList grammar language subTree $ S.filter (not . hasMetas ) $ getNewTrees grammar language tree path depth
+    newTrees = getNewTrees grammar language tree path depth
+    filteredNewTrees = S.filter (not . hasMetas ) $ newTrees
+    sortedNewTrees = createSortedTreeList grammar language subTree filteredNewTrees
+    nTrees = filter (\t -> ((length $ linearizeTree grammar language subTree) + extension) >= (length $ linearizeTree grammar language t)) $ sortedNewTrees
     suggestions = treesToStrings grammar language nTrees
   in
     -- Remove element if it is equal to the original tree or if it is bigger but has nothing in common (prefix and suffix empty)
-    filter (\(a,_) -> let wa = words a in wa /= linSubTree && let (pre,suf) = preAndSuffix wa linSubTree in (length wa == length linSubTree || length wa > length linSubTree && length pre + length suf /= 0)) $ zip suggestions nTrees
+    filter (\(a,_) ->
+             let wa = words a in
+             wa /= linSubTree
+             &&
+             let (pre,suf) = preAndSuffix wa linSubTree in
+--             (length wa <= length linSubTree || (length wa > length linSubTree && length pre + length suf /= 0))) $ zip suggestions nTrees
+             length pre + length suf /= 0) $ zip suggestions nTrees
+
 
 type PrecomputedTrees = [String] -- TODO
 
