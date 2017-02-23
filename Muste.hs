@@ -118,20 +118,20 @@ preAndSuffix :: Eq a => [a] -> [a] -> ([a],[a])
 preAndSuffix [] _  = ([],[])
 preAndSuffix _  [] = ([],[])
 preAndSuffix a b =
-  let prefix :: Eq a => [a] -> [a] -> [a] -> [a] ->([a],[a])
-      prefix [] _ pre suf = (pre,suf)
-      prefix _ [] pre suf = (pre,suf)
-      prefix (a:resta) (b:restb) pre suf
-        | a == b = prefix resta restb (pre ++ [a]) suf
-        | otherwise = prefix resta restb pre (postfix (reverse (a:resta)) (reverse (b:restb)) [])
-      postfix :: Eq a => [a] -> [a] -> [a] -> [a]
-      postfix [] _ suf = suf
-      postfix _ [] suf = suf
-      postfix (a:resta) (b:restb) suf
-        | a == b = postfix resta restb (a:suf)
-        | otherwise = suf
+  let prefix :: Eq a => [a] -> [a] ->([a],[a])
+      prefix [] _ = ([],[])
+      prefix _ [] = ([],[])
+      prefix (a:resta) (b:restb)
+        | a == b = let (pre,suf) = prefix resta restb in (a:pre,suf)
+        | otherwise = ([],reverse $ postfix (reverse (a:resta)) (reverse (b:restb)))
+      postfix :: Eq a => [a] -> [a] -> [a]
+      postfix [] _ = []
+      postfix _ [] = []
+      postfix (a:resta) (b:restb)
+        | a == b = let suf = postfix resta restb in (a:suf)
+        | otherwise = []
   in
-    prefix a b [] []
+    prefix a b
     
 createSortedTreeList :: Grammar -> Language -> TTree -> S.Set TTree -> [TTree]
 createSortedTreeList grammar language tree trees =
