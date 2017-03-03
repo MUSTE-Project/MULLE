@@ -71,6 +71,33 @@ instance Show Rule where
   show (Function name funtype) =
     show name ++ " : " ++ show funtype ;
 
+-- | Monadic parser combinator to read a 'Rule'
+parsecRule :: Stream s m Char => ParsecT s u m (Rule,String)
+parsecRule =
+  let
+    id :: Stream s m Char => ParsecT s u m String
+    id = many $ noneOf ": "
+  in
+    do
+      i <- id
+      spaces
+      char ':'
+      spaces
+      (ft,rest) <- parsecFunType
+      return (Function (mkCId i) ft,rest)
+
+-- | A 'FunType' is in the Read class
+instance Read Rule where
+  readsPrec _ sType =
+    let
+      result = parse parsecRule "read" sType -- (NoType,[]) --readType sType
+  --      cats = fst result
+    in
+      case result of {
+        Left e -> error $ show e ;
+        Right (rule,rest) -> [(rule,rest)]
+        }  
+
 -- | Type 'Grammar' consists of a start categorie and a list of rules
 data Grammar = Grammar {
   startcat :: CId,
