@@ -13,15 +13,15 @@ startTree = (read "{Pred:(Item->Quality->Comment) {This:(Kind->Item) {Pizza:Kind
 grammarFile = "gf/Foods.pgf"
 depth = 3 -- why???
 
-debug = False
+defaultDebug = True
 
-handleSelection :: TTree -> Path -> [(String,TTree)] -> Int -> IO (Maybe Click, TTree)
-handleSelection tree path suggestions selection =
+handleSelection :: Bool -> TTree -> Path -> [(String,TTree)] -> Int -> IO (Maybe Click, TTree,Bool)
+handleSelection debug tree path suggestions selection =
   do
-    return (Nothing,replaceNode tree path (snd $ suggestions !! ( selection - 1)))
+    return (Nothing,replaceNode tree path (snd $ suggestions !! ( selection - 1)),debug)
     
-handleClick :: Grammar -> Language -> TTree -> [LinToken] -> Maybe Click -> Int -> IO (Maybe Click, TTree)
-handleClick grammar language tree wordList click clickPos =
+handleClick :: Bool ->Grammar -> Language -> TTree -> [LinToken] -> Maybe Click -> Int -> IO (Maybe Click, TTree,Bool)
+handleClick debug grammar language tree wordList click clickPos =
   do
     let newClick = fromJust $ updateClick click clickPos -- that should never be Nothing -> QuickCheck test for updateClick
     -- Compute the path given the click position and click count
@@ -41,9 +41,9 @@ handleClick grammar language tree wordList click clickPos =
     putStrLn "Just press Enter to go back"
     input <- getLine
     let selection = reads input :: ([(Int,String)])
-    (_,newTree) <- if (not $ null selection) && ((snd $ head selection) == "") then handleSelection tree path suggestions (fst $ head selection) else handleCommand tree click input 
+    (_,newTree,_) <- if (not $ null selection) && ((snd $ head selection) == "") then handleSelection debug tree path suggestions (fst $ head selection) else handleCommand debug tree click input 
 
-    return (Just newClick,newTree)
+    return (Just newClick,newTree,debug)
 
 -- | Takes the linearized old subtree and a new subtree to categorize as and insert, delete or replace
 printSuggestion :: [String] -> [String] -> String
@@ -62,16 +62,18 @@ printSuggestion oldWords newWords =
       -- GT -> "Remove " ++ (unwords $ take (length oldWords - (length pre + length suf)) $ drop (length pre)oldWords)
       GT -> "Remove " ++ getDiff oldWords newWords
       
-handleCommand :: TTree -> Maybe Click -> String -> IO (Maybe Click,TTree)
-handleCommand tree click command
-  | command == "" = do return (click,tree)
+handleCommand :: Bool -> TTree -> Maybe Click -> String -> IO (Maybe Click,TTree,Bool)
+handleCommand debug tree click command
+  | command == "" = do return (click,tree,debug)
+  | command == "debug" = do return (click,tree,not debug)
+  | command == "help" = do { putStrLn "Valid commands: quit, debug, help" ; return (click,tree,debug) }
   | command == "quit" = exitSuccess 
   | otherwise =
     do
       putStrLn "I don't know what you want from me"
-      return (click,tree)
-loop :: Grammar -> Language -> TTree -> Maybe Click -> IO TTree
-loop grammar language tree click =
+      return (click,tree,debug)
+loop :: Grammar -> Language -> Bool -> TTree -> Maybe Click -> IO TTree
+loop grammar language debug tree click =
   do
     -- Show the linearized tree
     let wordList = linearizeTree grammar language tree
@@ -82,14 +84,14 @@ loop grammar language tree click =
     input <- getLine
     let selection = reads input :: [(Int,String)]
     -- (newClick,newTree) <- if not $ null input && (snd $ head input) == "" then trace "1" $ handleClick grammar language tree wordList click (fst $ head input) else if null input then trace "2" $ handleCommand tree click "" else trace "3" $ handleCommand tree click (snd $ head input)
-    (newClick,newTree) <- if (not $ null selection) && ((snd $ head selection) == "") then handleClick grammar language tree wordList click (fst $ head selection) else handleCommand tree Nothing input
-    loop grammar language newTree newClick
+    (newClick,newTree,newDebug) <- if (not $ null selection) && ((snd $ head selection) == "") then handleClick debug grammar language tree wordList click (fst $ head selection) else handleCommand debug tree Nothing input
+    loop grammar language newDebug newTree newClick
   
 main =
   do
     -- load the grammar
     grammar <- pgfToGrammar <$> readPGF grammarFile
     -- modify the tree, use the first language in the grammar. no previous click
-    loop grammar (head $ languages $ pgf grammar) startTree Nothing 
+    loop grammar (head $ languages $ pgf grammar) defaultDebug startTree Nothing 
     return ()
   
