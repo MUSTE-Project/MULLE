@@ -19,7 +19,9 @@ instance Show FunType where
   show (Fun cat cats) =
     "(" ++ (foldl (\a b -> a ++ " -> " ++ show b) (show $ head cats) (tail cats) ++ " -> " ++ show cat) ++ ")"
   show NoType = "()"
-parsecFunType :: Stream s m Char => ParsecT s u m ([CId],String)
+
+-- | Monadic parser combinator to read a 'FunType'
+parsecFunType :: Stream s m Char => ParsecT s u m (FunType,String)
 parsecFunType =
   let
     bracketed :: Stream s m Char => ParsecT s u m [CId]
@@ -33,18 +35,20 @@ parsecFunType =
       spaces
       cids <- (bracketed <|> fmap (: []) id)
       rest <- many anyChar
-      return (cids,rest)
+      case cids of {
+        [] -> return (NoType,rest) ;
+        _ -> return (Fun (last cids) (init cids),rest)
+        }
+      
 -- | A 'FunType' is in the Read class
 instance Read FunType where
   readsPrec _ sType =
     let
-      result = parse parsecFunType "read" sType -- (NoType,[]) --readType sType
-  --      cats = fst result
+      result = parse parsecFunType "read" sType 
     in
       case result of {
         Left e -> error $ show e ;
-        Right ([],rest) -> [(NoType,rest)] ;
-        Right (cids,rest) -> [(Fun (last cids) (init cids),rest)]
+        Right (fun,rest) -> [(fun,rest)]
         }
 
 -- A 'FunType' can be generated randomly
