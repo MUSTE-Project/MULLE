@@ -1,11 +1,13 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {- | This Module is the internal implementation behind the module 'Muste.Grammar' -}
 module Muste.Grammar.Internal where
-import PGF
+import PGF hiding (parse)
 import PGF.Internal
 import Data.Maybe
 import Data.Set (Set(..),fromList)
 import Test.QuickCheck
+import Text.Parsec
 
 -- | Type 'FunType' consists of a CId that is the the result category and [CId] are the parameter categories
 data FunType = Fun CId [CId] | NoType deriving (Ord,Eq)
@@ -17,35 +19,33 @@ instance Show FunType where
   show (Fun cat cats) =
     "(" ++ (foldl (\a b -> a ++ " -> " ++ show b) (show $ head cats) (tail cats) ++ " -> " ++ show cat) ++ ")"
   show NoType = "()"
-
+parsecFunType :: Stream s m Char => ParsecT s u m ([CId],String)
+parsecFunType =
+  let
+    bracketed :: Stream s m Char => ParsecT s u m [CId]
+    bracketed = do { char '(' ; spaces ; fs <- many (do { i <- id ; f <- many fun; return (i:concat f)} ); spaces ; char ')' ; return $ concat fs }
+    id :: Stream s m Char => ParsecT s u m CId
+    id = do { i <- many1 $ noneOf "(->) "; return $ mkCId i }
+    fun :: Stream s m Char => ParsecT s u m [CId]
+    fun = do { spaces ; string "->" ; spaces ; i <- id ; spaces ; return [i] }
+  in
+    do
+      spaces
+      cids <- (bracketed <|> fmap (: []) id)
+      rest <- many anyChar
+      return (cids,rest)
 -- | A 'FunType' is in the Read class
 instance Read FunType where
   readsPrec _ sType =
     let
-      readType :: String -> ([CId],String)
-      readType (' ':rest) = readType rest
-      readType ('(':rest) = readType rest
-      readType (')':rest) = ([],rest)
-      readType ('-':'>':rest) =
-        let
-          result = readType rest
-        in
-          result
-      readType "" = ([],"")
-      readType rest =
-        let
-          result = readId rest
-        in
-          case result of {
-            Just r -> let more = readType $ snd r in (fst r:fst more, snd more) ;
-            _ -> ([],rest)
-            }
-      result = readType sType
-      cats = fst result
+      result = parse parsecFunType "read" sType -- (NoType,[]) --readType sType
+  --      cats = fst result
     in
-      case cats of {
-        [] -> [(NoType,snd result)] ; -- Empty Result
-        _ ->[(Fun (last cats) (init cats),snd result)] }
+      case result of {
+        Left e -> error $ show e ;
+        Right ([],rest) -> [(NoType,rest)] ;
+        Right (cids,rest) -> [(Fun (last cids) (init cids),rest)]
+        }
 
 -- A 'FunType' can be generated randomly
 instance Arbitrary FunType where
