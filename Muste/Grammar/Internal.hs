@@ -98,6 +98,15 @@ instance Read Rule where
         Right (rule,rest) -> [(rule,rest)]
         }  
 
+-- A 'FunType' can be generated randomly
+instance Arbitrary Rule where
+  arbitrary =
+    do
+      let ids = ['f'..'z']
+      id <- elements ids
+      funtype <- arbitrary 
+      return $ Function (mkCId [id]) funtype
+      
 -- | Type 'Grammar' consists of a start categorie and a list of rules
 data Grammar = Grammar {
   startcat :: CId,
