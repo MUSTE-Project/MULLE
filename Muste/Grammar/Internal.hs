@@ -182,13 +182,22 @@ getRuleCat :: Rule -> CId
 getRuleCat (Function _ funType) = getFunCat funType 
 
 -- | The function 'getRules' finds all rules in grammar that have a certain result category
-getRules :: Grammar -> [CId] -> Set Rule
-getRules grammar cats =
+getRulesSet :: Grammar -> [CId] -> Set Rule
+getRulesSet grammar cats =
     let
       rs = rules grammar
     in
       -- Convert rules from GF format to our only one
       fromList $ concatMap (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rs) cats
+
+-- | The function 'getRules' finds all rules in grammar that have a certain result category
+getRulesList :: Grammar -> [CId] -> [Rule]
+getRulesList grammar cats =
+    let
+      rs = rules grammar
+    in
+      -- Convert rules from GF format to our only one
+      concatMap (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rs) cats
 
 -- | The function 'pgfToGrammar' transforms a PGF grammar to a simpler grammar data structure
 pgfToGrammar :: PGF -> Grammar

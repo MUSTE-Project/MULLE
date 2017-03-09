@@ -456,9 +456,14 @@ findLeafPaths maxDepth (TNode _ _ trees) =
 --     Set.insert (makeMeta tree) (pruneTrees (makeMeta tree) [makeMeta tree] depth)
 
 -- | The function 'getMetaLeafCats' returns set of the categories of all meta leaves
-getMetaLeafCats :: TTree -> Set CId
-getMetaLeafCats (TMeta id) = Set.singleton id
-getMetaLeafCats (TNode _ _ trees) = Set.unions $ map getMetaLeafCats trees
+getMetaLeafCatsSet :: TTree -> Set CId
+getMetaLeafCatsSet (TMeta id) = Set.singleton id
+getMetaLeafCatsSet (TNode _ _ trees) = Set.unions $ map getMetaLeafCatsSet trees
+
+-- | The function 'getMetaLeafCats' returns set of the categories of all meta leaves
+getMetaLeafCatsList :: TTree -> [CId]
+getMetaLeafCatsList (TMeta id) = [id]
+getMetaLeafCatsList (TNode _ _ trees) = concat $ map getMetaLeafCatsList trees
 
 -- | The function 'getMetaPaths' generates alist of all pathes to metas
 getMetaPaths :: TTree -> [(Path,CId)]
@@ -490,8 +495,8 @@ applyRule tree (Function _ NoType) _ = tree -- No rule type, same tree
 applyRule tree rule [] = tree -- No path, same tree
 
 -- | The function 'combine' applies a 'Rule' to a 'TTree' generating all possible new meta trees, the depth parameter limits the search for metas to be replaced
-combine :: TTree -> Int -> Rule -> Set TTree
-combine tree depth rule =
+combineSet :: TTree -> Int -> Rule -> Set TTree
+combineSet tree depth rule =
   let
     ruleCat :: CId
     ruleCat = getRuleCat rule
@@ -516,17 +521,17 @@ extendTree grammar tree depth =
   let
       -- Get all meta-leaves ...
       metaLeaves :: Set CId
-      metaLeaves = getMetaLeafCats tree
+      metaLeaves = getMetaLeafCatsSet tree
       -- ... and grammar rules for them
       rules :: Set Rule
-      rules = getRules grammar $ toList metaLeaves
+      rules = getRulesSet grammar $ toList metaLeaves
   in
     -- Combine tree with the rules
-    Set.unions $ toList $ Set.map (combine tree depth) rules
+    Set.unions $ toList $ Set.map (combineSet tree depth) rules
 
 -- | The function 'generate' generates all possible 'TTree's with given root-category up to a maximum height
-generate :: Grammar -> CId -> Int -> Set TTree
-generate grammar cat depth =
+generateSet :: Grammar -> CId -> Int -> Set TTree
+generateSet grammar cat depth =
   let
     -- Filter all trees that cannot be extended either because they grow too big or have no free meta nodes
     filterTree :: Int -> TTree -> Bool
@@ -546,6 +551,70 @@ generate grammar cat depth =
         Set.union (Set.singleton tree) $ Set.union extended (loop activeTrees)
   in
     loop [TMeta cat]
+
+-- | The function 'combine' applies a 'Rule' to a 'TTree' generating all possible new meta trees, the depth parameter limits the search for metas to be replaced
+combineList :: TTree -> Int -> Rule -> [TTree]
+combineList tree depth rule =
+  let
+    ruleCat :: CId
+    ruleCat = getRuleCat rule
+    -- Find all meta-nodes that match the category of the rule
+    filteredMetas :: [(Path,CId)]
+    filteredMetas = filter (\(p,c) -> ruleCat == c && length p <= depth - 1) $ getMetaPaths tree
+    -- Generate all possible combinations (powerset)
+    pathesLists = powerList $ map fst filteredMetas
+  in
+    map (\pathes ->
+          let
+            -- Apply rule to the pathes and then split up the TTree into the main tree and the subtrees
+            newTree = applyRule tree rule pathes
+          in
+            newTree
+        ) pathesLists
+
+
+-- | The function 'extendTree' extends a 'TTree' by applying all applicable rules from a 'Grammar' once
+extendTreeList :: Grammar -> TTree -> Int -> [TTree]
+extendTreeList grammar tree depth =
+  let
+      -- Get all meta-leaves ...
+      metaLeaves :: [CId]
+      metaLeaves = getMetaLeafCatsList tree
+      -- ... and grammar rules for them
+      rules :: [Rule]
+      rules = getRulesList grammar metaLeaves
+  in
+    -- Combine tree with the rules
+    concatMap (combineList tree depth) rules
+
+    -- | The function 'generate' generates all possible 'TTree's with given root-category up to a maximum height
+generateListSimple :: Grammar -> CId -> Int -> [TTree]
+generateListSimple grammar cat depth =
+  let
+    -- Filter all trees that cannot be extended either because they grow too big or have no free meta nodes
+    filterTree :: Int -> TTree -> Bool
+    filterTree depth tree =
+       let
+         metaPaths = filter (\(p,c) -> length p <= depth - 1) $ getMetaPaths tree
+       in
+         not $ null metaPaths
+    -- Generate all trees
+    loop :: [TTree] -> [TTree]
+    loop [] = [] -- no more "active" trees
+    loop trees = 
+      let
+        extendedTrees = concatMap (\t -> extendTreeList grammar t depth) trees -- these are already part of the result
+      in
+        trace (show trees) $ nub $ trees ++ loop extendedTrees
+  in
+    loop [TMeta cat]
+
+generateListPGF :: Grammar -> CId -> Int -> [TTree]
+generateListPGF grammar startCat depth =
+  let
+    trees = generateAllDepth (pgf grammar) (fromJust $ readType $ showCId startCat) (Just depth)
+  in
+    map (gfAbsTreeToTTree $ pgf grammar) trees
     
 -- | The function 'computeCosts' computes the cost for matching trees. It is the sum of nodes in each of the trees plus the sum of the nodes in all deleted trees
 computeCosts :: TTree -> TTree -> [TTree] -> Cost
