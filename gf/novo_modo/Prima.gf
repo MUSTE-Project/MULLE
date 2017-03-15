@@ -1,0 +1,43 @@
+--# -path=/home/herb/src/own/GF-latin
+concrete Prima of PrimaAbs = CatLat ** open Prelude,ParadigmsLat,LexiconLat,StructuralLat,IrregLat,SentenceLat,NounLat,VerbLat,AdjectiveLat,ExtraLat,(R = ResLat),ConjunctionLat,TenseX in {
+  lin
+    externus_A = mkA "externus" ;
+    magnus_A = LexiconLat.big_A ;
+    multus_A = mkA "multus" ;
+    Romanus_A = mkA "Romanus" ;
+    saepe_Adv = mkAdv "saepe" ;
+    Caesar_N = (mkN "Caesar" "Caesaris" masculine) ;
+    civitas_N = mkN "civitas" "civitatis" feminine ;
+    Germanus_N = mkN "Germanus" ;
+    hostis_N = mkN "hostis" "hostis" masculine ;
+    imperator_N = mkN "imperator" "imperatoris" masculine ;
+    imperium_N = mkN "imperium" ;
+    provincia_N = mkN "provincia" ;
+    Augustus_PN = mkPN (mkN "Augustus") ;
+    Gallia_PN = mkPN (mkN "Gallia") ;
+    Africa_PN = mkPN (mkN "Africa") ;
+    dicere_V = mkV "dicere" "dico" "dixi" "dictum" ;
+    esse_V = be_V ;
+    devenire_V2 = mkV2 (mkV "devenire") R.Nom_Prep;
+    habere_V2 = StructuralLat.have_V2 ;
+    tenere_V2 = LexiconLat.hold_V2 ;
+    vincere_V2 = LexiconLat.win_V2 ;
+    he_PP = he_Pron ;
+    lesson1APfromA = PositA ;
+    lesson1APfromV2 v2 = PastPartAP (SlashV2a v2);
+    lesson1ClfromNPVP = PredVP ;
+    lesson1NPfromPN = UsePN ;
+    lesson1NPfromPron = UsePron ;
+    lesson1NPfromCNsg cn = DetCN (DetQuant IndefArt NumSg) cn ;
+    lesson1NPfromCNpl cn = DetCN (DetQuant IndefArt NumPl) cn ;
+    lesson1NPfromNPandNP np1 np2 = ConjNP and_Conj (BaseNP np1 np2) ;
+    lesson1CNfromN = UseN ;
+    lesson1CNfromAPCN a cn = (AdjCN a cn) ;
+    lesson1CNfromCNNP = ApposCN ;
+    lesson1VPfromV = UseV ;
+    lesson1VPfromV2NP v2 np = ComplSlash (SlashV2a v2) np ;
+    lesson1VPfromA a = UseComp (CompAP (PositA a)) ;
+    lesson1VPfromCN cn = UseComp (CompCN cn) ;
+    lesson1SfromCl = UseCl (TTAnt TPres ASimul) PPos ;
+    lesson1SfromAdvS = AdvS ;
+}
