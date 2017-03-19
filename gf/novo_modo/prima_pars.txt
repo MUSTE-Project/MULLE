@@ -1,26 +1,26 @@
 ps "imperium Romanum magnum est"
-p "imperium Romanum magnum est"
+p "imperium Romanum magnum est" | l -treebank
 ps "imperium imperatorem habet"
-p "imperium imperatorem habet"
+p "imperium imperatorem habet" | l -treebank
 ps "imperator imperium tenet"
-p "imperator imperium tenet"
+p "imperator imperium tenet" | l -treebank
 ps "Caesar Augustus imperator Romanus est"
-p "Caesar Augustus imperator Romanus est"
+p "Caesar Augustus imperator Romanus est" | l -treebank
 ps "imperium Romanum tenet"
-p "imperium Romanum tenet"
+p "imperium Romanum tenet" | l -treebank
 ps "multas civitates externas vincit"
-p "multas civitates externas vincit"
+p "multas civitates externas vincit" | l -treebank
 ps "saepe civitates victae provinciae deveniunt"
-p "saepe civitates victae provinciae deveniunt"
+p "saepe civitates victae provinciae deveniunt" | l -treebank
 ps "Gallia provincia Romana est"
-p "Gallia provincia Romana est"
+p "Gallia provincia Romana est" | l -treebank
 ps "Africa provincia Romana est"
-p "Africa provincia Romana est"
+p "Africa provincia Romana est" | l -treebank
 ps "Gallia et Africa provinciae Romanae sunt"
-p "Gallia et Africa provinciae Romanae sunt"
+p "Gallia et Africa provinciae Romanae sunt" | l -treebank
 ps "Germanus hostis est"
-p "Germanus hostis est"
+p "Germanus hostis est" | l -treebank
 ps "imperator Romanus dicit"
-p "imperator Romanus dicit"
+p "imperator Romanus dicit" | l -treebank
 ps "Germani hostes sunt"
-p "Germani hostes sunt"
+p "Germani hostes sunt" | l -treebank
