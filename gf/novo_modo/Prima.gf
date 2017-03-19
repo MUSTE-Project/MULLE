@@ -3,6 +3,16 @@ abstract Prima = Cat ** {
   flags
     startcat = S;
   fun
+    a_A : A ;
+    pn_PN : PN ;
+    n_N : N;
+    adv_Adv : Adv ;
+    v_V : V ;
+    v2_V2 : V2;
+    vp_VP : VP ;
+    np_NP : NP ;
+    ap_AP : AP ;
+    s_S : S ;
     externus_A : A ;
     magnus_A : A ;
     multus_A : A ;

@@ -1,9 +1,19 @@
 --# -path=/home/herb/src/own/GF-latin
 concrete PrimaEng of Prima =
   CatEng **
-  open LexiconEng, ParadigmsEng,GrammarEng in
+  open LexiconEng, ParadigmsEng,GrammarEng,ResEng,Prelude in
   {
   lin
+    a_A = { s = \\_ => "*Adjective" };
+    pn_PN = { s = \\_ => "*ProperName" ; g = Neutr } ;
+    n_N = { s = \\_,_ => "*Noun" ; g = Neutr } ;
+    adv_Adv = { s = "*Adverb" } ;
+    v_V = { s = \\_ => "*IntransitiveVerb" ; isRefl = False ; p = []} ;
+    v2_V2 = { s = \\_ => "*TransitiveVerb" ; isRefl = False ; p = [] ; c2 = [] } ;
+    ap_AP = { s = \\_ => "*AdjectivePhrase" ; isPre = True } ;
+    vp_VP = { s = \\_,_,_,_,_ => { adv = [] ; aux = [] ; fin = "*VerbPhrase" ; inf = "*VerbPhrase" } ; ad = \\_ => [] ; ext = [] ; inf = [] ; isSimple = True ; p = [] ; prp = [] ; ptp = [] ; s2 = \\_ => []} ;
+    np_NP = { s = \\_ => "*NounPhrase" ; a = AgP3Sg Neutr };
+    s_S = { s = "*Sentence" };
     externus_A = mkA "foreign" ;
     magnus_A = LexiconEng.big_A ;
     multus_A = mkA "many" ;
@@ -24,10 +34,10 @@ concrete PrimaEng of Prima =
     devenire_V2 = mkV2 (mkV "become") ;
     habere_V2 = have_V2 ;
     tenere_V2 = LexiconEng.hold_V2 ;
-    vincere_V2 = LexiconEng.win_V2 ;
+    vincere_V2 = mkV2 ( mkV "defeat" ) ;
     he_PP = he_Pron ;
     lesson1APfromA = PositA ;
---    lesson1APfromV2 v2 = PastPartAP (SlashV2a v2);
+    lesson1APfromV2 v2 = { s = \\_ => v2.s ! VPPart ; isPre = True } ; -- PastPartAP (SlashV2a v2);
     lesson1ClfromNPVP = PredVP ;
     lesson1NPfromPN = UsePN ;
     lesson1NPfromPron = UsePron ;
