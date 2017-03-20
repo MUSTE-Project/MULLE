@@ -10,46 +10,52 @@ import Test.QuickCheck
 import Text.Parsec
 
 -- | Type 'FunType' consists of a CId that is the the result category and [CId] are the parameter categories
-data FunType = Fun CId [CId] | NoType deriving (Ord,Eq)
+data FunType = Fun CId [CId] | NoType deriving (Ord,Eq,Show,Read)
 
 -- | A 'FunType' is in the Show class
-instance Show FunType where
-  show (Fun cat []) =
-    "(" ++ show cat ++ ")"
-  show (Fun cat cats) =
-    "(" ++ (foldl (\a b -> a ++ " -> " ++ show b) (show $ head cats) (tail cats) ++ " -> " ++ show cat) ++ ")"
-  show NoType = "()"
+-- instance Show FunType where
+--   show (Fun cat []) =
+--     "(" ++ show cat ++ ")"
+--   show (Fun cat cats) =
+--     "(" ++ (foldl (\a b -> a ++ " -> " ++ show b) (show $ head cats) (tail cats) ++ " -> " ++ show cat) ++ ")"
+--   show NoType = "()"
 
 -- | Monadic parser combinator to read a 'FunType'
-parsecFunType :: Stream s m Char => ParsecT s u m (FunType,String)
-parsecFunType =
-  let
-    bracketed :: Stream s m Char => ParsecT s u m [CId]
-    bracketed = do { char '(' ; spaces ; fs <- many (do { i <- id ; f <- many fun; return (i:concat f)} ); spaces ; char ')' ; return $ concat fs }
-    id :: Stream s m Char => ParsecT s u m CId
-    id = do { i <- many1 $ noneOf "(->) "; return $ mkCId i }
-    fun :: Stream s m Char => ParsecT s u m [CId]
-    fun = do { spaces ; string "->" ; spaces ; i <- id ; spaces ; return [i] }
-  in
-    do
-      spaces
-      cids <- (bracketed <|> fmap (: []) id)
-      rest <- many anyChar
-      case cids of {
-        [] -> return (NoType,rest) ;
-        _ -> return (Fun (last cids) (init cids),rest)
-        }
-      
+-- parsecFunType :: Stream s m Char => ParsecT s u m FunType
+-- parsecFunType =
+--   let
+--     bracketed :: Stream s m Char => ParsecT s u m [CId]
+--     bracketed = do { char '(' ; spaces ; fs <- many (do { i <- id ; f <- many fun; return (i:concat f)} ); spaces ; char ')' ; return $ concat fs }
+--     id :: Stream s m Char => ParsecT s u m CId
+--     id = do { i <- many1 $ noneOf "(->) "; return $ mkCId i }
+--     fun :: Stream s m Char => ParsecT s u m [CId]
+--     fun = do { spaces ; string "->" ; spaces ; i <- id ; spaces ; return [i] }
+--   in
+--     do
+--       spaces
+--       cids <- (bracketed <|> fmap (: []) id)
+--       case cids of {
+--         [] -> return NoType ; 
+--         _ -> return (Fun (last cids) (init cids)) 
+--         }
+
+-- parsecPlusRest :: Stream s m Char => ParsecT s u m a -> ParsecT s u m (a,String)
+-- parsecPlusRest parser =
+--   do
+--     elem <- parser
+--     rest <- many anyChar
+--     return (elem,rest)
+
 -- | A 'FunType' is in the Read class
-instance Read FunType where
-  readsPrec _ sType =
-    let
-      result = parse parsecFunType "read" sType 
-    in
-      case result of {
-        Left e -> error $ show e ;
-        Right (fun,rest) -> [(fun,rest)]
-        }
+-- instance Read FunType where
+--   readsPrec _ sType =
+--     let
+--       result = parse (parsecPlusRest parsecFunType) "read" sType 
+--     in
+--       case result of {
+--         Left e -> error $ show e ;
+--         Right (fun,rest) -> [(fun,rest)]
+--         }
 
 -- A 'FunType' can be generated randomly
 instance Arbitrary FunType where
@@ -64,39 +70,38 @@ instance Arbitrary FunType where
       charToString c = [c]
 
 -- | Type 'Rule' consists of a CId as the function name and a 'FunType' as the Type
-data Rule = Function CId FunType deriving (Ord,Eq)
+data Rule = Function CId FunType deriving (Ord,Eq,Show,Read)
 
 -- | A 'Rule' is member of the Show class
-instance Show Rule where
-  show (Function name funtype) =
-    show name ++ " : " ++ show funtype ;
+-- instance Show Rule where
+--   show (Function name funtype) =
+--     show name ++ " : " ++ show funtype ;
 
 -- | Monadic parser combinator to read a 'Rule'
-parsecRule :: Stream s m Char => ParsecT s u m (Rule,String)
-parsecRule =
-  let
-    id :: Stream s m Char => ParsecT s u m String
-    id = many $ noneOf ": "
-  in
-    do
-      i <- id
-      spaces
-      char ':'
-      spaces
-      (ft,rest) <- parsecFunType
-      return (Function (mkCId i) ft,rest)
+-- parsecRule :: Stream s m Char => ParsecT s u m (Rule,String)
+-- parsecRule =
+--   let
+--     id :: Stream s m Char => ParsecT s u m String
+--     id = many $ noneOf ": "
+--   in
+--     do
+--       i <- id
+--       spaces
+--       char ':'
+--       spaces
+--       (ft,rest) <- parsecPlusRest parsecFunType
+--       return (Function (mkCId i) ft,rest)
 
 -- | A 'FunType' is in the Read class
-instance Read Rule where
-  readsPrec _ sType =
-    let
-      result = parse parsecRule "read" sType -- (NoType,[]) --readType sType
-  --      cats = fst result
-    in
-      case result of {
-        Left e -> error $ show e ;
-        Right (rule,rest) -> [(rule,rest)]
-        }  
+-- instance Read Rule where
+--   readsPrec _ sType =
+--     let
+--       result = parse parsecRule "read" sType
+--     in
+--       case result of {
+--         Left e -> error $ show e ;
+--         Right (rule,rest) -> [(rule,rest)]
+--         }
 
 -- A 'FunType' can be generated randomly
 instance Arbitrary Rule where

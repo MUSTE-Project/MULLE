@@ -1,15 +1,18 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {- | This Module is the internal implementation behind the module 'Muste.Tree' -}
 module Muste.Tree.Internal where
-import PGF hiding (showType,checkType)
+import PGF hiding (showType,checkType,parse)
 import PGF.Internal hiding (showType)
 import Data.Maybe
 import Data.List
 import Data.Set (Set,toList,fromList,empty)
 import qualified Data.Set as Set
+import Data.Either
 import Data.Ord
 import Muste.Grammar.Internal
 import Debug.Trace
+import Text.Parsec
 
 -- | Generic class for trees
 class TreeC t where
@@ -34,7 +37,7 @@ type GFAbsTree = Tree
 -- | A generic tree with types
 data TTree = TNode CId FunType [TTree] -- Regular node consisting of a function name, function type and possible subtrees
            | TMeta CId -- A meta tree consisting just of a category type
-           deriving (Ord,Eq)
+           deriving (Ord,Eq,Show,Read)
 
 -- | A meta tree - tuple of a generic tree with types and a list of possibly attachable subtrees
 -- data MetaTTree = MetaTTree {
@@ -87,10 +90,10 @@ instance TreeC TTree where
     | otherwise = Just (trees !! i)
 
 -- | A generic 'TTree' with types is in the 'Show' class
-instance Show TTree where
-  show (TNode name typ []) = "{"++ show name ++ ":"  ++ show typ ++ "}";
-  show (TNode name typ children) = "{" ++ show name ++ ":" ++ show typ ++ " " ++ unwords ( map show children ) ++ "}"
-  show (TMeta cat) = "{?" ++ show cat ++ "}"
+-- instance Show TTree where
+--   show (TNode name typ []) = "{"++ show name ++ ":"  ++ show typ ++ "}";
+--   show (TNode name typ children) = "{" ++ show name ++ ":" ++ show typ ++ " " ++ unwords ( map show children ) ++ "}"
+--   show (TMeta cat) = "{?" ++ show cat ++ "}"
 
 -- | A 'MetaTTree' is in the 'Show' class
 -- instance Show MetaTTree where
@@ -99,11 +102,11 @@ instance Show TTree where
 --     ", [" ++ unwords (map show $ toList $ subTrees tree) ++ "])"
 
 -- | The function 'consumeChar' removes a given char at the start of a string if it matches
-consumeChar :: Char -> String -> String
-consumeChar _ [] = []
-consumeChar c str@(c1:rest)
-   | c == c1 = rest
-   | otherwise = str
+-- consumeChar :: Char -> String -> String
+-- consumeChar _ [] = []
+-- consumeChar c str@(c1:rest)
+--    | c == c1 = rest
+--    | otherwise = str
 
 -- | The function 'readFunType' is a read wrapper for a function type that returns just the first parse
 readFunType :: String -> Maybe (FunType,String)
@@ -148,65 +151,107 @@ fixTypes t@(TNode name typ trees) =
     TNode name newType newTrees
 fixTypes t = t
 
--- | The function 'readTree' is only a 'Read' wrapper for a 'TTree' type that returns just the first parse
-readTree  :: String -> Maybe (TTree,String)
-readTree str =
-  let
-    result = reads str
-  in
-    if null result then Nothing else Just $ head result
+-- parsecTTrees :: Stream s m Char => ParsecT s u m [TTree]
+-- parsecTTrees =
+--   many1 (trace "TTree" $ parsecTTree)
 
--- | The function 'readTrees' reads list of multiple 'TTree's
-readTrees :: String -> ([TTree],String)
-readTrees "" = ([],"")
-readTrees sTrees =
-  let
-    maybeTree = readTree $ consumeChar ' ' sTrees
-  in
-    case maybeTree of {
-      Just tree ->
-          let
-            more = readTrees $ snd tree
-          in
-            (fst tree:fst more, snd more) ;
-         Nothing -> ([],sTrees) -- trace (show sTrees) $ ([],sTrees)
-      }
+-- parsecTMeta :: Stream s m Char => ParsecT s u m TTree
+-- parsecTMeta =
+--   do
+--     char '?'
+--     id <- many1 $ noneOf "} "
+--     return (TMeta $ mkCId id)
+    
+-- parsecTNode :: Stream s m Char => ParsecT s u m (TTree)
+-- parsecTNode =
+--   do
+--     id <- many1 $ noneOf ":?} "
+--     spaces
+--     char ':'
+--     spaces
+--     typ <- trace "FunType" $ parsecFunType
+--     spaces
+--     trees <- trace "TTrees" $ parsecTTrees
+-- --    spaces
+--     return (TNode (mkCId id) typ [])
+
+-- parsecTTree :: Stream s m Char => ParsecT s u m TTree
+-- parsecTTree =
+--   do
+--     char '{'
+--     -- tree <- (trace "TMeta" $ parsecTMeta) <|> (trace "TNode" $ parsecTNode)
+--     tree <- parsecTNode <|> parsecTMeta
+--     char '}'
+--     spaces
+--     return tree
+    
+-- -- | The function 'readTree' is only a 'Read' wrapper for a 'TTree' type that returns just the first parse
+-- readTree  :: String -> Maybe (TTree,String)
+-- readTree str =
+--   let
+--     result = reads str
+--   in
+--     if null result then Nothing else Just $ head result
+
+-- -- | The function 'readTrees' reads list of multiple 'TTree's
+-- readTrees :: String -> ([TTree],String)
+-- readTrees "" = ([],"")
+-- readTrees sTrees =
+--   let
+--     maybeTree = readTree $ consumeChar ' ' sTrees
+--   in
+--     case maybeTree of {
+--       Just tree ->
+--           let
+--             more = readTrees $ snd tree
+--           in
+--             (fst tree:fst more, snd more) ;
+--          Nothing -> ([],sTrees) -- trace (show sTrees) $ ([],sTrees)
+--       }
 
 -- | A generic 'TTree' with types is in the 'Read' class
-instance Read TTree where
-  readsPrec _ sTree =
-    -- Trees start with a {
-    case consumeChar '{' sTree of
-    {
-      -- It is a meta
-      ('?':cat) -> let ids = reads cat in map (\(a,b) -> (TMeta a,consumeChar '}' b)) ids ;
-      -- or something else
-      rest ->
-        let
-          -- read the id
-          maybeId = readId rest
-        in
-          case maybeId of {
-            Just id ->
-                let
-                  -- read the type
-                  maybeType = readFunType $ consumeChar ':' $ snd id
-                in
-                  case maybeType of {
-                    Just typ ->
-                        let
-                          -- read the subtrees
-                          strees = consumeChar '{' $ consumeChar ' ' $ snd typ
-                          trees = readTrees strees
-                        in
-                          [(fixTypes (TNode (fst id) (fst typ) (fst trees)),consumeChar '}' (snd trees))] ;
-                    -- No type found
-                    Nothing -> [] -- trace ((++) "1:" $ show $ snd id) $ []
-                  } ;
-            -- No id found
-            Nothing -> [] --trace ((++) "2:" $ show rest) $ []
-          }
-    }
+-- instance Read TTree where
+--   readsPrec _ sTree =
+--     let
+--       result = parse (parsecPlusRest parsecTTree) "read" sTree
+--     in
+--       case result of {
+--         Left e -> error $ show e ;
+--         Right (fun,rest) -> [(fun,rest)]
+--         }
+-- -- Old Read
+-- --     -- Trees start with a {
+-- --     case consumeChar '{' sTree of
+-- --     {
+-- --       -- It is a meta
+-- --       ('?':cat) -> let ids = reads cat in map (\(a,b) -> (TMeta a,consumeChar '}' b)) ids ;
+-- --       -- or something else
+-- --       rest ->
+-- --         let
+-- --           -- read the id
+-- --           maybeId = readId rest
+-- --         in
+-- --           case maybeId of {
+-- --             Just id ->
+-- --                 let
+-- --                   -- read the type
+-- --                   maybeType = readFunType $ consumeChar ':' $ snd id
+-- --                 in
+-- --                   case maybeType of {
+-- --                     Just typ ->
+-- --                         let
+-- --                           -- read the subtrees
+-- --                           strees = consumeChar '{' $ consumeChar ' ' $ snd typ
+-- --                           trees = readTrees strees
+-- --                         in
+-- --                           [(fixTypes (TNode (fst id) (fst typ) (fst trees)),consumeChar '}' (snd trees))] ;
+-- --                     -- No type found
+-- --                     Nothing -> [] -- trace ((++) "1:" $ show $ snd id) $ []
+-- --                   } ;
+-- --             -- No id found
+-- --             Nothing -> [] --trace ((++) "2:" $ show rest) $ []
+-- --           }
+-- --     }
                  
 -- List-related functions
 -- | The function 'listReplace' replaces an element in a 'List' if the position exists
@@ -513,7 +558,6 @@ combineSet tree depth rule =
           in
             newTree
         ) pathesLists
-    
 
 -- | The function 'extendTree' extends a 'TTree' by applying all applicable rules from a 'Grammar' once
 extendTree :: Grammar -> TTree -> Int -> Set TTree
