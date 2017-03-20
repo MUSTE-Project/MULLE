@@ -22,16 +22,14 @@ import Data.Maybe
 import Data.IORef
 
 import Control.Monad
+-- lesson1SfromCl (lesson1ClfromNPVP (lesson1NPfromCNsg (lesson1CNfromCNNP (lesson1CNfromN Caesar_N) (lesson1NPfromPN Augustus_PN))) (lesson1VPfromV2NP vincere_V2 (lesson1NPfromPN Gallia_PN)))
 
-sampleTree = (read "{Pred:(Item->Quality->Comment) {These:(Kind->Item) {Fish:Kind}} {Boring:Quality}}")
-sampleLang = "FoodsEng"
--- (Comment:9 (Item:6 this (Kind:5 pizza)) is (Quality:8 very (Quality:7 Italian)))
--- Pred (This Pizza) (Very Italian)
---startTree = MetaTTree (read "{Pred:(Item->Quality->Comment) {This:(Kind->Item) {Pizza:Kind}} {Very:(Quality->Quality) {Italian:Quality}}}") empty --MetaTTree (TMeta wildCId) empty
-startTree = (read "{Pred:(Item->Quality->Comment) {These:(Kind->Item) {Fish:Kind}} {Italian:Quality}}")
-grammarFile = "Foods.pgf"
-depth = 3 -- why???
-editLang = "FoodsEng"
+sampleTree = (read "{lesson1SfromCl:(Cl->S) {lesson1ClfromNPVP:(NP->VP->Cl) {lesson1NPfromCNsg:(CN->NP) {lesson1CNfromCNNP:(CN->NP->CN) {lesson1CNfromN:(N->CN) {Caesar_N:N}} {lesson1NPfromPN:(PN->NP) {Augustus_PN:PN}}}} {lesson1VPfromV2NP:(V2->NP->VP) {vincere_V2:V2} {lesson1NPfromPN:(PN->NP) {Gallia_PN:NP}}}}")
+sampleLang = "PrimaEng"
+startTree = (read "{s_S:S}")
+grammarFile = "Prima.pgf"
+depth = 4 -- performance?
+editLang = "PrimaLat"
 
 -- Context info necessary for lots of stuff
 data Context = Ctx { grammar :: Grammar, language :: Language, tree :: TTree, click :: Maybe Muste.Click, totalClicks :: Int}
