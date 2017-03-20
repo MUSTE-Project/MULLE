@@ -43,13 +43,13 @@ loadPGF url =
      pgf <- case blob of {
        Left a -> error "AjaxError" ; 
        Right blob -> do
-           -- writeLog (S.fromString ("Loaded pgf as Blob "++url)) :: CIO ()
+           writeLog (S.fromString ("Loaded pgf as Blob "++url)) :: CIO ()
            blobdata <- getBlobData blob
-           -- writeLog $ toJSString "Got blobdata"
+           writeLog $ toJSString "Got blobdata"
            let bs = fromUArray (toUArray blobdata)
            return $ decode bs
         }
-       -- writeLog (S.fromString ("Loaded "++ show (abstractName pgf))) :: CIO ()
+     writeLog (S.fromString ("Loaded "++ show (abstractName pgf))) :: CIO ()
      return pgf
 
 -- Main function that sets up everything
@@ -57,6 +57,7 @@ musteMain :: PGF -> IO ()
 musteMain pgfGrammar =
   do
     -- Initialize Context
+    writeLog (S.fromString "Convert grammar")
     let grammar = pgfToGrammar pgfGrammar
     -- let language = head $ languages pgfGrammar
     -- modify the tree, use the first language in the grammar. no previous click
@@ -66,7 +67,9 @@ musteMain pgfGrammar =
     Just menu <- elemById "menuButton"
     onEvent menu Haste.Events.Click (menuClickHandler menu context)
     -- Print target tree
+    writeLog (S.fromString "Draw sample tree")
     drawSampleTree context
+    writeLog (S.fromString "Draw object tree")
     drawTree context
     return ()
 
