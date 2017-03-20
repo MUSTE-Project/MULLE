@@ -7,8 +7,6 @@ import Data.Maybe
 import System.Exit
 import Debug.Trace
 
--- (Comment:9 (Item:6 this (Kind:5 pizza)) is (Quality:8 very (Quality:7 Italian)))
--- Pred (This Pizza) (Very Italian)
 startTree = (read "{Pred:(Item->Quality->Comment) {This:(Kind->Item) {Pizza:Kind}} {Very:(Quality->Quality) {Italian:Quality}}}")
 grammarFile = "gf/Foods.pgf"
 depth = 3 -- why???
@@ -55,11 +53,8 @@ printSuggestion oldWords newWords =
         (unwords $ take (length d1 - (length pre + length suf))  $ drop (length pre) d1)
   in
     case compare (length oldWords) (length newWords) of
-      -- EQ -> "Replace " ++ (unwords oldWords) ++ " with " ++ (unwords newWords)
       EQ -> "Replace " ++ (getDiff oldWords newWords) ++ " with " ++ (getDiff newWords oldWords)
-      -- LT -> "Insert " ++ (unwords $ take (length newWords - (length pre + length suf))  $ drop (length pre) newWords)
       LT -> "Insert " ++ getDiff newWords oldWords
-      -- GT -> "Remove " ++ (unwords $ take (length oldWords - (length pre + length suf)) $ drop (length pre)oldWords)
       GT -> "Remove " ++ getDiff oldWords newWords
       
 handleCommand :: Bool -> TTree -> Maybe Click -> String -> IO (Maybe Click,TTree,Bool)
