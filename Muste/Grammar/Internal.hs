@@ -115,25 +115,29 @@ instance Arbitrary Rule where
 -- | Type 'Grammar' consists of a start categorie and a list of rules
 data Grammar = Grammar {
   startcat :: CId,
-  rules :: [Rule],
+  synrules :: [Rule],
+  lexrules :: [Rule],
   pgf :: PGF
   }
 
 -- | A 'Grammar' is in the EQ class
 instance Eq Grammar where
-  (==) g1@(Grammar s1 rs1 pgf1) g2@(Grammar s2 rs2 pgf2) =
+  (==) g1@(Grammar s1 rs1 ls1 pgf1) g2@(Grammar s2 rs2 ls2 pgf2) =
     s1 == s2 &&
-    rs1 == rs2
+    rs1 == rs2 &&
+    ls1 == ls2
     -- pgf1 == pgf2 -- To be fixed somehow
     
 -- | A 'Grammar' is in the Show class
 instance Show Grammar where
-  show (Grammar startcat rules _) =
+  show (Grammar startcat srules lrules _) =
     "Startcat: " ++ show startcat ++ "\nRules: \n" ++
-    unwords (map (\r -> "\t" ++ show r ++ "\n") rules)
+    unwords (map (\r -> "\t" ++ show r ++ "\n") srules)
+    ++
+    unwords (map (\r -> "\t" ++ show r ++ "\n") lrules)
 
 -- | Constant for an empty 'Grammar' in line with 'emptyPGF'
-emptyGrammar = Grammar wildCId [] emptyPGF
+emptyGrammar = Grammar wildCId [] [] emptyPGF
 
 -- | Predicate to check if a PGF is empty, i.e. when the absname is wildCId
 isEmptyPGF pgf = absname pgf == wildCId
@@ -190,7 +194,7 @@ getRuleCat (Function _ funType) = getFunCat funType
 getRulesSet :: Grammar -> [CId] -> Set Rule
 getRulesSet grammar cats =
     let
-      rs = rules grammar
+      rs = union (synrules grammar) (lexrules grammar)
     in
       -- Convert rules from GF format to our only one
       fromList $ concatMap (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rs) cats
@@ -199,7 +203,7 @@ getRulesSet grammar cats =
 getRulesList :: Grammar -> [CId] -> [Rule]
 getRulesList grammar cats =
     let
-      rs = rules grammar
+      rs = union (synrules grammar) (lexrules grammar)
     in
       -- Convert rules from GF format to our only one
       concatMap (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rs) cats
@@ -216,9 +220,11 @@ pgfToGrammar pgf
       funtypes = map (getFunType pgf) funs
       -- Combine to a rule
       rules = zipWith Function funs funtypes
+      -- Split in lexical and syntactical rules
+      (synrules,lexrules) = partition (\r -> case r of { Function _ (Fun _ []) -> True ; _ -> False } ) rules
       -- Get the startcat from the PGF
       (_, startcat, _) = unType (startCat pgf)
     in
-      Grammar startcat rules pgf
+      Grammar startcat synrules lexrules pgf
 
 
