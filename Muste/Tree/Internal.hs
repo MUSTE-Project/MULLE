@@ -568,7 +568,7 @@ extendTree grammar tree depth =
       metaLeaves = getMetaLeafCatsSet tree
       -- ... and grammar rules for them
       rules :: Set Rule
-      rules = getRulesSet grammar $ toList metaLeaves
+      rules = getRulesSet (getAllRules grammar) $ toList metaLeaves
   in
     -- Combine tree with the rules
     Set.unions $ toList $ Set.map (combineSet tree depth) rules
@@ -626,7 +626,7 @@ extendTreeList grammar tree depth =
       metaLeaves = getMetaLeafCatsList tree
       -- ... and grammar rules for them
       rules :: [Rule]
-      rules = getRulesList grammar metaLeaves
+      rules = getRulesList (getAllRules grammar) metaLeaves
   in
     -- Combine tree with the rules
     concatMap (combineList tree depth) rules
