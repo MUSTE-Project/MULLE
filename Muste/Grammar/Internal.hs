@@ -180,6 +180,14 @@ getFunType grammar id
         in
           Fun typeid cats
         }
+      
+getFunType2 :: Grammar -> CId -> FunType
+getFunType2 g id =
+  let
+    rules = filter (\r -> getRuleName r == id) $ getAllRules g
+  in
+    if not $ null rules then getRuleType $ head rules else NoType
+
 
 -- | The function 'getFunCat' extracts the result category from a function type
 getFunCat :: FunType -> CId
@@ -188,25 +196,31 @@ getFunCat _ = wildCId
 
 -- | The function 'getRuleCat' extracts the result category of a rule
 getRuleCat :: Rule -> CId
-getRuleCat (Function _ funType) = getFunCat funType 
+getRuleCat (Function _ funType) = getFunCat funType
+
+-- | The function 'getRuleName' extracts the name of a rule
+getRuleName :: Rule -> CId
+getRuleName (Function name _) = name 
+
+-- | The function 'getRuleType' extracts the full type of a rule
+getRuleType :: Rule -> FunType
+getRuleType (Function _ funType) = funType
 
 -- | The function 'getRules' finds all rules in grammar that have a certain result category
-getRulesSet :: Grammar -> [CId] -> Set Rule
-getRulesSet grammar cats =
-    let
-      rs = union (synrules grammar) (lexrules grammar)
-    in
-      -- Convert rules from GF format to our only one
-      fromList $ concatMap (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rs) cats
+getRulesSet :: [Rule] -> [CId] -> Set Rule
+getRulesSet rules cats =
+  -- Convert rules from GF format to our only one
+  fromList $ concatMap (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rules) cats
 
 -- | The function 'getRules' finds all rules in grammar that have a certain result category
-getRulesList :: Grammar -> [CId] -> [Rule]
-getRulesList grammar cats =
-    let
-      rs = union (synrules grammar) (lexrules grammar)
-    in
-      -- Convert rules from GF format to our only one
-      concatMap (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rs) cats
+getRulesList :: [Rule] -> [CId] -> [Rule]
+getRulesList rules cats =
+  -- Convert rules from GF format to our only one
+  concatMap (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rules) cats
+
+-- | The function 'getRules' returns the union of syntactic and lexical rules of a grammar
+getAllRules :: Grammar -> [Rule]
+getAllRules g = union (synrules g) (lexrules g)
 
 -- | The function 'pgfToGrammar' transforms a PGF grammar to a simpler grammar data structure
 pgfToGrammar :: PGF -> Grammar
