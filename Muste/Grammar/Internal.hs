@@ -3,11 +3,13 @@
 {- | This Module is the internal implementation behind the module 'Muste.Grammar' -}
 module Muste.Grammar.Internal where
 import PGF hiding (parse)
-import PGF.Internal
+import PGF.Internal hiding (nub)
 import Data.Maybe
 import Data.Set (Set(..),fromList)
 import Test.QuickCheck
 import Text.Parsec
+import Data.Char
+import Data.List
 
 -- | Type 'FunType' consists of a CId that is the the result category and [CId] are the parameter categories
 data FunType = Fun CId [CId] | NoType deriving (Ord,Eq,Show,Read)
