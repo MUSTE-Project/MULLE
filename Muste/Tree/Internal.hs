@@ -13,6 +13,7 @@ import Data.Ord
 import Muste.Grammar.Internal
 import Debug.Trace
 import Text.Parsec
+import Test.QuickCheck
 
 -- | Generic class for trees
 class TreeC t where
@@ -88,6 +89,82 @@ instance TreeC TTree where
   selectBranch (TNode _ _ trees) i
     | i < 0 || i >= length trees = Nothing
     | otherwise = Just (trees !! i)
+
+arbitraryGFAbsTree :: Grammar -> Int -> Gen GFAbsTree
+arbitraryGFAbsTree grammar depth =
+  let
+    closure :: Grammar -> Int -> GFAbsTree -> Gen GFAbsTree
+    closure grammar depth tree = return tree
+    -- case 1: only the start symbol => first expansion
+    -- case 2: tree that can still be expanded
+    -- case 3: complete tree of sufficient depth
+      -- | not $ hasMetas tree = return tree
+      -- | otherwise = return tree
+  in
+    do
+      let start = startcat grammar
+      closure grammar depth (mkApp start [])
+
+--   do
+--     let ids = ['a'..'z']
+--     id <- elements ids
+--     t1 <- arbitrary
+--     t2 <- arbitrary
+--     frequency [(3,return (EApp t1 t2)),(7,return (EFun $ mkCId [id]))]
+  
+-- | A GF abstract syntax tree with types is in Arbitrary class
+-- instance Arbitrary GFAbsTree where
+--   arbitrary =
+--     do
+--       g <- arbitrary
+--       arbitraryGFAbsTree g
+
+arbitraryTTree :: Grammar -> Int -> Gen TTree
+arbitraryTTree grammar depth =
+  let
+    closure :: Grammar -> Int -> TTree -> Gen TTree
+    closure grammar depth tree
+      | not $ hasMetas tree = return tree
+      | otherwise = 
+        do
+          -- get all metas
+          let metas = getMetaPaths tree
+          -- get one of the metas
+          (path,cat) <- elements metas
+          -- get all the rules for the meta category
+          let lrules = getRulesList (synrules grammar) [cat]
+          let srules = getRulesList (lexrules grammar) [cat]
+          -- prefer lexical rules
+          rules <- frequency [(8, return lrules), (2, return  srules)]
+          -- get one of the rules but handle the case that the preferred category is empty
+          -- here be dragons, but why?
+          rule <- elements $ if null rules then union lrules srules else rules
+          -- apply rule
+          let ntree = applyRule tree rule [path]
+          -- check tree for validity
+          if maxDepth ntree <= depth then closure grammar depth ntree else closure grammar depth tree
+  in
+    do
+      let start = TMeta (startcat grammar)
+      closure grammar depth start
+
+
+-- | A generic tree with types is in Arbitrary class
+instance Arbitrary TTree where
+  arbitrary =
+    do
+      g <- arbitrary
+      resize 5 $ sized $ arbitraryTTree g -- temporary resize
+
+prop_treeConversionIdentity :: Grammar -> TTree -> Gen Property
+prop_treeConversionIdentity g tree =
+  let
+    compatible grammar (TNode id typ ts) =
+      elem (Function id typ) (getAllRules g) && (and $ map (compatible grammar) ts)
+  in
+    do
+      --    tree <- arbitraryTTree g 5
+      return $ compatible g tree ==> ((gfAbsTreeToTTree2 g . ttreeToGFAbsTree) tree) == tree
 
 -- | A generic 'TTree' with types is in the 'Show' class
 -- instance Show TTree where

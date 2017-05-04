@@ -62,12 +62,12 @@ data FunType = Fun CId [CId] | NoType deriving (Ord,Eq,Show,Read)
 -- A 'FunType' can be generated randomly
 instance Arbitrary FunType where
   arbitrary =
-    frequency [(9,newFun),(1,return NoType)]
+    frequency [(9,sized newFun),(1,return NoType)]
     where
-      newFun = do
-        let ids = ['A'..'Z']
+      newFun len = do
+        let ids = ['A'..'E']
         cat <- elements ids
-        cats <- listOf $ elements ids
+        cats <- resize len $ listOf1 $ elements ids
         return $ Fun (mkCId [cat]) (map (mkCId . charToString) cats)
       charToString c = [c]
 
@@ -122,6 +122,20 @@ data Grammar = Grammar {
   pgf :: PGF
   }
 
+instance Arbitrary Grammar where
+  arbitrary =
+    do
+      -- generate list of rules
+      genrules <- fmap (filter (\f -> case f of { (Function _ NoType) -> False ; _ -> True })) $ listOf1 (resize 3 arbitrary)
+      let filterrules = nubBy (\(Function id1 _) (Function id2 _) -> id1 == id2 ) genrules
+      let rules = if not $ null filterrules then filterrules else [(Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A")]))]
+      -- select start category
+      let startCat = getRuleCat $ head rules
+      -- get all the cats on the rhss
+      let allCats = nub $ concat $ map (\(Function _ (Fun _ cats)) -> cats) rules
+      let lexRules = map (\c -> Function ((mkCId . map toLower . showCId) c) (Fun c [])) allCats
+      return $ Grammar startCat rules lexRules emptyPGF
+      
 -- | A 'Grammar' is in the EQ class
 instance Eq Grammar where
   (==) g1@(Grammar s1 rs1 ls1 pgf1) g2@(Grammar s2 rs2 ls2 pgf2) =
@@ -147,6 +161,22 @@ isEmptyPGF pgf = absname pgf == wildCId
 -- | Predicate to check if a Grammar is empty, i.e. when the startcat is wildCId and pgf is empty
 isEmptyGrammar grammar = startcat grammar == wildCId && isEmptyPGF (pgf grammar)
 
+prop_grammarLexRulesNotEmpty :: Grammar -> Property
+prop_grammarLexRulesNotEmpty g = property $ not $ null $ lexrules g
+
+prop_grammarSynRulesNotEmpty :: Grammar -> Property
+prop_grammarSynRulesNotEmpty g = property $ not $ null $ synrules g
+
+prop_grammarHasRulesForAllCats :: Grammar -> Property
+prop_grammarHasRulesForAllCats g =
+  let
+    test c =
+      property $ not $ null $ getRulesList (synrules g ++ lexrules g) [c]
+    cats = nub $ concat $ map (\(Function _ (Fun c cs)) -> c:cs) $ (synrules g ++ lexrules g)
+  in
+    (not $ isEmptyGrammar g) ==> conjoin (map test cats)
+  
+  
 -- | The function 'readId' is a helper to read a 'FunType'
 readId :: String -> Maybe (CId,String)
 -- Workaround for ? (used for unknown types)
@@ -190,6 +220,13 @@ getFunType2 g id =
   in
     if not $ null rules then getRuleType $ head rules else NoType
 
+prop_funTypeEquality :: PGF -> Property
+prop_funTypeEquality pgf =
+  let
+    grammar = pgfToGrammar pgf
+    funs = functions pgf
+  in
+    property $ and $ map (\f -> getFunType pgf f == getFunType2 grammar f) funs
 
 -- | The function 'getFunCat' extracts the result category from a function type
 getFunCat :: FunType -> CId
