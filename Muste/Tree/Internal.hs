@@ -377,6 +377,20 @@ gfAbsTreeToTTree pgf (EApp e1 e2) =
     TNode name typ (sts ++ [st2])
 gfAbsTreeToTTree pgf _ = TMeta wildCId
 
+gfAbsTreeToTTree2 :: Grammar -> GFAbsTree -> TTree
+gfAbsTreeToTTree2 g (EFun f) =
+  let
+    typ = getFunType2 g f
+  in
+    TNode f typ []
+gfAbsTreeToTTree2 g (EApp e1 e2) =
+  let
+    (TNode name typ sts) = gfAbsTreeToTTree2 g e1
+    st2 = gfAbsTreeToTTree2 g e2
+  in
+    TNode name typ (sts ++ [st2])
+gfAbsTreeToTTree2 _ _ = TMeta wildCId
+
 -- | Creates a GF abstract syntax Tree from a generic tree
 ttreeToGFAbsTree :: TTree -> GFAbsTree
 ttreeToGFAbsTree tree =
@@ -735,7 +749,8 @@ generateListPGF grammar startCat depth =
   let
     trees = generateAllDepth (pgf grammar) (fromJust $ readType $ showCId startCat) (Just depth)
   in
-    map (gfAbsTreeToTTree $ pgf grammar) trees
+--    map (gfAbsTreeToTTree $ pgf grammar) trees
+        map (gfAbsTreeToTTree2 grammar) trees
     
 -- | The function 'computeCosts' computes the cost for matching trees. It is the sum of nodes in each of the trees plus the sum of the nodes in all deleted trees
 computeCosts :: TTree -> TTree -> [TTree] -> Cost
