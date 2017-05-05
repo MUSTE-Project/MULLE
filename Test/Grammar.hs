@@ -16,20 +16,20 @@ import Data.Set (Set(..),empty,fromList)
 -- HUnit tests
 hunit_Eq_Grammar_eq_test =
   let
-    grammar1 = Grammar (mkCId "S")
+    grammar1 = Grammar "S"
       [
-        Function (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "B"]),
-        Function (mkCId "g") (Fun (mkCId "B") [mkCId "B",mkCId "C"]),
-        Function (mkCId "h") (Fun (mkCId "A") [mkCId "A",mkCId "A",mkCId "A"]),
-        Function (mkCId "s") (Fun (mkCId "S") [mkCId "A"])
+        Function "f" (Fun "A" ["A","B"]),
+        Function "g" (Fun "B" ["B","C"]),
+        Function "h" (Fun "A" ["A","A","A"]),
+        Function "s" (Fun "S" ["A"])
       ]
       [
-        Function (mkCId "a") (Fun (mkCId "A") []),
-        Function (mkCId "b") (Fun (mkCId "B") []),
-        Function (mkCId "c") (Fun (mkCId "C") [])
+        Function "a" (Fun "A" []),
+        Function "b" (Fun "B" []),
+        Function "c" (Fun "C" [])
       ]
       emptyPGF
-    grammar2 = Grammar (mkCId "A") [] [] emptyPGF
+    grammar2 = Grammar "A" [] [] emptyPGF
     pgf = readPGF "gf/ABCAbs.pgf"
     grammar3 = fmap pgfToGrammar pgf
   in
@@ -44,9 +44,9 @@ hunit_Eq_Grammar_eq_test =
 hunit_Show_FunType_show_test =
   let
     type1 = NoType
-    type2 = Fun (mkCId "A") []
-    type3 = Fun (mkCId "A") [mkCId "A"]
-    type4 = Fun (mkCId "A") [mkCId "A",mkCId "B"]
+    type2 = Fun "A" []
+    type3 = Fun "A" ["A"]
+    type4 = Fun "A" ["A","B"]
   in
     TestList [
     TestLabel "No Type" ( show type1 ~?= "()" ),
@@ -57,9 +57,9 @@ hunit_Show_FunType_show_test =
 
 hunit_Show_Rule_show_test =
   let
-    fun1 = Function (mkCId "f1") NoType
-    fun2 = Function (mkCId "f2") (Fun (mkCId "A") [])
-    fun3 = Function (mkCId "f3") (Fun (mkCId "A") [mkCId "A",mkCId "B"])
+    fun1 = Function "f1" NoType
+    fun2 = Function "f2" (Fun "A" [])
+    fun3 = Function "f3" (Fun "A" ["A","B"])
   in
     TestList [
     TestLabel "No Type" ( show fun1 ~?= "f1 : ()" ),
@@ -69,11 +69,11 @@ hunit_Show_Rule_show_test =
 
 hunit_Show_Grammar_show_test =
   let
-    grammar1 = Grammar (mkCId "S") [] [] emptyPGF
-    grammar2 = Grammar (mkCId "A")
+    grammar1 = Grammar "S" [] [] emptyPGF
+    grammar2 = Grammar "A"
       [
-        Function (mkCId "f1") (Fun (mkCId "A") [mkCId "A",mkCId "B"]),
-        Function (mkCId "f2") (Fun (mkCId "B") [mkCId "B",mkCId "B"])
+        Function "f1" (Fun "A" ["A","B"]),
+        Function "f2" (Fun "B" ["B","B"])
       ]
       []
       emptyPGF
@@ -87,13 +87,13 @@ hunit_Read_FunType_readsPrec_test =
   let
     str1 = "A"
     str2 = "(A)"
-    type1 = Fun (mkCId "A") []
+    type1 = Fun "A" []
     str3 = "A->B"
     str4 = "A -> B"
     str5 = "(A->B)"
     str6 = "(A -> B)"
     str7 = "( A -> B )"
-    type2 = Fun (mkCId "B") [mkCId "A"]
+    type2 = Fun "B" ["A"]
     str8 = ""
     str9 = "_"
     str10 = "###"
@@ -135,15 +135,15 @@ hunit_isEmptyPGF_test =
 
 hunit_isEmptyGrammar_test =
   let
-    grammar1 = Grammar (mkCId "S")
+    grammar1 = Grammar "S"
       [
-        Function (mkCId "f") (Fun (mkCId "S") [mkCId "A"]),
-        Function (mkCId "a") (Fun (mkCId "A") [])
+        Function "f" (Fun "S" ["A"]),
+        Function "a" (Fun "A" [])
       ]
       []
       emptyPGF
     pgf = readPGF "gf/ABCAbs.pgf"
-    grammar2 = fmap (Grammar wildCId [] []) pgf
+    grammar2 = fmap (Grammar wildCard [] []) pgf
   in
     TestList [
     TestLabel "Empty Grammar" (isEmptyGrammar emptyGrammar ~?= True),
@@ -194,33 +194,33 @@ hunit_getFunType_test =
   in
     TestList [
     TestLabel "Empty PGF" $ getFunType emptyPGF (mkCId "f") ~?= NoType,
-    TestLabel "Existing Constant" $ TestCase $ pgf >>= (\g -> getFunType g (mkCId "a") @?= Fun (mkCId "A") []),
-    TestLabel "Existing Function" $ TestCase $ pgf >>= (\g -> getFunType g (mkCId "f") @?= Fun (mkCId "A") [mkCId "A", mkCId "B"]),
+    TestLabel "Existing Constant" $ TestCase $ pgf >>= (\g -> getFunType g (mkCId "a") @?= Fun "A" [] ),
+    TestLabel "Existing Function" $ TestCase $ pgf >>= (\g -> getFunType g (mkCId "f") @?= Fun "A" ["A", "B"]),
     TestLabel "Non-Existing Function" $ TestCase $ pgf >>= (\g -> getFunType g (mkCId "foo") @?= NoType)
     ]
 
 hunit_getFunCat_test =
   TestList [
-  TestLabel "NoType" ( getFunCat NoType ~?= wildCId),
-  TestLabel "Constant" ( getFunCat (Fun (mkCId "A") []) ~?= mkCId "A"),
-  TestLabel "Constant" ( getFunCat (Fun (mkCId "A") [mkCId "A",mkCId "B"]) ~?= mkCId "A")
+  TestLabel "NoType" ( getFunCat NoType ~?= wildCard),
+  TestLabel "Constant" ( getFunCat (Fun "A" []) ~?= "A"),
+  TestLabel "Constant" ( getFunCat (Fun "A" ["A","B"]) ~?= "A")
   ]
 
 hunit_getRuleCat_test =
   TestList [
-  TestLabel "NoType" ( getRuleCat (Function (mkCId "f") NoType) ~?= wildCId),
-  TestLabel "Constant" ( getRuleCat (Function (mkCId "f") (Fun (mkCId "A") [])) ~?= mkCId "A"),
-  TestLabel "Constant" ( getRuleCat (Function (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "B"])) ~?= mkCId "A")
+  TestLabel "NoType" ( getRuleCat (Function "f" NoType) ~?= wildCard),
+  TestLabel "Constant" ( getRuleCat (Function "f" (Fun "A" [])) ~?= "A"),
+  TestLabel "Constant" ( getRuleCat (Function "f" (Fun "A" ["A","B"])) ~?= "A")
   ]
 
 hunit_getRules_test =
   let
-    rule1 = Function (mkCId "r1") (Fun (mkCId "A") [])
-    rule2 = Function (mkCId "r2") (Fun (mkCId "A") [mkCId "A"])
-    rule3 = Function (mkCId "r3") (Fun (mkCId "B") [mkCId "A"])
-    rule4 = Function (mkCId "r4") (Fun (mkCId "A") [mkCId "A",mkCId "A"])
-    rule5 = Function (mkCId "r5") NoType
-    grammar = Grammar (mkCId "S")
+    rule1 = Function "r1" (Fun "A" [])
+    rule2 = Function "r2" (Fun "A" ["A"])
+    rule3 = Function "r3" (Fun "B" ["A"])
+    rule4 = Function "r4" (Fun "A" ["A","A"])
+    rule5 = Function "r5" NoType
+    grammar = Grammar "S"
       [ rule1, rule2, rule3, rule4, rule5 ]
       []
       emptyPGF
@@ -228,26 +228,29 @@ hunit_getRules_test =
     TestList [
     TestLabel "Empty Grammar" ( getRulesSet (getAllRules emptyGrammar) [] ~?= empty),
     TestLabel "No categories" ( getRulesSet (getAllRules grammar) [] ~?= empty),
-    TestLabel "No match" ( getRulesSet (getAllRules grammar) [mkCId "Z"] ~?= empty),
-    TestLabel "One match" ( getRulesSet (getAllRules grammar) [mkCId "B"] ~?= fromList [rule3]),
-    TestLabel "Three matches" ( getRulesSet (getAllRules grammar) [mkCId "A"] ~?= fromList [rule1, rule2, rule4]),
-    TestLabel "All matches" ( getRulesSet (getAllRules grammar) [mkCId "A",mkCId "B",wildCId] ~?= fromList (getAllRules grammar))
+    TestLabel "No match" ( getRulesSet (getAllRules grammar) ["Z"] ~?= empty),
+    TestLabel "One match" ( getRulesSet (getAllRules grammar) ["B"] ~?= fromList [rule3]),
+    TestLabel "Three matches" ( getRulesSet (getAllRules grammar) ["A"] ~?= fromList [rule1, rule2, rule4]),
+    TestLabel "All matches" ( getRulesSet (getAllRules grammar) ["A","B",wildCard] ~?= fromList (getAllRules grammar))
     ]
     
 hunit_pgfToGrammar_test =
   let
     pgf = readPGF "gf/ABCAbs.pgf"
     grammar = fmap (Grammar
-      (mkCId "S")
-      [
-        Function (mkCId "a") (Fun (mkCId "A") []),
-        Function (mkCId "b") (Fun (mkCId "B") []),
-        Function (mkCId "c") (Fun (mkCId "C") []),
-        Function (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "B"]),
-        Function (mkCId "g") (Fun (mkCId "B") [mkCId "B",mkCId "C"]),
-        Function (mkCId "h") (Fun (mkCId "A") [mkCId "A",mkCId "A",mkCId "A"]),
-        Function (mkCId "s") (Fun (mkCId "S") [mkCId "A"])
-      ] []) pgf
+                    "S"
+                    [
+                      Function "f" (Fun "A" ["A","B"]),
+                      Function "g" (Fun "B" ["B","C"]),
+                      Function "h" (Fun "A" ["A","A","A"]),
+                      Function "s" (Fun "S" ["A"])
+                    ]
+                    [
+                      Function "a" (Fun "A" []),
+                      Function "b" (Fun "B" []),
+                      Function "c" (Fun "C" [])
+                    ]
+                   ) pgf
   in
     TestList [
     TestLabel "Non-empty PGF" $ TestCase $ join $ liftM2 (@?=) (fmap pgfToGrammar pgf ) grammar

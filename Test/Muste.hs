@@ -24,14 +24,14 @@ hunit_linearizeTree_test =
   let
     pgf = readPGF "gf/ABCAbs.pgf"
     grammar = fmap pgfToGrammar pgf
-    tree1 = TMeta (mkCId "A") -- MetaTTree (read "{?A}") empty
-    tree2 = TNode (mkCId "a") (Fun (mkCId "A") []) [] -- MetaTTree (read "{a:A}") empty
-    tree3 = TNode (mkCId "s") (Fun (mkCId "S") [(mkCId "A")]) [TNode (mkCId "a") (Fun (mkCId "A") []) []] -- MetaTTree (read "{s:(A->S) {a:A}}") empty
-    tree4 = TNode (mkCId "s") (Fun (mkCId "S") [(mkCId "A")]) [TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [TMeta (mkCId "A"), TNode (mkCId "b") (Fun (mkCId "B") []) []]] -- MetaTTree (read "{s:(A->S) {f:(A->B->A) {?A} {b:B}}}") empty
-    tree5 = TNode (mkCId "s") (Fun (mkCId "S") [(mkCId "A")]) [TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [TNode (mkCId "a") (Fun (mkCId "A") []) [],TMeta (mkCId "B")]] -- MetaTTree (read "{s:(A->S) {f:(A->B->A) {a:A} {?B}}}") empty
-    tree6 = TNode (mkCId "s") (Fun (mkCId "S") [(mkCId "A")]) [TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [TMeta (mkCId "A"),TMeta (mkCId "B")]] -- MetaTTree (read "{s:(A->S) {f:(A->B->A) {?A} {?B}}}") empty
-    tree7 = TNode (mkCId "s") (Fun (mkCId "S") [(mkCId "A")]) [TNode (mkCId "f") (Fun (mkCId "A") [(mkCId "A"),(mkCId "B")]) [TNode (mkCId "a") (Fun (mkCId "A") []) [], TNode (mkCId "b") (Fun (mkCId "B") []) []]] -- MetaTTree (read "{s:(A->S) {f:(A->B->A) {a:A} {b:B}}}") empty
-    tree8 = TNode (mkCId "s") (Fun (mkCId "S") [(mkCId "A")]) [TNode (mkCId "h") (Fun (mkCId "A") [(mkCId "A"),(mkCId "A"),(mkCId "A")]) [TNode (mkCId "a") (Fun (mkCId "A") []) [],TNode (mkCId "a") (Fun (mkCId "A") []) [],TNode (mkCId "a") (Fun (mkCId "A") []) []]] -- MetaTTree (read "{s:(A->S) {h:(A->A->A->A) {a:A} {a:A} {a:A}}}") empty
+    tree1 = TMeta "A" -- MetaTTree (read "{?A}") empty
+    tree2 = TNode "a" (Fun "A" []) [] -- MetaTTree (read "{a:A}") empty
+    tree3 = TNode "s" (Fun "S" ["A"]) [TNode "a" (Fun "A" []) []] -- MetaTTree (read "{s:(A->S) {a:A}}") empty
+    tree4 = TNode "s" (Fun "S" ["A"]) [TNode "f" (Fun "A" ["A","B"]) [TMeta "A", TNode "b" (Fun "B" []) []]] -- MetaTTree (read "{s:(A->S) {f:(A->B->A) {?A} {b:B}}}") empty
+    tree5 = TNode "s" (Fun "S" ["A"]) [TNode "f" (Fun "A" ["A","B"]) [TNode "a" (Fun "A" []) [],TMeta "B"]] -- MetaTTree (read "{s:(A->S) {f:(A->B->A) {a:A} {?B}}}") empty
+    tree6 = TNode "s" (Fun "S" ["A"]) [TNode "f" (Fun "A" ["A","B"]) [TMeta "A",TMeta "B"]] -- MetaTTree (read "{s:(A->S) {f:(A->B->A) {?A} {?B}}}") empty
+    tree7 = TNode "s" (Fun "S" ["A"]) [TNode "f" (Fun "A" ["A","B"]) [TNode "a" (Fun "A" []) [], TNode "b" (Fun "B" []) []]] -- MetaTTree (read "{s:(A->S) {f:(A->B->A) {a:A} {b:B}}}") empty
+    tree8 = TNode "s" (Fun "S" ["A"]) [TNode "h" (Fun "A" ["A","A","A"]) [TNode "a" (Fun "A" []) [],TNode "a" (Fun "A" []) [],TNode "a" (Fun "A" []) []]] -- MetaTTree (read "{s:(A->S) {h:(A->A->A->A) {a:A} {a:A} {a:A}}}") empty
   in
     TestList [
     TestLabel "Meta node" ( TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree1 @?= [([],"?0")]) ),
@@ -67,9 +67,9 @@ hunit_getNewTrees_test = -- TODO
   let
     pgfFile = readPGF "gf/ABCAbs.pgf"
     grammar = fmap pgfToGrammar pgfFile
-    tree1 = TMeta (mkCId "A")
+    tree1 = TMeta "A"
     path1 = []
-    tree2 = TNode (mkCId "a") (Fun (mkCId "A") []) []
+    tree2 = TNode "a" (Fun "A" []) []
   in
     TestList [
     TestLabel "Tree 2" (TestCase $ grammar >>= (\g -> getNewTreesSet g (head $ languages $ pgf g) tree1 path1 3 @?= empty) )

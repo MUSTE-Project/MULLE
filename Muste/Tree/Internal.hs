@@ -36,9 +36,9 @@ type Path = [Pos]
 type GFAbsTree = Tree
 
 -- | A generic tree with types
-data TTree = TNode CId FunType [TTree] -- Regular node consisting of a function name, function type and possible subtrees
-           | TMeta CId -- A meta tree consisting just of a category type
-           deriving (Ord,Eq,Show,Read)
+data TTree = TNode String FunType [TTree] -- Regular node consisting of a function name, function type and possible subtrees
+           | TMeta String -- A meta tree consisting just of a category type
+           deriving (Ord,Eq,Show,Read) -- read is broken at the moment, most likely because of the CId
 
 -- | A meta tree - tuple of a generic tree with types and a list of possibly attachable subtrees
 -- data MetaTTree = MetaTTree {
@@ -103,7 +103,7 @@ arbitraryGFAbsTree grammar depth =
   in
     do
       let start = startcat grammar
-      closure grammar depth (mkApp start [])
+      closure grammar depth (mkApp (mkCId start) [])
 
 --   do
 --     let ids = ['a'..'z']
@@ -197,13 +197,13 @@ readFunType str =
       }
 
 -- | The function 'getChildCats' extracts the root category of each childtree
-getChildCats :: TTree -> [CId]
+getChildCats :: TTree -> [String]
 getChildCats (TMeta _) = []
 getChildCats (TNode _ _ trees) =
   let
-    extract :: TTree -> CId
+    extract :: TTree -> String
     extract (TMeta cat) = cat
-    extract (TNode _ NoType _) = mkCId "?"
+    extract (TNode _ NoType _) = "?"
     extract (TNode _ (Fun cat _) _) = cat
   in
     map extract trees
@@ -219,7 +219,7 @@ fixTypes :: TTree -> TTree
 fixTypes t@(TNode name typ trees) =
   let
     newType = case typ of {
-      NoType -> Fun (mkCId "?") []; -- No type at all
+      NoType -> Fun "?" []; -- No type at all
       (Fun cat []) -> Fun cat (getChildCats t); -- No type info for the subtrees -> Copy categories
       f@(Fun cat _) -> f -- Already typed -> Do nothing
       }
@@ -354,11 +354,11 @@ isMeta (TMeta _) = True
 isMeta _ = False
 
 -- | The function 'getTreeCat' gives the root category of a 'TTree', returns 'wildCId' on missing type
-getTreeCat :: TTree -> CId
+getTreeCat :: TTree -> String
 getTreeCat (TNode id typ _) =
   case typ of {
     (Fun cat _) -> cat ;
-    NoType -> wildCId
+    NoType -> wildCard
     }
 getTreeCat (TMeta cat) = cat
 
@@ -368,28 +368,28 @@ gfAbsTreeToTTree pgf (EFun f) =
   let
     typ = getFunType pgf f
   in
-    TNode f typ []
+    TNode (showCId f) typ []
 gfAbsTreeToTTree pgf (EApp e1 e2) =
   let
     (TNode name typ sts) = gfAbsTreeToTTree pgf e1
     st2 = gfAbsTreeToTTree pgf e2
   in
     TNode name typ (sts ++ [st2])
-gfAbsTreeToTTree pgf _ = TMeta wildCId
+gfAbsTreeToTTree pgf _ = TMeta wildCard
 
 gfAbsTreeToTTree2 :: Grammar -> GFAbsTree -> TTree
 gfAbsTreeToTTree2 g (EFun f) =
   let
-    typ = getFunType2 g f
+    typ = getFunType2 g (showCId f)
   in
-    TNode f typ []
+    TNode (showCId f) typ []
 gfAbsTreeToTTree2 g (EApp e1 e2) =
   let
     (TNode name typ sts) = gfAbsTreeToTTree2 g e1
     st2 = gfAbsTreeToTTree2 g e2
   in
     TNode name typ (sts ++ [st2])
-gfAbsTreeToTTree2 _ _ = TMeta wildCId
+gfAbsTreeToTTree2 _ _ = TMeta wildCard
 
 -- | Creates a GF abstract syntax Tree from a generic tree
 ttreeToGFAbsTree :: TTree -> GFAbsTree
@@ -409,7 +409,7 @@ ttreeToGFAbsTree tree =
       let
         (nid,nts) = loop ns id
       in
-        (nid,mkApp name nts)
+        (nid,mkApp (mkCId name) nts)
   in
     snd $ convert tree 0
 
@@ -418,9 +418,9 @@ ttreeToLTree :: TTree -> LTree
 ttreeToLTree tree =
   let
     -- Convert structure without caring about labels
-    convert (TMeta cat) = LNode cat (-1) [LNode (mkCId "_") (-1) [LLeaf]]
-    convert (TNode _ (Fun cat _) []) = LNode cat (-1) []
-    convert (TNode _ (Fun cat _) ts) = LNode cat (-1) (map convert ts)
+    convert (TMeta cat) = LNode (mkCId cat) (-1) [LNode (mkCId "_") (-1) [LLeaf]]
+    convert (TNode _ (Fun cat _) []) = LNode (mkCId cat) (-1) []
+    convert (TNode _ (Fun cat _) ts) = LNode (mkCId cat) (-1) (map convert ts)
     -- Update the labels in a tree
     update :: Int -> LTree -> (Int, LTree)
     update pos LLeaf = (pos, LLeaf)
@@ -592,20 +592,20 @@ findLeafPaths maxDepth (TNode _ _ trees) =
 --     Set.insert (makeMeta tree) (pruneTrees (makeMeta tree) [makeMeta tree] depth)
 
 -- | The function 'getMetaLeafCats' returns set of the categories of all meta leaves
-getMetaLeafCatsSet :: TTree -> Set CId
+getMetaLeafCatsSet :: TTree -> Set String
 getMetaLeafCatsSet (TMeta id) = Set.singleton id
 getMetaLeafCatsSet (TNode _ _ trees) = Set.unions $ map getMetaLeafCatsSet trees
 
 -- | The function 'getMetaLeafCats' returns set of the categories of all meta leaves
-getMetaLeafCatsList :: TTree -> [CId]
+getMetaLeafCatsList :: TTree -> [String]
 getMetaLeafCatsList (TMeta id) = [id]
 getMetaLeafCatsList (TNode _ _ trees) = concat $ map getMetaLeafCatsList trees
 
 -- | The function 'getMetaPaths' generates alist of all pathes to metas
-getMetaPaths :: TTree -> [(Path,CId)]
+getMetaPaths :: TTree -> [(Path,String)]
 getMetaPaths tree =
   let
-    withPath :: TTree -> Path -> [(Path,CId)]
+    withPath :: TTree -> Path -> [(Path,String)]
     -- On a meta leaf return the id and the path to it
     withPath (TMeta id) path = [(path,id)]
     withPath (TNode _ _ trees) path =
@@ -634,10 +634,10 @@ applyRule tree rule [] = tree -- No path, same tree
 combineSet :: TTree -> Int -> Rule -> Set TTree
 combineSet tree depth rule =
   let
-    ruleCat :: CId
+    ruleCat :: String
     ruleCat = getRuleCat rule
     -- Find all meta-nodes that match the category of the rule
-    filteredMetas :: [(Path,CId)]
+    filteredMetas :: [(Path,String)]
     filteredMetas = filter (\(p,c) -> ruleCat == c && length p <= depth - 1) $ getMetaPaths tree
     -- Generate all possible combinations (powerset)
     pathesLists = powerList $ map fst filteredMetas
@@ -655,7 +655,7 @@ extendTree :: Grammar -> TTree -> Int -> Set TTree
 extendTree grammar tree depth =
   let
       -- Get all meta-leaves ...
-      metaLeaves :: Set CId
+      metaLeaves :: Set String
       metaLeaves = getMetaLeafCatsSet tree
       -- ... and grammar rules for them
       rules :: Set Rule
@@ -665,7 +665,7 @@ extendTree grammar tree depth =
     Set.unions $ toList $ Set.map (combineSet tree depth) rules
 
 -- | The function 'generate' generates all possible 'TTree's with given root-category up to a maximum height
-generateSet :: Grammar -> CId -> Int -> Set TTree
+generateSet :: Grammar -> String -> Int -> Set TTree
 generateSet grammar cat depth =
   let
     -- Filter all trees that cannot be extended either because they grow too big or have no free meta nodes
@@ -691,10 +691,10 @@ generateSet grammar cat depth =
 combineList :: TTree -> Int -> Rule -> [TTree]
 combineList tree depth rule =
   let
-    ruleCat :: CId
+    ruleCat :: String
     ruleCat = getRuleCat rule
     -- Find all meta-nodes that match the category of the rule
-    filteredMetas :: [(Path,CId)]
+    filteredMetas :: [(Path,String)]
     filteredMetas = filter (\(p,c) -> ruleCat == c && length p <= depth - 1) $ getMetaPaths tree
     -- Generate all possible combinations (powerset)
     pathesLists = powerList $ map fst filteredMetas
@@ -713,7 +713,7 @@ extendTreeList :: Grammar -> TTree -> Int -> [TTree]
 extendTreeList grammar tree depth =
   let
       -- Get all meta-leaves ...
-      metaLeaves :: [CId]
+      metaLeaves :: [String]
       metaLeaves = getMetaLeafCatsList tree
       -- ... and grammar rules for them
       rules :: [Rule]
@@ -723,7 +723,7 @@ extendTreeList grammar tree depth =
     concatMap (combineList tree depth) rules
 
     -- | The function 'generate' generates all possible 'TTree's with given root-category up to a maximum height
-generateListSimple :: Grammar -> CId -> Int -> [TTree]
+generateListSimple :: Grammar -> String -> Int -> [TTree]
 generateListSimple grammar cat depth =
   let
     -- Filter all trees that cannot be extended either because they grow too big or have no free meta nodes
@@ -761,7 +761,7 @@ combineTrees :: TTree -> [TTree] -> [TTree]
 combineTrees generatedTree [] = [generatedTree]
 combineTrees generatedTree subTrees =
   let
-    translateCategoriesToSubTrees :: [(Path,CId)] -> [TTree] -> [[(Path,TTree)]]
+    translateCategoriesToSubTrees :: [(Path,String)] -> [TTree] -> [[(Path,TTree)]]
     translateCategoriesToSubTrees [] _ = []
     translateCategoriesToSubTrees _ [] = []
     translateCategoriesToSubTrees ps ts =
@@ -779,7 +779,7 @@ combineTrees generatedTree subTrees =
                       else t)
                 $ zip tsts tcts
               ) :: [[TTree]]
-          combine :: [(Path,CId)] -> [[TTree]] -> [TTree] -> [[(Path,TTree)]]
+          combine :: [(Path,String)] -> [[TTree]] -> [TTree] -> [[(Path,TTree)]]
           combine [(p,_)] [ts] _ =
             let tmp = map (\t -> [(p,t)]) ts
             in if null tmp then [[]] else tmp -- list shall not be empty at the end

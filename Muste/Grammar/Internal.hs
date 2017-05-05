@@ -11,8 +11,10 @@ import Text.Parsec
 import Data.Char
 import Data.List
 
--- | Type 'FunType' consists of a CId that is the the result category and [CId] are the parameter categories
-data FunType = Fun CId [CId] | NoType deriving (Ord,Eq,Show,Read)
+wildCard = "*empty*"
+
+-- | Type 'FunType' consists of a String that is the the result category and [String] are the parameter categories
+data FunType = Fun String [String] | NoType deriving (Ord,Eq,Show,Read)
 
 -- | A 'FunType' is in the Show class
 -- instance Show FunType where
@@ -68,11 +70,11 @@ instance Arbitrary FunType where
         let ids = ['A'..'E']
         cat <- elements ids
         cats <- resize len $ listOf1 $ elements ids
-        return $ Fun (mkCId [cat]) (map (mkCId . charToString) cats)
+        return $ Fun [cat] (map charToString cats)
       charToString c = [c]
 
--- | Type 'Rule' consists of a CId as the function name and a 'FunType' as the Type
-data Rule = Function CId FunType deriving (Ord,Eq,Show,Read)
+-- | Type 'Rule' consists of a String as the function name and a 'FunType' as the Type
+data Rule = Function String FunType deriving (Ord,Eq,Show,Read)
 
 -- | A 'Rule' is member of the Show class
 -- instance Show Rule where
@@ -112,11 +114,11 @@ instance Arbitrary Rule where
       let ids = ['f'..'z']
       id <- elements ids
       funtype <- arbitrary 
-      return $ Function (mkCId [id]) funtype
+      return $ Function [id] funtype
       
 -- | Type 'Grammar' consists of a start categorie and a list of rules
 data Grammar = Grammar {
-  startcat :: CId,
+  startcat :: String,
   synrules :: [Rule],
   lexrules :: [Rule],
   pgf :: PGF
@@ -128,12 +130,12 @@ instance Arbitrary Grammar where
       -- generate list of rules
       genrules <- fmap (filter (\f -> case f of { (Function _ NoType) -> False ; _ -> True })) $ listOf1 (resize 3 arbitrary)
       let filterrules = nubBy (\(Function id1 _) (Function id2 _) -> id1 == id2 ) genrules
-      let rules = if not $ null filterrules then filterrules else [(Function (mkCId "f") (Fun (mkCId "A") [(mkCId "A")]))]
+      let rules = if not $ null filterrules then filterrules else [(Function "f" (Fun "A" ["A"]))]
       -- select start category
       let startCat = getRuleCat $ head rules
       -- get all the cats on the rhss
-      let allCats = nub $ concat $ map (\(Function _ (Fun _ cats)) -> cats) rules
-      let lexRules = map (\c -> Function ((mkCId . map toLower . showCId) c) (Fun c [])) allCats
+      let allCats = nub $ concat $ map (\(Function _ (Fun _ cats)) -> cats) rules -- Problematic
+      let lexRules = map (\c -> Function (map toLower c) (Fun c [])) allCats
       return $ Grammar startCat rules lexRules emptyPGF
       
 -- | A 'Grammar' is in the EQ class
@@ -153,13 +155,13 @@ instance Show Grammar where
     unwords (map (\r -> "\t" ++ show r ++ "\n") lrules)
 
 -- | Constant for an empty 'Grammar' in line with 'emptyPGF'
-emptyGrammar = Grammar wildCId [] [] emptyPGF
+emptyGrammar = Grammar wildCard [] [] emptyPGF
 
 -- | Predicate to check if a PGF is empty, i.e. when the absname is wildCId
 isEmptyPGF pgf = absname pgf == wildCId
 
 -- | Predicate to check if a Grammar is empty, i.e. when the startcat is wildCId and pgf is empty
-isEmptyGrammar grammar = startcat grammar == wildCId && isEmptyPGF (pgf grammar)
+isEmptyGrammar grammar = startcat grammar == wildCard && isEmptyPGF (pgf grammar)
 
 prop_grammarLexRulesNotEmpty :: Grammar -> Property
 prop_grammarLexRulesNotEmpty g = property $ not $ null $ lexrules g
@@ -210,10 +212,10 @@ getFunType grammar id
           (hypos,typeid,exprs) = unType t
           cats = map (\(_,_,DTyp _ cat _) -> cat) hypos
         in
-          Fun typeid cats
+          Fun (showCId typeid) (map showCId cats)
         }
       
-getFunType2 :: Grammar -> CId -> FunType
+getFunType2 :: Grammar -> String -> FunType
 getFunType2 g id =
   let
     rules = filter (\r -> getRuleName r == id) $ getAllRules g
@@ -226,33 +228,33 @@ prop_funTypeEquality pgf =
     grammar = pgfToGrammar pgf
     funs = functions pgf
   in
-    property $ and $ map (\f -> getFunType pgf f == getFunType2 grammar f) funs
+    property $ and $ map (\f -> getFunType pgf f == getFunType2 grammar (showCId f)) funs
 
 -- | The function 'getFunCat' extracts the result category from a function type
-getFunCat :: FunType -> CId
+getFunCat :: FunType -> String
 getFunCat (Fun cat _) = cat
-getFunCat _ = wildCId
+getFunCat _ = wildCard
 
 -- | The function 'getRuleCat' extracts the result category of a rule
-getRuleCat :: Rule -> CId
+getRuleCat :: Rule -> String
 getRuleCat (Function _ funType) = getFunCat funType
 
 -- | The function 'getRuleName' extracts the name of a rule
-getRuleName :: Rule -> CId
-getRuleName (Function name _) = name 
+getRuleName :: Rule -> String
+getRuleName (Function name _) = name
 
 -- | The function 'getRuleType' extracts the full type of a rule
 getRuleType :: Rule -> FunType
 getRuleType (Function _ funType) = funType
 
 -- | The function 'getRules' finds all rules in grammar that have a certain result category
-getRulesSet :: [Rule] -> [CId] -> Set Rule
+getRulesSet :: [Rule] -> [String] -> Set Rule
 getRulesSet rules cats =
   -- Convert rules from GF format to our only one
   fromList $ concatMap (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rules) cats
 
 -- | The function 'getRules' finds all rules in grammar that have a certain result category
-getRulesList :: [Rule] -> [CId] -> [Rule]
+getRulesList :: [Rule] -> [String] -> [Rule]
 getRulesList rules cats =
   -- Convert rules from GF format to our only one
   concatMap (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rules) cats
@@ -272,12 +274,12 @@ pgfToGrammar pgf
       -- Get their types
       funtypes = map (getFunType pgf) funs
       -- Combine to a rule
-      rules = zipWith Function funs funtypes
+      rules = zipWith Function (map showCId funs) funtypes
       -- Split in lexical and syntactical rules
       (synrules,lexrules) = partition (\r -> case r of { Function _ (Fun _ []) -> True ; _ -> False } ) rules
       -- Get the startcat from the PGF
       (_, startcat, _) = unType (startCat pgf)
     in
-      Grammar startcat synrules lexrules pgf
+      Grammar (showCId startcat) synrules lexrules pgf
 
 

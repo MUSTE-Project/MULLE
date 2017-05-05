@@ -5,15 +5,15 @@ import Muste.Grammar.Internal
 import Muste.Tree
 import Data.Set
 
-grammar = Grammar (mkCId "A")
+grammar = Grammar "A"
   [
-    Function (mkCId "f") (Fun (mkCId "A") [mkCId "A",mkCId "A"])
+    Function "f" (Fun "A" ["A","A"])
   ]
   [
-      Function (mkCId "a") (Fun (mkCId "A") [])
+      Function "a" (Fun "A" [])
   ]
   emptyPGF
 
-tree1 = TMeta (mkCId "A")
+tree1 = TMeta "A"
 
-tree2 = TNode (mkCId "a") (Fun (mkCId "A") []) []
+tree2 = TNode "a" (Fun "A" []) []

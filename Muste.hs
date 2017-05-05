@@ -100,7 +100,7 @@ getNewTreesSet grammar lang tree path depth =
     subTree :: TTree
     subTree = fromJust $ selectNode tree path
     -- Get category at path
-    cat :: CId
+    cat :: String
     cat = getTreeCat subTree
     -- Generate Trees with same category
     newSubTrees :: S.Set TTree
@@ -115,11 +115,11 @@ getNewTreesList grammar lang tree path depth =
     subTree :: TTree
     subTree = fromJust $ selectNode tree path
     -- Get category at path
-    cat :: CId
+    cat :: String
     cat = getTreeCat subTree
     -- Generate Trees with same category
     newSubTrees :: [TTree]
-    newSubTrees = generateList grammar cat depth
+    newSubTrees = generateListSimple grammar cat depth -- Might be problematic
   in
     newSubTrees
     
