@@ -495,11 +495,11 @@ hunit_getTreeCat_test =
     TestLabel "Tree" ( getTreeCat tree4 ~?= cat1 )
     ]
 
-hunit_gfAbsTreeToTTree_test =
+hunit_gfAbsTreeToTTreeWithPGF_test =
   let
     pgf = readPGF "gf/ABCAbs.pgf"
     gtree1 = EFun (mkCId "a")
-    ttree1 = TNode "a" (Fun "A" []) [] -- read "{a:A}" :: TTree 
+    ttree1 = TNode "a" (Fun "A" []) []
     gtree2 = EFun wildCId
     ttree2 = TNode "_" NoType []
     gtree3 = EApp (EApp (EFun (mkCId "f")) (EFun (mkCId "a"))) (EFun (mkCId "b"))
@@ -510,11 +510,34 @@ hunit_gfAbsTreeToTTree_test =
     ttree5 = TMeta wildCard
   in
     TestList [
-    TestLabel "EFun" $ TestCase $ pgf >>= (\p -> gfAbsTreeToTTree p gtree1 @?= ttree1),
-    TestLabel "EFun with wildcard" $ TestCase $ pgf >>= (\p -> gfAbsTreeToTTree p gtree2 @?= ttree2),
-    TestLabel "EApp 1" $ TestCase $ pgf >>= (\p -> gfAbsTreeToTTree p gtree3 @?= ttree3),
-    TestLabel "EApp 2" $ TestCase $ pgf >>= (\p -> gfAbsTreeToTTree p gtree4 @?= ttree4),
-    TestLabel "ELit" $ TestCase $ pgf >>= (\p -> gfAbsTreeToTTree p gtree5 @?= ttree5)
+    TestLabel "EFun" $ TestCase $ pgf >>= (\p -> gfAbsTreeToTTreeWithPGF p gtree1 @?= ttree1),
+    TestLabel "EFun with wildcard" $ TestCase $ pgf >>= (\p -> gfAbsTreeToTTreeWithPGF p gtree2 @?= ttree2),
+    TestLabel "EApp 1" $ TestCase $ pgf >>= (\p -> gfAbsTreeToTTreeWithPGF p gtree3 @?= ttree3),
+    TestLabel "EApp 2" $ TestCase $ pgf >>= (\p -> gfAbsTreeToTTreeWithPGF p gtree4 @?= ttree4),
+    TestLabel "ELit" $ TestCase $ pgf >>= (\p -> gfAbsTreeToTTreeWithPGF p gtree5 @?= ttree5)
+    ]
+
+hunit_gfAbsTreeToTTreeWithGrammar_test =
+  let
+    pgf = readPGF "gf/ABCAbs.pgf"
+    grammar = fmap pgfToGrammar pgf
+    gtree1 = EFun (mkCId "a")
+    ttree1 = TNode "a" (Fun "A" []) []
+    gtree2 = EFun wildCId
+    ttree2 = TNode "_" NoType []
+    gtree3 = EApp (EApp (EFun (mkCId "f")) (EFun (mkCId "a"))) (EFun (mkCId "b"))
+    ttree3 = TNode "f" (Fun "A" ["A","B"]) [TNode "a" (Fun "A" []) [],TNode "b" (Fun "B" []) []] -- read "{f:(A->B->A) {a:A} {b:B}}" :: TTree
+    gtree4 = EApp (EApp (EFun (mkCId "f")) (EFun (mkCId "a"))) (EApp (EApp (EFun (mkCId "g")) (EFun (mkCId "b"))) (EFun (mkCId "c")))
+    ttree4 = TNode "f" (Fun "A" ["A","B"]) [TNode "a" (Fun "A" []) [],TNode "g" (Fun "B" ["B","C"]) [TNode "b" (Fun "B" []) [], TNode "c" (Fun "C" []) []]] -- read "{f:(A->B->A) {a:A} {g:(B->C->B) {b:B} {c:C}}}" :: TTree
+    gtree5 = ELit (LStr "Foo")
+    ttree5 = TMeta wildCard
+  in
+    TestList [
+    TestLabel "EFun" $ TestCase $ grammar >>= (\g -> gfAbsTreeToTTreeWithGrammar g gtree1 @?= ttree1),
+    TestLabel "EFun with wildcard" $ TestCase $ grammar >>= (\g -> gfAbsTreeToTTreeWithGrammar g gtree2 @?= ttree2),
+    TestLabel "EApp 1" $ TestCase $ grammar >>= (\g -> gfAbsTreeToTTreeWithGrammar g gtree3 @?= ttree3),
+    TestLabel "EApp 2" $ TestCase $ grammar >>= (\g -> gfAbsTreeToTTreeWithGrammar g gtree4 @?= ttree4),
+    TestLabel "ELit" $ TestCase $ grammar >>= (\g -> gfAbsTreeToTTreeWithGrammar g gtree5 @?= ttree5)
     ]
 
 hunit_ttreeToGFAbsTree_test = 
@@ -748,6 +771,7 @@ hunit_replaceNode_test =
     
     ]
 
+hunit_getMetaLeafCatsSet_test =
 -- To be removed
 -- hunit_replaceNodeByMeta_test = 
 --   let
@@ -774,139 +798,6 @@ hunit_replaceNode_test =
 --     ]
 
 hunit_maxPath_test =
-  let
-    -- tree1 in Data.hs
-    tree2 = TMeta wildCard
-    tree3 = TNode "a" NoType []
-    tree4 = TNode "f" (Fun "E" ["A","B","C","D"])
-      [
-        tree1,
-        TNode "b" (Fun "B" []) [],
-        TNode "g" (Fun "C" ["C","B"])
-         [
-           TNode "c" (Fun "C" []) [],
-           TNode "h" (Fun "B" ["B"])
-            [
-              TNode "h" (Fun "B" ["B"])
-               [
-                 TNode "b" (Fun "B" []) []
-               ]
-            ]
-         ],
-        TNode "i" (Fun ("D") ["D"])
-         [
-           TNode "i" (Fun ("D") ["D"]) []
-         ]
-      ]
-  in
-    TestList [
-    TestLabel "Meta" $ maxPath 3 tree1 ~?= [[]],
-    TestLabel "Meta with wildcard" $ maxPath 3 tree2 ~?= [[]],
-    TestLabel "Simple tree without type" $ maxPath 3 tree3 ~?= [[]],
-    TestLabel "Complex tree 1" $ maxPath 2 tree4 ~?= [[2,0],[2,1],[3,0]],
-    TestLabel "Complex tree 2" $ maxPath 9 tree4 ~?= [[2,1,0,0]]
-    ]
-
-hunit_findPaths_test =
-  let
-    -- tree1 in Data.hs
-    tree2 = TMeta wildCard
-    tree3 = TNode "a" NoType []
-    tree4 = TNode "a" (Fun "A" ["A"])  [(TMeta "A")]
-    tree5 = TNode "f" (Fun "E" ["A","B","C","D"])  -- []
-      [
-        tree1, -- [0]
-        TNode "b" (Fun "B" []) [], -- [1]
-        TNode "g" (Fun "C" ["C","B"]) -- [2]
-         [
-           TNode "c" (Fun "C" []) [], -- [2,0]
-           TNode "h" (Fun "B" ["B"]) -- [2,1]
-            [
-              TNode "h" (Fun "B" ["B"]) -- [2,1,0]
-               [
-                 TNode "b" (Fun "B" []) [] -- [2,1,0,0]
-               ]
-            ]
-         ],
-        TNode "i" (Fun ("D") ["D"]) -- [3]
-         [
-           TNode "i" (Fun ("D") ["D"]) [] -- [3,0]
-         ]
-      ]
-  in
-    TestList [
-    TestLabel "Meta" $ findPaths tree1 ~?= [],
-    TestLabel "Meta with wildcard" $ findPaths tree2 ~?= [],
-    TestLabel "Simple tree without type and children" $ findPaths tree3 ~?= [[]],
-    TestLabel "Simple tree" $ findPaths tree4 ~?= [[0]],
-    TestLabel "Complex tree" $ findPaths tree5 ~?= [[0],[1],[2],[3],[1],[2,0],[2,1],[2,0],[2,1,0],[2,1,0,0],[2,1,0,0],[3,0],[3,0]]
-    ]
-    
-hunit_findLeafPaths_test =
-  let
-    -- tree1 in Data.hs
-    tree2 = TMeta wildCard
-    tree3 = TNode "a" NoType []
---    {f:(A -> B -> C -> D -> E) {?A} {b:(B)} {g:(C -> B -> C) {c:(C)} {h:(B -> B) {h:(B -> B) {b:(B)}}}} {i:(D -> D) {i:(D -> D)}}}
-    tree4 = TNode "f" (Fun "E" ["A","B","C","D"])
-      [
-        tree1,
-        TNode "b" (Fun "B" []) [],
-        TNode "g" (Fun "C" ["C","B"])
-         [
-           TNode "c" (Fun "C" []) [],
-           TNode "h" (Fun "B" ["B"])
-            [
-              TNode "h" (Fun "B" ["B"])
-               [
-                 TNode "b" (Fun "B" []) []
-               ]
-            ]
-         ],
-        TNode "i" (Fun ("D") ["D"])
-         [
-           TNode "i" (Fun ("D") ["D"]) []
-         ]
-      ]
-  in
-    TestList [
-    TestLabel "Meta" $ findLeafPaths 3 tree1 ~?= [[]],
-    TestLabel "Meta with wildcard" $ findLeafPaths 3 tree2 ~?= [[]],
-    TestLabel "Simple tree without type" $ findLeafPaths 3 tree3 ~?= [[]],
-    TestLabel "Complex tree 1" $ findLeafPaths 2 tree4 ~?= [[1],[2,0],[2,1],[3,0]],
-    TestLabel "Complex tree 2" $ findLeafPaths 9 tree4 ~?= [[1],[2,0],[2,1,0,0],[3,0]]
-    ]
-
--- To be removed
--- hunit_prune_test = 
---   let
---     tree1 = read "{f:(A -> B -> A) {a:A} {g:B {b:B} {c:C}}}" :: TTree
---     mtrees1 = fromList [
---       MetaTTree (read "{?A}") $ fromList [([], read "{f:(A -> B -> A) {a:A} {g:B {b:B} {c:C}}}")],
---       MetaTTree (read "{f:(A -> B -> A) {?A} {?B}}") $ fromList [([0], read "{a:A}"), ([1], read "{g:(B -> C -> B) {b:B} {c:C}}")],
---       MetaTTree (read "{f:(A -> B -> A) {a:A} {?B}}") $ fromList [([1], read "{g:(B -> C -> B) {b:B} {c:C}}")],
---       MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {?C}}}") $ fromList [([0], read "{a:A}"), ([1,0], read "{b:B}"), ([1,1], read "{c:C}")],
---       MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {b:B} {?C}}}") $ fromList [([0], read "{a:A}"), ([1,1], read "{c:C}")],
---       MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {c:C}}}") $ fromList [([0], read "{a:A}"), ([1,0], read "{b:B}")],
---       MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {b:B} {c:C}}}") $ fromList [([0], read "{a:A}")],
---       MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {?B} {?C}}}") $ fromList [([1,0], read "{b:B}"), ([1,1], read "{c:C}")],
---       MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {?C}}}") $ fromList [([1,1], read "{c:C}")],
---       MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {?B} {c:C}}}") $ fromList [([1,0], read "{b:B}")],
---       MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {c:C}}}") empty
---       ]
---   in
---     TestList [
---     -- prune {{f:A {a:A} {g:B {b:B} {c:C}}}} 2
---     -- [({?A}, [([], {{f:A {a:A} {g:B {b:B} {c:C}}}})]),
---     --  ({{f:A ?A ?B}}, [([0], {{a:A}}), ([1], {{g:B {b:B} {c:C}}})]),
---     --  ({{f:A {a:A} ?B}}, [([1], {{g:B {b:B} {c:C}}})]),
---     --  ({{f:A ?A {g:B ?B ?C}}}, [([0], {{a:A}}), ([1,0], {{b:B}}), ([1,1], {{c:C}})]),
---     --  ({{f:A {a:A} {g:B ?B ?C}}}, [([1,0], {{b:B}}), ([1,1], {{c:C}})]),
---     --  ]
---     TestLabel "Peters Example" $ prune tree1 2 ~?= mtrees1
---     ]
-
-hunit_getMetaLeafCatsSet_test =
   let
     -- tree1 in Data.hs
     -- tree2 in Data.hs
@@ -941,6 +832,72 @@ hunit_getMetaLeafCatsSet_test =
     TestLabel "Simple tree 1" ( getMetaLeafCatsSet tree3 ~?= fromList ["A",wildCard] ),
     TestLabel "Simple tree 2" ( getMetaLeafCatsSet tree4 ~?= fromList ["A"] ),
     TestLabel "Tree" ( getMetaLeafCatsSet tree5 ~?= fromList ["A","B"] )
+    ]
+
+-- To be removed
+-- hunit_prune_test = 
+--   let
+--     tree1 = read "{f:(A -> B -> A) {a:A} {g:B {b:B} {c:C}}}" :: TTree
+--     mtrees1 = fromList [
+--       MetaTTree (read "{?A}") $ fromList [([], read "{f:(A -> B -> A) {a:A} {g:B {b:B} {c:C}}}")],
+--       MetaTTree (read "{f:(A -> B -> A) {?A} {?B}}") $ fromList [([0], read "{a:A}"), ([1], read "{g:(B -> C -> B) {b:B} {c:C}}")],
+--       MetaTTree (read "{f:(A -> B -> A) {a:A} {?B}}") $ fromList [([1], read "{g:(B -> C -> B) {b:B} {c:C}}")],
+--       MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {?C}}}") $ fromList [([0], read "{a:A}"), ([1,0], read "{b:B}"), ([1,1], read "{c:C}")],
+--       MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {b:B} {?C}}}") $ fromList [([0], read "{a:A}"), ([1,1], read "{c:C}")],
+--       MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {?B} {c:C}}}") $ fromList [([0], read "{a:A}"), ([1,0], read "{b:B}")],
+--       MetaTTree (read "{f:(A -> B -> A) {?A} {g:(B -> C -> B) {b:B} {c:C}}}") $ fromList [([0], read "{a:A}")],
+--       MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {?B} {?C}}}") $ fromList [([1,0], read "{b:B}"), ([1,1], read "{c:C}")],
+--       MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {?C}}}") $ fromList [([1,1], read "{c:C}")],
+--       MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {?B} {c:C}}}") $ fromList [([1,0], read "{b:B}")],
+--       MetaTTree (read "{f:(A -> B -> A) {a:A} {g:(B -> C -> B) {b:B} {c:C}}}") empty
+--       ]
+--   in
+--     TestList [
+--     -- prune {{f:A {a:A} {g:B {b:B} {c:C}}}} 2
+--     -- [({?A}, [([], {{f:A {a:A} {g:B {b:B} {c:C}}}})]),
+--     --  ({{f:A ?A ?B}}, [([0], {{a:A}}), ([1], {{g:B {b:B} {c:C}}})]),
+--     --  ({{f:A {a:A} ?B}}, [([1], {{g:B {b:B} {c:C}}})]),
+--     --  ({{f:A ?A {g:B ?B ?C}}}, [([0], {{a:A}}), ([1,0], {{b:B}}), ([1,1], {{c:C}})]),
+--     --  ({{f:A {a:A} {g:B ?B ?C}}}, [([1,0], {{b:B}}), ([1,1], {{c:C}})]),
+--     --  ]
+--     TestLabel "Peters Example" $ prune tree1 2 ~?= mtrees1
+--     ]
+
+hunit_getMetaLeafCatsList_test =
+  let
+    -- tree1 in Data.hs
+    -- tree2 in Data.hs
+    tree3 = TNode "f" (Fun "A" ["A","B"])
+      [
+        tree1,
+        TMeta wildCard
+      ]
+    tree4 = TNode "f" (Fun "A" ["A","A"])
+      [
+        tree1,
+        tree1
+      ]
+    tree5 = TNode "f" (Fun "A" ["A","B"])
+      [
+        TNode "g" (Fun "A" ["A"])
+        [
+          TNode "g" (Fun "A" ["A"])
+          [
+            TNode "g" (Fun "A" ["A"])
+            [
+              tree1
+            ]
+          ]
+        ],
+        TMeta "B"
+      ]
+  in
+    TestList [
+    TestLabel "Meta" ( getMetaLeafCatsList tree1 ~?= ["A"] ),
+    TestLabel "Simple tree without metas" ( getMetaLeafCatsList tree2 ~?= [] ),
+    TestLabel "Simple tree 1" ( getMetaLeafCatsList tree3 ~?= ["A",wildCard] ),
+    TestLabel "Simple tree 2" ( getMetaLeafCatsList tree4 ~?= ["A","A"] ),
+    TestLabel "Tree" ( getMetaLeafCatsList tree5 ~?= ["A","B"] )
     ]
 
 hunit_getMetaPaths_test = 
@@ -1000,41 +957,74 @@ hunit_applyRule_test =
     TestLabel "Path too long" $ applyRule tree2 rule2 [[0,1]] ~?= tree2,
     TestLabel "Ignore superfluous paths" $ applyRule tree2 rule2 [[1],[2],[0,1]] ~?= tree4
              ]
+    
+hunit_combineToSet_test = 
+  let
+    tree1 = TMeta "A"
+    rule1 = Function "f" (Fun "A" ["B","C"])
+    tree2 = TNode "f" (Fun "A" ["B","C"]) [TMeta "B",TMeta "C"] -- read "{f:(B->C->A) {?B} {?C}}" :: TTree
+    tree3 = TNode "g" (Fun "A" ["A","B"]) [TMeta "A",TNode "h" (Fun "B" ["B","A"]) [TNode "b" (Fun "B" []) [],TMeta "A"]] -- read "{g:(A->B->A) {?A} {h:(B->A->B) {b:B} {?A}}}" :: TTree
+    tree4 = TNode "g" (Fun "A" ["A","B"]) [TNode "f" (Fun "A" ["B","C"]) [TMeta "B",TMeta "C"],TNode "h" (Fun "B" ["B","A"]) [TNode "b" (Fun "B" []) [],TMeta "A"]] -- read "{g:(A->B->A) {f:(B->C->A) {?B} {?C}} {h:(B->A->B) {b:B} {?A}}}" :: TTree
+    tree5 = TNode "g" (Fun "A" ["A","B"]) [TMeta "A",TNode "h" (Fun "B" ["B","A"]) [TNode "b" (Fun "B" []) [],TNode "f" (Fun "A" ["B","C"]) [TMeta "B",TMeta "C"]]] -- read "{g:(A->B->A) {?A} {h:(B->A->B) {b:B} {f:(B->C->A) {?B} {?C}}}}" :: TTree
+    tree6 = TNode "g" (Fun "A" ["A","B"]) [TNode "f" (Fun "A" ["B","C"]) [TMeta "B",TMeta "C"],TNode "h" (Fun "B" ["B","A"]) [TNode "b" (Fun "B" []) [],TNode "f" (Fun "A" ["B","C"]) [TMeta "B",TMeta "C"]]] -- read "{g:(A->B->A) {f:(B->C->A) {?B} {?C}} {h:(B->A->B) {b:B} {f:(B->C->A) {?B} {?C}}}}" :: TTree
+    rule2 = Function "i" (Fun "A" ["A","A"])
+    tree7 = TNode "i" (Fun "A" ["A","A"]) [TMeta "A",TMeta "A"] -- read "{i:(A->A->A) {?A} {?A}}" :: TTree
+    tree8 = TNode "g" (Fun "A" ["A","B"]) [TNode "i" (Fun "A" ["A","A"]) [TMeta "A",TMeta "A"],TNode "h" (Fun "B" ["B","A"]) [TNode "b" (Fun "B" []) [],TMeta "A"]] -- read "{g:(A -> B -> A) {i:(A -> A -> A) {?A} {?A}} {h:(B -> A -> B) {b:(B)} {?A}}}" :: TTree
+    tree9 = TNode "g" (Fun "A" ["A","B"]) [TMeta "A",TNode "h" (Fun "B" ["B","A"]) [TNode "b" (Fun "B" []) [],TNode "i" (Fun "A" ["A","A"]) [TMeta "A",TMeta "A"]]]-- read "{g:(A->B->A) {?A} {h:(B->A->B) {b:B} {i:(A->A->A) {?A} {?A}}}}" :: TTree
+    tree10 = TNode "g" (Fun "A" ["A","B"]) [TNode "i" (Fun "A" ["A","A"]) [TMeta "A",TMeta "A"],TNode "h" (Fun "B" ["B","A"]) [TNode "b" (Fun "B" []) [],TNode "i" (Fun "A" ["A","A"]) [TMeta "A",TMeta "A"]]] -- read "{g:(A->B->A) {i:(A->A->A) {?A} {?A}} {h:(B->A->B) {b:B} {i:(A->A->A) {?A} {?A}}}}" :: TTree
+  in
+    TestList [
+    TestLabel "Simple tree, Rule 1, Depth 0, no combination" $ combineToSet tree1 0 rule1 ~?= Set.singleton tree1,
+    TestLabel "Simple tree, Rule 1, Depth 1, one combination" $ combineToSet tree1 1 rule1 ~?= fromList [tree2,tree1],
+    TestLabel "Simple tree, Rule 1, Depth 2, one combination" $ combineToSet tree1 2 rule1 ~?= fromList [tree2,tree1],
+    TestLabel "More complex Rule 1, tree, Depth 0, no combination" $ combineToSet tree3 0 rule1 ~?= Set.singleton tree3,
+    TestLabel "More complex Rule 1, tree, Depth 1, no combination" $ combineToSet tree3 1 rule1 ~?= Set.singleton tree3,
+    TestLabel "More complex Rule 1, tree, Depth 2, one combination" $ combineToSet tree3 2 rule1 ~?= fromList [tree4,tree3],
+    TestLabel "More complex Rule 1, tree, Depth 3, three combination" $ combineToSet tree3 3 rule1 ~?= fromList [tree6,tree5,tree4,tree3],
+    TestLabel "More complex Rule 1, tree, Depth 4, three combination" $ combineToSet tree3 4 rule1 ~?= fromList [tree6,tree5,tree4,tree3],
+    TestLabel "Simple tree, Rule 2, Depth 0, no combination" $ combineToSet tree1 0 rule2 ~?= Set.singleton tree1,
+    TestLabel "Simple tree, Rule 2, Depth 1, one combination" $ combineToSet tree1 1 rule2 ~?= fromList [tree7,tree1],
+    TestLabel "Simple tree, Rule 2, Depth 2, one combination" $ combineToSet tree1 2 rule2 ~?= fromList [tree7,tree1],
+    TestLabel "More complex Rule 2, tree, Depth 0, no combination" $ combineToSet tree3 0 rule2 ~?= Set.singleton tree3,
+    TestLabel "More complex Rule 2, tree, Depth 1, no combination" $ combineToSet tree3 1 rule2 ~?= Set.singleton tree3,
+    TestLabel "More complex Rule 2, tree, Depth 2, one combination" $ combineToSet tree3 2 rule2 ~?= fromList [tree8,tree3],
+    TestLabel "More complex Rule 2, tree, Depth 3, three combination" $ combineToSet tree3 3 rule2 ~?= fromList [tree10,tree9,tree8,tree3],
+    TestLabel "More complex Rule 2, tree, Depth 4, three combination" $ combineToSet tree3 4 rule2 ~?= fromList [tree10,tree9,tree8,tree3]
+    ]
 
--- To be removed?
--- hunit_combine_test = 
---   let
---     tree1 = makeMeta $ TMeta (mkCId "A")
---     rule1 = Function (mkCId "f") (Fun (mkCId "A") [mkCId "B",mkCId "C"])
---     tree2 = MetaTTree (read "{f:(B->C->A) {?B} {?C}}" :: TTree) $ fromList [([0],TMeta (mkCId "B")),([1],TMeta (mkCId "C"))]
---     tree3 = MetaTTree (read "{g:(A->B->A) {?A} {h:(B->A->B) {b:B} {?A}}}" :: TTree) $ fromList [([0],TMeta (mkCId "A")),([1,1],TMeta (mkCId "A"))]
---     tree4 = MetaTTree (read "{g:(A->B->A) {f:(B->C->A) {?B} {?C}} {h:(B->A->B) {b:B} {?A}}}" :: TTree) $ fromList [([0,0],TMeta (mkCId "B")),([0,1],TMeta (mkCId "C")),([1,1],TMeta (mkCId "A"))]
---     tree5 = MetaTTree (read "{g:(A->B->A) {?A} {h:(B->A->B) {b:B} {f:(B->C->A) {?B} {?C}}}}" :: TTree) $ fromList [([0],TMeta (mkCId "A")),([1,1,0],TMeta (mkCId "B")),([1,1,1],TMeta (mkCId "C"))]
---     tree6 = MetaTTree (read "{g:(A->B->A) {f:(B->C->A) {?B} {?C}} {h:(B->A->B) {b:B} {f:(B->C->A) {?B} {?C}}}}" :: TTree) $ fromList [([0,0],TMeta (mkCId "B")),([0,1],TMeta (mkCId "C")),([1,1,0],TMeta (mkCId "B")),([1,1,1],TMeta (mkCId "C"))]
---     rule2 = Function "i" (Fun (mkCId "A") [mkCId "A",mkCId "A"])
---     tree7 = MetaTTree (read "{i:(A->A->A) {?A} {?A}}" :: TTree) $ fromList [([0],TMeta (mkCId "A")),([1],TMeta (mkCId "A"))]
---     tree8 = MetaTTree (read "{g:(A -> B -> A) {i:(A -> A -> A) {?A} {?A}} {h:(B -> A -> B) {b:(B)} {?A}}}" :: TTree) $ fromList [([0,0],TMeta (mkCId "A")),([0,1],TMeta (mkCId "A")),([1,1],TMeta (mkCId "A"))]
---     tree9 = MetaTTree (read "{g:(A->B->A) {?A} {h:(B->A->B) {b:B} {i:(A->A->A) {?A} {?A}}}}" :: TTree) $ fromList [([0],TMeta (mkCId "A")),([1,1,0],TMeta (mkCId "A")),([1,1,1],TMeta (mkCId "A"))]
---     tree10 = MetaTTree (read "{g:(A->B->A) {i:(A->A->A) {?A} {?A}} {h:(B->A->B) {b:B} {i:(A->A->A) {?A} {?A}}}}" :: TTree) $ fromList [([0,0],TMeta (mkCId "A")),([0,1],TMeta (mkCId "A")),([1,1,0],TMeta (mkCId "A")),([1,1,1],TMeta (mkCId "A"))]
---   in
---     TestList [
---     TestLabel "Simple tree, Rule 1, Depth 0, no combination" $ combine tree1 0 rule1 ~?= Set.singleton tree1,
---     TestLabel "Simple tree, Rule 1, Depth 1, one combination" $ combine tree1 1 rule1 ~?= fromList [tree2,tree1],
---     TestLabel "Simple tree, Rule 1, Depth 2, one combination" $ combine tree1 2 rule1 ~?= fromList [tree2,tree1],
---     TestLabel "More complex Rule 1, tree, Depth 0, no combination" $ combine tree3 0 rule1 ~?= Set.singleton tree3,
---     TestLabel "More complex Rule 1, tree, Depth 1, no combination" $ combine tree3 1 rule1 ~?= Set.singleton tree3,
---     TestLabel "More complex Rule 1, tree, Depth 2, one combination" $ combine tree3 2 rule1 ~?= fromList [tree4,tree3],
---     TestLabel "More complex Rule 1, tree, Depth 3, three combination" $ combine tree3 3 rule1 ~?= fromList [tree6,tree5,tree4,tree3],
---     TestLabel "More complex Rule 1, tree, Depth 4, three combination" $ combine tree3 4 rule1 ~?= fromList [tree6,tree5,tree4,tree3],
---     TestLabel "Simple tree, Rule 2, Depth 0, no combination" $ combine tree1 0 rule2 ~?= Set.singleton tree1,
---     TestLabel "Simple tree, Rule 2, Depth 1, one combination" $ combine tree1 1 rule2 ~?= fromList [tree7,tree1],
---     TestLabel "Simple tree, Rule 2, Depth 2, one combination" $ combine tree1 2 rule2 ~?= fromList [tree7,tree1],
---     TestLabel "More complex Rule 2, tree, Depth 0, no combination" $ combine tree3 0 rule2 ~?= Set.singleton tree3,
---     TestLabel "More complex Rule 2, tree, Depth 1, no combination" $ combine tree3 1 rule2 ~?= Set.singleton tree3,
---     TestLabel "More complex Rule 2, tree, Depth 2, one combination" $ combine tree3 2 rule2 ~?= fromList [tree8,tree3],
---     TestLabel "More complex Rule 2, tree, Depth 3, three combination" $ combine tree3 3 rule2 ~?= fromList [tree10,tree9,tree8,tree3],
---     TestLabel "More complex Rule 2, tree, Depth 4, three combination" $ combine tree3 4 rule2 ~?= fromList [tree10,tree9,tree8,tree3]
---     ]
+hunit_combineToList_test = 
+  let
+    tree1 = TMeta "A"
+    rule1 = Function "f" (Fun "A" ["B","C"])
+    tree2 = TNode "f" (Fun "A" ["B","C"]) [TMeta "B",TMeta "C"] -- read "{f:(B->C->A) {?B} {?C}}" :: TTree
+    tree3 = TNode "g" (Fun "A" ["A","B"]) [TMeta "A",TNode "h" (Fun "B" ["B","A"]) [TNode "b" (Fun "B" []) [],TMeta "A"]] -- read "{g:(A->B->A) {?A} {h:(B->A->B) {b:B} {?A}}}" :: TTree
+    tree4 = TNode "g" (Fun "A" ["A","B"]) [TNode "f" (Fun "A" ["B","C"]) [TMeta "B",TMeta "C"],TNode "h" (Fun "B" ["B","A"]) [TNode "b" (Fun "B" []) [],TMeta "A"]] -- read "{g:(A->B->A) {f:(B->C->A) {?B} {?C}} {h:(B->A->B) {b:B} {?A}}}" :: TTree
+    tree5 = TNode "g" (Fun "A" ["A","B"]) [TMeta "A",TNode "h" (Fun "B" ["B","A"]) [TNode "b" (Fun "B" []) [],TNode "f" (Fun "A" ["B","C"]) [TMeta "B",TMeta "C"]]] -- read "{g:(A->B->A) {?A} {h:(B->A->B) {b:B} {f:(B->C->A) {?B} {?C}}}}" :: TTree
+    tree6 = TNode "g" (Fun "A" ["A","B"]) [TNode "f" (Fun "A" ["B","C"]) [TMeta "B",TMeta "C"],TNode "h" (Fun "B" ["B","A"]) [TNode "b" (Fun "B" []) [],TNode "f" (Fun "A" ["B","C"]) [TMeta "B",TMeta "C"]]] -- read "{g:(A->B->A) {f:(B->C->A) {?B} {?C}} {h:(B->A->B) {b:B} {f:(B->C->A) {?B} {?C}}}}" :: TTree
+    rule2 = Function "i" (Fun "A" ["A","A"])
+    tree7 = TNode "i" (Fun "A" ["A","A"]) [TMeta "A",TMeta "A"] -- read "{i:(A->A->A) {?A} {?A}}" :: TTree
+    tree8 = TNode "g" (Fun "A" ["A","B"]) [TNode "i" (Fun "A" ["A","A"]) [TMeta "A",TMeta "A"],TNode "h" (Fun "B" ["B","A"]) [TNode "b" (Fun "B" []) [],TMeta "A"]] -- read "{g:(A -> B -> A) {i:(A -> A -> A) {?A} {?A}} {h:(B -> A -> B) {b:(B)} {?A}}}" :: TTree
+    tree9 = TNode "g" (Fun "A" ["A","B"]) [TMeta "A",TNode "h" (Fun "B" ["B","A"]) [TNode "b" (Fun "B" []) [],TNode "i" (Fun "A" ["A","A"]) [TMeta "A",TMeta "A"]]]-- read "{g:(A->B->A) {?A} {h:(B->A->B) {b:B} {i:(A->A->A) {?A} {?A}}}}" :: TTree
+    tree10 = TNode "g" (Fun "A" ["A","B"]) [TNode "i" (Fun "A" ["A","A"]) [TMeta "A",TMeta "A"],TNode "h" (Fun "B" ["B","A"]) [TNode "b" (Fun "B" []) [],TNode "i" (Fun "A" ["A","A"]) [TMeta "A",TMeta "A"]]] -- read "{g:(A->B->A) {i:(A->A->A) {?A} {?A}} {h:(B->A->B) {b:B} {i:(A->A->A) {?A} {?A}}}}" :: TTree
+  in
+    TestList [
+    TestLabel "Simple tree, Rule 1, Depth 0, no combination" $ combineToList tree1 0 rule1 ~?= [tree1],
+    TestLabel "Simple tree, Rule 1, Depth 1, one combination" $ combineToList tree1 1 rule1 ~?= [tree1,tree2],
+    TestLabel "Simple tree, Rule 1, Depth 2, one combination" $ combineToList tree1 2 rule1 ~?= [tree1,tree2],
+    TestLabel "More complex Rule 1, tree, Depth 0, no combination" $ combineToList tree3 0 rule1 ~?= [tree3],
+    TestLabel "More complex Rule 1, tree, Depth 1, no combination" $ combineToList tree3 1 rule1 ~?= [tree3],
+    TestLabel "More complex Rule 1, tree, Depth 2, one combination" $ combineToList tree3 2 rule1 ~?= [tree3,tree4],
+    TestLabel "More complex Rule 1, tree, Depth 3, three combination" $ combineToList tree3 3 rule1 ~?= [tree3,tree5,tree4,tree6],
+    TestLabel "More complex Rule 1, tree, Depth 4, three combination" $ combineToList tree3 4 rule1 ~?= [tree3,tree5,tree4,tree6],
+    TestLabel "Simple tree, Rule 2, Depth 0, no combination" $ combineToList tree1 0 rule2 ~?= [tree1],
+    TestLabel "Simple tree, Rule 2, Depth 1, one combination" $ combineToList tree1 1 rule2 ~?= [tree1,tree7],
+    TestLabel "Simple tree, Rule 2, Depth 2, one combination" $ combineToList tree1 2 rule2 ~?= [tree1,tree7],
+    TestLabel "More complex Rule 2, tree, Depth 0, no combination" $ combineToList tree3 0 rule2 ~?= [tree3],
+    TestLabel "More complex Rule 2, tree, Depth 1, no combination" $ combineToList tree3 1 rule2 ~?= [tree3],
+    TestLabel "More complex Rule 2, tree, Depth 2, one combination" $ combineToList tree3 2 rule2 ~?= [tree3,tree8],
+    TestLabel "More complex Rule 2, tree, Depth 3, three combination" $ (sort $ combineToList tree3 3 rule2) ~?= sort [tree10,tree9,tree8,tree3],
+    TestLabel "More complex Rule 2, tree, Depth 4, three combination" $ (sort $ combineToList tree3 4 rule2) ~?= sort [tree10,tree9,tree8,tree3]
+    ]    
 
 hunit_extendTree_test = 
   let
@@ -1218,8 +1208,9 @@ tree_function_tests =
 --  TestLabel "readTree" hunit_readTrees_test,
   TestLabel "isMeta" hunit_isMeta_test,
   TestLabel "getTreeCat" hunit_getTreeCat_test,
-  TestLabel "gfAbsTreeToTTree" hunit_gfAbsTreeToTTree_test,
-  TestLabel "gfAbsTreeToTTree" hunit_ttreeToGFAbsTree_test,
+  TestLabel "gfAbsTreeToTTreeWithPGF" hunit_gfAbsTreeToTTreeWithPGF_test,
+  TestLabel "gfAbsTreeToTTreeWithGrammar" hunit_gfAbsTreeToTTreeWithGrammar_test,
+  TestLabel "ttreeTogfAbsTree" hunit_ttreeToGFAbsTree_test,
   TestLabel "ttreeToLTree" hunit_ttreeToLTree_test,
   TestLabel "showBracket" hunit_showBracket_test,
   TestLabel "getPath" hunit_getPath_test,
@@ -1228,15 +1219,17 @@ tree_function_tests =
 --  TestLabel "makeMeta" hunit_makeMeta_test,
   TestLabel "replaceBranch" hunit_replaceBranch_test,
   TestLabel "replaceNode" hunit_replaceNode_test,
+  TestLabel "getMetaLeafCatsSet" hunit_getMetaLeafCatsSet_test,
+  TestLabel "getMetaLeafCatsSet"  hunit_getMetaLeafCatsList_test,
 --  TestLabel "replaceNodeByMeta" hunit_replaceNodeByMeta_test,
   TestLabel "maxPath" hunit_maxPath_test,
   TestLabel "findPaths" hunit_findPaths_test,
   TestLabel "findLeafPaths" hunit_findLeafPaths_test,
 --  TestLabel "prune" hunit_prune_test,
---  TestLabel "getMetaLeafCats" hunit_getMetaLeafCats_test,
   TestLabel "getMetaPaths" hunit_getMetaPaths_test,
   TestLabel "applyRule" hunit_applyRule_test,
---  TestLabel "combine" hunit_combine_test,
+  TestLabel "combineToSet" hunit_combineToSet_test,
+  TestLabel "combineToList" hunit_combineToList_test,
   TestLabel "extendTree" hunit_extendTree_test,
 --  TestLabel "generate" hunit_generate_test,
   TestLabel "computeCosts" hunit_computeCosts_test,
