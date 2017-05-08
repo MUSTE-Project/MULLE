@@ -364,34 +364,35 @@ getTreeCat (TNode id typ _) =
     }
 getTreeCat (TMeta cat) = cat
 
--- | The function 'gfAbsTreeToTTree' creates a 'TTree' from an GFabstract syntax 'Tree'. Handles only 'EApp' and 'EFun'. Generates 'TMeta' 'wildCId' in unsupported cases
-gfAbsTreeToTTree :: PGF -> GFAbsTree -> TTree
-gfAbsTreeToTTree pgf (EFun f) =
+-- | The function 'gfAbsTreeToTTree' creates a 'TTree' from an GFabstract syntax 'Tree' and a PGF. Handles only 'EApp' and 'EFun'. Generates 'TMeta' 'wildCId' in unsupported cases
+gfAbsTreeToTTreeWithPGF :: PGF -> GFAbsTree -> TTree
+gfAbsTreeToTTreeWithPGF pgf (EFun f) =
   let
-    typ = getFunType pgf f
+    typ = getFunTypeWithPGF pgf f
   in
     TNode (showCId f) typ []
-gfAbsTreeToTTree pgf (EApp e1 e2) =
+gfAbsTreeToTTreeWithPGF pgf (EApp e1 e2) =
   let
-    (TNode name typ sts) = gfAbsTreeToTTree pgf e1
-    st2 = gfAbsTreeToTTree pgf e2
+    (TNode name typ sts) = gfAbsTreeToTTreeWithPGF pgf e1
+    st2 = gfAbsTreeToTTreeWithPGF pgf e2
   in
     TNode name typ (sts ++ [st2])
-gfAbsTreeToTTree pgf _ = TMeta wildCard
+gfAbsTreeToTTreeWithPGF pgf _ = TMeta wildCard
 
-gfAbsTreeToTTree2 :: Grammar -> GFAbsTree -> TTree
-gfAbsTreeToTTree2 g (EFun f) =
+-- | The function 'gfAbsTreeToTTree' creates a 'TTree' from an GFabstract syntax 'Tree' and a Grammar. Othewise  similar to gfAbsTreeToTTreeWithPGF
+gfAbsTreeToTTreeWithGrammar :: Grammar -> GFAbsTree -> TTree
+gfAbsTreeToTTreeWithGrammar g (EFun f) =
   let
-    typ = getFunType2 g (showCId f)
+    typ = getFunTypeWithGrammar g (showCId f)
   in
     TNode (showCId f) typ []
-gfAbsTreeToTTree2 g (EApp e1 e2) =
+gfAbsTreeToTTreeWithGrammar g (EApp e1 e2) =
   let
-    (TNode name typ sts) = gfAbsTreeToTTree2 g e1
-    st2 = gfAbsTreeToTTree2 g e2
+    (TNode name typ sts) = gfAbsTreeToTTreeWithGrammar g e1
+    st2 = gfAbsTreeToTTreeWithGrammar g e2
   in
     TNode name typ (sts ++ [st2])
-gfAbsTreeToTTree2 _ _ = TMeta wildCard
+gfAbsTreeToTTreeWithGrammar _ _ = TMeta wildCard
 
 -- | Creates a GF abstract syntax Tree from a generic tree
 ttreeToGFAbsTree :: TTree -> GFAbsTree
@@ -747,13 +748,13 @@ generateListSimple grammar cat depth =
   in
     loop [TMeta cat]
 
-generateListPGF :: Grammar -> CId -> Int -> [TTree]
-generateListPGF grammar startCat depth =
+generateListWithGrammar :: Grammar -> CId -> Int -> [TTree]
+generateListWithGrammar grammar startCat depth =
   let
     trees = generateAllDepth (pgf grammar) (fromJust $ readType $ showCId startCat) (Just depth)
   in
 --    map (gfAbsTreeToTTree $ pgf grammar) trees
-        map (gfAbsTreeToTTree2 grammar) trees
+        map (gfAbsTreeToTTreeWithGrammar grammar) trees
     
 -- | The function 'computeCosts' computes the cost for matching trees. It is the sum of nodes in each of the trees plus the sum of the nodes in all deleted trees
 computeCosts :: TTree -> TTree -> [TTree] -> Cost

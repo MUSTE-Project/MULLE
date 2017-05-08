@@ -197,9 +197,9 @@ readId str =
     if null result then Nothing else Just $ head result
 
 
--- | The function 'getFunType' extracts the function type from a grammar given a function name
-getFunType :: PGF -> CId -> FunType
-getFunType grammar id
+-- | The function 'getFunTypeWithPGF' extracts the function type from a PGF given a function name
+getFunTypeWithPGF :: PGF -> CId -> FunType
+getFunTypeWithPGF grammar id
   | isEmptyPGF grammar = NoType -- Empty grammar
   | otherwise =
     let
@@ -214,9 +214,10 @@ getFunType grammar id
         in
           Fun (showCId typeid) (map showCId cats)
         }
-      
-getFunType2 :: Grammar -> String -> FunType
-getFunType2 g id =
+
+-- | The function 'getFunTypeWithGrammar' extracts the function type from a Grammar given a function name
+getFunTypeWithGrammar :: Grammar -> String -> FunType
+getFunTypeWithGrammar g id =
   let
     rules = filter (\r -> getRuleName r == id) $ getAllRules g
   in
@@ -228,7 +229,7 @@ prop_funTypeEquality pgf =
     grammar = pgfToGrammar pgf
     funs = functions pgf
   in
-    property $ and $ map (\f -> getFunType pgf f == getFunType2 grammar (showCId f)) funs
+    property $ and $ map (\f -> getFunTypeWithPGF pgf f == getFunTypeWithGrammar grammar (showCId f)) funs
 
 -- | The function 'getFunCat' extracts the result category from a function type
 getFunCat :: FunType -> String
@@ -272,7 +273,7 @@ pgfToGrammar pgf
       -- Get function names
       funs = functions pgf
       -- Get their types
-      funtypes = map (getFunType pgf) funs
+      funtypes = map (getFunTypeWithPGF pgf) funs
       -- Combine to a rule
       rules = zipWith Function (map showCId funs) funtypes
       -- Split in lexical and syntactical rules
