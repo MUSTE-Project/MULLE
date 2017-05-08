@@ -355,6 +355,10 @@ isMeta :: TTree -> Bool
 isMeta (TMeta _) = True
 isMeta _ = False
 
+-- | The function 'hasMetas' is a predicate that is true if a 'TTree' contains any 'TMeta' nodes
+hasMetas :: TTree -> Bool
+hasMetas (TMeta _) = True
+hasMetas (TNode _ _ children) = or $ map hasMetas children
 -- | The function 'getTreeCat' gives the root category of a 'TTree', returns 'wildCId' on missing type
 getTreeCat :: TTree -> String
 getTreeCat (TNode id typ _) =
@@ -836,11 +840,6 @@ combineTrees generatedTree subTrees =
 --   in
 --     -- Sort by cost
 --     sortBy (\(c1,_) (c2,_) -> compare c1 c2) $ zip costs newTrees
-
--- TODO comments and tests
-hasMetas :: TTree -> Bool
-hasMetas (TMeta _) = True
-hasMetas (TNode _ _ children) = or $ map hasMetas children
 
 -- Code ideas provided by Peter
     -- tempResults :: [(TTree,TTree,[TTree],[TTree])]

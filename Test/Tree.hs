@@ -478,6 +478,21 @@ hunit_isMeta_test =
     TestLabel "Tree" ( isMeta tree5 ~?= False )
     ]
 
+hunit_hasMetas_test =
+  let
+    -- tree1 in Data.hs
+    tree2 = TMeta wildCard
+    tree3 = TNode "a" NoType []
+    tree4 = TNode "a" (Fun "A" []) []
+    tree5 = TNode "f" (Fun "A" ["A","B"]) [TMeta "A",TMeta "B"]
+  in
+    TestList [
+    TestLabel "Meta" ( hasMetas tree1 ~?= True ),
+    TestLabel "Meta with wildcard" ( hasMetas tree2 ~?= True ),
+    TestLabel "Simple Tree without type" ( hasMetas tree3 ~?= False ),
+    TestLabel "Simple tree" ( hasMetas tree4 ~?= False ),
+    TestLabel "Tree" ( hasMetas tree5 ~?= True )
+    ]
 hunit_getTreeCat_test =
   let
     -- tree1 in Data.hs
@@ -1207,6 +1222,7 @@ tree_function_tests =
 --  TestLabel "readTree" hunit_readTree_test,
 --  TestLabel "readTree" hunit_readTrees_test,
   TestLabel "isMeta" hunit_isMeta_test,
+  TestLabel "hasMetas" hunit_hasMetas_test,
   TestLabel "getTreeCat" hunit_getTreeCat_test,
   TestLabel "gfAbsTreeToTTreeWithPGF" hunit_gfAbsTreeToTTreeWithPGF_test,
   TestLabel "gfAbsTreeToTTreeWithGrammar" hunit_gfAbsTreeToTTreeWithGrammar_test,
