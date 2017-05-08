@@ -12,6 +12,7 @@ import Data.Maybe
 import qualified Data.Map as M
 import Control.Monad
 import Data.Set (Set(..),empty,fromList)
+import Data.List (sort,nub)
 
 -- HUnit tests
 hunit_Eq_Grammar_eq_test =
@@ -169,8 +170,10 @@ hunit_isEmptyGrammar_test =
     TestLabel "Complete grammar from PGF" $ TestCase $ pgf >>= (\g -> isEmptyGrammar (pgfToGrammar g) @?= False)
     ]
   
+hunit_getFunTypeWithPGF_test =
 hunit_readId_test =
   let
+    pgf = readPGF "gf/ABCAbs.pgf"
     str1 = " "
     str2 = "_"
     str3 = "?"
@@ -186,6 +189,10 @@ hunit_readId_test =
     str13 = "A?"
   in
     TestList [
+    TestLabel "Empty PGF" $ getFunTypeWithPGF emptyPGF (mkCId "f") ~?= NoType,
+    TestLabel "Existing Constant" $ TestCase $ pgf >>= (\g -> getFunTypeWithPGF g (mkCId "a") @?= Fun "A" [] ),
+    TestLabel "Existing Function" $ TestCase $ pgf >>= (\g -> getFunTypeWithPGF g (mkCId "f") @?= Fun "A" ["A", "B"]),
+    TestLabel "Non-Existing Function" $ TestCase $ pgf >>= (\g -> getFunTypeWithPGF g (mkCId "foo") @?= NoType)
     TestLabel "Unacceptable Letter 1" ( readId str1 ~?= Nothing ),
     TestLabel "Unacceptable Letter 2" ( readId str2 ~?= Nothing ),
     TestLabel "Unacceptable Letter 3" ( readId str3 ~?= Just (mkCId "?","") ),
@@ -205,15 +212,17 @@ hunit_readId_test =
     TestLabel "Single Letter with rest 2" ( readId (str9 ++ " ###") ~?= Just (mkCId "ABC"," ###") )
     ]
 
-hunit_getFunType_test =
+    
+hunit_getFunTypeWithGrammar_test =
   let
     pgf = readPGF "gf/ABCAbs.pgf"
+    grammar = fmap pgfToGrammar pgf
   in
     TestList [
-    TestLabel "Empty PGF" $ getFunType emptyPGF (mkCId "f") ~?= NoType,
-    TestLabel "Existing Constant" $ TestCase $ pgf >>= (\g -> getFunType g (mkCId "a") @?= Fun "A" [] ),
-    TestLabel "Existing Function" $ TestCase $ pgf >>= (\g -> getFunType g (mkCId "f") @?= Fun "A" ["A", "B"]),
-    TestLabel "Non-Existing Function" $ TestCase $ pgf >>= (\g -> getFunType g (mkCId "foo") @?= NoType)
+    TestLabel "Empty PGF" $ getFunTypeWithGrammar emptyGrammar "f" ~?= NoType,
+    TestLabel "Existing Constant" $ TestCase $ grammar >>= (\g -> getFunTypeWithGrammar g "a" @?= Fun "A" [] ),
+    TestLabel "Existing Function" $ TestCase $ grammar >>= (\g -> getFunTypeWithGrammar g "f" @?= Fun "A" ["A", "B"]),
+    TestLabel "Non-Existing Function" $ TestCase $ grammar >>= (\g -> getFunTypeWithGrammar g "foo" @?= NoType)
     ]
 
 hunit_getFunCat_test =
@@ -230,16 +239,22 @@ hunit_getRuleCat_test =
   TestLabel "Constant" ( getRuleCat (Function "f" (Fun "A" ["A","B"])) ~?= "A")
   ]
 
-hunit_getRules_test =
+hunit_getRuleName_test =
+  TestList [
+  TestLabel "NoType" ( getRuleName (Function "f" NoType) ~?= "f"),
+  TestLabel "Constant" ( getRuleName (Function "g" (Fun "A" [])) ~?= "g"),
+  TestLabel "Constant" ( getRuleName (Function "h" (Fun "A" ["A","B"])) ~?= "h")
+  ]
+  
+hunit_getRulesSet_test =
   let
     rule1 = Function "r1" (Fun "A" [])
     rule2 = Function "r2" (Fun "A" ["A"])
     rule3 = Function "r3" (Fun "B" ["A"])
     rule4 = Function "r4" (Fun "A" ["A","A"])
-    rule5 = Function "r5" NoType
     grammar = Grammar "S"
-      [ rule1, rule2, rule3, rule4, rule5 ]
-      []
+      [ rule2, rule3, rule4 ]
+      [ rule1 ]
       emptyPGF
   in
     TestList [
@@ -248,7 +263,46 @@ hunit_getRules_test =
     TestLabel "No match" ( getRulesSet (getAllRules grammar) ["Z"] ~?= empty),
     TestLabel "One match" ( getRulesSet (getAllRules grammar) ["B"] ~?= fromList [rule3]),
     TestLabel "Three matches" ( getRulesSet (getAllRules grammar) ["A"] ~?= fromList [rule1, rule2, rule4]),
-    TestLabel "All matches" ( getRulesSet (getAllRules grammar) ["A","B",wildCard] ~?= fromList (getAllRules grammar))
+    TestLabel "All matches" ( getRulesSet (getAllRules grammar) ["A","B"] ~?= fromList (getAllRules grammar))
+    ]
+
+hunit_getRulesList_test =
+  let
+    rule1 = Function "r1" (Fun "A" [])
+    rule2 = Function "r2" (Fun "A" ["A"])
+    rule3 = Function "r3" (Fun "B" ["A"])
+    rule4 = Function "r4" (Fun "A" ["A","A"])
+    grammar = Grammar "S"
+      [ rule2, rule3, rule4 ]
+      [ rule1 ]
+      emptyPGF
+  in
+    TestList [
+    TestLabel "Empty Grammar" ( getRulesList (getAllRules emptyGrammar) [] ~?= []),
+    TestLabel "No categories" ( getRulesList (getAllRules grammar) [] ~?= []),
+    TestLabel "No match" ( getRulesList (getAllRules grammar) ["Z"] ~?= []),
+    TestLabel "One match" ( getRulesList (getAllRules grammar) ["B"] ~?= [rule3]),
+    TestLabel "Three matches" ( getRulesList (getAllRules grammar) ["A"] ~?= [rule2, rule4, rule1]),
+    TestLabel "All matches" ( ( sort $ getRulesList (getAllRules grammar) ["A","B"]) ~?= (sort $ getAllRules grammar))
+    ]
+
+hunit_getAllRules_test =
+  let
+    rule1 = Function "r1" (Fun "A" [])
+    rule2 = Function "r2" (Fun "B" [])
+    rule3 = Function "r3" (Fun "A" ["A","A"])
+    rule4 = Function "r4" (Fun "A" ["B","A"])
+    grammar1 = Grammar "S" [] [] emptyPGF
+    grammar2 = Grammar "S" [ rule3, rule4] [] emptyPGF
+    grammar3 = Grammar "S" [] [ rule1, rule2 ] emptyPGF
+    grammar4 = Grammar "S" [ rule3, rule4] [ rule1, rule2 ] emptyPGF
+  in
+    TestList [
+    TestLabel "Empty Grammar 1" ( (getAllRules emptyGrammar) ~?= []),
+    TestLabel "Empty Grammar 2" ( (getAllRules grammar1) ~?= []),
+    TestLabel "Partial Grammar 1" ( (getAllRules grammar2) ~?= [rule3,rule4]),
+    TestLabel "Partial Grammar 2" ( (getAllRules grammar3) ~?= [rule1,rule2]),
+    TestLabel "Full Grammar 1" ( (getAllRules grammar4) ~?= [rule3,rule4,rule1,rule2])
     ]
     
 hunit_pgfToGrammar_test =
@@ -293,20 +347,51 @@ grammar_function_tests =
   TestLabel "isEmptyPGF" hunit_isEmptyPGF_test,
   TestLabel "isEmptyGrammar" hunit_isEmptyGrammar_test,
   TestLabel "readId" hunit_readId_test,
-  TestLabel "getFunType" hunit_getFunType_test,
+  TestLabel "getFunTypeWithPGF" hunit_getFunTypeWithPGF_test,
+  TestLabel "getFunTypeWithPGF" hunit_getFunTypeWithGrammar_test,
   TestLabel "getFunCat" hunit_getFunCat_test,
   TestLabel "getRuleCat" hunit_getRuleCat_test,
-  TestLabel "getRules" hunit_getRuleCat_test,
+  TestLabel "getRuleName" hunit_getRuleName_test,
+  TestLabel "getRulesSet" hunit_getRulesSet_test,
+  TestLabel "getRulesList" hunit_getRulesList_test,
+  TestLabel "getAllRules" hunit_getAllRules_test,
   TestLabel "pgfToGrammar" hunit_pgfToGrammar_test
   ]
 
-prop_FunType_read_show_equality :: FunType -> Bool
-prop_FunType_read_show_equality fun =
+prop_FunTypeReadShowIdentity :: FunType -> Bool
+prop_FunTypeReadShowIdentity fun =
   read (show fun) == fun
 
-hunit_tests = TestList [eq_tests,show_tests,read_tests,grammar_function_tests]
+prop_funTypeEquality :: PGF -> Property
+prop_funTypeEquality pgf =
+  let
+    grammar = pgfToGrammar pgf
+    funs = functions pgf
+  in
+    property $ and $ map (\f -> getFunTypeWithPGF pgf f == getFunTypeWithGrammar grammar (showCId f)) funs
+
+prop_grammarLexRulesNotEmpty :: Grammar -> Property
+prop_grammarLexRulesNotEmpty g = property $ not $ null $ lexrules g
+
+prop_grammarSynRulesNotEmpty :: Grammar -> Property
+prop_grammarSynRulesNotEmpty g = property $ not $ null $ synrules g
+
+prop_grammarHasRulesForAllCats :: Grammar -> Property
+prop_grammarHasRulesForAllCats g =
+  let
+    test c =
+      property $ not $ null $ getRulesList (getAllRules g) [c]
+    cats = nub $ concat $ map (\(Function _ (Fun c cs)) -> c:cs) $ (getAllRules g)
+  in
+    (not $ isEmptyGrammar g) ==> conjoin (map test cats)
+
+hunit_tests = TestList [eq_tests,show_tests,grammar_function_tests]
+
 
 quickcheck_tests :: [(TestName,Property)]
 quickcheck_tests = [
-  ("Grammar FunType show read equality",property prop_FunType_read_show_equality)
+  ("Grammar FunType show read equality",property prop_FunTypeReadShowIdentity),
+  ("Grammar has lexical rules",property prop_grammarLexRulesNotEmpty),
+  ("Grammar has syntactic rules",property prop_grammarSynRulesNotEmpty),
+  ("Grammar has rules for all categories",property prop_grammarHasRulesForAllCats)
   ]
