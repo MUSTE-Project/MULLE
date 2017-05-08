@@ -12,6 +12,7 @@ import Test.HUnit.Text
 import Test.HUnit.Base hiding (Testable)
 import System.Random
 import Data.Set (Set,fromList,toList,empty,singleton)
+import Data.List (sort)
 import qualified Data.Set as Set
 import Data.Maybe
 -- Only needed for arbitrary trees at the moment
@@ -1267,6 +1268,27 @@ hunit_tests = TestList [
   list_function_tests
   ]
 
+prop_generatedTTreeIsNotMeta :: TTree -> Bool
+prop_generatedTTreeIsNotMeta = not . isMeta
+
+-- prop_gfAbsTreeToTTreeIdentity -- TODO
+
+prop_combineIdentity :: TTree -> Rule -> Int -> Bool
+prop_combineIdentity t r d =
+  combineToSet t d r == (fromList $ combineToList t d r)
+  
+prop_treeConversionIdentity :: Grammar -> TTree -> Gen Property
+prop_treeConversionIdentity g tree =
+  let
+    compatible grammar (TNode id typ ts) =
+      elem (Function id typ) (getAllRules g) && (and $ map (compatible grammar) ts)
+  in
+    do
+      --    tree <- arbitraryTTree g 5
+      return $ compatible g tree ==> ((gfAbsTreeToTTreeWithGrammar g . ttreeToGFAbsTree) tree) == tree
+
+-- prop_getMetaLeafCatsIdentity -- TODO
+
 -- | Finds paths for all meta nodes
 prop_metaPathsForAllMetaCats :: TTree -> Bool
 prop_metaPathsForAllMetaCats tree =
@@ -1280,6 +1302,9 @@ prop_metasHaveMetaPaths tree = hasMetas tree ==> not $ null $ getMetaPaths tree
 -- Conversion between GFAbsTrees and TTrees
 quickcheck_tests :: [(TestName,Property)]
 quickcheck_tests = [
+  ("Generated ttrees are not Metas",property prop_generatedTTreeIsNotMeta),
+  ("Tree conversion identity", property prop_treeConversionIdentity),
+  ("Combine identity", property prop_combineIdentity),
   ("Meta paths 1",property prop_metaPathsForAllMetaCats)
 --  ("Meta paths 2",property prop_metasHaveMetaPaths)  -- Fails because there are no metas
   ]
