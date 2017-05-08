@@ -35,7 +35,7 @@ updateClick (Just (Click pos count)) newPos
   
 -- | The 'linearizeTree' function linearizes a TTree to a list of tokens and pathes to the nodes that create it
 linearizeTree :: Grammar -> Language -> TTree ->  [LinToken]
-linearizeTree grammar lang tree = 
+linearizeTree grammar lang ttree = 
   let
     -- Convert the BracketedString to the list of string/path tuples
     bracketsToTuples :: LTree -> BracketedString -> [LinToken]
@@ -71,12 +71,10 @@ linearizeTree grammar lang tree =
       in
         deep tree bs
 
-    ttree = tree
     ltree = ttreeToLTree ttree
     abstree = ttreeToGFAbsTree ttree
     pgfGrammar = pgf grammar
-    abstree2 = head $ parse pgfGrammar (mkCId "ABC1") (fromJust $ readType "S") "a a a"
-    brackets = bracketedLinearize pgfGrammar lang abstree :: [BracketedString]
+    brackets = trace (show abstree) $ bracketedLinearize pgfGrammar lang abstree :: [BracketedString]
   in
     if not $ null brackets then bracketsToTuples ltree $ head brackets else [([],"?0")]
     
@@ -160,6 +158,7 @@ createSortedTreeList grammar language tree trees =
   in
     -- Sort first by common pre/suffix, then by length of the linearized tree and finally by the linearization itself
     map snd $ sortBy (\(a1,a2) (b1,b2) -> let la = linearizeTree grammar language a2 in let lb = linearizeTree grammar language b2 in compare b1 a1 <> compare (length la) (length lb) <> compare la lb) $ zip costList treeList
+
 createSortedTreeListFromList :: Grammar -> Language -> TTree -> [TTree] -> [TTree]
 createSortedTreeListFromList grammar language tree treeList =
   let

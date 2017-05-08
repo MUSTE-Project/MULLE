@@ -166,6 +166,7 @@ prop_treeConversionIdentity g tree =
       --    tree <- arbitraryTTree g 5
       return $ compatible g tree ==> ((gfAbsTreeToTTree2 g . ttreeToGFAbsTree) tree) == tree
 
+-- To be removed until END
 -- | A generic 'TTree' with types is in the 'Show' class
 -- instance Show TTree where
 --   show (TNode name typ []) = "{"++ show name ++ ":"  ++ show typ ++ "}";
@@ -186,15 +187,16 @@ prop_treeConversionIdentity g tree =
 --    | otherwise = str
 
 -- | The function 'readFunType' is a read wrapper for a function type that returns just the first parse
-readFunType :: String -> Maybe (FunType,String)
-readFunType str =
-  let
-    result = reads str
-  in
-    case result of {
-      [(NoType,_)] -> Nothing ;
-      _ -> Just $ head result
-      }
+-- readFunType :: String -> Maybe (FunType,String)
+-- readFunType str =
+--   let
+--     result = reads str
+--   in
+--     case result of {
+--       [(NoType,_)] -> Nothing ;
+--       _ -> Just $ head result
+--       }
+-- END
 
 -- | The function 'getChildCats' extracts the root category of each childtree
 getChildCats :: TTree -> [String]
@@ -409,7 +411,7 @@ ttreeToGFAbsTree tree =
       let
         (nid,nts) = loop ns id
       in
-        (nid,mkApp (mkCId name) nts)
+        if name == wildCard then (nid,mkApp wildCId nts) else (nid,mkApp (mkCId name) nts)
   in
     snd $ convert tree 0
 
@@ -533,6 +535,7 @@ maxPath depth tree =
 -- | The function 'findPaths' finds all paths
 findPaths :: TTree -> [Path]
 findPaths (TMeta _) = []
+findPaths (TNode _ _ []) = [[]]
 findPaths (TNode _ _ trees) =
   let
     current = [[n] | n <- [0 .. length trees - 1]]

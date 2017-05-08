@@ -149,9 +149,9 @@ instance Eq Grammar where
 -- | A 'Grammar' is in the Show class
 instance Show Grammar where
   show (Grammar startcat srules lrules _) =
-    "Startcat: " ++ show startcat ++ "\nRules: \n" ++
+    "Startcat: " ++ show startcat ++ "\nSyntactic Rules: \n" ++
     unwords (map (\r -> "\t" ++ show r ++ "\n") srules)
-    ++
+    ++ "\nLexical Rules: \n" ++
     unwords (map (\r -> "\t" ++ show r ++ "\n") lrules)
 
 -- | Constant for an empty 'Grammar' in line with 'emptyPGF'
@@ -276,7 +276,7 @@ pgfToGrammar pgf
       -- Combine to a rule
       rules = zipWith Function (map showCId funs) funtypes
       -- Split in lexical and syntactical rules
-      (synrules,lexrules) = partition (\r -> case r of { Function _ (Fun _ []) -> True ; _ -> False } ) rules
+      (lexrules,synrules) = partition (\r -> case r of { Function _ (Fun _ []) -> True ; _ -> False } ) rules
       -- Get the startcat from the PGF
       (_, startcat, _) = unType (startCat pgf)
     in

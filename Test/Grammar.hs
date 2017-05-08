@@ -49,10 +49,10 @@ hunit_Show_FunType_show_test =
     type4 = Fun "A" ["A","B"]
   in
     TestList [
-    TestLabel "No Type" ( show type1 ~?= "()" ),
-    TestLabel "Simple Type" ( show type2 ~?= "(A)" ),
-    TestLabel "Function Type 1" ( show type3 ~?= "(A -> A)" ),
-    TestLabel "Function Type 2" ( show type4 ~?= "(A -> B -> A)" )
+    TestLabel "No Type" ( show type1 ~?= "NoType" ),
+    TestLabel "Simple Type" ( show type2 ~?= "Fun \"A\" []" ),
+    TestLabel "Function Type 1" ( show type3 ~?= "Fun \"A\" [\"A\"]" ),
+    TestLabel "Function Type 2" ( show type4 ~?= "Fun \"A\" [\"A\",\"B\"]" )
     ]
 
 hunit_Show_Rule_show_test =
@@ -62,65 +62,82 @@ hunit_Show_Rule_show_test =
     fun3 = Function "f3" (Fun "A" ["A","B"])
   in
     TestList [
-    TestLabel "No Type" ( show fun1 ~?= "f1 : ()" ),
-    TestLabel "Simple Type" ( show fun2 ~?= "f2 : (A)" ),
-    TestLabel "Function Type" ( show fun3 ~?= "f3 : (A -> B -> A)" )
+    TestLabel "No Type" ( show fun1 ~?= "Function \"f1\" NoType" ),
+    TestLabel "Simple Type" ( show fun2 ~?= "Function \"f2\" (Fun \"A\" [])" ),
+    TestLabel "Function Type" ( show fun3 ~?= "Function \"f3\" (Fun \"A\" [\"A\",\"B\"])" )
     ]
 
 hunit_Show_Grammar_show_test =
   let
     grammar1 = Grammar "S" [] [] emptyPGF
-    grammar2 = Grammar "A"
+    grammar2 = Grammar "S"
+      []
+      [
+        Function "a" (Fun "A" []),
+        Function "b" (Fun "B" [])
+      ]
+      emptyPGF
+    grammar3 = Grammar "S"
       [
         Function "f1" (Fun "A" ["A","B"]),
         Function "f2" (Fun "B" ["B","B"])
       ]
       []
       emptyPGF
+    grammar4 = Grammar "S"
+      [
+        Function "f1" (Fun "A" ["A","B"]),
+        Function "f2" (Fun "B" ["B","B"])
+      ]
+      [
+        Function "a" (Fun "A" []),
+        Function "b" (Fun "B" [])
+      ]
+      emptyPGF
   in
     TestList [
-    TestLabel "Empty Grammar" ( show grammar1 ~?= "Startcat: S\nRules: \n" ),
-    TestLabel "Simple Grammar" ( show grammar2 ~?= "Startcat: A\nRules: \n\tf1 : (A -> B -> A)\n \tf2 : (B -> B -> B)\n" )
+    TestLabel "Empty Grammar" ( show grammar1 ~?= "Startcat: \"S\"\nSyntactic Rules: \n\nLexical Rules: \n" ),
+    TestLabel "Simple Grammar 1" ( show grammar2 ~?= "Startcat: \"S\"\nSyntactic Rules: \n\nLexical Rules: \n\tFunction \"a\" (Fun \"A\" [])\n \tFunction \"b\" (Fun \"B\" [])\n" ),
+    TestLabel "Simple Grammar 2" ( show grammar3 ~?= "Startcat: \"S\"\nSyntactic Rules: \n\tFunction \"f1\" (Fun \"A\" [\"A\",\"B\"])\n \tFunction \"f2\" (Fun \"B\" [\"B\",\"B\"])\n\nLexical Rules: \n" ),
+    TestLabel "Grammar" ( show grammar4 ~?= "Startcat: \"S\"\nSyntactic Rules: \n\tFunction \"f1\" (Fun \"A\" [\"A\",\"B\"])\n \tFunction \"f2\" (Fun \"B\" [\"B\",\"B\"])\n\nLexical Rules: \n\tFunction \"a\" (Fun \"A\" [])\n \tFunction \"b\" (Fun \"B\" [])\n" )
     ]
 
-hunit_Read_FunType_readsPrec_test =
+hunit_Read_FunType_read_test =
   let
-    str1 = "A"
-    str2 = "(A)"
-    type1 = Fun "A" []
-    str3 = "A->B"
-    str4 = "A -> B"
-    str5 = "(A->B)"
-    str6 = "(A -> B)"
-    str7 = "( A -> B )"
-    type2 = Fun "B" ["A"]
-    str8 = ""
-    str9 = "_"
-    str10 = "###"
-    str11 = "->"
-    str12 = "-> A"
-    str13 = "A ->"
+    str1 = "NoType"
+    type1 = NoType
+    str2 = "Fun \"A\" []"
+    type2 = Fun "A" []
+    str3 = "Fun \"B\" [\"A\"]"
+    type3 = Fun "B" ["A"]
+    str4 = "Fun \"C\" [\"A\",\"B\"]"
+    type4 = Fun "C" ["A","B"]
   in
     TestList [
-    TestLabel "Simple Type 1" ( reads str1 ~?= [(type1, "")] ),
-    TestLabel "Simple Type 2" ( reads str2 ~?= [(type1, "")] ),
-    TestLabel "Simple Type with rest 1" ( reads ( str2 ++ "###" ) ~?= [(type1, "###")] ),
-    TestLabel "Simple Type with rest 2" ( reads ( str2 ++ "   ###" ) ~?= [(type1, "   ###")] ),
-    TestLabel "Function Type 1" ( reads str3 ~?= [(type2, "")] ),
-    TestLabel "Function Type 2" ( reads str4 ~?= [(type2, "")] ),
-    TestLabel "Function Type 3" ( reads str5 ~?= [(type2, "")] ),
-    TestLabel "Function Type 4" ( reads str6 ~?= [(type2, "")] ),
-    TestLabel "Function Type 5" ( reads str7 ~?= [(type2, "")] ),
-    TestLabel "Function Type with rest 1" ( reads ( str6 ++ "###" ) ~?= [(type2, "###")] ),
-    TestLabel "Function Type with rest 2" ( reads ( str6 ++ "   ###" ) ~?= [(type2, "   ###")] ),
-    TestLabel "Empty String" ( ( reads str8 :: [(FunType,String)] ) ~?= [(NoType,"")] ),
-    TestLabel "Wildcard" ( ( reads str9 :: [(FunType,String)] ) ~?= [(NoType,"_")] ),
-    TestLabel "Three Hashes" ( ( reads str10 :: [(FunType,String)] ) ~?= [(NoType,"###")] ),
-    -- Nor really intended, but does it any harm?
-    TestLabel "Arrow" ( ( reads str11 :: [(FunType,String)] ) ~?= [(NoType,"")] ),
-    TestLabel "Arrow A" ( ( reads str12 :: [(FunType,String)] ) ~?= [(type1,"")] ),
-    TestLabel "A Arrow" ( ( reads str13 :: [(FunType,String)] ) ~?= [(type1,"")] )
+    TestLabel "No Type" ( read str1 ~?= type1 ),
+    TestLabel "Simple Type" ( read str2 ~?= type2 ),
+    TestLabel "Function Type 1" ( read str3 ~?= type3 ),
+    TestLabel "Function Type 2" ( read str4 ~?= type4 )
     ]
+
+hunit_Read_Rule_read_test =
+  let
+    str1 = "Function \"f\" NoType"
+    type1 = Function "f" NoType
+    str2 = "Function \"f\" (Fun \"A\" [])"
+    type2 = Function "f" (Fun "A" [])
+    str3 = "Function \"f\" (Fun \"B\" [\"A\"])"
+    type3 = Function "f" (Fun "B" ["A"])
+    str4 = "Function \"f\" (Fun \"C\" [\"A\",\"B\"])"
+    type4 = Function "f" (Fun "C" ["A","B"])
+  in
+    TestList [
+    TestLabel "No Type" ( read str1 ~?= type1 ),
+    TestLabel "Simple Type" ( read str2 ~?= type2 ),
+    TestLabel "Function Type 1" ( read str3 ~?= type3 ),
+    TestLabel "Function Type 2" ( read str4 ~?= type4 )
+    ]
+
 
 hunit_isEmptyPGF_test =
   let
@@ -267,7 +284,8 @@ show_tests = TestList [
   ]
 
 read_tests = TestList [
-  TestLabel "Read FunType readsPrec" hunit_Read_FunType_readsPrec_test
+  TestLabel "Read FunType read" hunit_Read_FunType_read_test,
+  TestLabel "Read Rule read" hunit_Read_Rule_read_test
   ]
 
 grammar_function_tests =
