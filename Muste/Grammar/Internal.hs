@@ -16,51 +16,6 @@ wildCard = "*empty*"
 -- | Type 'FunType' consists of a String that is the the result category and [String] are the parameter categories
 data FunType = Fun String [String] | NoType deriving (Ord,Eq,Show,Read)
 
--- | A 'FunType' is in the Show class
--- instance Show FunType where
---   show (Fun cat []) =
---     "(" ++ show cat ++ ")"
---   show (Fun cat cats) =
---     "(" ++ (foldl (\a b -> a ++ " -> " ++ show b) (show $ head cats) (tail cats) ++ " -> " ++ show cat) ++ ")"
---   show NoType = "()"
-
--- | Monadic parser combinator to read a 'FunType'
--- parsecFunType :: Stream s m Char => ParsecT s u m FunType
--- parsecFunType =
---   let
---     bracketed :: Stream s m Char => ParsecT s u m [CId]
---     bracketed = do { char '(' ; spaces ; fs <- many (do { i <- id ; f <- many fun; return (i:concat f)} ); spaces ; char ')' ; return $ concat fs }
---     id :: Stream s m Char => ParsecT s u m CId
---     id = do { i <- many1 $ noneOf "(->) "; return $ mkCId i }
---     fun :: Stream s m Char => ParsecT s u m [CId]
---     fun = do { spaces ; string "->" ; spaces ; i <- id ; spaces ; return [i] }
---   in
---     do
---       spaces
---       cids <- (bracketed <|> fmap (: []) id)
---       case cids of {
---         [] -> return NoType ; 
---         _ -> return (Fun (last cids) (init cids)) 
---         }
-
--- parsecPlusRest :: Stream s m Char => ParsecT s u m a -> ParsecT s u m (a,String)
--- parsecPlusRest parser =
---   do
---     elem <- parser
---     rest <- many anyChar
---     return (elem,rest)
-
--- | A 'FunType' is in the Read class
--- instance Read FunType where
---   readsPrec _ sType =
---     let
---       result = parse (parsecPlusRest parsecFunType) "read" sType 
---     in
---       case result of {
---         Left e -> error $ show e ;
---         Right (fun,rest) -> [(fun,rest)]
---         }
-
 -- A 'FunType' can be generated randomly
 instance Arbitrary FunType where
   arbitrary =
@@ -75,37 +30,6 @@ instance Arbitrary FunType where
 
 -- | Type 'Rule' consists of a String as the function name and a 'FunType' as the Type
 data Rule = Function String FunType deriving (Ord,Eq,Show,Read)
-
--- | A 'Rule' is member of the Show class
--- instance Show Rule where
---   show (Function name funtype) =
---     show name ++ " : " ++ show funtype ;
-
--- | Monadic parser combinator to read a 'Rule'
--- parsecRule :: Stream s m Char => ParsecT s u m (Rule,String)
--- parsecRule =
---   let
---     id :: Stream s m Char => ParsecT s u m String
---     id = many $ noneOf ": "
---   in
---     do
---       i <- id
---       spaces
---       char ':'
---       spaces
---       (ft,rest) <- parsecPlusRest parsecFunType
---       return (Function (mkCId i) ft,rest)
-
--- | A 'FunType' is in the Read class
--- instance Read Rule where
---   readsPrec _ sType =
---     let
---       result = parse parsecRule "read" sType
---     in
---       case result of {
---         Left e -> error $ show e ;
---         Right (rule,rest) -> [(rule,rest)]
---         }
 
 -- A 'FunType' can be generated randomly
 instance Arbitrary Rule where
@@ -162,41 +86,7 @@ isEmptyPGF pgf = absname pgf == wildCId
 
 -- | Predicate to check if a Grammar is empty, i.e. when the startcat is wildCId and pgf is empty
 isEmptyGrammar grammar = startcat grammar == wildCard && isEmptyPGF (pgf grammar)
-
-prop_grammarLexRulesNotEmpty :: Grammar -> Property
-prop_grammarLexRulesNotEmpty g = property $ not $ null $ lexrules g
-
-prop_grammarSynRulesNotEmpty :: Grammar -> Property
-prop_grammarSynRulesNotEmpty g = property $ not $ null $ synrules g
-
-prop_grammarHasRulesForAllCats :: Grammar -> Property
-prop_grammarHasRulesForAllCats g =
-  let
-    test c =
-      property $ not $ null $ getRulesList (synrules g ++ lexrules g) [c]
-    cats = nub $ concat $ map (\(Function _ (Fun c cs)) -> c:cs) $ (synrules g ++ lexrules g)
-  in
-    (not $ isEmptyGrammar g) ==> conjoin (map test cats)
   
-  
--- | The function 'readId' is a helper to read a 'FunType'
-readId :: String -> Maybe (CId,String)
--- Workaround for ? (used for unknown types)
-readId ('?':rest) =
-  let
-    tmp = readId rest
-  in
-    case tmp of {
-      Nothing -> Just (mkCId "?","") ;
-      Just (id,rst) -> Just (mkCId  ("?" ++ show id),rst)
-      }
-readId str =
-  let
-    result = reads str
-  in
-    if null result then Nothing else Just $ head result
-
-
 -- | The function 'getFunTypeWithPGF' extracts the function type from a PGF given a function name
 getFunTypeWithPGF :: PGF -> CId -> FunType
 getFunTypeWithPGF grammar id
@@ -223,14 +113,6 @@ getFunTypeWithGrammar g id =
   in
     if not $ null rules then getRuleType $ head rules else NoType
 
-prop_funTypeEquality :: PGF -> Property
-prop_funTypeEquality pgf =
-  let
-    grammar = pgfToGrammar pgf
-    funs = functions pgf
-  in
-    property $ and $ map (\f -> getFunTypeWithPGF pgf f == getFunTypeWithGrammar grammar (showCId f)) funs
-
 -- | The function 'getFunCat' extracts the result category from a function type
 getFunCat :: FunType -> String
 getFunCat (Fun cat _) = cat
@@ -252,7 +134,7 @@ getRuleType (Function _ funType) = funType
 getRulesSet :: [Rule] -> [String] -> Set Rule
 getRulesSet rules cats =
   -- Convert rules from GF format to our only one
-  fromList $ concatMap (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rules) cats
+  fromList $ concatMap (\c -> filter (\f -> case f of { (Function _ (Fun fcat _)) -> fcat == c ; _ -> False }) rules) cats
 
 -- | The function 'getRules' finds all rules in grammar that have a certain result category
 getRulesList :: [Rule] -> [String] -> [Rule]
@@ -282,5 +164,3 @@ pgfToGrammar pgf
       (_, startcat, _) = unType (startCat pgf)
     in
       Grammar (showCId startcat) synrules lexrules pgf
-
-

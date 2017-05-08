@@ -41,32 +41,6 @@ hunit_Eq_Grammar_eq_test =
     TestLabel "Inequality 2" ( grammar2 == grammar1 ~?= False ),
     TestLabel "Complex grammar" $ TestCase $ join $ fmap (\g -> grammar1 == g @?= True) grammar3
     ]
-    
-hunit_Show_FunType_show_test =
-  let
-    type1 = NoType
-    type2 = Fun "A" []
-    type3 = Fun "A" ["A"]
-    type4 = Fun "A" ["A","B"]
-  in
-    TestList [
-    TestLabel "No Type" ( show type1 ~?= "NoType" ),
-    TestLabel "Simple Type" ( show type2 ~?= "Fun \"A\" []" ),
-    TestLabel "Function Type 1" ( show type3 ~?= "Fun \"A\" [\"A\"]" ),
-    TestLabel "Function Type 2" ( show type4 ~?= "Fun \"A\" [\"A\",\"B\"]" )
-    ]
-
-hunit_Show_Rule_show_test =
-  let
-    fun1 = Function "f1" NoType
-    fun2 = Function "f2" (Fun "A" [])
-    fun3 = Function "f3" (Fun "A" ["A","B"])
-  in
-    TestList [
-    TestLabel "No Type" ( show fun1 ~?= "Function \"f1\" NoType" ),
-    TestLabel "Simple Type" ( show fun2 ~?= "Function \"f2\" (Fun \"A\" [])" ),
-    TestLabel "Function Type" ( show fun3 ~?= "Function \"f3\" (Fun \"A\" [\"A\",\"B\"])" )
-    ]
 
 hunit_Show_Grammar_show_test =
   let
@@ -103,43 +77,6 @@ hunit_Show_Grammar_show_test =
     TestLabel "Grammar" ( show grammar4 ~?= "Startcat: \"S\"\nSyntactic Rules: \n\tFunction \"f1\" (Fun \"A\" [\"A\",\"B\"])\n \tFunction \"f2\" (Fun \"B\" [\"B\",\"B\"])\n\nLexical Rules: \n\tFunction \"a\" (Fun \"A\" [])\n \tFunction \"b\" (Fun \"B\" [])\n" )
     ]
 
-hunit_Read_FunType_read_test =
-  let
-    str1 = "NoType"
-    type1 = NoType
-    str2 = "Fun \"A\" []"
-    type2 = Fun "A" []
-    str3 = "Fun \"B\" [\"A\"]"
-    type3 = Fun "B" ["A"]
-    str4 = "Fun \"C\" [\"A\",\"B\"]"
-    type4 = Fun "C" ["A","B"]
-  in
-    TestList [
-    TestLabel "No Type" ( read str1 ~?= type1 ),
-    TestLabel "Simple Type" ( read str2 ~?= type2 ),
-    TestLabel "Function Type 1" ( read str3 ~?= type3 ),
-    TestLabel "Function Type 2" ( read str4 ~?= type4 )
-    ]
-
-hunit_Read_Rule_read_test =
-  let
-    str1 = "Function \"f\" NoType"
-    type1 = Function "f" NoType
-    str2 = "Function \"f\" (Fun \"A\" [])"
-    type2 = Function "f" (Fun "A" [])
-    str3 = "Function \"f\" (Fun \"B\" [\"A\"])"
-    type3 = Function "f" (Fun "B" ["A"])
-    str4 = "Function \"f\" (Fun \"C\" [\"A\",\"B\"])"
-    type4 = Function "f" (Fun "C" ["A","B"])
-  in
-    TestList [
-    TestLabel "No Type" ( read str1 ~?= type1 ),
-    TestLabel "Simple Type" ( read str2 ~?= type2 ),
-    TestLabel "Function Type 1" ( read str3 ~?= type3 ),
-    TestLabel "Function Type 2" ( read str4 ~?= type4 )
-    ]
-
-
 hunit_isEmptyPGF_test =
   let
     pgf = PGF M.empty (mkCId "Abs") (Abstr M.empty M.empty M.empty) M.empty
@@ -171,47 +108,15 @@ hunit_isEmptyGrammar_test =
     ]
   
 hunit_getFunTypeWithPGF_test =
-hunit_readId_test =
   let
     pgf = readPGF "gf/ABCAbs.pgf"
-    str1 = " "
-    str2 = "_"
-    str3 = "?"
-    str4 = "A"
-    str5 = " A"
-    str6 = "_A"
-    str7 = "?A"
-    str8 = "??"
-    str9 = "ABC"
-    str10 = "Abc"
-    str11 = "A_B_C"
-    str12 = "A.B.C"
-    str13 = "A?"
   in
     TestList [
     TestLabel "Empty PGF" $ getFunTypeWithPGF emptyPGF (mkCId "f") ~?= NoType,
     TestLabel "Existing Constant" $ TestCase $ pgf >>= (\g -> getFunTypeWithPGF g (mkCId "a") @?= Fun "A" [] ),
     TestLabel "Existing Function" $ TestCase $ pgf >>= (\g -> getFunTypeWithPGF g (mkCId "f") @?= Fun "A" ["A", "B"]),
     TestLabel "Non-Existing Function" $ TestCase $ pgf >>= (\g -> getFunTypeWithPGF g (mkCId "foo") @?= NoType)
-    TestLabel "Unacceptable Letter 1" ( readId str1 ~?= Nothing ),
-    TestLabel "Unacceptable Letter 2" ( readId str2 ~?= Nothing ),
-    TestLabel "Unacceptable Letter 3" ( readId str3 ~?= Just (mkCId "?","") ),
-    TestLabel "Single Letter 1" ( readId str4 ~?= Just (mkCId "A","") ),
-    TestLabel "Single Letter 2" ( readId str5 ~?= Nothing ),
-    TestLabel "Multiple Letters 1" ( readId str6 ~?= Just (mkCId "_A","") ),
-    TestLabel "Multiple Letters 2" ( readId str7 ~?= Just (mkCId "?A","") ),
-    TestLabel "Multiple Letters 3" ( readId str8 ~?= Just (mkCId "?\'?\'","") ),
-    TestLabel "Multiple Letters 4" ( readId str9 ~?= Just (mkCId "ABC","") ),
-    TestLabel "Multiple Letters 5" ( readId str10 ~?= Just (mkCId "Abc","") ),
-    TestLabel "Multiple Letters 6" ( readId str11 ~?= Just (mkCId "A_B_C","") ),
-    TestLabel "Multiple Letters 7" ( readId str12 ~?= Just (mkCId "A",".B.C") ),
-    TestLabel "Multiple Letters 8" ( readId str13 ~?= Just (mkCId "A","?") ),
-    TestLabel "Single Letter with rest 1" ( readId (str4 ++ "###") ~?= Just (mkCId "A","###") ),
-    TestLabel "Single Letter with rest 2" ( readId (str4 ++ " ###") ~?= Just (mkCId "A"," ###") ),
-    TestLabel "Single Letter with rest 1" ( readId (str9 ++ "###") ~?= Just (mkCId "ABC","###") ),
-    TestLabel "Single Letter with rest 2" ( readId (str9 ++ " ###") ~?= Just (mkCId "ABC"," ###") )
     ]
-
     
 hunit_getFunTypeWithGrammar_test =
   let
@@ -332,21 +237,14 @@ eq_tests = TestList [
   ]
 
 show_tests = TestList [
-  TestLabel "Show FunType show" hunit_Show_FunType_show_test,
-  TestLabel "Show Rule show" hunit_Show_Rule_show_test,
   TestLabel "Show Grammar show" hunit_Show_Grammar_show_test
   ]
 
-read_tests = TestList [
-  TestLabel "Read FunType read" hunit_Read_FunType_read_test,
-  TestLabel "Read Rule read" hunit_Read_Rule_read_test
-  ]
 
 grammar_function_tests =
   TestList [
   TestLabel "isEmptyPGF" hunit_isEmptyPGF_test,
   TestLabel "isEmptyGrammar" hunit_isEmptyGrammar_test,
-  TestLabel "readId" hunit_readId_test,
   TestLabel "getFunTypeWithPGF" hunit_getFunTypeWithPGF_test,
   TestLabel "getFunTypeWithPGF" hunit_getFunTypeWithGrammar_test,
   TestLabel "getFunCat" hunit_getFunCat_test,
