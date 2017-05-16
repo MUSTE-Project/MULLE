@@ -190,6 +190,37 @@ hunit_hasMetas_test =
     TestLabel "Simple tree" ( hasMetas tree4 ~?= False ),
     TestLabel "Tree" ( hasMetas tree5 ~?= True )
     ]
+
+hunit_isValid_test =
+  let
+    -- tree1 in Data.hs
+    tree2 = TMeta wildCard
+    tree3 = TNode "a" NoType []
+    tree4 = TNode "a" (Fun "A" []) []
+    tree5 = TNode "f" (Fun "A" ["A","B"]) [TMeta "A",TMeta "B"]
+    tree6 = TNode "f" (Fun "A" ["A","B"]) [TMeta "A",TMeta "A"]
+    tree7 = TNode "a" (Fun "A" []) [TMeta "A"]
+    tree8 = TNode "f" (Fun "A" ["A"]) []
+    tree9 = TNode "f" (Fun "A" ["A"]) [TMeta "A"]
+    tree10 = TNode "f" (Fun "A" ["A"]) [TMeta "A",TMeta "B"]
+    tree11 = TNode "f" (Fun "A" ["A","B"]) [TNode "g" (Fun "A" ["A","B"]) [],TMeta "B"]
+    tree12 = TNode "f" (Fun "A" ["A","B"]) [TNode "g" (Fun "A" ["A","B"]) [TMeta "A",TNode "h" (Fun "B" ["A","B"]) [TNode "i" (Fun "A" []) [TMeta "A"],TMeta "B"]],TMeta "B"]
+  in
+    TestList [
+    TestLabel "Meta" ( isValid tree1 ~?= (True,Nothing) ),
+    TestLabel "Meta with wildcard" ( isValid tree2 ~?= (True,Nothing) ),
+    TestLabel "Simple Tree without type" ( isValid tree3 ~?= (True,Nothing) ),
+    TestLabel "Simple tree" ( isValid tree4 ~?= (True,Nothing) ),
+    TestLabel "Tree" ( isValid tree5 ~?= (True,Nothing)),
+    TestLabel "Tree broken 1" ( isValid tree6 ~?= (False,Just [])),
+    TestLabel "Simple tree broken 1" ( isValid tree7 ~?= (False,Just []) ),
+    TestLabel "Simple tree broken 2" ( isValid tree8 ~?= (False, Just []) ),
+    TestLabel "Tree 2" ( isValid tree9 ~?= (True,Nothing) ),
+    TestLabel "Tree broken 2" ( isValid tree10 ~?= (False, Just []) ),
+    TestLabel "Tree broken 3" ( isValid tree11 ~?= (False, Just [0]) ),
+    TestLabel "Tree broken 4" ( isValid tree12 ~?= (False, Just [0,1,0]) )
+    ]
+    
 hunit_getTreeCat_test =
   let
     -- tree1 in Data.hs
@@ -725,6 +756,7 @@ tree_function_tests =
   TestLabel "getChildCats" hunit_getChildCats_test,
   TestLabel "isMeta" hunit_isMeta_test,
   TestLabel "hasMetas" hunit_hasMetas_test,
+  TestLabel "isValid" hunit_isValid_test,
   TestLabel "getTreeCat" hunit_getTreeCat_test,
   TestLabel "gfAbsTreeToTTreeWithPGF" hunit_gfAbsTreeToTTreeWithPGF_test,
   TestLabel "gfAbsTreeToTTreeWithGrammar" hunit_gfAbsTreeToTTreeWithGrammar_test,
