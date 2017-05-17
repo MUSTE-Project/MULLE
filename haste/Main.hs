@@ -23,64 +23,89 @@ import Data.IORef
 
 import Control.Monad
 
+-- sampleTree =
+--   TNode "lesson1SfromCl" (Fun "S" ["Cl"])
+--   [
+--     TNode "lesson1ClfromNPVP" (Fun "Cl" ["NP","VP"])
+--     [
+--       TNode "lesson1NPfromCNsg" (Fun "NP" ["CN"])
+--       [
+--         TNode "lesson1CNfromCNNP" (Fun "CN" ["CN","NP"])
+--         [
+--           TNode "lesson1CNfromN" (Fun "CN" ["N"])
+--           [
+--             TNode "Caesar_N" (Fun "N" []) []
+--           ],
+--           TNode "lesson1NPfromPN" (Fun "NP" ["PN"])
+--           [
+--             TNode "Augustus_PN" (Fun "PN" []) []
+--           ]
+--         ]
+--       ],
+--       TNode "lesson1VPfromV2NP" (Fun "VP" ["V2","NP"])
+--       [
+--         TNode "vincere_V2" (Fun "V2" []) [],
+--         TNode "lesson1NPfromPN" (Fun "NP" ["PN"])
+--         [
+--           TNode "Gallia_PN" (Fun "PN" []) []
+--         ]
+--       ]
+--     ]
+--   ]
 sampleTree =
-  TNode "lesson1SfromCl" (Fun "S" ["Cl"])
+  TNode "Pred" (Fun "Comment" ["Item","Quality"])
   [
-    TNode "lesson1ClfromNPVP" (Fun "Cl" ["NP","VP"])
+    TNode "These" (Fun "Item" ["Kind"])
     [
-      TNode "lesson1NPfromCNsg" (Fun "NP" ["CN"])
+      TNode "Mod" (Fun "Kind" ["Quality","Kind"])
       [
-        TNode "lesson1CNfromCNNP" (Fun "CN" ["CN","NP"])
-        [
-          TNode "lesson1CNfromN" (Fun "CN" ["N"])
-          [
-            TNode "Caesar_N" (Fun "N" []) []
-          ],
-          TNode "lesson1NPfromPN" (Fun "NP" ["PN"])
-          [
-            TNode "Augustus_PN" (Fun "PN" []) []
-          ]
-        ]
-      ],
-      TNode "lesson1VPfromV2NP" (Fun "VP" ["V2","NP"])
-      [
-        TNode "vincere_V2" (Fun "V2" []) [],
-        TNode "lesson1NPfromPN" (Fun "NP" ["PN"])
-        [
-          TNode "Gallia_PN" (Fun "PN" []) []
-        ]
+        TNode "Boring" (Fun "Quality" []) [],
+        TNode "Pizza" (Fun "Kind" []) []
       ]
-    ]
+    ],
+    TNode "Warm" (Fun "Quality" []) []
   ]
-sampleLang = "PrimaEng"
+--sampleLang = "PrimaEng"
+sampleLang = "FoodsEng"
+-- startTree =
+--   TNode "lesson1SfromCl" (Fun "S" ["Cl"])
+--   [
+--     TNode "lesson1ClfromNPVP" (Fun "Cl" ["NP","VP"])
+--     [
+--       TNode "lesson1NPfromCNsg" (Fun "NP" ["CN"])
+--       [
+--         TNode "lesson1CNfromN" (Fun "CN" ["N"])
+--         [
+--           TNode "imperator_N" (Fun "N" []) []
+--         ]
+--       ],
+--       TNode "lesson1VPfromV2NP" (Fun "VP" ["V2","NP"])
+--       [
+--         TNode "tenere_V2" (Fun "V2" []) [],
+--         TNode "lesson1NPfromCNsg" (Fun "NP" ["CN"])
+--         [
+--           TNode "lesson1CNfromN" (Fun "NP" ["PN"])
+--           [
+--             TNode "provincia_N" (Fun "N" []) []
+--           ]
+--         ]
+--       ]
+--     ]
+--   ]
 startTree =
-  TNode "lesson1SfromCl" (Fun "S" ["Cl"])
+  TNode "Pred" (Fun "Comment" ["Item","Quality"])
   [
-    TNode "lesson1ClfromNPVP" (Fun "Cl" ["NP","VP"])
+    TNode "This" (Fun "Item" ["Kind"])
     [
-      TNode "lesson1NPfromCNsg" (Fun "NP" ["CN"])
-      [
-        TNode "lesson1CNfromN" (Fun "CN" ["N"])
-        [
-          TNode "imperator_N" (Fun "N" []) []
-        ]
-      ],
-      TNode "lesson1VPfromV2NP" (Fun "VP" ["V2","NP"])
-      [
-        TNode "tenere_V2" (Fun "V2" []) [],
-        TNode "lesson1NPfromCNsg" (Fun "NP" ["CN"])
-        [
-          TNode "lesson1CNfromN" (Fun "NP" ["PN"])
-          [
-            TNode "provincia_N" (Fun "N" []) []
-          ]
-        ]
-      ]
-    ]
+      TNode "Fish" (Fun "Kind" []) []
+    ],
+    TNode "Fresh" (Fun "Quality" []) []
   ]
-grammarFile = "Prima.pgf"
+--grammarFile = "Prima.pgf"
+grammarFile = "Foods.pgf"
 depth = 4 -- performance?
-editLang = "PrimaLat"
+--editLang = "PrimaLat"
+editLang = "FoodsLat"
 
 -- Context info necessary for lots of stuff
 data Context = Ctx { grammar :: Grammar, language :: Language, tree :: TTree, click :: Maybe Muste.Click, totalClicks :: Int}
