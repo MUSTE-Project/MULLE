@@ -74,7 +74,7 @@ linearizeTree grammar lang ttree =
     ltree = ttreeToLTree ttree
     abstree = ttreeToGFAbsTree ttree
     pgfGrammar = pgf grammar
-    brackets = trace (show abstree) $ bracketedLinearize pgfGrammar lang abstree :: [BracketedString]
+    brackets = bracketedLinearize pgfGrammar lang abstree :: [BracketedString]
   in
     if not $ null brackets then bracketsToTuples ltree $ head brackets else [([],"?0")]
     
@@ -177,12 +177,12 @@ getSuggestions grammar language tree path extend depth =
     extension = if extend then 1 else 0
     subTree = fromJust $ selectNode tree path
     linSubTree = map snd $ linearizeTree grammar language subTree
-    -- newTrees = getNewTreesSet grammar language tree path depth
-    newTrees = getNewTreesList grammar language tree path depth
-    -- filteredNewTrees = S.filter (not . hasMetas ) $ newTrees
-    filteredNewTrees = filter (not . hasMetas ) $ newTrees
-    -- sortedNewTrees = createSortedTreeList grammar language subTree filteredNewTrees
-    sortedNewTrees = createSortedTreeListFromList grammar language subTree filteredNewTrees
+    newTrees = getNewTreesSet grammar language tree path depth
+    --newTrees = getNewTreesList grammar language tree path depth -- version working with lists
+    filteredNewTrees = S.filter (not . hasMetas ) $ newTrees
+    --filteredNewTrees = filter (not . hasMetas ) $ newTrees -- version working with lists
+    sortedNewTrees = createSortedTreeList grammar language subTree filteredNewTrees
+    --sortedNewTrees = createSortedTreeListFromList grammar language subTree filteredNewTrees -- version working with lists
     nTrees = filter (\t -> ((length $ linearizeTree grammar language subTree) + extension) >= (length $ linearizeTree grammar language t)) $ sortedNewTrees
     suggestions = treesToStrings grammar language nTrees
   in
@@ -192,8 +192,8 @@ getSuggestions grammar language tree path extend depth =
              wa /= linSubTree
              &&
              let (pre,suf) = preAndSuffix wa linSubTree in
---             (length wa <= length linSubTree || (length wa > length linSubTree && length pre + length suf /= 0))) $ zip suggestions nTrees
-             length pre + length suf /= 0) $ zip suggestions nTrees
+             (length wa <= length linSubTree || (length wa > length linSubTree && length pre + length suf /= 0))) $ zip suggestions nTrees
+             -- length pre + length suf /= 0) $ zip suggestions nTrees -- bork, why?
 
 
 type PrecomputedTrees = [String] -- TODO
