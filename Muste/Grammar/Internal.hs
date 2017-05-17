@@ -7,7 +7,7 @@ import PGF.Internal hiding (nub)
 import Data.Maybe
 import Data.Set (Set(..),fromList)
 import Test.QuickCheck
-import Text.Parsec
+-- import Text.Parsec
 import Data.Char
 import Data.List
 

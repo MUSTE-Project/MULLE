@@ -12,7 +12,7 @@ import Data.Either
 import Data.Ord
 import Muste.Grammar.Internal
 import Debug.Trace
-import Text.Parsec
+-- import Text.Parsec
 import Test.QuickCheck
 
 -- | Generic class for trees
