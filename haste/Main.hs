@@ -144,7 +144,9 @@ drawSampleTree context =
     -- Check for debug
     debug <- hasClass sampleTreeDiv "debug"
     -- Show tree as text
-    sequence_ $ map (\t -> drawWord sampleTreeDiv context t 0 debug False False ) $ linearizeTree (grammar ctx) (mkCId sampleLang) sampleTree
+    let linTree = linearizeTree (grammar ctx) (mkCId sampleLang) sampleTree
+    writeLog (toJSString $ show linTree)
+    sequence_ $ map (\t -> drawWord sampleTreeDiv context t 0 debug False False ) $ linTree
     return ()
 
 drawWord :: Elem -> IORef Context -> LinToken -> Pos -> Bool -> Bool -> Bool ->IO ()
