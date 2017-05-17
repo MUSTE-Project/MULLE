@@ -17,14 +17,15 @@ defaultDebug = True
 handleSelection :: Bool -> TTree -> Path -> [(String,TTree)] -> Int -> IO (Maybe Click, TTree,Bool)
 handleSelection debug tree path suggestions selection =
   do
-    trace (show suggestions) $ return (Nothing,replaceNode tree path (snd $ suggestions !! ( selection - 1)),debug)
+    when debug $ putStrLn $ show suggestions
+    return (Nothing,replaceNode tree path (snd $ suggestions !! ( selection - 1)),debug)
     
 handleClick :: Bool ->Grammar -> Language -> TTree -> [LinToken] -> Maybe Click -> Int -> IO (Maybe Click, TTree,Bool)
 handleClick debug grammar language tree wordList click clickPos =
   do
     let newClick = fromJust $ updateClick click clickPos -- that should never be Nothing -> QuickCheck test for updateClick
     -- Compute the path given the click position and click count
-    let tokenPos = trace (show wordList) $ pos newClick `div` 2
+    let tokenPos = pos newClick `div` 2
     let path = if tokenPos == length wordList then [] else take (length (fst $ wordList !! tokenPos) - (count newClick - 1)) $ fst $ wordList !! tokenPos
     putStrLn $ "You clicked on position " ++ show ( pos newClick ) ++ " for the " ++ show ( count newClick ) ++ " time."
     when debug $ putStrLn $ "That gives token no. " ++ show tokenPos
