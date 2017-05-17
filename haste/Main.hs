@@ -22,11 +22,62 @@ import Data.Maybe
 import Data.IORef
 
 import Control.Monad
--- lesson1SfromCl (lesson1ClfromNPVP (lesson1NPfromCNsg (lesson1CNfromCNNP (lesson1CNfromN Caesar_N) (lesson1NPfromPN Augustus_PN))) (lesson1VPfromV2NP vincere_V2 (lesson1NPfromPN Gallia_PN)))
 
-sampleTree = (read "{lesson1SfromCl:(Cl->S) {lesson1ClfromNPVP:(NP->VP->Cl) {lesson1NPfromCNsg:(CN->NP) {lesson1CNfromCNNP:(CN->NP->CN) {lesson1CNfromN:(N->CN) {Caesar_N:N}} {lesson1NPfromPN:(PN->NP) {Augustus_PN:PN}}}} {lesson1VPfromV2NP:(V2->NP->VP) {vincere_V2:V2} {lesson1NPfromPN:(PN->NP) {Gallia_PN:NP}}}}")
+sampleTree =
+  TNode "lesson1SfromCl" (Fun "S" ["Cl"])
+  [
+    TNode "lesson1ClfromNPVP" (Fun "Cl" ["NP","VP"])
+    [
+      TNode "lesson1NPfromCNsg" (Fun "NP" ["CN"])
+      [
+        TNode "lesson1CNfromCNNP" (Fun "CN" ["CN","NP"])
+        [
+          TNode "lesson1CNfromN" (Fun "CN" ["N"])
+          [
+            TNode "Caesar_N" (Fun "N" []) []
+          ],
+          TNode "lesson1NPfromPN" (Fun "NP" ["PN"])
+          [
+            TNode "Augustus_PN" (Fun "PN" []) []
+          ]
+        ]
+      ],
+      TNode "lesson1VPfromV2NP" (Fun "VP" ["V2","NP"])
+      [
+        TNode "vincere_V2" (Fun "V2" []) [],
+        TNode "lesson1NPfromPN" (Fun "NP" ["PN"])
+        [
+          TNode "Gallia_PN" (Fun "PN" []) []
+        ]
+      ]
+    ]
+  ]
 sampleLang = "PrimaEng"
-startTree = (read "{s_S:S}")
+startTree =
+  TNode "lesson1SfromCl" (Fun "S" ["Cl"])
+  [
+    TNode "lesson1ClfromNPVP" (Fun "Cl" ["NP","VP"])
+    [
+      TNode "lesson1NPfromCNsg" (Fun "NP" ["CN"])
+      [
+        TNode "lesson1CNfromN" (Fun "CN" ["N"])
+        [
+          TNode "imperator_N" (Fun "N" []) []
+        ]
+      ],
+      TNode "lesson1VPfromV2NP" (Fun "VP" ["V2","NP"])
+      [
+        TNode "tenere_V2" (Fun "V2" []) [],
+        TNode "lesson1NPfromCNsg" (Fun "NP" ["CN"])
+        [
+          TNode "lesson1CNfromN" (Fun "NP" ["PN"])
+          [
+            TNode "provincia_N" (Fun "N" []) []
+          ]
+        ]
+      ]
+    ]
+  ]
 grammarFile = "Prima.pgf"
 depth = 4 -- performance?
 editLang = "PrimaLat"
