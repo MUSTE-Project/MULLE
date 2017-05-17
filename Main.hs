@@ -8,9 +8,40 @@ import System.Exit
 import Debug.Trace
 import Control.Monad
 
-startTree = (read "{Pred:(Item->Quality->Comment) {This:(Kind->Item) {Pizza:Kind}} {Very:(Quality->Quality) {Italian:Quality}}}")
-grammarFile = "gf/Foods.pgf"
-depth = 3 -- why???
+-- startTree = (read "{TNode lesson1SfromCl (Fun S [Cl]) [(TNode lesson1ClfromNPVP (Fun Cl [NP,VP]) [(TNode lesson1NPfromCNsg (Fun NP [CN]) [(TNode lesson1CNfromCNNP (Fun CN [CN,NP]) [(TNode lesson1CNfromN (Fun CN [N]) [(TNode Caesar_N (Fun N []) [])])])]), (TNode lesson1NPfromPN (Fun NP [PN]) [(TNode Augustus_PN (Fun PN []) [])]}}}} {lesson1VPfromV2NP:(V2->NP->VP) {vincere_V2:V2} {lesson1NPfromPN:(PN->NP) {Gallia_PN:NP}}}}")
+--startTree = read "TNode lesson1SfromCl (Fun S [Cl]) [TNode lesson1ClfromNPVP (Fun Cl [NP,VP]) [TNode lesson1NPfromCNsg (Fun NP [CN]) [TNode lesson1CNfromCNNP (Fun CN [CN,NP]) [TNode lesson1CNfromN (Fun CN [N]) [TNode Caesar_N (Fun N []) []],TNode lesson1NPfromPN (Fun NP [PN]) [TNode Augustus_PN (Fun PN []) []]],TNode lesson1VPfromV2NP (Fun VP [V2,NP]) [TNode vincere_V2 (Fun V2 []) [],TNode lesson1NPfromPN (Fun NP [PN]) [TNode Gallia_PN (Fun NP []) []]]]]]"
+startTree =
+  TNode "lesson1SfromCl" (Fun "S" ["Cl"])
+  [
+    TNode "lesson1ClfromNPVP" (Fun "Cl" ["NP","VP"])
+    [
+      TNode "lesson1NPfromCNsg" (Fun "NP" ["CN"])
+      [
+        TNode "lesson1CNfromCNNP" (Fun "CN" ["CN","NP"])
+        [
+          TNode "lesson1CNfromN" (Fun "CN" ["N"])
+          [
+            TNode "Caesar_N" (Fun "N" []) []
+          ],
+          TNode "lesson1NPfromPN" (Fun "NP" ["PN"])
+          [
+            TNode "Augustus_PN" (Fun "PN" []) []
+          ]
+        ]
+      ],
+      TNode "lesson1VPfromV2NP" (Fun "VP" ["V2","NP"])
+      [
+        TNode "vincere_V2" (Fun "V2" []) [],
+        TNode "lesson1NPfromPN" (Fun "NP" ["PN"])
+        [
+          TNode "Gallia_PN" (Fun "PN" []) []
+        ]
+      ]
+    ]
+  ]
+  --  ]
+grammarFile = "gf/novo_modo/Prima.pgf"
+depth = 4 -- performance?
 
 defaultDebug = True
 
