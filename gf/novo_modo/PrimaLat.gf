@@ -1,16 +1,16 @@
 --# -path=/home/herb/src/own/GF-latin
 concrete PrimaLat of Prima = CatLat ** open Prelude,ParadigmsLat,LexiconLat,StructuralLat,IrregLat,SentenceLat,NounLat,VerbLat,AdjectiveLat,ExtraLat,(R = ResLat),ConjunctionLat,TenseX,ParamX in {
   lin
-    a_A = { s = \\_,_ => "*Adjective" };
-    pn_PN = { s = \\_,_ => "*ProperName" ; g = neuter } ;
-    n_N = { s = \\_,_ => "*Noun" ; g = neuter } ;
-    adv_Adv = { s = "*Adverb" } ;
-    v_V = { act = \\_ => "*IntransitiveVerb" ; ger = \\_ => "*IntransitiveVerb" ; geriv = \\_ => "*IntransitiveVerb" ; imp = \\_ => "*IntransitiveVerb" ; inf = \\_ => "*IntransitiveVerb" ; part = \\_,_ => "*IntransitiveVerb" ; pass = \\_ => "*IntransitiveVerb" ; sup = \\_ => "*IntransitiveVerb" } ;
-    v2_V2 = { act = \\_ => "*TransitiveVerb" ; ger = \\_ => "*TransitiveVerb" ; geriv = \\_ => "*TransitiveVerb" ; imp = \\_ => "*TransitiveVerb" ; inf = \\_ => "*TransitiveVerb" ; part = \\_,_ => "*TransitiveVerb" ; pass = \\_ => "*TransitiveVerb" ; sup = \\_ => "*TransitiveVerb" ; c = { s = [] ; c = R.Acc ; isPost = True } } ;
-    ap_AP = { s = \\_ => "*AdjectivePhrase" ; isPre = True } ;
-    vp_VP = { s = \\_,_ => "*VerbPhrase" ; compl = \\_ => [] ; obj = [] ; part = \\_,_ => []} ;
-    np_NP = { s = \\_ => "*NounPhrase" ; g = neuter ; n = R.Sg ; p = P3 };
-    s_S = { s = "*Sentence" };
+    -- a_A = { s = \\_,_ => "*Adjective" };
+    -- pn_PN = { s = \\_,_ => "*ProperName" ; g = neuter } ;
+    -- n_N = { s = \\_,_ => "*Noun" ; g = neuter } ;
+    -- adv_Adv = { s = "*Adverb" } ;
+    -- v_V = { act = \\_ => "*IntransitiveVerb" ; ger = \\_ => "*IntransitiveVerb" ; geriv = \\_ => "*IntransitiveVerb" ; imp = \\_ => "*IntransitiveVerb" ; inf = \\_ => "*IntransitiveVerb" ; part = \\_,_ => "*IntransitiveVerb" ; pass = \\_ => "*IntransitiveVerb" ; sup = \\_ => "*IntransitiveVerb" } ;
+    -- v2_V2 = { act = \\_ => "*TransitiveVerb" ; ger = \\_ => "*TransitiveVerb" ; geriv = \\_ => "*TransitiveVerb" ; imp = \\_ => "*TransitiveVerb" ; inf = \\_ => "*TransitiveVerb" ; part = \\_,_ => "*TransitiveVerb" ; pass = \\_ => "*TransitiveVerb" ; sup = \\_ => "*TransitiveVerb" ; c = { s = [] ; c = R.Acc ; isPost = True } } ;
+    -- ap_AP = { s = \\_ => "*AdjectivePhrase" ; isPre = True } ;
+    -- vp_VP = { s = \\_,_ => "*VerbPhrase" ; compl = \\_ => [] ; obj = [] ; part = \\_,_ => []} ;
+    -- np_NP = { s = \\_ => "*NounPhrase" ; g = neuter ; n = R.Sg ; p = P3 };
+    -- s_S = { s = "*Sentence" };
     externus_A = mkA "externus" ;
     magnus_A = LexiconLat.big_A ;
     multus_A = mkA "multus" ;

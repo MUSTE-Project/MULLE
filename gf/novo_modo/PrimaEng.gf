@@ -4,16 +4,16 @@ concrete PrimaEng of Prima =
   open LexiconEng, ParadigmsEng,GrammarEng,ResEng,Prelude in
   {
   lin
-    a_A = { s = \\_ => "*Adjective" };
-    pn_PN = { s = \\_ => "*ProperName" ; g = Neutr } ;
-    n_N = { s = \\_,_ => "*Noun" ; g = Neutr } ;
-    adv_Adv = { s = "*Adverb" } ;
-    v_V = { s = \\_ => "*IntransitiveVerb" ; isRefl = False ; p = []} ;
-    v2_V2 = { s = \\_ => "*TransitiveVerb" ; isRefl = False ; p = [] ; c2 = [] } ;
-    ap_AP = { s = \\_ => "*AdjectivePhrase" ; isPre = True } ;
-    vp_VP = { s = \\_,_,_,_,_ => { adv = [] ; aux = [] ; fin = "*VerbPhrase" ; inf = "*VerbPhrase" } ; ad = \\_ => [] ; ext = [] ; inf = [] ; isSimple = True ; p = [] ; prp = [] ; ptp = [] ; s2 = \\_ => []} ;
-    np_NP = { s = \\_ => "*NounPhrase" ; a = AgP3Sg Neutr };
-    s_S = { s = "*Sentence" };
+    -- a_A = { s = \\_ => "*Adjective" };
+    -- pn_PN = { s = \\_ => "*ProperName" ; g = Neutr } ;
+    -- n_N = { s = \\_,_ => "*Noun" ; g = Neutr } ;
+    -- adv_Adv = { s = "*Adverb" } ;
+    -- v_V = { s = \\_ => "*IntransitiveVerb" ; isRefl = False ; p = []} ;
+    -- v2_V2 = { s = \\_ => "*TransitiveVerb" ; isRefl = False ; p = [] ; c2 = [] } ;
+    -- ap_AP = { s = \\_ => "*AdjectivePhrase" ; isPre = True } ;
+    -- vp_VP = { s = \\_,_,_,_,_ => { adv = [] ; aux = [] ; fin = "*VerbPhrase" ; inf = "*VerbPhrase" } ; ad = \\_ => [] ; ext = [] ; inf = [] ; isSimple = True ; p = [] ; prp = [] ; ptp = [] ; s2 = \\_ => []} ;
+    -- np_NP = { s = \\_ => "*NounPhrase" ; a = AgP3Sg Neutr };
+    -- s_S = { s = "*Sentence" };
     externus_A = mkA "foreign" ;
     magnus_A = LexiconEng.big_A ;
     multus_A = mkA "many" ;
