@@ -207,7 +207,7 @@ isValid t =
         vs = map (\(p,t) -> check t (p:path)) $ zip [0..] c
         brokenPath = filter (not . fst) vs
       in
-        trace (show path ++ "\t" ++ show t ++ "\t" ++ show ccats) $ if (t == ccats) && (and $ map fst vs)then (True,Nothing) 
+        if (t == ccats) && (and $ map fst vs)then (True,Nothing) 
         else if null brokenPath then (False, Just $ reverse path) else (False, Just $ reverse $ fromJust $ snd $ head $ brokenPath)
     check _ path = (False, Just $ reverse path)
   in
