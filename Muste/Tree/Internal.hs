@@ -507,10 +507,10 @@ generateListSimple grammar cat depth =
     loop [TMeta cat]
 
 
-generateListWithGrammar :: Grammar -> CId -> Int -> [TTree]
+generateListWithGrammar :: Grammar -> String -> Int -> [TTree]
 generateListWithGrammar grammar startCat depth =
   let
-    trees = generateAllDepth (pgf grammar) (fromJust $ readType $ showCId startCat) (Just depth)
+    trees = generateAllDepth (pgf grammar) (fromJust $ readType $ startCat) (Just depth)
   in
 --    map (gfAbsTreeToTTree $ pgf grammar) trees
         map (gfAbsTreeToTTreeWithGrammar grammar) trees
