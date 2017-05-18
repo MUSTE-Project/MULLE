@@ -13,6 +13,7 @@ import Data.List
 import Data.Monoid
 import Test.QuickCheck hiding (generate)
 import qualified Test.QuickCheck as Q
+import qualified Data.Map.Lazy as M
 
 type LinToken = (Path,String)
 
@@ -196,9 +197,9 @@ getSuggestions grammar language tree path extend depth =
              -- length pre + length suf /= 0) $ zip suggestions nTrees -- bork, why?
 
 
-type PrecomputedTrees = [String] -- TODO
+type PrecomputedTrees = M.Map (TTree,Click) [(String,TTree)] -- TODO
 
 precomputeTrees :: Grammar -> Language -> TTree -> PrecomputedTrees
-precomputeTrees grammar language tree = [] -- TODO
+precomputeTrees grammar language tree = M.empty -- TODO
 suggestionFromPrecomputed :: PrecomputedTrees -> Click -> [(String,TTree)]
 suggestionFromPrecomputed pre click = [] -- TODO
