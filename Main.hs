@@ -41,7 +41,7 @@ startTree =
   ]
   --  ]
 grammarFile = "gf/novo_modo/Prima.pgf"
-depth = 4 -- performance?
+depth = 3 -- performance?
 
 defaultDebug = True
 

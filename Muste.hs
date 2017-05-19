@@ -118,7 +118,7 @@ getNewTreesList grammar lang tree path depth =
     cat = getTreeCat subTree
     -- Generate Trees with same category
     newSubTrees :: [TTree]
-    newSubTrees = generateListSimple grammar cat depth -- Might be problematic
+    newSubTrees = generateListWithGrammar grammar cat depth -- Might be problematic
   in
     newSubTrees
     
@@ -177,24 +177,27 @@ getSuggestions grammar language tree path extend depth =
   let
     extension = if extend then 1 else 0
     subTree = fromJust $ selectNode tree path
-    linSubTree = map snd $ linearizeTree grammar language subTree
-    newTrees = getNewTreesSet grammar language tree path depth
-    --newTrees = getNewTreesList grammar language tree path depth -- version working with lists
-    filteredNewTrees = S.filter (not . hasMetas ) $ newTrees
-    --filteredNewTrees = filter (not . hasMetas ) $ newTrees -- version working with lists
-    sortedNewTrees = createSortedTreeList grammar language subTree filteredNewTrees
+    --linSubTree = map snd $ linearizeTree grammar language subTree
+    linTree = linearizeList False False $ linearizeTree grammar language tree
+    --newTrees = getNewTreesSet grammar language tree path depth
+    newTrees = getNewTreesList grammar language tree path depth -- version working with lists
+    --filteredNewTrees = S.filter (not . hasMetas ) $ newTrees
+    filteredNewTrees = filter (not . hasMetas ) $ newTrees -- version working with lists
+    --sortedNewTrees = createSortedTreeList grammar language subTree filteredNewTrees
     --sortedNewTrees = createSortedTreeListFromList grammar language subTree filteredNewTrees -- version working with lists
-    nTrees = filter (\t -> ((length $ linearizeTree grammar language subTree) + extension) >= (length $ linearizeTree grammar language t)) $ sortedNewTrees
-    suggestions = treesToStrings grammar language nTrees
+    --nTrees = filter (\t -> ((length $ linearizeTree grammar language subTree) + extension) >= (length $ linearizeTree grammar language t)) $ sortedNewTrees
+    assembledTrees = map (replaceNode tree path) filteredNewTrees
+    suggestions = treesToStrings grammar language assembledTrees
   in
     -- Remove element if it is equal to the original tree or if it is bigger but has nothing in common (prefix and suffix empty)
-    filter (\(a,_) ->
-             let wa = words a in
-             wa /= linSubTree
-             &&
-             let (pre,suf) = preAndSuffix wa linSubTree in
-             (length wa <= length linSubTree || (length wa > length linSubTree && length pre + length suf /= 0))) $ zip suggestions nTrees
-             -- length pre + length suf /= 0) $ zip suggestions nTrees -- bork, why?
+    -- filter (\(a,_) ->
+    --          let wa = words a in
+    --          wa /= linSubTree
+    --          &&
+    --          let (pre,suf) = preAndSuffix wa linSubTree in
+    --          (length wa <= length linSubTree || (length wa > length linSubTree && length pre + length suf /= 0))) $ zip suggestions nTrees
+    --          -- length pre + length suf /= 0) $ zip suggestions nTrees -- bork, why?
+    filter (\(s,_) -> s /= linTree && (length $ words s) == (extension + (length $ words linTree))) $ zip suggestions assembledTrees
 
 
 type PrecomputedTrees = M.Map (TTree,Click) [(String,TTree)] -- TODO
