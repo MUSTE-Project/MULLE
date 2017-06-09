@@ -44,7 +44,7 @@ hunit_linearizeTree_test =
     TestLabel "Tree 5" ( TestCase $ grammar >>= (\g -> linearizeTree g (mkCId "ABC1") tree8 @?= [([0,0],"a"),([0,1],"a"),([0,2],"a")]))
     ]
   
-hunit_linearizeList_test = -- TODO missing cases for positions
+hunit_linearizeList_test = 
   -- The 'linearizeList' functions concatenates a token list to a string
   -- linearizeList :: Bool -> [LinToken] -> String
   let
@@ -54,11 +54,17 @@ hunit_linearizeList_test = -- TODO missing cases for positions
   in
     TestList [
     TestLabel "Empty List without Path" ( linearizeList False False list1 ~?= "" ),
-    TestLabel "Empty List with Path" ( linearizeList True False list1 ~?= "" ),
+    TestLabel "Empty List with Path" ( linearizeList True False list1 ~?= "  []" ),
     TestLabel "One Element without Path" ( linearizeList False False list2 ~?= "a" ),
-    TestLabel "One Element with Path" ( linearizeList True False list2 ~?= "a [0]" ),
+    TestLabel "One Element with Path" ( linearizeList True False list2 ~?= "  [0] a [0]   []" ),
     TestLabel "Simple List without Path" ( linearizeList False False list3 ~?= "a x b" ),
-    TestLabel "Simple List with Path" ( linearizeList True False list3 ~?= "a [0,0] x [0] b [0,1]" )
+    TestLabel "Simple List with Path" ( linearizeList True False list3 ~?= "  [0,0] a [0,0]   [0] x [0]   [0,1] b [0,1]   []" ),
+    TestLabel "Empty List without Path and Positions" ( linearizeList False True list1 ~?= "(0)  " ),
+    TestLabel "Empty List with Path and Positions" ( linearizeList True True list1 ~?= "(0)   []" ),
+    TestLabel "One Element without Path and Positions" ( linearizeList False True list2 ~?= "(0)   (1) a (2)  " ),
+    TestLabel "One Element with Path and Positions" ( linearizeList True True list2 ~?= "(0)   [0] (1) a [0] (2)   []" ),
+    TestLabel "Simple List without Path and Positions" ( linearizeList False True list3 ~?= "(0)   (1) a (2)   (3) x (4)   (5) b (6)  " ),
+    TestLabel "Simple List with Path and Positions" ( linearizeList True True list3 ~?= "(0)   [0,0] (1) a [0,0] (2)   [0] (3) x [0] (4)   [0,1] (5) b [0,1] (6)   []" )
   ]
 
 hunit_getNewTrees_test = -- TODO
