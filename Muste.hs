@@ -18,7 +18,7 @@ import qualified Data.Map.Lazy as M
 type LinToken = (Path,String)
 
 -- | Type for a click that has both a position and a count
-data Click = Click { pos :: Int, count :: Int } deriving (Show)
+data Click = Click { pos :: Int, count :: Int } deriving (Show,Eq)
 
 -- | Click is in the Arbitrary class for QuickCheck
 instance Arbitrary Click where
