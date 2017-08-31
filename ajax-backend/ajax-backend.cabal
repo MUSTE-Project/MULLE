@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 -- The name of the package.
-name:                haste-backend
+name:                ajax-backend
 
 -- The package version.  See the Haskell package versioning policy (PVP) 
 -- for standards guiding when and how versions should be incremented.
@@ -22,7 +22,7 @@ version:             0.0.0.0
 -- license:             
 
 -- The file containing the license text.
-license-file:        LICENSE
+license-file:        ../LICENSE
 
 -- The package author(s).
 author:              Herbert Lange
@@ -45,11 +45,17 @@ extra-source-files:  ChangeLog.md
 -- Constraint on the version of Cabal needed to build this package.
 cabal-version:       >=1.10
 
+Flag CGI
 
-executable haste-backend
+  description: Build as a CGI program
+  default:     False
+
+executable ajax-backend
   -- .hs or .lhs file containing the Main module.
-  main-is:             Main.hs
-  
+  If flag(CGI)
+    main-is:             Main-CGI.hs
+  Else
+    main-is:             Main-Standalone.hs
   -- Modules included in this executable, other than Main.
   -- other-modules:       
   
@@ -57,8 +63,10 @@ executable haste-backend
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.9 && <4.10, json >=0.9 && <0.10
-  
+  If flag(CGI)
+    build-depends:       base >=4.9 && <4.10, aeson >=0.9, text, bytestring, cgi >= 3001.3.0.2
+  Else
+    build-depends:       base >=4.9 && <4.10, aeson >=0.9, text, bytestring, httpd-shed, network-uri, containers
   -- Directories containing source files.
   -- hs-source-dirs:      
   
