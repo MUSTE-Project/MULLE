@@ -15,6 +15,8 @@ import Test.QuickCheck hiding (generate)
 import qualified Test.QuickCheck as Q
 import qualified Data.Map.Lazy as M
 
+data Context = Context { gram :: Grammar, lang :: Language }
+
 type LinToken = (Path,String)
 
 -- | Type for a click that has both a position and a count
@@ -35,9 +37,11 @@ updateClick (Just (Click pos count)) newPos
   | otherwise = Just $ Click newPos 1
   
 -- | The 'linearizeTree' function linearizes a TTree to a list of tokens and pathes to the nodes that create it
-linearizeTree :: Grammar -> Language -> TTree ->  [LinToken]
-linearizeTree grammar lang ttree = 
+linearizeTree :: Context -> TTree ->  [LinToken]
+linearizeTree context ttree = 
   let
+    grammar = gram context
+    language = lang context
     -- Convert the BracketedString to the list of string/path tuples
     bracketsToTuples :: LTree -> BracketedString -> [LinToken]
     bracketsToTuples tree bs =
@@ -75,7 +79,7 @@ linearizeTree grammar lang ttree =
     ltree = ttreeToLTree ttree
     abstree = ttreeToGFAbsTree ttree
     pgfGrammar = pgf grammar
-    brackets = bracketedLinearize pgfGrammar lang abstree :: [BracketedString]
+    brackets = bracketedLinearize pgfGrammar language abstree :: [BracketedString]
   in
     if not $ null brackets then bracketsToTuples ltree $ head brackets else [([],"?0")]
     
@@ -93,8 +97,8 @@ linearizeList debug positions list =
     unwords $ map (\(pos,(path,s)) -> conditionalString positions ("(" ++ show pos ++ ") ") ++ s ++ conditionalString debug (" " ++ show path)) extendedList
 
 -- | The 'getNewTrees' function generates a set of related subtrees given a TTree and a path
-getNewTreesSet :: Grammar -> Language -> TTree -> Path -> Int -> S.Set TTree
-getNewTreesSet grammar lang tree path depth =
+getNewTreesSet :: Context -> TTree -> Path -> Int -> S.Set TTree
+getNewTreesSet context tree path depth =
   let
     subTree :: TTree
     subTree = fromJust $ selectNode tree path
@@ -103,13 +107,13 @@ getNewTreesSet grammar lang tree path depth =
     cat = getTreeCat subTree
     -- Generate Trees with same category
     newSubTrees :: S.Set TTree
-    newSubTrees = generateSet grammar cat depth
+    newSubTrees = generateSet (gram context) cat depth
   in
     newSubTrees
 
 -- | The 'getNewTrees' function generates a set of related subtrees given a TTree and a path
-getNewTreesList :: Grammar -> Language -> TTree -> Path -> Int -> [TTree]
-getNewTreesList grammar lang tree path depth =
+getNewTreesList :: Context -> TTree -> Path -> Int -> [TTree]
+getNewTreesList context tree path depth =
   let
     subTree :: TTree
     subTree = fromJust $ selectNode tree path
@@ -118,14 +122,14 @@ getNewTreesList grammar lang tree path depth =
     cat = getTreeCat subTree
     -- Generate Trees with same category
     newSubTrees :: [TTree]
-    newSubTrees = generateListWithGrammar grammar cat depth -- Might be problematic
+    newSubTrees = generateListWithGrammar (gram context) cat depth -- Might be problematic
   in
     newSubTrees
     
 -- | The 'treesToStrings' generates a list of strings based on the differences in similar trees
-treesToStrings :: Grammar -> Language -> [TTree] -> [String]
-treesToStrings grammar lang trees =
-  map (linearizeList False False . linearizeTree grammar lang) trees
+treesToStrings :: Context -> [TTree] -> [String]
+treesToStrings context trees =
+  map (linearizeList False False . linearizeTree context) trees
 
 -- Computes the longest common prefix and suffix for linearized trees
 preAndSuffix :: Eq a => [a] -> [a] -> ([a],[a])
@@ -147,47 +151,47 @@ preAndSuffix a b =
   in
     prefix a b
     
-createSortedTreeList :: Grammar -> Language -> TTree -> S.Set TTree -> [TTree]
-createSortedTreeList grammar language tree trees =
+createSortedTreeList :: Context -> TTree -> S.Set TTree -> [TTree]
+createSortedTreeList context tree trees =
   let
      treeList :: [TTree]
      treeList = S.toList trees
      referenceLin :: [String]
-     referenceLin = map snd $ linearizeTree grammar language tree
+     referenceLin = map snd $ linearizeTree context tree
      costList :: [Int]
-     costList = map (\t -> uncurry (\f s -> length f + length s) $ preAndSuffix referenceLin (map snd $ linearizeTree grammar language t)) treeList
+     costList = map (\t -> uncurry (\f s -> length f + length s) $ preAndSuffix referenceLin (map snd $ linearizeTree context t)) treeList
   in
     -- Sort first by common pre/suffix, then by length of the linearized tree and finally by the linearization itself
-    map snd $ sortBy (\(a1,a2) (b1,b2) -> let la = linearizeTree grammar language a2 in let lb = linearizeTree grammar language b2 in compare b1 a1 <> compare (length la) (length lb) <> compare la lb) $ zip costList treeList
+    map snd $ sortBy (\(a1,a2) (b1,b2) -> let la = linearizeTree context a2 in let lb = linearizeTree context b2 in compare b1 a1 <> compare (length la) (length lb) <> compare la lb) $ zip costList treeList
 
-createSortedTreeListFromList :: Grammar -> Language -> TTree -> [TTree] -> [TTree]
-createSortedTreeListFromList grammar language tree treeList =
+createSortedTreeListFromList :: Context -> TTree -> [TTree] -> [TTree]
+createSortedTreeListFromList context tree treeList =
   let
      referenceLin :: [String]
-     referenceLin = map snd $ linearizeTree grammar language tree
+     referenceLin = map snd $ linearizeTree context tree
      costList :: [Int]
-     costList = map (\t -> uncurry (\f s -> length f + length s) $ preAndSuffix referenceLin (map snd $ linearizeTree grammar language t)) treeList
+     costList = map (\t -> uncurry (\f s -> length f + length s) $ preAndSuffix referenceLin (map snd $ linearizeTree context t)) treeList
   in
     -- Sort first by common pre/suffix, then by length of the linearized tree and finally by the linearization itself
-    map snd $ sortBy (\(a1,a2) (b1,b2) -> let la = linearizeTree grammar language a2 in let lb = linearizeTree grammar language b2 in compare b1 a1 <> compare (length la) (length lb) <> compare la lb) $ zip costList treeList
+    map snd $ sortBy (\(a1,a2) (b1,b2) -> let la = linearizeTree context a2 in let lb = linearizeTree context b2 in compare b1 a1 <> compare (length la) (length lb) <> compare la lb) $ zip costList treeList
                                                         
   -- | The 'getSuggestions' function generates a list of similar subtrees given a tree and a position in the token list ordered by some measure
-getSuggestions :: Grammar -> Language -> TTree -> Path -> Bool -> Int -> [(String, TTree)]
-getSuggestions grammar language tree path extend depth =
+getSuggestions :: Context -> TTree -> Path -> Bool -> Int -> [(String, TTree)]
+getSuggestions context tree path extend depth =
   let
     extension = if extend then 1 else 0
     subTree = fromJust $ selectNode tree path
     --linSubTree = map snd $ linearizeTree grammar language subTree
-    linTree = linearizeList False False $ linearizeTree grammar language tree
+    linTree = linearizeList False False $ linearizeTree context tree
     --newTrees = getNewTreesSet grammar language tree path depth
-    newTrees = getNewTreesList grammar language tree path depth -- version working with lists
+    newTrees = getNewTreesList context tree path depth -- version working with lists
     --filteredNewTrees = S.filter (not . hasMetas ) $ newTrees
     filteredNewTrees = filter (not . hasMetas ) $ newTrees -- version working with lists
     --sortedNewTrees = createSortedTreeList grammar language subTree filteredNewTrees
     --sortedNewTrees = createSortedTreeListFromList grammar language subTree filteredNewTrees -- version working with lists
     --nTrees = filter (\t -> ((length $ linearizeTree grammar language subTree) + extension) >= (length $ linearizeTree grammar language t)) $ sortedNewTrees
     assembledTrees = map (replaceNode tree path) filteredNewTrees
-    suggestions = treesToStrings grammar language assembledTrees
+    suggestions = treesToStrings context assembledTrees
   in
     -- Remove element if it is equal to the original tree or if it is bigger but has nothing in common (prefix and suffix empty)
     -- filter (\(a,_) ->
