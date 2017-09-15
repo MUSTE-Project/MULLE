@@ -15,7 +15,7 @@ import Test.QuickCheck hiding (generate)
 import qualified Test.QuickCheck as Q
 import qualified Data.Map.Lazy as M
 
-data Context = Context { gram :: Grammar, lang :: Language }
+type Context = (Grammar,Language)
 
 type LinToken = (Path,String)
 
@@ -38,10 +38,8 @@ updateClick (Just (Click pos count)) newPos
   
 -- | The 'linearizeTree' function linearizes a TTree to a list of tokens and pathes to the nodes that create it
 linearizeTree :: Context -> TTree ->  [LinToken]
-linearizeTree context ttree = 
+linearizeTree (grammar,language) ttree = 
   let
-    grammar = gram context
-    language = lang context
     -- Convert the BracketedString to the list of string/path tuples
     bracketsToTuples :: LTree -> BracketedString -> [LinToken]
     bracketsToTuples tree bs =
@@ -112,8 +110,8 @@ getNewTreesSet context tree path depth =
     newSubTrees
 
 -- | The 'getNewTrees' function generates a set of related subtrees given a TTree and a path
-getNewTreesList :: Context -> TTree -> Path -> Int -> [TTree]
-getNewTreesList context tree path depth =
+getNewTrees :: Context -> TTree -> Path -> Int -> [TTree]
+getNewTrees (grammar,_) tree path depth =
   let
     subTree :: TTree
     subTree = fromJust $ selectNode tree path
