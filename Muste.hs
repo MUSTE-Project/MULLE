@@ -30,6 +30,7 @@ instance Arbitrary Click where
       count <- arbitrary
       return $ Click pos count
       
+-- | The function 'updateClick' either increases the counter when the position is the same as the previous one or sets the new position and sets the counter to 1
 updateClick :: Maybe Click -> Pos -> Maybe Click
 updateClick Nothing pos = Just $ Click pos 1
 updateClick (Just (Click pos count)) newPos
@@ -79,7 +80,7 @@ linearizeTree (grammar,language) ttree =
     pgfGrammar = pgf grammar
     brackets = bracketedLinearize pgfGrammar language abstree :: [BracketedString]
   in
-    if not $ null brackets then bracketsToTuples ltree $ head brackets else [([],"?0")]
+    if (not $ isEmptyGrammar grammar) && elem language (languages $ pgf grammar) && (not $ null brackets) then bracketsToTuples ltree $ head brackets else [([],"?0")]
     
 -- | The 'linearizeList' functions concatenates a token list to a string, can contain the pathes for debugging and the positions
 linearizeList :: Bool -> Bool -> [LinToken] -> String
@@ -88,7 +89,10 @@ linearizeList debug positions list =
     conditionalString :: Bool -> String -> String
     conditionalString True s = s
     conditionalString False _ = ""
-    extendedList = zip [0..] $ concatMap (\e@(ep,es) -> [(ep," "),e]) list ++ [([]," ")]
+    extendedList :: [(Integer, (Path, [Char]))]
+--    extendedList = zip [0..] $ concatMap (\e@(ep,es) -> [(ep," "),e]) list ++ [([]," ")] -- the end of the list is always pointing to the root of the tree
+    extendedList = zip [0..] $ if debug || positions then concatMap (\e@(ep,es) -> [(ep," "),e]) list ++ [([]," ")] -- insert "gaps between the words and point the end of the list to the root of the tree
+                               else list 
   in
     --  if debug then unwords $ map (\(pos,(path,s)) -> "(" ++ show pos ++ ") " ++ s ++ " " ++ show path) extendedList
     --else unwords $ map (\(pos,(_,s)) -> "(" ++ show pos ++ ") " ++ s) extendedList
