@@ -460,55 +460,55 @@ extendTreeToList grammar tree depth =
     -- Combine tree with the rules
     concatMap (combineToList tree depth) rules
     
--- | The function 'generate' generates all possible 'TTree's with given root-category up to a maximum height
-generateSet :: Grammar -> String -> Int -> Set TTree
-generateSet grammar cat depth =
-  let
-    -- Filter all trees that cannot be extended either because they grow too big or have no free meta nodes
-    filterTree :: Int -> TTree -> Bool
-    filterTree depth tree =
-      let
-        metaPaths = filter (\(p,c) -> length p <= depth - 1) $ getMetaPaths tree
-      in
-        not $ null metaPaths
-    -- Generate all trees
-    loop :: [TTree] -> Set TTree
-    loop [] = empty -- no more "active" trees
-    loop (tree:trees) = 
-      let
-        extended = extendTreeToSet grammar tree depth -- these are already part of the result
-        activeTrees = trees ++ filter (filterTree depth) (toList (Set.delete tree extended))
-      in
-        Set.union (Set.singleton tree) $ Set.union extended (loop activeTrees)
-  in
-    loop [TMeta cat]
+-- -- | The function 'generate' generates all possible 'TTree's with given root-category up to a maximum height
+-- generateSet :: Grammar -> String -> Int -> Set TTree
+-- generateSet grammar cat depth =
+--   let
+--     -- Filter all trees that cannot be extended either because they grow too big or have no free meta nodes
+--     filterTree :: Int -> TTree -> Bool
+--     filterTree depth tree =
+--       let
+--         metaPaths = filter (\(p,c) -> length p <= depth - 1) $ getMetaPaths tree
+--       in
+--         not $ null metaPaths
+--     -- Generate all trees
+--     loop :: [TTree] -> Set TTree
+--     loop [] = empty -- no more "active" trees
+--     loop (tree:trees) = 
+--       let
+--         extended = extendTreeToSet grammar tree depth -- these are already part of the result
+--         activeTrees = trees ++ filter (filterTree depth) (toList (Set.delete tree extended))
+--       in
+--         Set.union (Set.singleton tree) $ Set.union extended (loop activeTrees)
+--   in
+--     loop [TMeta cat]
 
--- | The function 'generate' generates all possible 'TTree's with given root-category up to a maximum height
-generateListSimple :: Grammar -> String -> Int -> [TTree]
-generateListSimple grammar cat depth =
-  let
-    -- Filter all trees that cannot be extended either because they grow too big or have no free meta nodes
-    filterTree :: Int -> TTree -> Bool
-    filterTree depth tree =
-       let
-         metaPaths = filter (\(p,c) -> length p <= depth - 1) $ getMetaPaths tree
-       in
-         not $ null metaPaths
-    -- Generate all trees
-    loop :: [TTree] -> [TTree]
-    loop [] = [] -- no more "active" trees
-    loop trees = 
-      let
-        extendedTrees = concatMap (\t -> extendTreeToList grammar t depth) trees -- these are already part of the result
-      in
-        --trace (show trees) $
-        nub $ trees ++ loop extendedTrees
-  in
-    loop [TMeta cat]
+-- -- | The function 'generate' generates all possible 'TTree's with given root-category up to a maximum height
+-- generateListSimple :: Grammar -> String -> Int -> [TTree]
+-- generateListSimple grammar cat depth =
+--   let
+--     -- Filter all trees that cannot be extended either because they grow too big or have no free meta nodes
+--     filterTree :: Int -> TTree -> Bool
+--     filterTree depth tree =
+--        let
+--          metaPaths = filter (\(p,c) -> length p <= depth - 1) $ getMetaPaths tree
+--        in
+--          not $ null metaPaths
+--     -- Generate all trees
+--     loop :: [TTree] -> [TTree]
+--     loop [] = [] -- no more "active" trees
+--     loop trees = 
+--       let
+--         extendedTrees = concatMap (\t -> extendTreeToList grammar t depth) trees -- these are already part of the result
+--       in
+--         --trace (show trees) $
+--         nub $ trees ++ loop extendedTrees
+--   in
+--     loop [TMeta cat]
 
 
-generateListWithGrammar :: Grammar -> String -> Int -> [TTree]
-generateListWithGrammar grammar startCat depth =
+generateList :: Grammar -> String -> Int -> [TTree]
+generateList grammar startCat depth =
   let
     trees = generateAllDepth (pgf grammar) (fromJust $ readType $ startCat) (Just depth)
   in

@@ -95,19 +95,19 @@ linearizeList debug positions list =
     unwords $ map (\(pos,(path,s)) -> conditionalString positions ("(" ++ show pos ++ ") ") ++ s ++ conditionalString debug (" " ++ show path)) extendedList
 
 -- | The 'getNewTrees' function generates a set of related subtrees given a TTree and a path
-getNewTreesSet :: Context -> TTree -> Path -> Int -> S.Set TTree
-getNewTreesSet context tree path depth =
-  let
-    subTree :: TTree
-    subTree = fromJust $ selectNode tree path
-    -- Get category at path
-    cat :: String
-    cat = getTreeCat subTree
-    -- Generate Trees with same category
-    newSubTrees :: S.Set TTree
-    newSubTrees = generateSet (gram context) cat depth
-  in
-    newSubTrees
+-- getNewTreesSet :: Context -> TTree -> Path -> Int -> S.Set TTree
+-- getNewTreesSet (grammar,_) tree path depth =
+--   let
+--     subTree :: TTree
+--     subTree = fromJust $ selectNode tree path
+--     -- Get category at path
+--     cat :: String
+--     cat = getTreeCat subTree
+--     -- Generate Trees with same category
+--     newSubTrees :: S.Set TTree
+--     newSubTrees = generateSet grammar cat depth
+--   in
+--     newSubTrees
 
 -- | The 'getNewTrees' function generates a set of related subtrees given a TTree and a path
 getNewTrees :: Context -> TTree -> Path -> Int -> [TTree]
@@ -120,7 +120,7 @@ getNewTrees (grammar,_) tree path depth =
     cat = getTreeCat subTree
     -- Generate Trees with same category
     newSubTrees :: [TTree]
-    newSubTrees = generateListWithGrammar (gram context) cat depth -- Might be problematic
+    newSubTrees = generateList grammar cat depth -- Might be problematic
   in
     newSubTrees
     
@@ -182,7 +182,7 @@ getSuggestions context tree path extend depth =
     --linSubTree = map snd $ linearizeTree grammar language subTree
     linTree = linearizeList False False $ linearizeTree context tree
     --newTrees = getNewTreesSet grammar language tree path depth
-    newTrees = getNewTreesList context tree path depth -- version working with lists
+    newTrees = getNewTrees context tree path depth -- version working with lists
     --filteredNewTrees = S.filter (not . hasMetas ) $ newTrees
     filteredNewTrees = filter (not . hasMetas ) $ newTrees -- version working with lists
     --sortedNewTrees = createSortedTreeList grammar language subTree filteredNewTrees
