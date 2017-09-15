@@ -135,3 +135,26 @@ decodeClientMessage s =
 encodeServerMessage :: ServerMessage -> String
 encodeServerMessage sm =
   B.unpack $ encode sm
+
+linearizeTree :: Grammar -> String -> String -> [String]
+linearizeTree grammar slang stree =
+    let
+      tree = gfAbsTreeToTTreeWithGrammar grammar $ fromJust $ readExpr stree -- !!!
+      toks = M.linearizeTree (grammar, mkCId slang) tree
+   in
+     map snd toks
+
+generateMenus :: Context -> String -> Menu
+generateMenus context stree =
+  let
+    tree = gfAbsTreeToTTreeWithGrammar (fst context) $ fromJust $ readExpr stree -- !!!
+    prec = precomputeTrees context tree
+    -- sug = [((0,0),[(0,"Foo0",tree)]),((0,1),[(0,"Foo1",tree)]),((0,2),[(0,"Foo2",tree)]),((0,3),[(0,"Foo3",tree)]),
+    --        ((1,0),[(0,"Bar0",tree)]),((1,1),[(0,"Bar1",tree)]),((1,2),[(0,"Bar2",tree)]),((1,3),[(0,"Bar3",tree)]),
+    --        ((2,0),[(0,"Baz0",tree)]),((2,1),[(0,"Baz0",tree)]),((2,2),[(0,"Baz2",tree)]),((2,3),[(0,"Baz3",tree)])
+    --       ]
+    sug = suggestionFromPrecomputed context prec tree
+--    foo = Map.fromList $ sug
+  in
+    M $ Map.fromList $ map (\(x,y) -> (x,map (\(a,b,c) -> [T a b (showExpr [] $ ttreeToGFAbsTree c)]) y)) sug -- list of lists ?!?
+
