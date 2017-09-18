@@ -29,7 +29,10 @@ instance Arbitrary Click where
       pos <- arbitrary
       count <- arbitrary
       return $ Click pos count
-      
+
+-- showDebug :: Show a => String -> a -> a
+-- showDebug s a = trace ("Debug: " ++ s ++ show a) a
+
 -- | The function 'updateClick' either increases the counter when the position is the same as the previous one or sets the new position and sets the counter to 1
 updateClick :: Maybe Click -> Pos -> Maybe Click
 updateClick Nothing pos = Just $ Click pos 1
