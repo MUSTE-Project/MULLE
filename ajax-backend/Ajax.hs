@@ -8,8 +8,14 @@ import Data.Monoid
 import Control.Exception
 import qualified Data.ByteString.Lazy.Char8 as B
 import qualified Data.Map.Strict as Map
-import Data.Either
+-- import Data.Either
 import Data.List
+import Data.Maybe
+import Muste hiding (linearizeTree)
+import Muste.Grammar
+import qualified Muste as M
+import Muste.Tree
+import PGF
 
 data ClientTree = CT {
   cgrammar :: String,
@@ -50,9 +56,12 @@ instance ToJSON ClientMessage where
     toEncoding (CM score a b) =
       pairs ("score" .= score <> "a" .= a <> "b" .= b)
       
-data CostTree = T { cost :: Int , lin :: String , tree :: String } deriving (Show)
+--data CostTree = T { cost :: Int , lin :: String , tree :: String } deriving (Show)
+data CostTree = T { cost :: Int , lin :: [(Path,String)] , tree :: String } deriving (Show)
+-- lin is the full linearization
 
-data Menu = M (Map.Map (Int,Int) [CostTree]) deriving (Show)
+--data Menu = M (Map.Map (Int,Int) [[CostTree]]) deriving (Show)
+data Menu = M (Map.Map Path [[CostTree]]) deriving (Show)
 
 data ServerTree = ST {
   sgrammar :: String ,
@@ -102,9 +111,9 @@ instance ToJSON CostTree where
 
 instance ToJSON Menu where
     toJSON (M map) =
-      object [ (pack $ show i ++ "," ++ show j) .= (Map.!) map  k | k@(i,j) <- Map.keys map]
+      object [ (pack $ show k) .= (Map.!) map  k | k <- Map.keys map]
     toEncoding (M map) =
-      pairs $ Prelude.foldl (<>) (head l) (tail l) where l = [ (pack $ show i ++ "," ++ show j) .= (Map.!) map  k | k@(i,j) <- Map.keys map]
+      pairs $ Prelude.foldl (<>) (head l) (tail l) where l = [ (pack $ show k) .= (Map.!) map  k | k <- Map.keys map]
 
 instance ToJSON ServerTree where
     -- this generates a Value
@@ -158,3 +167,21 @@ generateMenus context stree =
   in
     M $ Map.fromList $ map (\(x,y) -> (x,map (\(a,b,c) -> [T a b (showExpr [] $ ttreeToGFAbsTree c)]) y)) sug -- list of lists ?!?
 
+testMessage2 :: ServerMessage
+testMessage2 =
+  SM { ssuccess = False,
+       sscore =  35,
+       sa = tree,
+       sb = tree
+    }
+  where
+    tree = ST { sgrammar =  "MusteEng", stree =  "(StartUtt (UttS (UseCl ... (PredVP (...)) ...)))",
+           slin = ["she", "doesn't", "break", "the", "yellow", "stones", "."],
+           smenu = M $ Map.fromList
+           [([0,0], [[ T {cost = 2, lin = [([0,0],"apples")] , tree = "(StartUtt ...)"},
+                       T {cost = 2, lin = [([0,0],"x"),([0,1],"y"),([0,2],"z")], tree = "(StartUtt ...)"}]]),
+            ([0,1],[[]])
+            ]
+           }
+
+-- "{"success":false,"score":35,"a":{"grammar":"MusteEng","tree":"(StartUtt (UttS (UseCl ... (PredVP (...)) ...)))","lin":["she","doesn't","break","the","yellow","stones","."],"menu":{"4,4":[],"5,6":[{"score":2,"lin":"apples","tree":"(StartUtt ...)"},{"score":2,"lin":"x y z","tree":"(StartUtt ...)"}]}},"b":{"grammar":"MusteEng","tree":"(StartUtt (UttS (UseCl ... (PredVP (...)) ...)))","lin":["she","doesn't","break","the","yellow","stones","."],"menu":{"4,4":[],"5,6":[{"score":2,"lin":"apples","tree":"(StartUtt ...)"},{"score":2,"lin":"x y z","tree":"(StartUtt ...)"}]}}}"
