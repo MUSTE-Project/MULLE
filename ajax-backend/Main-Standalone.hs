@@ -22,46 +22,20 @@ getType fn
   | isSuffixOf "js" fn = "application/javascript"
   | otherwise = "text/plain"
 
-getFileContent =
-  readFile 
 handleRequest :: Grammar -> Request -> IO Response
 handleRequest grammar request
   | isPrefixOf "/cgi"(uriPath $ reqURI request) =
       do
         putStrLn $ "CGI" ++ (show request)
-        let cm = decodeClientMessage (reqBody request)
-        -- Get new Success
-        let nscore = cscore cm + 1
-        -- Check for Success
-        let ctreea = ctree $ ca cm
-        let ctreeb = ctree $ cb cm
-        let nsuccess = ctreea == ctreeb
-        -- Get new Suggestions
-        let langa = (cgrammar $ ca cm)
-        let langb = (cgrammar $ cb cm)
-        let na = ST {
-              sgrammar = langa, -- same language again
-              stree = ctreea,
-              slin = (linearizeTree grammar langa ctreea), -- linearization
-              smenu = (generateMenus (grammar, mkCId langa) ctreea) -- menus
-              }
-        let nb = ST {
-              sgrammar = langb, -- same language again
-              stree = ctreeb,
-              slin = (linearizeTree grammar langb ctreeb), -- linearization linearizeTree ctreeb
-              smenu = (generateMenus (grammar, mkCId langb) ctreeb) -- menus
-              }
-        -- New ServerMessage
-        let nsm = (SM nsuccess nscore na nb)
-        putStrLn $ "\n\n" ++ (show nsm) ++ "#"
-        return (Response 200 [("Content-type","application/json")] (encodeServerMessage nsm))
+        result <- handleClientRequest grammar (reqBody request)
+        return (Response 200 [("Content-type","application/json")] result)
 
   | otherwise = 
       do
         putStrLn $ "HTTP" ++ (show request)
         let file = getFileName $ uriPath $ reqURI request
         let typ = getType file
-        content <- getFileContent $ filePath ++ "/" ++ file
+        content <- readFile $ filePath ++ "/" ++ file
         return (Response 200 [("Content-type",typ)] content)
                 
 main :: IO ()

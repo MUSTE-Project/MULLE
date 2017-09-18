@@ -167,6 +167,36 @@ generateMenus context stree =
   in
     M $ Map.fromList $ map (\(x,y) -> (x,map (\(a,b,c) -> [T a b (showExpr [] $ ttreeToGFAbsTree c)]) y)) sug -- list of lists ?!?
 
+handleClientRequest :: Grammar -> String -> IO String
+handleClientRequest grammar body =
+  do
+    let cm = decodeClientMessage body
+    -- Get new Success
+    let nscore = cscore cm + 1
+    -- Check for Success
+    let ctreea = ctree $ ca cm
+    let ctreeb = ctree $ cb cm
+    let nsuccess = ctreea == ctreeb
+    -- Get new Suggestions
+    let langa = (cgrammar $ ca cm)
+    let langb = (cgrammar $ cb cm)
+    let na = ST {
+          sgrammar = langa, -- same language again
+          stree = ctreea,
+          slin = (linearizeTree grammar langa ctreea), -- linearization
+          smenu = (generateMenus (grammar, mkCId langa) ctreea) -- menus
+          }
+    let nb = ST {
+          sgrammar = langb, -- same language again
+          stree = ctreeb,
+          slin = (linearizeTree grammar langb ctreeb), -- linearization linearizeTree ctreeb
+          smenu = (generateMenus (grammar, mkCId langb) ctreeb) -- menus
+          }
+    -- New ServerMessage
+    let nsm = (SM nsuccess nscore na nb)
+    putStrLn $ "\n\n" ++ (show nsm) ++ "#"
+    return $ encodeServerMessage nsm
+
 testMessage2 :: ServerMessage
 testMessage2 =
   SM { ssuccess = False,

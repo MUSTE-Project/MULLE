@@ -1,16 +1,24 @@
-module Main.CGI where
+module Main where
 
 import Network.CGI
 import Control.Monad
 import Ajax
+import Muste
+import Muste.Grammar
+import PGF
 
-cgi:: CGI CGIResult
-cgi =
+cgi:: Grammar -> CGI CGIResult
+cgi grammar =
   do
     setHeader "Content-type" "text/json"
     b <- getBody
-    outputNothing
+    liftIO $ putStrLn $ "CGI" ++ b
+    result <- liftIO $ handleClientRequest grammar b
+    output result
     
 main :: IO ()
 main =
-  runCGI cgi
+  do
+    pgf <- readPGF "Grammar.pgf"
+    let grammar = pgfToGrammar pgf
+    runCGI (cgi grammar)
