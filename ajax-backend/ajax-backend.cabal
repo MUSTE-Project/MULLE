@@ -64,9 +64,9 @@ executable ajax-backend
   
   -- Other library packages from which modules are imported.
   If flag(CGI)
-    build-depends:       base >=4.9 && <4.10, aeson >=0.9, text, bytestring, cgi >= 3001.3.0.2
+    build-depends:       base >=4.9 && <4.10, aeson >=0.9, text, bytestring, cgi >= 3001.3.0.2, containers, muste, gf
   Else
-    build-depends:       base >=4.9 && <4.10, aeson >=0.9, text, bytestring, httpd-shed, network-uri, containers
+    build-depends:       base >=4.9 && <4.10, aeson >=0.9, text, bytestring, httpd-shed, network-uri, containers, muste, gf
   -- Directories containing source files.
   -- hs-source-dirs:      
   
