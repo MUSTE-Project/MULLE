@@ -329,6 +329,18 @@ maxDepth (TNode _ _ []) = 1
 maxDepth (TNode _ _ trees) =
   1 + maximum ( map maxDepth trees )
 
+-- | The function 'getPathes' returns all pathes in a 'TTree'
+getPathes :: TTree -> [Path]
+getPathes t = 
+  let 
+    pathes (TMeta _) = []
+    pathes (TNode _ _ []) = []
+    pathes (TNode _ _ cs) =
+      let zips = zip [0..] cs in
+      [[c]|(c,_) <- zips] ++ (concat $ map (\(p,c) -> map (p:) $ pathes c) $ zips)
+  in
+    []:pathes t
+         
 -- | The function 'replaceBranch' replaces a branch in a 'TTree' by a new 'TTree' if a subtree at the position exists
 replaceBranch :: TTree -> Pos -> TTree  -> TTree
 replaceBranch (TNode id typ trees) pos newTree =
