@@ -49,7 +49,7 @@ handleSelection :: Bool -> TTree -> Path -> [(String,TTree)] -> Int -> IO (Maybe
 handleSelection debug tree path suggestions selection =
   do
     when debug $ putStrLn $ show suggestions
-    return (Nothing,replaceNode tree path (snd $ suggestions !! ( selection - 1)),debug)
+    return (Nothing,snd $ suggestions !! ( selection - 1),debug)
     
 handleClick :: Bool ->Grammar -> Language -> TTree -> [LinToken] -> Maybe Click -> Int -> IO (Maybe Click, TTree,Bool)
 handleClick debug grammar language tree wordList click clickPos =
@@ -64,11 +64,11 @@ handleClick debug grammar language tree wordList click clickPos =
     let extend = pos newClick `mod` 2 == 0 -- click between words
     -- Get suggestions
     when debug $ putStrLn "Get new suggestions"
-    let suggestions = getSuggestions grammar language tree path extend depth 
-    when debug $ mapM_ (\(a,(b,_)) -> putStrLn $ show a ++ ". " ++ b) $ zip [1..] suggestions
+    let suggestions = getSuggestions (grammar,language) tree path extend depth 
+    when debug $ mapM_ (\(a,(b,c)) -> putStrLn $ show a ++ ". " ++ b ++ " - " ++ show c) $ zip [1..] suggestions
     when debug $ putStrLn "Linearize new suggestions"
-    let linSubTree = map snd $ linearizeTree grammar language $ fromJust $ selectNode tree path
-    mapM_ (\(a,(b,_)) -> putStrLn $ show a ++ ". " ++ printSuggestion linSubTree (words b)) $ zip [1..] suggestions
+    -- let linSubTree = map snd $ linearizeTree grammar language $ fromJust $ selectNode tree path
+    mapM_ (\(a,(b,_)) -> putStrLn $ show a ++ ". " ++ printSuggestion (map snd wordList) (words b)) $ zip [1..] suggestions
     -- do something to the tree
     let cat = getTreeCat $ fromJust $ selectNode tree path
     when debug $ putStrLn $ "The category is " ++ cat ++ "."
@@ -108,7 +108,7 @@ loop :: Grammar -> Language -> Bool -> TTree -> Maybe Click -> IO TTree
 loop grammar language debug tree click =
   do
     -- Show the linearized tree
-    let wordList = linearizeTree grammar language tree
+    let wordList = linearizeTree (grammar,language) tree
     putStrLn $ linearizeList debug True wordList
     -- Ask for the click
     putStrLn "What position do you want to click on?"
