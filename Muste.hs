@@ -206,17 +206,17 @@ getSuggestions context tree path extend depth =
     filter (\(s,_) -> s /= linTree && (length $ words s) == (extension + (length $ words linTree))) $ zip suggestions assembledTrees
 
 
-type PrecomputedTrees = [((TTree,Click),[(Int,String,TTree)])] -- TODO
+type PrecomputedTrees = [((TTree,Path),[(Int,[(Path,String)],TTree)])]
 
 precomputeTrees :: Context -> TTree -> PrecomputedTrees
 precomputeTrees context@(grammar,_) tree =
   let
+    cat = getTreeCat tree
     lin = linearizeTree context tree
-    allTrees = map (gfAbsTreeToTTreeWithGrammar grammar) $ generateAllDepth (pgf grammar) (fromJust $ readType $ startcat grammar) (Just 5) -- depth might be problematic
-    allClicks = [Click p c | p <- [0..length lin -1], c <- [0..length (fst (lin !! p)) -1]]
+    allTrees = map (gfAbsTreeToTTreeWithGrammar grammar) $ generateAllDepth (pgf grammar) (fromJust $ readType $ startcat grammar) (Just (maxDepth tree + 1)) -- depth might be problematic
+--    allPathes = getPathes tree
   in
-    [((t,c),getScoredTrees context t c) | c <- allClicks, t <- allTrees] --, nt <- newTrees context t c]
---    [((t,c),[]) | c <- allClicks, t <- allTrees] --, nt <- newTrees context t c]
+    [((t,p),getScoredTrees context t p) | t <- allTrees, p <- getPathes t]
 
 rateTree :: Context -> TTree -> TTree -> Int
 rateTree context t1 t2 =
@@ -227,57 +227,46 @@ rateTree context t1 t2 =
   in
     length lin1 - (length p) - (length s)
 
-newTrees :: Context -> TTree -> Click -> [TTree]
-newTrees context t c =
+newTrees :: Context -> TTree -> Path -> [TTree]
+newTrees context t path =
   let
     lin = linearizeTree context t
-    path = initN (count c) $ fst (lin !! (pos c))
     -- suggestions = getSuggestions context t path True 4
     subTree = fromJust $ selectNode t path
-    cat = getTreeCat $ subTree
+    cat = getTreeCat subTree
     suggestions = filter (\n -> maxDepth n <= maxDepth subTree + 1) $ generateList (fst context) cat (maxDepth subTree + 1)
   in
     -- map snd suggestions
     suggestions
 
-initN :: Int -> [a] -> [a]
-initN ct l =
-  take (length l - ct) l
+-- initN :: Int -> [a] -> [a]
+-- initN ct l =
+--   take (length l - ct) l
   
-linearizeSubtree :: Context -> TTree -> Click -> String
-linearizeSubtree context t c =
-  let
-    lin = linearizeTree context t
-    path = initN (count c) $ fst (lin !! (pos c))
-  in
-    concat $ map snd $ linearizeTree context $ fromJust $ selectNode t path -- Might explode if path is invalid 
-
 -- This function makes probably too simple assumptions
 -- 1. the range starts at click position
 -- 2. the range is as long as the linearization of the subtree
-clickToRange :: Context -> TTree -> Click -> (Int,Int)
-clickToRange context tree (Click pos count) =
-  let
-    linTree = linearizeTree context tree
-    path = initN count $ fst (linTree !! pos)
-    -- lin = linearizeTree context (fromJust $ selectNode tree path)
-  in
-    -- (pos,pos + length lin)
-    (pos, pos + (length $ filter (isPrefixOf path) $ map fst linTree))
+-- clickToRange :: Context -> TTree -> Click -> (Int,Int)
+-- clickToRange context tree (Click pos count) =
+--   let
+--     linTree = linearizeTree context tree
+--     path = initN count $ fst (linTree !! pos)
+--   in
+--     -- (pos,pos + length lin)
+--     (pos, pos + (length $ filter (isPrefixOf path) $ map fst linTree))
     
-getScoredTrees :: Context -> TTree -> Click -> [(Int,String,TTree)]
-getScoredTrees context t c =
+getScoredTrees :: Context -> TTree -> Path -> [(Int,[(Path,String)],TTree)]
+getScoredTrees context t p =
   let
-    nts = newTrees context t c
+    nts = newTrees context t p
     scores = map (rateTree context t) nts
-    lins = map ((flip $ linearizeSubtree context) c) nts
+    lins = map (linearizeTree context) nts
   in
     zip3 scores lins nts
     
-suggestionFromPrecomputed :: Context -> PrecomputedTrees -> TTree -> [((Int,Int),[(Int,String,TTree)])]
+suggestionFromPrecomputed :: Context -> PrecomputedTrees -> TTree -> [(Path,[(Int,[(Path,String)],TTree)])]
 suggestionFromPrecomputed _ [] _ = []
 suggestionFromPrecomputed context pc key =
-  map (\((_,c),ts) -> let range = clickToRange context key c in (range,ts)) $ filter (\((t,_),_) -> t == key) pc
---  if (fst $ fst p) == key then (range,(snd p)):(suggestionFromPrecomputed context pre key)
---  else suggestionFromPrecomputed context pre key
---  where range = clickToRange context key (snd $ fst p)
+--  map (\((_,c),ts) -> let range = clickToRange context key c in (range,ts)) $ filter (\((t,_),_) -> t == key) pc
+  map (\((_,p),ts) -> (p,ts)) $ filter (\((t,_),_) -> t == key) pc
+--  [] -- TODO
