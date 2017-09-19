@@ -1,0 +1,47 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MUSTE</title>
+  <link rel="stylesheet" href="muste.css" type="text/css"></link>
+  <script type="text/javascript" src="jquery-1.11.1.min.js"></script>
+    <script>
+    var DefaultLang1 = "PrimaEng" ;
+    var DefaultTree1 = "(useS (useCl (simpleCl (usePron he_PP) (complA Romanus_A))))";
+    var DefaultLang2 = "PrimaLat" ;
+    var DefaultTree2 = "useS (useCl (simpleCl (usePN Augustus_PN) (complA laetus_A)))";
+  </script>
+  <script type="text/javascript" src="muste-gui.js"></script>
+  <script>
+    var SERVER = "http://localhost:8080/cgi"
+  </script>
+
+  <!-- Comment this out if you want to run on the server: -->
+  <!-- script type="text/javascript" src="cgi-simulation/GF.js"></script>
+  <script type="text/javascript" src="cgi-simulation/grammar.js"></script>
+  <script type="text/javascript" src="cgi-simulation/muste-backend.js"></script>
+  <script>
+    var SERVER = server_simulation;
+    initialize_simulation();
+  </script -->
+</head>
+
+<body>
+<div id="body">
+
+  <span id="score"></span>
+  <span id="busy-indicator" class="idle"></span>
+  <!-- Unicode Character 'BLACK CIRCLE' (U+25CF) -->
+
+  <div id="container">
+    <div id="A" class="sentence prevent-body-click"></div>
+    <div class="vertical-separator"></div>
+    <div id="B"class="sentence prevent-body-click"></div>
+  </div>
+
+  <div id="menus" class="prevent-body-click"></div>
+
+</div>
+</body>
+</html>
