@@ -16,6 +16,8 @@ import Muste.Grammar
 import qualified Muste as M
 import Muste.Tree
 import PGF
+import Data.Map hiding (map)
+import Data.IORef
 
 data ClientTree = CT {
   cgrammar :: String,
@@ -153,25 +155,42 @@ linearizeTree grammar slang stree =
    in
      map snd toks
 
-generateMenus :: Context -> String -> Menu
-generateMenus context stree =
+getMenus :: Context -> M.Precomputed -> String -> Menu
+getMenus context prec stree =
   let
     tree = gfAbsTreeToTTreeWithGrammar (fst context) $ fromJust $ readExpr stree -- !!!
-    prec = precomputeTrees context tree
+--    prec = precomputeTrees context tree
     -- sug = [((0,0),[(0,"Foo0",tree)]),((0,1),[(0,"Foo1",tree)]),((0,2),[(0,"Foo2",tree)]),((0,3),[(0,"Foo3",tree)]),
     --        ((1,0),[(0,"Bar0",tree)]),((1,1),[(0,"Bar1",tree)]),((1,2),[(0,"Bar2",tree)]),((1,3),[(0,"Bar3",tree)]),
     --        ((2,0),[(0,"Baz0",tree)]),((2,1),[(0,"Baz0",tree)]),((2,2),[(0,"Baz2",tree)]),((2,3),[(0,"Baz3",tree)])
     --       ]
-    sug = suggestionFromPrecomputed context prec tree
---    foo = Map.fromList $ sug
+    sug = suggestionFromPrecomputed context (prec ! (snd context)) tree
   in
     M $ Map.fromList $ map (\(x,y) -> (x,map (\(a,b,c) -> [T a b (showExpr [] $ ttreeToGFAbsTree c)]) y)) sug -- list of lists ?!?
 
-handleClientRequest :: Grammar -> String -> IO String
-handleClientRequest grammar body =
+initPrecomputed :: Grammar -> IORef (Maybe Precomputed) -> String -> IO (Maybe Precomputed)
+initPrecomputed grammar precRef body =
+  let update prec =
+        let cm = decodeClientMessage body
+            langa = mkCId (cgrammar $ ca cm)
+            langb = mkCId (cgrammar $ cb cm)
+            treea = gfAbsTreeToTTreeWithGrammar grammar $ fromJust $ readExpr $ ctree $ ca cm
+            treeb = gfAbsTreeToTTreeWithGrammar grammar $ fromJust $ readExpr $ ctree $ cb cm
+        in
+          do
+            writeIORef precRef $ Just $ fromList [(langa,precomputeTrees (grammar,langa) treea), (langb,precomputeTrees (grammar,langb) treeb)]
+            return prec
+  in
+    do
+      prec <- readIORef precRef
+      if isNothing prec then update prec
+      else return prec
+    
+handleClientRequest :: Grammar -> Precomputed -> String -> IO String
+handleClientRequest grammar prec body =
   do
     let cm = decodeClientMessage body
-    -- Get new Success
+    -- Get new score
     let nscore = cscore cm + 1
     -- Check for Success
     let ctreea = ctree $ ca cm
@@ -184,19 +203,19 @@ handleClientRequest grammar body =
           sgrammar = langa, -- same language again
           stree = ctreea,
           slin = (linearizeTree grammar langa ctreea), -- linearization
-          smenu = (generateMenus (grammar, mkCId langa) ctreea) -- menus
+          smenu = (getMenus (grammar, mkCId langa) prec ctreea) -- menus
           }
     let nb = ST {
           sgrammar = langb, -- same language again
           stree = ctreeb,
           slin = (linearizeTree grammar langb ctreeb), -- linearization linearizeTree ctreeb
-          smenu = (generateMenus (grammar, mkCId langb) ctreeb) -- menus
+          smenu = (getMenus (grammar, mkCId langb) prec ctreeb) -- menus
           }
     -- New ServerMessage
     let nsm = (SM nsuccess nscore na nb)
     putStrLn $ "\n\n" ++ (show nsm) ++ "#"
     return $ encodeServerMessage nsm
-
+  
 testMessage2 :: ServerMessage
 testMessage2 =
   SM { ssuccess = False,

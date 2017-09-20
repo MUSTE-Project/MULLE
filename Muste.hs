@@ -211,6 +211,8 @@ getSuggestions context tree path extend depth =
 
 type PrecomputedTrees = [((TTree,Path),[(Int,[(Path,String)],TTree)])]
 
+type Precomputed = M.Map Language PrecomputedTrees
+
 precomputeTrees :: Context -> TTree -> PrecomputedTrees
 precomputeTrees context@(grammar,_) tree =
   let
@@ -273,3 +275,10 @@ suggestionFromPrecomputed context pc key =
 --  map (\((_,c),ts) -> let range = clickToRange context key c in (range,ts)) $ filter (\((t,_),_) -> t == key) pc
   map (\((_,p),ts) -> (p,ts)) $ filter (\((t,_),_) -> t == key) pc
 --  [] -- TODO
+
+
+-- precomputeAll :: Grammar -> Precomputed
+-- precomputeAll grammar =
+--   let langs = (languages $ pgf grammar)
+--       trees = map (gfAbsTreeToTTreeWithGrammar grammar) $ generateAllDepth (pgf grammar) (fromJust $ readType $ startcat grammar) 5 -- depth might be problematic
+--   in M.fromList [(lang,M.fromList (tree,precomputeTrees (grammar,l) tree)) | tree <- trees,lang <- langs]
