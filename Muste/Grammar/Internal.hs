@@ -10,11 +10,9 @@ import Test.QuickCheck
 -- import Text.Parsec
 import Data.Char
 import Data.List
+import Muste.Feat
 
 wildCard = "*empty*"
-
--- | Type 'FunType' consists of a String that is the the result category and [String] are the parameter categories
-data FunType = Fun String [String] | NoType deriving (Ord,Eq,Show,Read)
 
 -- A 'FunType' can be generated randomly
 instance Arbitrary FunType where
@@ -28,9 +26,6 @@ instance Arbitrary FunType where
         return $ Fun [cat] (map charToString cats)
       charToString c = [c]
 
--- | Type 'Rule' consists of a String as the function name and a 'FunType' as the Type
-data Rule = Function String FunType deriving (Ord,Eq,Show,Read)
-
 -- A 'FunType' can be generated randomly
 instance Arbitrary Rule where
   arbitrary =
@@ -40,14 +35,6 @@ instance Arbitrary Rule where
       funtype <- arbitrary 
       return $ Function [id] funtype
       
--- | Type 'Grammar' consists of a start categorie and a list of rules
-data Grammar = Grammar {
-  startcat :: String,
-  synrules :: [Rule],
-  lexrules :: [Rule],
-  pgf :: PGF
-  }
-
 instance Arbitrary Grammar where
   arbitrary =
     do
@@ -60,26 +47,27 @@ instance Arbitrary Grammar where
       -- get all the cats on the rhss
       let allCats = nub $ concat $ map (\(Function _ (Fun _ cats)) -> cats) rules -- Problematic
       let lexRules = map (\c -> Function (map toLower c) (Fun c [])) allCats
-      return $ Grammar startCat rules lexRules emptyPGF
+      return $ Grammar startCat rules lexRules emptyPGF $ mkFEAT (Grammar startCat rules lexRules emptyPGF emptyFeat)
       
 -- | A 'Grammar' is in the EQ class
 instance Eq Grammar where
-  (==) g1@(Grammar s1 rs1 ls1 pgf1) g2@(Grammar s2 rs2 ls2 pgf2) =
+  (==) g1@(Grammar s1 rs1 ls1 pgf1 ft1) g2@(Grammar s2 rs2 ls2 pgf2 ft2) =
     s1 == s2 &&
     rs1 == rs2 &&
     ls1 == ls2
     -- pgf1 == pgf2 -- To be fixed somehow
+    -- ft1 == ft2
     
 -- | A 'Grammar' is in the Show class
 instance Show Grammar where
-  show (Grammar startcat srules lrules _) =
+  show (Grammar startcat srules lrules _ _) =
     "Startcat: " ++ show startcat ++ "\nSyntactic Rules: \n" ++
     unwords (map (\r -> "\t" ++ show r ++ "\n") srules)
     ++ "\nLexical Rules: \n" ++
     unwords (map (\r -> "\t" ++ show r ++ "\n") lrules)
 
 -- | Constant for an empty 'Grammar' in line with 'emptyPGF'
-emptyGrammar = Grammar wildCard [] [] emptyPGF
+emptyGrammar = Grammar wildCard [] [] emptyPGF emptyFeat
 
 -- | Predicate to check if a PGF is empty, i.e. when the absname is wildCId
 isEmptyPGF pgf = absname pgf == wildCId
@@ -126,10 +114,6 @@ getRuleCat (Function _ funType) = getFunCat funType
 getRuleName :: Rule -> String
 getRuleName (Function name _) = name
 
--- | The function 'getRuleType' extracts the full type of a rule
-getRuleType :: Rule -> FunType
-getRuleType (Function _ funType) = funType
-
 -- | The function 'getRules' finds all rules in grammar that have a certain result category
 getRulesSet :: [Rule] -> [String] -> Set Rule
 getRulesSet rules cats =
@@ -141,10 +125,6 @@ getRulesList :: [Rule] -> [String] -> [Rule]
 getRulesList rules cats =
   -- Convert rules from GF format to our only one
   concatMap (\c -> filter (\(Function _ (Fun fcat _)) -> fcat == c ) rules) cats
-
--- | The function 'getRules' returns the union of syntactic and lexical rules of a grammar
-getAllRules :: Grammar -> [Rule]
-getAllRules g = union (synrules g) (lexrules g)
 
 -- | The function 'pgfToGrammar' transforms a PGF grammar to a simpler grammar data structure
 pgfToGrammar :: PGF -> Grammar
@@ -163,4 +143,4 @@ pgfToGrammar pgf
       -- Get the startcat from the PGF
       (_, startcat, _) = unType (startCat pgf)
     in
-      Grammar (showCId startcat) synrules lexrules pgf
+      Grammar (showCId startcat) synrules lexrules pgf (mkFEAT (Grammar (showCId startcat) synrules lexrules pgf emptyFeat))

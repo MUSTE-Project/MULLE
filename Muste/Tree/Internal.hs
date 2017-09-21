@@ -14,6 +14,7 @@ import Muste.Grammar.Internal
 import Debug.Trace
 -- import Text.Parsec
 import Test.QuickCheck
+import Muste.Feat
 
 -- | Generic class for trees
 class TreeC t where
@@ -34,11 +35,6 @@ type Path = [Pos]
 
 -- | Rename GF abstract syntax tree (from PGF)
 type GFAbsTree = Tree
-
--- | A generic tree with types
-data TTree = TNode String FunType [TTree] -- Regular node consisting of a function name, function type and possible subtrees
-           | TMeta String -- A meta tree consisting just of a category type
-           deriving (Ord,Eq,Show,Read) -- read is broken at the moment, most likely because of the CId
 
 -- | A meta tree - tuple of a generic tree with types and a list of possibly attachable subtrees
 -- data MetaTTree = MetaTTree {
@@ -519,12 +515,19 @@ extendTreeToList grammar tree depth =
 --     loop [TMeta cat]
 
 
+-- generateList :: Grammar -> String -> Int -> [TTree]
+-- generateList grammar startCat depth =
+--   let
+--     trees = generateAllDepth (pgf grammar) (fromJust $ readType $ startCat) (Just depth)
+--   in
+-- --    map (gfAbsTreeToTTree $ pgf grammar) trees
+--         map (gfAbsTreeToTTreeWithGrammar grammar) trees
+
 generateList :: Grammar -> String -> Int -> [TTree]
-generateList grammar startCat depth =
+generateList grammar cat depth =
   let
-    trees = generateAllDepth (pgf grammar) (fromJust $ readType $ startCat) (Just depth)
+    feats = map (\d -> let f = feat grammar in (featCard f cat d,featIth f cat d)) [0..depth]
   in
---    map (gfAbsTreeToTTree $ pgf grammar) trees
-        map (gfAbsTreeToTTreeWithGrammar grammar) trees
+    concat $ map (\(max,fs) -> map fs [0..max-1]) feats
 
 
