@@ -1,0 +1,24 @@
+#content {
+   max-width: 800px;
+}
+#score { font-size: xx-large; color:red; margin-top: 20px; display : inline-block ; }
+#score.won { font-size: xx-large; color:green; margin-top: 50px; }
+/* #exampleTree { margin-bottom: 5%; margin-top: 5%; display: flex; align-items: center; justify-content: center; }
+#exerciseTree { display: flex; align-items: center; justify-content: center;}
+span.word { font-size: large; border: medium solid lightgrey; border-radius: 2em; padding: 3px; background-color: lightgrey; margin-right: 0.5em; }
+span.gap { padding-right: 20px; border-bottom: thin solid grey; margin-right: 3px }
+span.path { font-size: xx-small; position: relative; top: 5px; margin-right: 0.5em; } */
+#exampleTreeDiv { margin-bottom: 5%; margin-top: 5%; display: flex; align-items: center; justify-content: center;}
+#exerciseTreeDiv { display: flex; align-items: center; justify-content: center;}
+span.tree { border: medium solid lightgrey; border-radius: 2em; background-color: lightgrey; padding: 0.5em;}
+span.word { padding: 3px; margin-right: 0.5em; margin-left: 0.5em; font-size: xx-large; }
+span.gap { padding-right: 20px; margin-left: 0.5em; border-bottom: thin solid grey; margin-right: 3px }
+span.path { font-size: xx-small; position: relative; top: 5px; margin-right: 0.5em; }
+div.menu { position: absolute; font-size: xx-large; border: medium solid grey; border-radius: 1em; padding: 5px; background-color: lightgrey; margin-right: 0.5em; list-style-type: null; }
+div.menuHover { background-color: darkblue; color: lightgrey; border-radius: 0.25em;}
+span.wordHover { background-color: darkgray; color: white; border-radius: 0.25em;}
+#spacer { padding: 100%; }
+div.bar { width: 35px; height: 5px; background-color: black; margin: 6px ; }
+#menuButton { display : inline-block ; margin-right: 20px; margin-top: 20px; float: right; } 
+#menuList { width: 200px; padding: 0.25em;}
+#header { width: 100%; }
