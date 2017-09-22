@@ -218,7 +218,7 @@ precomputeTrees context@(grammar,_) tree =
   let
     cat = getTreeCat tree
     lin = linearizeTree context tree
-    allTrees = map (gfAbsTreeToTTreeWithGrammar grammar) $ generateAllDepth (pgf grammar) (fromJust $ readType $ startcat grammar) (Just (maxDepth tree + 1)) -- depth might be problematic
+    allTrees = generateList grammar cat (maxDepth tree + 2)
 --    allPathes = getPathes tree
   in
     [((t,p),getScoredTrees context t p) | t <- allTrees, p <- getPathes t]
@@ -239,7 +239,7 @@ newTrees context t path =
     -- suggestions = getSuggestions context t path True 4
     subTree = fromJust $ selectNode t path
     cat = getTreeCat subTree
-    suggestions = filter (\n -> maxDepth n <= maxDepth subTree + 1) $ generateList (fst context) cat (maxDepth subTree + 1)
+    suggestions = filter (\n -> maxDepth n <= maxDepth subTree + 2) $ generateList (fst context) cat (maxDepth subTree + 2)
   in
     -- map snd suggestions
     suggestions
