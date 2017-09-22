@@ -75,6 +75,7 @@ library
                   Muste.Tree.Internal
                   Muste.Grammar
                   Muste.Grammar.Internal
+                  Muste.Feat
 
 executable Muste
 -- LANGUAGE extensions used by modules in this package.
