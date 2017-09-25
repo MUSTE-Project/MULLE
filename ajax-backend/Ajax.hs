@@ -3,6 +3,7 @@
 module Ajax where
 
 import Data.Aeson
+import Data.Aeson.Encoding
 import Data.Text (Text(..),pack,unpack)
 import Data.Monoid
 import Control.Exception
@@ -68,7 +69,7 @@ data Menu = M (Map.Map Path [[CostTree]]) deriving (Show)
 data ServerTree = ST {
   sgrammar :: String ,
   stree :: String,
-  slin :: [String] ,
+  slin :: [(Path,String)] ,
   smenu :: Menu
   } deriving (Show) ;
 
@@ -115,7 +116,7 @@ instance ToJSON Menu where
     toJSON (M map) =
       object [ (pack $ show k) .= (Map.!) map  k | k <- Map.keys map]
     toEncoding (M map) =
-      pairs $ Prelude.foldl (<>) (head l) (tail l) where l = [ (pack $ show k) .= (Map.!) map  k | k <- Map.keys map]
+      if Data.List.null l then emptyObject_ else pairs $ Prelude.foldl (<>) (head l) (tail l) where l = [ (pack $ show k) .= (Map.!) map  k | k <- Map.keys map]
 
 instance ToJSON ServerTree where
     -- this generates a Value
@@ -134,8 +135,10 @@ instance ToJSON ServerMessage where
       pairs ("success" .= success <> "score" .= score <> "a" .= a <> "b" .= b)
 
 data ClientMessageException = CME String deriving (Show)
+data ReadTreeException = RTE String deriving (Show)
 
 instance Exception ClientMessageException
+instance Exception ReadTreeException
 
 decodeClientMessage :: String -> ClientMessage
 decodeClientMessage s =
@@ -147,44 +150,47 @@ encodeServerMessage :: ServerMessage -> String
 encodeServerMessage sm =
   B.unpack $ encode sm
 
-linearizeTree :: Grammar -> String -> String -> [String]
+-- | readTree reads a GF abstract syntax tree from a string and converts it to a TTree
+readTree :: Grammar -> String -> TTree
+readTree grammar stree =
+  maybe (throw (RTE $ "Error reading GF abstract syntax tree " ++ stree) :: TTree) (gfAbsTreeToTTreeWithGrammar grammar) (readExpr stree)
+
+-- | linearizeTree converts a GF abstract syntax tree from a string to a list of linearization tokens (i.e. tuples of path and string)
+linearizeTree :: Grammar -> String -> String -> [(Path,String)]
 linearizeTree grammar slang stree =
     let
-      tree = gfAbsTreeToTTreeWithGrammar grammar $ fromJust $ readExpr stree -- !!!
+      tree = readTree grammar stree
       toks = M.linearizeTree (grammar, mkCId slang) tree
    in
-     map snd toks
+     toks
 
+-- | getMenus extract a menu from precomputed trees
 getMenus :: Context -> M.Precomputed -> String -> Menu
 getMenus context prec stree =
   let
-    tree = gfAbsTreeToTTreeWithGrammar (fst context) $ fromJust $ readExpr stree -- !!!
---    prec = precomputeTrees context tree
-    -- sug = [((0,0),[(0,"Foo0",tree)]),((0,1),[(0,"Foo1",tree)]),((0,2),[(0,"Foo2",tree)]),((0,3),[(0,"Foo3",tree)]),
-    --        ((1,0),[(0,"Bar0",tree)]),((1,1),[(0,"Bar1",tree)]),((1,2),[(0,"Bar2",tree)]),((1,3),[(0,"Bar3",tree)]),
-    --        ((2,0),[(0,"Baz0",tree)]),((2,1),[(0,"Baz0",tree)]),((2,2),[(0,"Baz2",tree)]),((2,3),[(0,"Baz3",tree)])
-    --       ]
+    tree = readTree (fst context) stree
     sug = suggestionFromPrecomputed context (prec ! (snd context)) tree
   in
-    M $ Map.fromList $ map (\(x,y) -> (x,map (\(a,b,c) -> [T a b (showExpr [] $ ttreeToGFAbsTree c)]) y)) sug -- list of lists ?!?
+    M $ Map.fromList $ map (\(c,t) -> (c,[t])) $ map (\(x,y) -> (x,map (\(a,b,c) -> T a b (showExpr [] $ ttreeToGFAbsTree c)) y)) sug -- list of lists -> list of menus
 
-initPrecomputed :: Grammar -> IORef (Maybe Precomputed) -> String -> IO (Maybe Precomputed)
+initPrecomputed :: Grammar -> IORef (Maybe Precomputed) -> String -> IO Precomputed
 initPrecomputed grammar precRef body =
-  let update prec =
+  let update =
         let cm = decodeClientMessage body
             langa = mkCId (cgrammar $ ca cm)
             langb = mkCId (cgrammar $ cb cm)
-            treea = gfAbsTreeToTTreeWithGrammar grammar $ fromJust $ readExpr $ ctree $ ca cm
-            treeb = gfAbsTreeToTTreeWithGrammar grammar $ fromJust $ readExpr $ ctree $ cb cm
+            treea = readTree grammar $ ctree $ ca cm
+            treeb = readTree grammar $ ctree $ cb cm
+            nprec = fromList [(langa,precomputeTrees (grammar,langa) treea), (langb,precomputeTrees (grammar,langb) treeb)]
         in
           do
-            writeIORef precRef $ Just $ fromList [(langa,precomputeTrees (grammar,langa) treea), (langb,precomputeTrees (grammar,langb) treeb)]
-            return prec
+            writeIORef precRef $ Just $ nprec
+            return nprec
   in
     do
       prec <- readIORef precRef
-      if isNothing prec then update prec
-      else return prec
+      if isNothing prec then update
+      else return $ fromJust prec
     
 handleClientRequest :: Grammar -> Precomputed -> String -> IO String
 handleClientRequest grammar prec body =
@@ -215,22 +221,3 @@ handleClientRequest grammar prec body =
     let nsm = (SM nsuccess nscore na nb)
     putStrLn $ "\n\n" ++ (show nsm) ++ "#"
     return $ encodeServerMessage nsm
-  
-testMessage2 :: ServerMessage
-testMessage2 =
-  SM { ssuccess = False,
-       sscore =  35,
-       sa = tree,
-       sb = tree
-    }
-  where
-    tree = ST { sgrammar =  "MusteEng", stree =  "(StartUtt (UttS (UseCl ... (PredVP (...)) ...)))",
-           slin = ["she", "doesn't", "break", "the", "yellow", "stones", "."],
-           smenu = M $ Map.fromList
-           [([0,0], [[ T {cost = 2, lin = [([0,0],"apples")] , tree = "(StartUtt ...)"},
-                       T {cost = 2, lin = [([0,0],"x"),([0,1],"y"),([0,2],"z")], tree = "(StartUtt ...)"}]]),
-            ([0,1],[[]])
-            ]
-           }
-
--- "{"success":false,"score":35,"a":{"grammar":"MusteEng","tree":"(StartUtt (UttS (UseCl ... (PredVP (...)) ...)))","lin":["she","doesn't","break","the","yellow","stones","."],"menu":{"4,4":[],"5,6":[{"score":2,"lin":"apples","tree":"(StartUtt ...)"},{"score":2,"lin":"x y z","tree":"(StartUtt ...)"}]}},"b":{"grammar":"MusteEng","tree":"(StartUtt (UttS (UseCl ... (PredVP (...)) ...)))","lin":["she","doesn't","break","the","yellow","stones","."],"menu":{"4,4":[],"5,6":[{"score":2,"lin":"apples","tree":"(StartUtt ...)"},{"score":2,"lin":"x y z","tree":"(StartUtt ...)"}]}}}"
