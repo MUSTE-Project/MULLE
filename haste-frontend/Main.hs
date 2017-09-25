@@ -1,4 +1,5 @@
 module Main where
+
 import Haste
 import Haste.Ajax
 import Haste.DOM hiding (click)
@@ -7,17 +8,13 @@ import Haste.Events hiding (Click)
 import qualified Haste.Events
 import Haste.Foreign
 import Haste.Binary(getBlobData,toUArray)
-
 import Data.IORef
 import Control.Monad
 import Data.String as S
 import Ajax
-
--- type Path = [Int]
+import qualified Data.Map.Strict as M
 type LinToken = (Path,String)
 type Pos = Int
-
-data Context = Ctx { ctxlang :: String, ctxtree :: String, ctxlin :: [LinToken], ctxpath :: Path, totalClicks :: Int}
 
 --
 -- Data
@@ -27,7 +24,7 @@ exampleLin = [([0,0,0,0],"he"),([0,0,1],"is"),([0,0,1,0],"Roman")]
 exerciseLang = "PrimaLat" ;
 exerciseTree = "useS (useCl (simpleCl (usePN Augustus_PN) (complA laetus_A)))";
 exerciseLin = [([0,0,0,0],"Augustus"),([0,0,1,0],"laetus"),([0,0,1],"est")]
-emptyPath = []
+url = "http://localhost:8080/cgi"
 
 --
 -- GUI Logic
@@ -36,34 +33,32 @@ emptyPath = []
 musteMain :: ServerMessage -> IO ()
 musteMain sm =
   do
-    let ctx = Ctx exerciseLang exerciseTree exerciseLin emptyPath 0
-    ctxRef <- newIORef ctx
     -- Global handlers
-    onEvent documentBody Haste.Events.Click (globalClickHandler ctxRef)
+    onEvent documentBody Haste.Events.Click globalClickHandler
     Just menu <- elemById "menuButton"
-    onEvent menu Haste.Events.Click (menuClickHandler menu ctxRef)
+    onEvent menu Haste.Events.Click (menuClickHandler menu sm)
     -- Print target tree
     writeLog (S.fromString "Draw example tree")
-    drawExampleTree ctxRef
+    drawExampleTree (sgrammar $ sa sm) (slin $ sa sm) (smenu $ sa sm)
     writeLog (S.fromString "Draw exercise tree")
-    drawExerciseTree ctxRef
+    drawExerciseTree (sgrammar $ sb sm) (slin $ sb sm) (smenu $ sb sm)
+    -- Draw score
+    drawScore (sscore sm) (ssuccess sm)
     return ()
 
 -- Updates the click counter
-drawScore :: IORef Context -> IO ()
-drawScore context =
+drawScore :: Int -> Bool -> IO ()
+drawScore score success =
   do
-    Just score <- elemById "score"
-    ctx <- readIORef context
-    clearChildren score
-    te <- newTextElem (show $ totalClicks ctx)
-    appendChild score te
+    Just scoreEl <- elemById "score"
+    clearChildren scoreEl
+    te <- newTextElem (show score)
+    setClass scoreEl "won" success
+    appendChild scoreEl te
 
-drawExampleTree :: IORef Context -> IO ()
-drawExampleTree context =
+drawExampleTree :: String -> [LinToken] -> Menu -> IO ()
+drawExampleTree lang lin (M menu) =
   do
-    -- Get context
-    ctx <- readIORef context
     -- Get element
     Just exampleTreeDiv <- elemById "exampleTree"
     -- Clear content
@@ -71,15 +66,17 @@ drawExampleTree context =
     -- Check for debug
     debug <- hasClass exampleTreeDiv "debug"
     -- Show tree as text
-    sequence_ $ map (\t -> drawWord exampleTreeDiv context t 0 debug False False ) $ exampleLin
+    sequence_ $ map (\l@(p,t) -> drawWord exampleTreeDiv lang l (menu M.! p) debug False False ) lin
     return ()
 
-drawWord :: Elem -> IORef Context -> LinToken -> Pos -> Bool -> Bool -> Bool ->IO ()
-drawWord parent context (p,s) pos debug enableGaps enableEvents =
+drawWord :: Elem -> String -> LinToken -> [[CostTree]] -> Bool -> Bool -> Bool -> IO ()
+drawWord parent lang (p,s) trees debug enableGaps enableEvents =
   do
     when enableGaps
       (do
-          gapSpan <- newElem "span" `with` [ attr "class" =: "gap" ]
+          gapSpan <- newElem "span" `with` [ attr "class" =: "gap",
+                                             attr "path" =: show p
+                                           ]
           gapSpanText <- newTextElem " "
           onEvent gapSpan Haste.Events.MouseOver (wordHoverHandler gapSpan)
           onEvent gapSpan Haste.Events.MouseOut (wordHoverHandler gapSpan)
@@ -87,11 +84,13 @@ drawWord parent context (p,s) pos debug enableGaps enableEvents =
           appendChild parent gapSpan
           when enableEvents
             (do
-                onEvent gapSpan Haste.Events.Click (wordClickHandler gapSpan context pos p True )
+                onEvent gapSpan Haste.Events.Click (wordClickHandler gapSpan lang p True trees )
                 return ()
             )
       )
-    wordSpan <- newElem "span" `with` [ attr "class" =: "word" ]    
+    wordSpan <- newElem "span" `with` [ attr "class" =: "word",
+                                        attr "path" =: show p
+                                      ]    
     wordSpanText <- newTextElem s
     onEvent wordSpan Haste.Events.MouseOver (wordHoverHandler wordSpan)
     onEvent wordSpan Haste.Events.MouseOut (wordHoverHandler wordSpan)
@@ -99,7 +98,7 @@ drawWord parent context (p,s) pos debug enableGaps enableEvents =
     appendChild parent wordSpan
     when enableEvents
       (do
-          onEvent wordSpan Haste.Events.Click (wordClickHandler wordSpan context pos p False)
+          onEvent wordSpan Haste.Events.Click (wordClickHandler wordSpan lang p False trees )
           return ()
       )
     when debug
@@ -111,15 +110,13 @@ drawWord parent context (p,s) pos debug enableGaps enableEvents =
       )
 
  -- Takes a tree and transforms it into a sequence of spans in a div
-drawExerciseTree :: IORef Context -> IO ()
-drawExerciseTree context =
+drawExerciseTree :: String -> [LinToken] -> Menu -> IO ()
+drawExerciseTree lang lin (M menu) =
   do
-    -- Show the linearized tree
-    ctx <- readIORef context
     Just exerciseTreeDiv <- elemById "exerciseTree"
     clearChildren exerciseTreeDiv
     debug <- hasClass exerciseTreeDiv "debug"
-    sequence_ $ map (\(p,t) -> drawWord exerciseTreeDiv context t p debug True True) $ zip [0..] (ctxlin ctx)
+    sequence_ $ map (\l@(p,t) -> drawWord exerciseTreeDiv lang l (menu M.! p) debug True True) lin
     return ()
 
 -- Removes the suggestion menu
@@ -133,15 +130,12 @@ deleteMenu name =
       }
 
 -- On any click on body
-globalClickHandler :: IORef Context -> MouseData -> IO ()
-globalClickHandler context _ =
+globalClickHandler :: MouseData -> IO ()
+globalClickHandler _ =
   do
     -- Delete possible menus
     deleteMenu "suggestionList"
     deleteMenu "menuList"
-    -- reset click
-    ctx <- readIORef context
-    writeIORef context (Ctx (ctxlang ctx) (ctxtree ctx) (ctxlin ctx) emptyPath (totalClicks ctx))
     
 -- Adds new menu points as divs to a "menu"
 newMenuPoint :: Elem -> String -> (MouseData -> IO ()) -> IO ()
@@ -157,37 +151,35 @@ newMenuPoint parent name handler =
     return ()
     
 -- -- On click on a word
-wordClickHandler ::  Elem -> IORef Context -> Pos -> Path -> Bool -> MouseData -> IO ()
-wordClickHandler elem context pos path extend md =
+wordClickHandler ::  Elem -> String -> Path -> Bool -> [[CostTree]] -> MouseData -> IO ()
+wordClickHandler elem lang path extend trees md =
   do
      -- Don't propagate click any further, keeps menu from disappearing immediatelly
     stopPropagation
---     ctx <- readIORef context
---     -- update context
---     writeIORef context (Ctx (ctxlang ctx) (ctxtree ctx) (totalClicks ctx))
---     -- Compute list position
---     let (x,y) = mouseCoords md
---     sglobalx <- (getProp elem "offsetLeft")
---     let globalx = x + read sglobalx
---     sglobaly <- (getProp elem "offsetTop")
---     let globaly = y + read sglobaly
---    -- writeLog (S.fromString ("Click on (" ++ show globalx ++ "," ++ show globaly ++ ")") ) :: IO () ;
---     -- Cleanup of old list
---     deleteMenu "suggestionList"
---     let selectedPath = [] -- TODO
---     -- Create new list
---     let suggestions = [] -- TODO 
---     sList <- newElem "div" `with` [ attr "id" =: "suggestionList",
---                                     attr "class" =: "menu",
---                                     style "top" =: (show globaly ++ "px"),
---                                     style "left" =: (show globalx ++ "px")
---                                   ]
---     sequence_ $ map (\(s,t) -> newMenuPoint sList s (suggestionClickHandler context selectedPath t) ) suggestions
---     appendChild documentBody sList
+    -- Compute list position
+    let (x,y) = mouseCoords md
+    sglobalx <- (getProp elem "offsetLeft")
+    let globalx = x + read sglobalx
+    sglobaly <- (getProp elem "offsetTop")
+    let globaly = y + read sglobaly
+   -- writeLog (S.fromString ("Click on (" ++ show globalx ++ "," ++ show globaly ++ ")") ) :: IO () ;
+    -- Cleanup of old list
+    deleteMenu "suggestionList"
+    selectedPath <- fmap read $ getAttr elem "path" :: IO Path
+    writeLog (toJSString $ "Selected Path " ++ show selectedPath)
+    -- Create new list
+    let suggestions = head trees -- we assume we only have one menu 
+    sList <- newElem "div" `with` [ attr "id" =: "suggestionList",
+                                    attr "class" =: "menu",
+                                    style "top" =: (show globaly ++ "px"),
+                                    style "left" =: (show globalx ++ "px")
+                                  ]
+    sequence_ $ map (\(T cost lin tree) -> newMenuPoint sList (unwords $ map snd lin) (suggestionClickHandler selectedPath lin tree) ) suggestions
+    appendChild documentBody sList
     return ()
 
-menuClickHandler :: Elem -> IORef Context -> MouseData -> IO ()
-menuClickHandler elem context _ =
+menuClickHandler :: Elem -> ServerMessage -> MouseData -> IO ()
+menuClickHandler elem sm _ =
   do
     -- Don't propagate click any further, keeps menu from disappearing immediatelly
     stopPropagation
@@ -203,19 +195,16 @@ menuClickHandler elem context _ =
                                     style "left" =: (show (x - 200) ++ "px")
                                   ]
     -- 
-    newMenuPoint mList "Toggle Debug" (\_ -> do { Just e1 <- elemById "exampleTree" ; Just e2 <- elemById "exerciseTree"; toggleClass e1 "debug" ; toggleClass e2 "debug" ; drawExerciseTree context ; drawExampleTree context })
-    -- Change tree in context for reset and reset click
-    ctx <- readIORef context
-    resetContext <- newIORef (Ctx (ctxlang ctx) exerciseTree exerciseLin emptyPath 0)
-    newMenuPoint mList "Reset" (\_ -> do { drawExerciseTree resetContext ; drawScore resetContext; (readIORef resetContext) >>= (writeIORef context) } )
+    newMenuPoint mList "Toggle Debug" (\_ -> do { Just e1 <- elemById "exampleTree" ; Just e2 <- elemById "exerciseTree"; toggleClass e1 "debug" ; toggleClass e2 "debug" ; drawExerciseTree (sgrammar $ sa sm) (slin $ sa sm) (smenu $ sa sm) ; drawExampleTree (sgrammar $ sb sm) (slin $ sb sm) (smenu $ sb sm) })
+    newMenuPoint mList "Reset" (\_ -> do { drawExerciseTree (sgrammar $ sb sm) exerciseLin (smenu $ sb sm) ; drawScore 0 False } )
     appendChild documentBody mList
     return ()
 
--- suggestionClickHandler :: IORef Context -> Path -> String -> MouseData -> IO ()
--- suggestionClickHandler context path subTree _ =
---   do
+suggestionClickHandler :: Path -> [LinToken] -> String -> MouseData -> IO ()
+suggestionClickHandler path lin tree _ =
+  do
 --     -- Don't propagate click any further, keeps menu from disappearing immediatelly
---     stopPropagation
+    stopPropagation
 --     -- writeLog (S.fromString ("Click on suggestion") ) :: IO () ;
 --     -- Cleanup of suggestion list
 --     deleteMenu "suggestionList"
@@ -232,7 +221,8 @@ menuClickHandler elem context _ =
 --           )
 --     drawScore context
 --     drawTree context
-
+    return ()
+    
 menuHoverHandler :: Elem -> MouseData -> IO ()
 menuHoverHandler elem _ =
   do
@@ -249,14 +239,15 @@ wordHoverHandler elem _ =
 getServerResponse :: ClientMessage -> CIO ServerMessage
 getServerResponse cm =
   do
-    let cmEncoded = encodeClientMessage cm
+    let cmEncoded = toJSString $ encodeClientMessage cm
     writeLog $ toJSString ("Send client message " ++ show cmEncoded)
-    smResult <- ajax GET $ cmEncoded
+    smResult <- ajax (POST cmEncoded) $ toJSString url
     res <- case smResult of {
       Left a -> error "AjaxError" ; 
       Right sm -> do
-          let smDecoded = decodeServerMessage sm
-          writeLog (S.fromString ("Loaded server message " ++ show smDecoded)) :: CIO ()
+          writeLog $ toJSString ("Got server response " ++ toString sm)
+          smDecoded <- liftIO $ decodeServerMessage sm
+          writeLog (S.fromString ("Decoded server message " ++ show smDecoded)) :: CIO ()
           return $ smDecoded
       }
     return res
@@ -264,9 +255,6 @@ getServerResponse cm =
 main :: IO ()
 main =
   do
---    let cm = 
---    let init = getServerMessage "" :: CIO PGF
---    withResult init musteMain
-    let cm = CM 0 (CT exampleLang exampleTree) (CT exerciseLang exerciseTree)
+    let cm = CM (-1) (CT exampleLang exampleTree) (CT exerciseLang exerciseTree)
     withResult (getServerResponse cm) musteMain
     return ()
