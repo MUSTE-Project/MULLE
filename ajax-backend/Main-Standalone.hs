@@ -266,7 +266,7 @@ handleRequest grammar prec isDemo request
   | isPrefixOf "/cgi"(uriPath $ reqURI request) =
       do
         putStrLn $ "CGI" ++ (show request)
-        prec <- fmap fromJust $ initPrecomputed grammar prec (reqBody request)
+        prec <- initPrecomputed grammar prec (reqBody request)
         result <- if isDemo then handleClientRequest grammar demoPrec (reqBody request)
                   else handleClientRequest grammar prec (reqBody request)
         return (Response 200 [("Content-type","application/json")] result)
