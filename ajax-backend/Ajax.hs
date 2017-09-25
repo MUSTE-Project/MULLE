@@ -150,10 +150,12 @@ encodeServerMessage :: ServerMessage -> String
 encodeServerMessage sm =
   B.unpack $ encode sm
 
+-- | readTree reads a GF abstract syntax tree from a string and converts it to a TTree
 readTree :: Grammar -> String -> TTree
 readTree grammar stree =
   maybe (throw (RTE $ "Error reading GF abstract syntax tree " ++ stree) :: TTree) (gfAbsTreeToTTreeWithGrammar grammar) (readExpr stree)
 
+-- | linearizeTree converts a GF abstract syntax tree from a string to a list of linearization tokens (i.e. tuples of path and string)
 linearizeTree :: Grammar -> String -> String -> [(Path,String)]
 linearizeTree grammar slang stree =
     let
@@ -162,6 +164,7 @@ linearizeTree grammar slang stree =
    in
      toks
 
+-- | getMenus extract a menu from precomputed trees
 getMenus :: Context -> M.Precomputed -> String -> Menu
 getMenus context prec stree =
   let
@@ -218,22 +221,3 @@ handleClientRequest grammar prec body =
     let nsm = (SM nsuccess nscore na nb)
     putStrLn $ "\n\n" ++ (show nsm) ++ "#"
     return $ encodeServerMessage nsm
-  
-testMessage2 :: ServerMessage
-testMessage2 =
-  SM { ssuccess = False,
-       sscore =  35,
-       sa = tree,
-       sb = tree
-    }
-  where
-    tree = ST { sgrammar =  "MusteEng", stree =  "(StartUtt (UttS (UseCl ... (PredVP (...)) ...)))",
-           slin = ["she", "doesn't", "break", "the", "yellow", "stones", "."],
-           smenu = M $ Map.fromList
-           [([0,0], [[ T {cost = 2, lin = [([0,0],"apples")] , tree = "(StartUtt ...)"},
-                       T {cost = 2, lin = [([0,0],"x"),([0,1],"y"),([0,2],"z")], tree = "(StartUtt ...)"}]]),
-            ([0,1],[[]])
-            ]
-           }
-
--- "{"success":false,"score":35,"a":{"grammar":"MusteEng","tree":"(StartUtt (UttS (UseCl ... (PredVP (...)) ...)))","lin":["she","doesn't","break","the","yellow","stones","."],"menu":{"4,4":[],"5,6":[{"score":2,"lin":"apples","tree":"(StartUtt ...)"},{"score":2,"lin":"x y z","tree":"(StartUtt ...)"}]}},"b":{"grammar":"MusteEng","tree":"(StartUtt (UttS (UseCl ... (PredVP (...)) ...)))","lin":["she","doesn't","break","the","yellow","stones","."],"menu":{"4,4":[],"5,6":[{"score":2,"lin":"apples","tree":"(StartUtt ...)"},{"score":2,"lin":"x y z","tree":"(StartUtt ...)"}]}}}"
