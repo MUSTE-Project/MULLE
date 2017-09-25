@@ -11,14 +11,16 @@ import Haste.Binary(getBlobData,toUArray)
 import Data.IORef
 import Control.Monad
 import Data.String as S
--- import Ajax
+import Ajax
 
-type Path = [Int]
+-- type Path = [Int]
 type LinToken = (Path,String)
 type Pos = Int
 
-data Context = Ctx { language :: String, tree :: String, lin :: [LinToken], path :: Path, totalClicks :: Int}
+data Context = Ctx { ctxlang :: String, ctxtree :: String, ctxlin :: [LinToken], ctxpath :: Path, totalClicks :: Int}
 
+--
+-- Data
 exampleLang = "PrimaEng" ;
 exampleTree = "(useS (useCl (simpleCl (usePron he_PP) (complA Romanus_A))))";
 exampleLin = [([0,0,0,0],"he"),([0,0,1],"is"),([0,0,1,0],"Roman")]
@@ -27,9 +29,12 @@ exerciseTree = "useS (useCl (simpleCl (usePN Augustus_PN) (complA laetus_A)))";
 exerciseLin = [([0,0,0,0],"Augustus"),([0,0,1,0],"laetus"),([0,0,1],"est")]
 emptyPath = []
 
+--
+-- GUI Logic
+
 -- Main function that sets up everything
-musteMain :: IO ()
-musteMain =
+musteMain :: ServerMessage -> IO ()
+musteMain sm =
   do
     let ctx = Ctx exerciseLang exerciseTree exerciseLin emptyPath 0
     ctxRef <- newIORef ctx
@@ -114,7 +119,7 @@ drawExerciseTree context =
     Just exerciseTreeDiv <- elemById "exerciseTree"
     clearChildren exerciseTreeDiv
     debug <- hasClass exerciseTreeDiv "debug"
-    sequence_ $ map (\(p,t) -> drawWord exerciseTreeDiv context t p debug True True) $ zip [0..] (lin ctx)
+    sequence_ $ map (\(p,t) -> drawWord exerciseTreeDiv context t p debug True True) $ zip [0..] (ctxlin ctx)
     return ()
 
 -- Removes the suggestion menu
@@ -136,7 +141,7 @@ globalClickHandler context _ =
     deleteMenu "menuList"
     -- reset click
     ctx <- readIORef context
-    writeIORef context (Ctx (language ctx) (tree ctx) (lin ctx) emptyPath (totalClicks ctx))
+    writeIORef context (Ctx (ctxlang ctx) (ctxtree ctx) (ctxlin ctx) emptyPath (totalClicks ctx))
     
 -- Adds new menu points as divs to a "menu"
 newMenuPoint :: Elem -> String -> (MouseData -> IO ()) -> IO ()
@@ -159,7 +164,7 @@ wordClickHandler elem context pos path extend md =
     stopPropagation
 --     ctx <- readIORef context
 --     -- update context
---     writeIORef context (Ctx (language ctx) (tree ctx) (totalClicks ctx))
+--     writeIORef context (Ctx (ctxlang ctx) (ctxtree ctx) (totalClicks ctx))
 --     -- Compute list position
 --     let (x,y) = mouseCoords md
 --     sglobalx <- (getProp elem "offsetLeft")
@@ -201,7 +206,7 @@ menuClickHandler elem context _ =
     newMenuPoint mList "Toggle Debug" (\_ -> do { Just e1 <- elemById "exampleTree" ; Just e2 <- elemById "exerciseTree"; toggleClass e1 "debug" ; toggleClass e2 "debug" ; drawExerciseTree context ; drawExampleTree context })
     -- Change tree in context for reset and reset click
     ctx <- readIORef context
-    resetContext <- newIORef (Ctx (language ctx) exerciseTree exerciseLin emptyPath 0)
+    resetContext <- newIORef (Ctx (ctxlang ctx) exerciseTree exerciseLin emptyPath 0)
     newMenuPoint mList "Reset" (\_ -> do { drawExerciseTree resetContext ; drawScore resetContext; (readIORef resetContext) >>= (writeIORef context) } )
     appendChild documentBody mList
     return ()
@@ -215,10 +220,10 @@ menuClickHandler elem context _ =
 --     -- Cleanup of suggestion list
 --     deleteMenu "suggestionList"
 --     ctx <- readIORef context
---     let oldTree = tree ctx
+--     let oldTree = ctxtree ctx
 --     let newTree = [] -- TODO 
 --     -- writeLog (S.fromString ("Trying to replace " ++ (show $ fromJust $ selectNode (metaTree oldTree) path ) ++ " in " ++ show (metaTree oldTree) ++ " at " ++ show path ++ " with " ++ (show $ metaTree subTree) )) :: IO () ;
---     writeIORef context (Ctx (language ctx) newTree (totalClicks ctx + 1))
+--     writeIORef context (Ctx (ctxlang ctx) newTree (totalClicks ctx + 1))
 --     when (newTree == sampleTree)
 --       (do
 --           Just score <- elemById "score"
@@ -238,11 +243,30 @@ wordHoverHandler elem _ =
   do
     toggleClass elem "wordHover"
 
+--
+-- Program Logic
+
+getServerResponse :: ClientMessage -> CIO ServerMessage
+getServerResponse cm =
+  do
+    let cmEncoded = encodeClientMessage cm
+    writeLog $ toJSString ("Send client message " ++ show cmEncoded)
+    smResult <- ajax GET $ cmEncoded
+    res <- case smResult of {
+      Left a -> error "AjaxError" ; 
+      Right sm -> do
+          let smDecoded = decodeServerMessage sm
+          writeLog (S.fromString ("Loaded server message " ++ show smDecoded)) :: CIO ()
+          return $ smDecoded
+      }
+    return res
+
 main :: IO ()
 main =
   do
 --    let cm = 
 --    let init = getServerMessage "" :: CIO PGF
 --    withResult init musteMain
-    musteMain
+    let cm = CM 0 (CT exampleLang exampleTree) (CT exerciseLang exerciseTree)
+    withResult (getServerResponse cm) musteMain
     return ()
