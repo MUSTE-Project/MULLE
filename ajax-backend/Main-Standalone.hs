@@ -8,6 +8,7 @@ import Muste
 import Muste.Grammar
 import PGF
 import qualified Data.Map.Strict as Map
+import qualified Data.ByteString.Char8 as B
 import System.Environment
 import Data.IORef
 import Data.Maybe
@@ -25,6 +26,7 @@ getType fn
   | isSuffixOf "html" fn = "text/html"
   | isSuffixOf "css" fn = "text/css"
   | isSuffixOf "js" fn = "application/javascript"
+  | isSuffixOf "ico" fn = "image/x-icon"
   | otherwise = "text/plain"
 
 demoPrec :: Precomputed
@@ -276,8 +278,8 @@ handleRequest grammar prec isDemo request
         putStrLn $ "HTTP" ++ (show request)
         let file = getFileName $ uriPath $ reqURI request
         let typ = getType file
-        content <- readFile $ filePath ++ "/" ++ file
-        return (Response 200 [("Content-type",typ)] content)
+        content <- B.readFile $ filePath ++ "/" ++ file
+        return (Response 200 [("Content-type",typ)] $ B.unpack content)
 
 printHelp :: IO ()
 printHelp =
