@@ -21,7 +21,7 @@ type Pos = Int
 --
 -- Data
 exampleLang = "PrimaEng" ;
-exampleTree = "(useS (useCl (simpleCl (usePron he_PP) (complA Romanus_A))))";
+exampleTree = "useS (useCl (simpleCl (usePron he_PP) (complA Romanus_A)))";
 exampleLin = [([0,0,0,0],"he"),([0,0,1],"is"),([0,0,1,0],"Roman")]
 exerciseLang = "PrimaLat" ;
 exerciseTree = "useS (useCl (simpleCl (usePN Augustus_PN) (complA laetus_A)))";
