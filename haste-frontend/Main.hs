@@ -13,6 +13,8 @@ import Control.Monad
 import Data.String as S
 import Ajax
 import qualified Data.Map.Strict as M
+import Data.List
+
 type LinToken = (Path,String)
 type Pos = Int
 
@@ -38,9 +40,7 @@ musteMain sm =
     Just menu <- elemById "menuButton"
     onEvent menu Haste.Events.Click (menuClickHandler menu sm)
     -- Print target tree
-    writeLog (S.fromString "Draw example tree")
     drawExampleTree (sgrammar $ sa sm) (slin $ sa sm) (smenu $ sa sm)
-    writeLog (S.fromString "Draw exercise tree")
     drawExerciseTree (sgrammar $ sb sm) (slin $ sb sm) (smenu $ sb sm)
     -- Draw score
     drawScore (sscore sm) (ssuccess sm)
@@ -53,11 +53,15 @@ drawScore score success =
     Just scoreEl <- elemById "score"
     clearChildren scoreEl
     te <- newTextElem (show score)
-    setClass scoreEl "won" success
+    when success
+      (do
+          toggleClass scoreEl "won"
+          alert . S.fromString $ "Congratulations! You won after " ++ show score ++ " Clicks"
+      )
     appendChild scoreEl te
 
 drawExampleTree :: String -> [LinToken] -> Menu -> IO ()
-drawExampleTree lang lin (M menu) =
+drawExampleTree lang lin menu =
   do
     -- Get element
     Just exampleTreeDiv <- elemById "exampleTree"
@@ -65,17 +69,40 @@ drawExampleTree lang lin (M menu) =
     clearChildren exampleTreeDiv
     -- Check for debug
     debug <- hasClass exampleTreeDiv "debug"
+    -- Memorize Linearization
+    setAttr exampleTreeDiv "lin" (show lin)
+    setAttr exampleTreeDiv "lang" lang
     -- Show tree as text
-    sequence_ $ map (\l@(p,t) -> drawWord exampleTreeDiv lang l (menu M.! p) debug False False ) lin
+    sequence_ $ map (\l@(p,t) -> drawWord exampleTreeDiv lang l menu debug False False ) lin
     return ()
 
-drawWord :: Elem -> String -> LinToken -> [[CostTree]] -> Bool -> Bool -> Bool -> IO ()
-drawWord parent lang (p,s) trees debug enableGaps enableEvents =
+-- Takes a tree and transforms it into a sequence of spans in a div
+drawExerciseTree :: String -> [LinToken] -> Menu -> IO ()
+drawExerciseTree lang lin menu =
   do
+    -- Get element
+    Just exerciseTreeDiv <- elemById "exerciseTree"
+    -- Clear content
+    clearChildren exerciseTreeDiv
+    -- Check for debug
+    debug <- hasClass exerciseTreeDiv "debug"
+    -- Memorize Linearization and language
+    setAttr exerciseTreeDiv "lin" (show lin)
+    setAttr exerciseTreeDiv "lang" lang
+    -- Show tree as text
+    sequence_ $ map (\l@(p,t) -> drawWord exerciseTreeDiv lang l menu debug True True) lin
+    return ()
+
+drawWord :: Elem -> String -> LinToken -> Menu -> Bool -> Bool -> Bool -> IO ()
+drawWord parent lang (p,s) menu debug enableGaps enableEvents =
+  do
+    parentId <- getAttr parent "id"
     when enableGaps
       (do
           gapSpan <- newElem "span" `with` [ attr "class" =: "gap",
-                                             attr "path" =: show p
+                                             attr "path" =: show p,
+                                             attr "parentId" =: parentId,
+                                             attr "clicked" =: (show False)
                                            ]
           gapSpanText <- newTextElem " "
           onEvent gapSpan Haste.Events.MouseOver (wordHoverHandler gapSpan)
@@ -84,12 +111,14 @@ drawWord parent lang (p,s) trees debug enableGaps enableEvents =
           appendChild parent gapSpan
           when enableEvents
             (do
-                onEvent gapSpan Haste.Events.Click (wordClickHandler gapSpan lang p True trees )
+                onEvent gapSpan Haste.Events.Click (wordClickHandler gapSpan True menu)
                 return ()
             )
       )
     wordSpan <- newElem "span" `with` [ attr "class" =: "word",
-                                        attr "path" =: show p
+                                        attr "path" =: show p,
+                                        attr "parentId" =: parentId,
+                                        attr "clicked" =: (show False)
                                       ]    
     wordSpanText <- newTextElem s
     onEvent wordSpan Haste.Events.MouseOver (wordHoverHandler wordSpan)
@@ -98,7 +127,7 @@ drawWord parent lang (p,s) trees debug enableGaps enableEvents =
     appendChild parent wordSpan
     when enableEvents
       (do
-          onEvent wordSpan Haste.Events.Click (wordClickHandler wordSpan lang p False trees )
+          onEvent wordSpan Haste.Events.Click (wordClickHandler wordSpan False menu)
           return ()
       )
     when debug
@@ -108,16 +137,6 @@ drawWord parent lang (p,s) trees debug enableGaps enableEvents =
           appendChild pathSpan pathSpanText
           appendChild parent pathSpan
       )
-
- -- Takes a tree and transforms it into a sequence of spans in a div
-drawExerciseTree :: String -> [LinToken] -> Menu -> IO ()
-drawExerciseTree lang lin (M menu) =
-  do
-    Just exerciseTreeDiv <- elemById "exerciseTree"
-    clearChildren exerciseTreeDiv
-    debug <- hasClass exerciseTreeDiv "debug"
-    sequence_ $ map (\l@(p,t) -> drawWord exerciseTreeDiv lang l (menu M.! p) debug True True) lin
-    return ()
 
 -- Removes the suggestion menu
 deleteMenu :: String -> IO ()
@@ -151,8 +170,8 @@ newMenuPoint parent name handler =
     return ()
     
 -- -- On click on a word
-wordClickHandler ::  Elem -> String -> Path -> Bool -> [[CostTree]] -> MouseData -> IO ()
-wordClickHandler elem lang path extend trees md =
+wordClickHandler ::  Elem -> Bool -> Menu -> MouseData -> IO ()
+wordClickHandler elem isGap (M menu) md =
   do
      -- Don't propagate click any further, keeps menu from disappearing immediatelly
     stopPropagation
@@ -165,18 +184,67 @@ wordClickHandler elem lang path extend trees md =
    -- writeLog (S.fromString ("Click on (" ++ show globalx ++ "," ++ show globaly ++ ")") ) :: IO () ;
     -- Cleanup of old list
     deleteMenu "suggestionList"
-    selectedPath <- fmap read $ getAttr elem "path" :: IO Path
-    writeLog (toJSString $ "Selected Path " ++ show selectedPath)
+    -- Get click information
+    clicked <- fmap read $ getAttr elem "clicked" :: IO Bool
+    clickCount <- if clicked then fmap read $ getAttr elem "clickCount" else return 0 :: IO Int
+    -- Get parent
+    parentId <- getAttr elem "parentid"
+    Just parent <- elemById parentId
+    -- Update Clicks
+    children <- getChildren parent
+    mapM_ (\e -> do { setAttr e "clicked" $ show False; unsetAttr e "clickCount" }) children
+    setAttr elem "clicked" $ show True
+    setAttr elem "clickCount" $ show (clickCount + 1) -- TODO: check if it will end up at the same path as the previously clicked one 
+    -- Get path
+    wordPath <- fmap read $ getAttr elem "path" :: IO Path
+    let selectedPath = take (length wordPath - clickCount) wordPath
+    -- Get old linearization
+    olin <- fmap read $ getAttr parent "lin" :: IO [LinToken]
     -- Create new list
-    let suggestions = head trees -- we assume we only have one menu 
+    let suggestions = head (menu M.! selectedPath) -- we assume we only have one menu
+    writeLog (toJSString $ "Suggestions for path " ++ (show selectedPath) ++ ": " ++ show suggestions)
     sList <- newElem "div" `with` [ attr "id" =: "suggestionList",
                                     attr "class" =: "menu",
                                     style "top" =: (show globaly ++ "px"),
                                     style "left" =: (show globalx ++ "px")
                                   ]
-    sequence_ $ map (\(T cost lin tree) -> newMenuPoint sList (unwords $ map snd lin) (suggestionClickHandler selectedPath lin tree) ) suggestions
+    sequence_ $ map (\(T cost nlin tree) -> newMenuPoint sList (getMenuStr nlin selectedPath) (suggestionClickHandler parent tree) ) $ filter (\(T _ l _) -> l /= olin) suggestions
     appendChild documentBody sList
     return ()
+    where
+      getMenuStr :: [LinToken] -> Path -> String
+      getMenuStr nlin path =
+        -- let
+        --   (pre,suff) = preAndSuffix nlin olin
+        --   dropped = drop (length pre) nlin
+        -- in
+          -- bind $ unwords $ map snd $ take (length dropped - length suff) dropped
+          let res = bind $ unwords $ map snd $ filter (\(p,_) -> isPrefixOf path p) nlin
+          in if null res then "∅" else res
+      -- Computes the longest common prefix and suffix for linearized trees
+      preAndSuffix :: Eq a => [a] -> [a] -> ([a],[a])
+      preAndSuffix [] _  = ([],[])
+      preAndSuffix _  [] = ([],[])
+      preAndSuffix a b =
+        let prefix :: Eq a => [a] -> [a] ->([a],[a])
+            prefix [] _ = ([],[])
+            prefix _ [] = ([],[])
+            prefix (a:resta) (b:restb)
+              | a == b = let (pre,suf) = prefix resta restb in (a:pre,suf)
+              | otherwise = ([],reverse $ postfix (reverse (a:resta)) (reverse (b:restb)))
+            postfix :: Eq a => [a] -> [a] -> [a]
+            postfix [] _ = []
+            postfix _ [] = []
+            postfix (a:resta) (b:restb)
+              | a == b = let suf = postfix resta restb in (a:suf)
+              | otherwise = []
+        in
+          prefix a b
+      -- Concatenates strings on GF BIND operator
+      bind [] = []
+      bind (' ':'&':'+':' ':rest) = bind rest
+      bind (c:rest) = c:(bind rest)
+
 
 menuClickHandler :: Elem -> ServerMessage -> MouseData -> IO ()
 menuClickHandler elem sm _ =
@@ -195,33 +263,26 @@ menuClickHandler elem sm _ =
                                     style "left" =: (show (x - 200) ++ "px")
                                   ]
     -- 
-    newMenuPoint mList "Toggle Debug" (\_ -> do { Just e1 <- elemById "exampleTree" ; Just e2 <- elemById "exerciseTree"; toggleClass e1 "debug" ; toggleClass e2 "debug" ; drawExerciseTree (sgrammar $ sa sm) (slin $ sa sm) (smenu $ sa sm) ; drawExampleTree (sgrammar $ sb sm) (slin $ sb sm) (smenu $ sb sm) })
+    newMenuPoint mList "Toggle Debug" (\_ -> do { Just e1 <- elemById "exampleTree" ; Just e2 <- elemById "exerciseTree"; toggleClass e1 "debug" ; toggleClass e2 "debug" ; drawExerciseTree (sgrammar $ sb sm) (slin $ sb sm) (smenu $ sb sm) ; drawExampleTree (sgrammar $ sa sm) (slin $ sa sm) (smenu $ sa sm) })
     newMenuPoint mList "Reset" (\_ -> do { drawExerciseTree (sgrammar $ sb sm) exerciseLin (smenu $ sb sm) ; drawScore 0 False } )
     appendChild documentBody mList
     return ()
 
-suggestionClickHandler :: Path -> [LinToken] -> String -> MouseData -> IO ()
-suggestionClickHandler path lin tree _ =
+suggestionClickHandler :: Elem -> String -> MouseData -> IO ()
+suggestionClickHandler parent tree _ =
   do
---     -- Don't propagate click any further, keeps menu from disappearing immediatelly
+    -- Don't propagate click any further, keeps menu from disappearing immediatelly
     stopPropagation
---     -- writeLog (S.fromString ("Click on suggestion") ) :: IO () ;
---     -- Cleanup of suggestion list
---     deleteMenu "suggestionList"
---     ctx <- readIORef context
---     let oldTree = ctxtree ctx
---     let newTree = [] -- TODO 
---     -- writeLog (S.fromString ("Trying to replace " ++ (show $ fromJust $ selectNode (metaTree oldTree) path ) ++ " in " ++ show (metaTree oldTree) ++ " at " ++ show path ++ " with " ++ (show $ metaTree subTree) )) :: IO () ;
---     writeIORef context (Ctx (ctxlang ctx) newTree (totalClicks ctx + 1))
---     when (newTree == sampleTree)
---       (do
---           Just score <- elemById "score"
---           toggleClass score "won"
---           alert . S.fromString $ "Congratulations! You won after " ++ show (totalClicks ctx + 1) ++ " Clicks"
---           )
---     drawScore context
---     drawTree context
-    return ()
+    -- Cleanup of suggestion list
+    deleteMenu "suggestionList"
+    -- Get language
+    lang <- getAttr parent "lang"
+    -- Get score
+    Just scoreEl <- elemById "score"
+    score <- fmap read $ getProp scoreEl "textContent" :: IO Int
+    let cm = CM score (CT exampleLang exampleTree) (CT lang tree)
+    withResult (getServerResponse cm) musteMain
+--    return ()
     
 menuHoverHandler :: Elem -> MouseData -> IO ()
 menuHoverHandler elem _ =
@@ -247,7 +308,6 @@ getServerResponse cm =
       Right sm -> do
           writeLog $ toJSString ("Got server response " ++ toString sm)
           smDecoded <- liftIO $ decodeServerMessage sm
-          writeLog (S.fromString ("Decoded server message " ++ show smDecoded)) :: CIO ()
           return $ smDecoded
       }
     return res
