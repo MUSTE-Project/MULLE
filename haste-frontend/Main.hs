@@ -50,6 +50,7 @@ musteMain sm =
 drawScore :: Int -> Bool -> IO ()
 drawScore score success =
   do
+    writeLog (toJSString $ "Score " ++ show score ++ " and Success " ++ show success)
     Just scoreEl <- elemById "score"
     clearChildren scoreEl
     te <- newTextElem (show score)
@@ -202,7 +203,7 @@ wordClickHandler elem isGap (M menu) md =
     olin <- fmap read $ getAttr parent "lin" :: IO [LinToken]
     -- Create new list
     let suggestions = head (menu M.! selectedPath) -- we assume we only have one menu
-    writeLog (toJSString $ "Suggestions for path " ++ (show selectedPath) ++ ": " ++ show suggestions)
+--    writeLog (toJSString $ "Suggestions for path " ++ (show selectedPath) ++ ": " ++ show suggestions)
     sList <- newElem "div" `with` [ attr "id" =: "suggestionList",
                                     attr "class" =: "menu",
                                     style "top" =: (show globaly ++ "px"),
@@ -306,7 +307,7 @@ getServerResponse cm =
     res <- case smResult of {
       Left a -> error "AjaxError" ; 
       Right sm -> do
-          writeLog $ toJSString ("Got server response " ++ toString sm)
+--          writeLog $ toJSString ("Got server response " ++ toString sm)
           smDecoded <- liftIO $ decodeServerMessage sm
           return $ smDecoded
       }
