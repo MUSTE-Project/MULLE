@@ -97,7 +97,7 @@ decodeServerMessage s =
     decodeMenu (Dict d) =
       do
         lst <- sequence $ map (\(p,t) -> do { path <- decodePath p ; trees <- decodeCostTrees t ; return (path,trees)}) (take (length d) d)
-        writeLog (toJSString $ "### " ++ show lst)
+--        writeLog (toJSString $ "### " ++ show lst)
         return $ M $ if Data.List.null lst then Map.empty else Map.fromList $ lst
     decodePath :: JSString -> IO Path
     decodePath p =
@@ -105,12 +105,12 @@ decodeServerMessage s =
         return $ read $ toString p
     decodeCostTrees (Arr [(Arr a)]) =
       do
-        writeLog (toJSString "Array")
+--        writeLog (toJSString "Array")
         cts <- sequence $ map decodeCostTree a
         return [cts] :: IO [[CostTree]] -- TODO
     decodeCostTrees _ =
       do
-        writeLog (toJSString "Other")
+--        writeLog (toJSString "Other")
         return [] :: IO [[CostTree]] -- TODO
     decodeCostTree :: JSON -> IO CostTree
     decodeCostTree j =
@@ -120,7 +120,7 @@ decodeServerMessage s =
          tree = j ~> (toJSString "tree")
       in
         do
-          writeLog (toJSString $ "Trying to decode cost tree " ++ show j)
+--          writeLog (toJSString $ "Trying to decode cost tree " ++ show j)
           linlist <- decodeLinList $ fromJust lin
           if isJust cost && isJust lin && isJust tree then
             return $ T (getJustNum cost) linlist (getJustStr tree)
