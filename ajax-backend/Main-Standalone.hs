@@ -8,6 +8,7 @@ import Muste
 import Muste.Grammar
 import PGF
 import qualified Data.Map.Strict as Map
+import qualified Data.ByteString.Char8 as B
 import System.Environment
 import Data.IORef
 import Data.Maybe
@@ -25,6 +26,7 @@ getType fn
   | isSuffixOf "html" fn = "text/html"
   | isSuffixOf "css" fn = "text/css"
   | isSuffixOf "js" fn = "application/javascript"
+  | isSuffixOf "ico" fn = "image/x-icon"
   | otherwise = "text/plain"
 
 demoPrec :: Precomputed
@@ -32,8 +34,8 @@ demoPrec =
   let
     romanus_est_t = TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePron" (Fun "NP" ["Pron"]) [TNode "he_PP" (Fun "Pron" []) []],TNode "complA" (Fun "VP" ["A"]) [TNode "Romanus_A" (Fun "A" []) []]]]]
     laetus_est_t = TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePron" (Fun "NP" ["Pron"]) [TNode "he_PP" (Fun "Pron" []) []],TNode "complA" (Fun "VP" ["A"]) [TNode "laetus_A" (Fun "A" []) []]]]]
-    augustus_romanus_est_t = TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePN" (Fun "NP" ["PN"]) [TNode "Augustus_PM" (Fun "PN" []) []],TNode "complA" (Fun "VP" ["A"]) [TNode "Romanus_A" (Fun "A" []) []]]]]
-    augustus_laetus_est_t = TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePN" (Fun "NP" ["PN"]) [TNode "Augustus_PM" (Fun "PN" []) []],TNode "complA" (Fun "VP" ["A"]) [TNode "laetus_A" (Fun "A" []) []]]]]
+    augustus_romanus_est_t = TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePN" (Fun "NP" ["PN"]) [TNode "Augustus_PN" (Fun "PN" []) []],TNode "complA" (Fun "VP" ["A"]) [TNode "Romanus_A" (Fun "A" []) []]]]]
+    augustus_laetus_est_t = TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePN" (Fun "NP" ["PN"]) [TNode "Augustus_PN" (Fun "PN" []) []],TNode "complA" (Fun "VP" ["A"]) [TNode "laetus_A" (Fun "A" []) []]]]]
     pse = [
       -- Romanus est
       ((romanus_est_t,[0,0,0,0]),
@@ -276,8 +278,8 @@ handleRequest grammar prec isDemo request
         putStrLn $ "HTTP" ++ (show request)
         let file = getFileName $ uriPath $ reqURI request
         let typ = getType file
-        content <- readFile $ filePath ++ "/" ++ file
-        return (Response 200 [("Content-type",typ)] content)
+        content <- B.readFile $ filePath ++ "/" ++ file
+        return (Response 200 [("Content-type",typ)] $ B.unpack content)
 
 printHelp :: IO ()
 printHelp =
