@@ -235,14 +235,14 @@ rateTree context t1 t2 =
 newTrees :: Context -> TTree -> Path -> [TTree]
 newTrees context t path =
   let
-    lin = linearizeTree context t
+--    lin = linearizeTree context t
     -- suggestions = getSuggestions context t path True 4
     subTree = fromJust $ selectNode t path
     cat = getTreeCat subTree
     suggestions = filter (\n -> maxDepth n <= maxDepth subTree + 2) $ generateList (fst context) cat (maxDepth subTree + 2)
   in
     -- map snd suggestions
-    suggestions
+    map (replaceNode t path) suggestions
 
 -- initN :: Int -> [a] -> [a]
 -- initN ct l =
