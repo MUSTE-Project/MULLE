@@ -54,10 +54,11 @@ drawScore score success =
     Just scoreEl <- elemById "score"
     clearChildren scoreEl
     te <- newTextElem (show score)
+    setClass scoreEl "won" success
     when success
       (do
-          toggleClass scoreEl "won"
-          alert . S.fromString $ "Congratulations! You won after " ++ show score ++ " Clicks"
+          withResult (wait 200)
+            (\_ -> alert . S.fromString $ "Congratulations! You won after " ++ show score ++ " Clicks")
       )
     appendChild scoreEl te
 
