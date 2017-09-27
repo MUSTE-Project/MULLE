@@ -22,7 +22,7 @@ version:             0.0.0.0
 -- license:             
 
 -- The file containing the license text.
-license-file:        ../LICENSE
+license-file:        LICENSE
 
 -- The package author(s).
 author:              Herbert Lange
