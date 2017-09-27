@@ -2,46 +2,38 @@ import Muste
 import Muste.Tree
 import Muste.Grammar
 import PGF
-import Data.Set hiding (null,map)
 import Data.Maybe
 import System.Exit
-import Debug.Trace
 import Control.Monad
 
--- startTree = (read "{TNode lesson1SfromCl (Fun S [Cl]) [(TNode lesson1ClfromNPVP (Fun Cl [NP,VP]) [(TNode lesson1NPfromCNsg (Fun NP [CN]) [(TNode lesson1CNfromCNNP (Fun CN [CN,NP]) [(TNode lesson1CNfromN (Fun CN [N]) [(TNode Caesar_N (Fun N []) [])])])]), (TNode lesson1NPfromPN (Fun NP [PN]) [(TNode Augustus_PN (Fun PN []) [])]}}}} {lesson1VPfromV2NP:(V2->NP->VP) {vincere_V2:V2} {lesson1NPfromPN:(PN->NP) {Gallia_PN:NP}}}}")
---startTree = read "TNode lesson1SfromCl (Fun S [Cl]) [TNode lesson1ClfromNPVP (Fun Cl [NP,VP]) [TNode lesson1NPfromCNsg (Fun NP [CN]) [TNode lesson1CNfromCNNP (Fun CN [CN,NP]) [TNode lesson1CNfromN (Fun CN [N]) [TNode Caesar_N (Fun N []) []],TNode lesson1NPfromPN (Fun NP [PN]) [TNode Augustus_PN (Fun PN []) []]],TNode lesson1VPfromV2NP (Fun VP [V2,NP]) [TNode vincere_V2 (Fun V2 []) [],TNode lesson1NPfromPN (Fun NP [PN]) [TNode Gallia_PN (Fun NP []) []]]]]]"
-startTree =
-  TNode "lesson1SfromCl" (Fun "S" ["Cl"])
-  [
-    TNode "lesson1ClfromNPVP" (Fun "Cl" ["NP","VP"])
-    [
-      TNode "lesson1NPfromCNsg" (Fun "NP" ["CN"])
-      [
-        TNode "lesson1CNfromCNNP" (Fun "CN" ["CN","NP"])
-        [
-          TNode "lesson1CNfromN" (Fun "CN" ["N"])
-          [
-            TNode "Caesar_N" (Fun "N" []) []
-          ],
-          TNode "lesson1NPfromPN" (Fun "NP" ["PN"])
-          [
-            TNode "Augustus_PN" (Fun "PN" []) []
-          ]
-        ]
-      ],
-      TNode "lesson1VPfromV2NP" (Fun "VP" ["V2","NP"])
-      [
-        TNode "vincere_V2" (Fun "V2" []) [],
-        TNode "lesson1NPfromPN" (Fun "NP" ["PN"])
-        [
-          TNode "Gallia_PN" (Fun "PN" []) []
-        ]
-      ]
-    ]
-  ]
-  --  ]
+startTree = "useS (useCl (simpleCl (usePN Africa_PN) (complA externus_A)))"
+startLang = mkCId "PrimaLat"
+
 grammarFile = "gf/novo_modo/Prima.pgf"
-depth = 3 -- performance?
+depth = 5 -- performance?
+
+-- | Type for a click that has both a position and a count
+data Click = Click { pos :: Int, count :: Int } deriving (Show,Eq)
+
+-- | The function 'updateClick' either increases the counter when the position is the same as the previous one or sets the new position and sets the counter to 1
+updateClick :: Maybe Click -> Pos -> Maybe Click
+updateClick Nothing pos = Just $ Click pos 1
+updateClick (Just (Click pos count)) newPos
+  | pos == newPos = Just $ Click pos (count + 1)
+  | otherwise = Just $ Click newPos 1
+
+-- | The 'linearizeList' functions concatenates a token list to a string, can contain the pathes for debugging and the positions
+linearizeList :: Bool -> Bool -> [LinToken] -> String
+linearizeList debug positions list =
+  let
+    conditionalString :: Bool -> String -> String
+    conditionalString True s = s
+    conditionalString False _ = ""
+    extendedList :: [(Integer, (Path, [Char]))]
+    extendedList = zip [0..] $ if debug || positions then concatMap (\e@(ep,es) -> [(ep," "),e]) list ++ [([]," ")] -- insert "gaps between the words and point the end of the list to the root of the tree
+                               else list 
+  in
+    unwords $ map (\(pos,(path,s)) -> conditionalString positions ("(" ++ show pos ++ ") ") ++ s ++ conditionalString debug (" " ++ show path)) extendedList
 
 defaultDebug = True
 
@@ -51,8 +43,8 @@ handleSelection debug tree path suggestions selection =
     when debug $ putStrLn $ show suggestions
     return (Nothing,snd $ suggestions !! ( selection - 1),debug)
     
-handleClick :: Bool ->Grammar -> Language -> TTree -> [LinToken] -> Maybe Click -> Int -> IO (Maybe Click, TTree,Bool)
-handleClick debug grammar language tree wordList click clickPos =
+handleClick :: Bool -> Context -> PrecomputedTrees -> TTree -> [LinToken] -> Maybe Click -> Int -> IO (Maybe Click, TTree,Bool)
+handleClick debug context precomputedTrees tree wordList click clickPos =
   do
     let newClick = fromJust $ updateClick click clickPos -- that should never be Nothing -> QuickCheck test for updateClick
     -- Compute the path given the click position and click count
@@ -64,7 +56,7 @@ handleClick debug grammar language tree wordList click clickPos =
     let extend = pos newClick `mod` 2 == 0 -- click between words
     -- Get suggestions
     when debug $ putStrLn "Get new suggestions"
-    let suggestions = getSuggestions (grammar,language) tree path extend depth 
+    let suggestions = concat $ map (\(_,ts) -> map (\(_,l,t) -> (linearizeList False False l,t)) ts) $ filter ((path ==) . fst) $ suggestionFromPrecomputed context precomputedTrees tree :: [(String,TTree)]
     when debug $ mapM_ (\(a,(b,c)) -> putStrLn $ show a ++ ". " ++ b ++ " - " ++ show c) $ zip [1..] suggestions
     when debug $ putStrLn "Linearize new suggestions"
     -- let linSubTree = map snd $ linearizeTree grammar language $ fromJust $ selectNode tree path
@@ -104,20 +96,19 @@ handleCommand debug tree click command
     do
       putStrLn "I don't know what you want from me"
       return (click,tree,debug)
-loop :: Grammar -> Language -> Bool -> TTree -> Maybe Click -> IO TTree
-loop grammar language debug tree click =
+loop :: Context -> Bool -> PrecomputedTrees -> TTree -> Maybe Click -> IO TTree
+loop context debug precomputed tree click =
   do
     -- Show the linearized tree
-    let wordList = linearizeTree (grammar,language) tree
+    let wordList = linearizeTree context tree
     putStrLn $ linearizeList debug True wordList
     -- Ask for the click
     putStrLn "What position do you want to click on?"
     putStrLn "Just press Enter to reset clicks"
     input <- getLine
     let selection = reads input :: [(Int,String)]
-    --(newClick,newTree) <- if not $ null input && (snd $ head input) == "" then trace "1" $ handleClick grammar language tree wordList click (fst $ head input) else if null input then trace "2" $ handleCommand tree click "" else trace "3" $ handleCommand tree click (snd $ head input)
-    (newClick,newTree,newDebug) <- if (not $ null selection) && ((snd $ head selection) == "") then handleClick debug grammar language tree wordList click (fst $ head selection) else handleCommand debug tree Nothing input
-    loop grammar language newDebug newTree newClick
+    (newClick,newTree,newDebug) <- if (not $ null selection) && ((snd $ head selection) == "") then handleClick debug context precomputed tree wordList click (fst $ head selection) else handleCommand debug tree Nothing input
+    loop context newDebug precomputed newTree newClick
     return tree
   
 main =
@@ -127,8 +118,11 @@ main =
     grammar <- pgfToGrammar <$> readPGF grammarFile
     when defaultDebug $ putStrLn "Starting loop"
     -- modify the tree, use the first language in the grammar. no previous click
-    let (v,p) = isValid startTree
-    if v then loop grammar (head $ tail $ languages $ pgf grammar) defaultDebug startTree Nothing
+    let tree = gfAbsTreeToTTree grammar $ fromJust $ readExpr startTree
+    let (v,p) = isValid tree
+    let context = (grammar,startLang)
+    let precomputedTrees = precomputeTrees context tree
+    if v then loop context defaultDebug precomputedTrees tree Nothing
     else error $ "Invalid starting tree. Problem in Node " ++ show p
     return ()               
   
