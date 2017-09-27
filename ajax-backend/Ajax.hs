@@ -153,7 +153,7 @@ encodeServerMessage sm =
 -- | readTree reads a GF abstract syntax tree from a string and converts it to a TTree
 readTree :: Grammar -> String -> TTree
 readTree grammar stree =
-  maybe (throw (RTE $ "Error reading GF abstract syntax tree " ++ stree) :: TTree) (gfAbsTreeToTTreeWithGrammar grammar) (readExpr stree)
+  maybe (throw (RTE $ "Error reading GF abstract syntax tree " ++ stree) :: TTree) (gfAbsTreeToTTree grammar) (readExpr stree)
 
 -- | linearizeTree converts a GF abstract syntax tree from a string to a list of linearization tokens (i.e. tuples of path and string)
 linearizeTree :: Grammar -> String -> String -> [(Path,String)]

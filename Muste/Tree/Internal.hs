@@ -1,19 +1,10 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
 {- | This Module is the internal implementation behind the module 'Muste.Tree' -}
 module Muste.Tree.Internal where
+
 import PGF hiding (showType,checkType,parse)
 import PGF.Internal hiding (showType)
 import Data.Maybe
-import Data.List
-import Data.Set (Set,toList,fromList,empty)
-import qualified Data.Set as Set
-import Data.Either
-import Data.Ord
-import Muste.Grammar.Internal
-import Debug.Trace
--- import Text.Parsec
-import Test.QuickCheck
+import Muste.Grammar
 import Muste.Feat
 
 -- | Generic class for trees
@@ -24,9 +15,6 @@ class TreeC t where
   -- | The function 'selectNode' returns a subtree at given node if it exists
   selectBranch :: t -> Int -> Maybe t
 
--- | Cost for matching two meta trees
-type Cost = Int
-
 -- | Position in a path
 type Pos = Int
 
@@ -36,36 +24,8 @@ type Path = [Pos]
 -- | Rename GF abstract syntax tree (from PGF)
 type GFAbsTree = Tree
 
--- | A meta tree - tuple of a generic tree with types and a list of possibly attachable subtrees
--- data MetaTTree = MetaTTree {
---   -- A TTree that can contain meta nodes
---   metaTree :: TTree,
---   -- List of subtrees that can be attached to the meta nodes determinded by the associated path
---   subTrees :: Set (Path,TTree)
---   }
---                deriving (Eq,Ord)
-
 -- | A labeled tree - just a template to match labels to paths
 data LTree = LNode CId Int [LTree] | LLeaf deriving (Show,Eq)
-
--- | A GF abstract syntax tree is in TreeC class
-instance TreeC GFAbsTree where
-  showTree = show
-  selectNode t [p] =
-    selectBranch t p
-  selectNode t (p:ps) =
-    let
-      branch = selectBranch t p
-    in
-      case branch of {
-        Just b -> selectNode b ps ;
-        Nothing -> Nothing
-        }
-  -- Only branch at applications
-  selectBranch (EApp t1 t2) 0 = Just t1
-  selectBranch (EApp t1 t2) 1 = Just t2
-  selectBranch _ _ = Nothing
-  
 
 -- | A generic tree with types is in TreeC class
 instance TreeC TTree where
@@ -85,84 +45,6 @@ instance TreeC TTree where
   selectBranch (TNode _ _ trees) i
     | i < 0 || i >= length trees = Nothing
     | otherwise = Just (trees !! i)
-
-arbitraryGFAbsTree :: Grammar -> Int -> Gen GFAbsTree
-arbitraryGFAbsTree grammar depth =
-  let
-    closure :: Grammar -> Int -> GFAbsTree -> Gen GFAbsTree
-    closure grammar depth tree = return tree
-    -- case 1: only the start symbol => first expansion
-    -- case 2: tree that can still be expanded
-    -- case 3: complete tree of sufficient depth
-      -- | not $ hasMetas tree = return tree
-      -- | otherwise = return tree
-  in
-    do
-      let start = startcat grammar
-      closure grammar depth (mkApp (mkCId start) [])
-
---   do
---     let ids = ['a'..'z']
---     id <- elements ids
---     t1 <- arbitrary
---     t2 <- arbitrary
---     frequency [(3,return (EApp t1 t2)),(7,return (EFun $ mkCId [id]))]
-  
--- | A GF abstract syntax tree with types is in Arbitrary class
--- instance Arbitrary GFAbsTree where
---   arbitrary =
---     do
---       g <- arbitrary
---       arbitraryGFAbsTree g
-
-arbitraryTTree :: Grammar -> Int -> Gen TTree
-arbitraryTTree grammar depth =
-  let
-    closure :: Grammar -> Int -> TTree -> Gen TTree
-    closure grammar depth tree
-      | not $ hasMetas tree = return tree
-      | otherwise = 
-        do
-          -- get all metas
-          let metas = getMetaPaths tree
-          -- get one of the metas
-          (path,cat) <- elements metas
-          -- get all the rules for the meta category
-          let lrules = getRulesList (synrules grammar) [cat]
-          let srules = getRulesList (lexrules grammar) [cat]
-          -- prefer lexical rules
-          rules <- frequency [(8, return lrules), (2, return  srules)]
-          -- get one of the rules but handle the case that the preferred category is empty
-          -- here be dragons, but why?
-          rule <- elements $ if null rules then union lrules srules else rules
-          -- apply rule
-          let ntree = applyRule tree rule [path]
-          -- check tree for validity
-          if maxDepth ntree <= depth then closure grammar depth ntree else closure grammar depth tree
-  in
-    do
-      let start = TMeta (startcat grammar)
-      closure grammar depth start
-
-
--- | A generic tree with types is in Arbitrary class
-instance Arbitrary TTree where
-  arbitrary =
-    do
-      g <- arbitrary
-      resize 5 $ sized $ arbitraryTTree g -- temporary resize
-
--- | The function 'getChildCats' extracts the root category of each childtree
-getChildCats :: TTree -> [String]
-getChildCats (TMeta _) = []
-getChildCats (TNode _ _ trees) =
-  let
-    extract :: TTree -> String
-    extract (TMeta cat) = cat
-    extract (TNode _ NoType _) = "?"
-    extract (TNode _ (Fun cat _) _) = cat
-  in
-    map extract trees
                  
 -- List-related functions
 -- | The function 'listReplace' replaces an element in a 'List' if the position exists
@@ -175,22 +57,7 @@ listReplace list pos elem
         pre ++ (elem:post)
   | otherwise = list -- Element not in the list -> return the same list instead
 
--- | The function 'powerList' generates a power set from a 'List'
-powerList :: [a] -> [[a]]
-powerList [] = [[]]
-powerList (x:xs) = powerList xs ++ map (x:) (powerList xs)
-
--- Tree-related functions
--- | The funcion 'isMeta' is a predicate that is true if a 'TTree' is just a 'TMeta' node
-isMeta :: TTree -> Bool
-isMeta (TMeta _) = True
-isMeta _ = False
-
--- | The function 'hasMetas' is a predicate that is true if a 'TTree' contains any 'TMeta' nodes
-hasMetas :: TTree -> Bool
-hasMetas (TMeta _) = True
-hasMetas (TNode _ _ children) = or $ map hasMetas children
-
+-- | The function 'isValid' "type-checks a 'TTree'
 isValid :: TTree -> (Bool,Maybe Path)
 isValid t =
   let
@@ -218,35 +85,20 @@ getTreeCat (TNode id typ _) =
     }
 getTreeCat (TMeta cat) = cat
 
--- | The function 'gfAbsTreeToTTree' creates a 'TTree' from an GFabstract syntax 'Tree' and a PGF. Handles only 'EApp' and 'EFun'. Generates 'TMeta' 'wildCId' in unsupported cases
-gfAbsTreeToTTreeWithPGF :: PGF -> GFAbsTree -> TTree
-gfAbsTreeToTTreeWithPGF pgf (EFun f) =
-  let
-    typ = getFunTypeWithPGF pgf f
-  in
-    TNode (showCId f) typ []
-gfAbsTreeToTTreeWithPGF pgf (EApp e1 e2) =
-  let
-    (TNode name typ sts) = gfAbsTreeToTTreeWithPGF pgf e1
-    st2 = gfAbsTreeToTTreeWithPGF pgf e2
-  in
-    TNode name typ (sts ++ [st2])
-gfAbsTreeToTTreeWithPGF pgf _ = TMeta wildCard
-
 -- | The function 'gfAbsTreeToTTree' creates a 'TTree' from an GFabstract syntax 'Tree' and a Grammar. Othewise  similar to gfAbsTreeToTTreeWithPGF
-gfAbsTreeToTTreeWithGrammar :: Grammar -> GFAbsTree -> TTree
-gfAbsTreeToTTreeWithGrammar g (EFun f) =
+gfAbsTreeToTTree :: Grammar -> GFAbsTree -> TTree
+gfAbsTreeToTTree g (EFun f) =
   let
-    typ = getFunTypeWithGrammar g (showCId f)
+    typ = getFunType g (showCId f)
   in
     TNode (showCId f) typ []
-gfAbsTreeToTTreeWithGrammar g (EApp e1 e2) =
+gfAbsTreeToTTree g (EApp e1 e2) =
   let
-    (TNode name typ sts) = gfAbsTreeToTTreeWithGrammar g e1
-    st2 = gfAbsTreeToTTreeWithGrammar g e2
+    (TNode name typ sts) = gfAbsTreeToTTree g e1
+    st2 = gfAbsTreeToTTree g e2
   in
     TNode name typ (sts ++ [st2])
-gfAbsTreeToTTreeWithGrammar _ _ = TMeta wildCard
+gfAbsTreeToTTree _ _ = TMeta wildCard
 
 -- | Creates a GF abstract syntax Tree from a generic tree
 ttreeToGFAbsTree :: TTree -> GFAbsTree
@@ -360,171 +212,9 @@ replaceNode oldTree [] newTree =
 replaceNode oldTree _ _ =
   oldTree -- No more subtrees, cancel search
 
--- | The function 'getMetaLeafCatsSet' returns set of the categories of all meta leaves
-getMetaLeafCatsSet :: TTree -> Set String
-getMetaLeafCatsSet (TMeta id) = Set.singleton id
-getMetaLeafCatsSet (TNode _ _ trees) = Set.unions $ map getMetaLeafCatsSet trees
-
--- | The function 'getMetaLeafCatsList' returns set of the categories of all meta leaves
-getMetaLeafCatsList :: TTree -> [String]
-getMetaLeafCatsList (TMeta id) = [id]
-getMetaLeafCatsList (TNode _ _ trees) = concat $ map getMetaLeafCatsList trees
-
--- | The function 'getMetaPaths' generates alist of all pathes to metas
-getMetaPaths :: TTree -> [(Path,String)]
-getMetaPaths tree =
-  let
-    withPath :: TTree -> Path -> [(Path,String)]
-    -- On a meta leaf return the id and the path to it
-    withPath (TMeta id) path = [(path,id)]
-    withPath (TNode _ _ trees) path =
-      let
-        numberedTrees = zip [0..length trees] trees
-      in
-        -- Extend path and continue looking for metas
-        -- Map over an empty list returns also an empty list
-        concatMap (\(b,t) -> withPath t (path ++ [b])) numberedTrees
-  in
-    withPath tree []
-    
--- | The function 'applyRule' expands a 'TTree' according to a 'Rule' and a 'Path'
-applyRule :: TTree -> Rule -> [Path] -> TTree
-applyRule tree rule@(Function name ftype@(Fun cat cats)) (path:pathes) =
-  let
-    newMetaSubTree = TNode name ftype (map TMeta cats) -- Tree converted from the rule
-    newTree = replaceNode tree path newMetaSubTree -- Get new tree by replacing a meta given by path with the new rule
-   in
-    -- Combine to new TTree and continue applying until no more paths exist
-    applyRule newTree rule pathes
-applyRule tree (Function _ NoType) _ = tree -- No rule type, same tree
-applyRule tree rule [] = tree -- No path, same tree
-
--- | The function 'combineToSet' applies a 'Rule' to a 'TTree' generating all possible new meta trees, the depth parameter limits the search for metas to be replaced. Returns a list of trees.
-combineToSet :: TTree -> Int -> Rule -> Set TTree
-combineToSet tree depth rule =
-  let
-    ruleCat :: String
-    ruleCat = getRuleCat rule
-    -- Find all meta-nodes that match the category of the rule
-    filteredMetas :: [(Path,String)]
-    filteredMetas = filter (\(p,c) -> ruleCat == c && length p <= depth - 1) $ getMetaPaths tree
-    -- Generate all possible combinations (powerset)
-    pathesLists = powerList $ map fst filteredMetas
-  in
-    fromList $ map (\pathes ->
-          let
-            -- Apply rule to the pathes and then split up the TTree into the main tree and the subtrees
-            newTree = applyRule tree rule pathes
-          in
-            newTree
-        ) pathesLists
-
--- | The function 'combineList' applies a 'Rule' to a 'TTree' generating all possible new meta trees, the depth parameter limits the search for metas to be replaced. Returns a list of trees.
-combineToList :: TTree -> Int -> Rule -> [TTree]
-combineToList tree depth rule =
-  let
-    ruleCat :: String
-    ruleCat = getRuleCat rule
-    -- Find all meta-nodes that match the category of the rule
-    filteredMetas :: [(Path,String)]
-    filteredMetas = filter (\(p,c) -> ruleCat == c && length p <= depth - 1) $ getMetaPaths tree
-    -- Generate all possible combinations (powerset)
-    pathesLists = powerList $ map fst filteredMetas
-  in
-    map (\pathes ->
-          let
-            -- Apply rule to the pathes and then split up the TTree into the main tree and the subtrees
-            newTree = applyRule tree rule pathes
-          in
-            newTree
-        ) pathesLists
-
-
--- | The function 'extendTreeToSet' extends a 'TTree' by applying all applicable rules from a 'Grammar' once. It returns a Set of TTrees
-extendTreeToSet :: Grammar -> TTree -> Int -> Set TTree
-extendTreeToSet grammar tree depth =
-  let
-      -- Get all meta-leaves ...
-      metaLeaves :: Set String
-      metaLeaves = getMetaLeafCatsSet tree
-      -- ... and grammar rules for them
-      rules :: Set Rule
-      rules = getRulesSet (getAllRules grammar) $ toList metaLeaves
-  in
-    -- Combine tree with the rules
-    Set.unions $ toList $ Set.map (combineToSet tree depth) rules
-
--- | The function 'extendTree' extends a 'TTree' by applying all applicable rules from a 'Grammar' once. It returns a List of TTrees
-extendTreeToList :: Grammar -> TTree -> Int -> [TTree]
-extendTreeToList grammar tree depth =
-  let
-      -- Get all meta-leaves ...
-      metaLeaves :: [String]
-      metaLeaves = getMetaLeafCatsList tree
-      -- ... and grammar rules for them
-      rules :: [Rule]
-      rules = getRulesList (getAllRules grammar) metaLeaves
-  in
-    -- Combine tree with the rules
-    concatMap (combineToList tree depth) rules
-    
--- -- | The function 'generate' generates all possible 'TTree's with given root-category up to a maximum height
--- generateSet :: Grammar -> String -> Int -> Set TTree
--- generateSet grammar cat depth =
---   let
---     -- Filter all trees that cannot be extended either because they grow too big or have no free meta nodes
---     filterTree :: Int -> TTree -> Bool
---     filterTree depth tree =
---       let
---         metaPaths = filter (\(p,c) -> length p <= depth - 1) $ getMetaPaths tree
---       in
---         not $ null metaPaths
---     -- Generate all trees
---     loop :: [TTree] -> Set TTree
---     loop [] = empty -- no more "active" trees
---     loop (tree:trees) = 
---       let
---         extended = extendTreeToSet grammar tree depth -- these are already part of the result
---         activeTrees = trees ++ filter (filterTree depth) (toList (Set.delete tree extended))
---       in
---         Set.union (Set.singleton tree) $ Set.union extended (loop activeTrees)
---   in
---     loop [TMeta cat]
-
--- -- | The function 'generate' generates all possible 'TTree's with given root-category up to a maximum height
--- generateListSimple :: Grammar -> String -> Int -> [TTree]
--- generateListSimple grammar cat depth =
---   let
---     -- Filter all trees that cannot be extended either because they grow too big or have no free meta nodes
---     filterTree :: Int -> TTree -> Bool
---     filterTree depth tree =
---        let
---          metaPaths = filter (\(p,c) -> length p <= depth - 1) $ getMetaPaths tree
---        in
---          not $ null metaPaths
---     -- Generate all trees
---     loop :: [TTree] -> [TTree]
---     loop [] = [] -- no more "active" trees
---     loop trees = 
---       let
---         extendedTrees = concatMap (\t -> extendTreeToList grammar t depth) trees -- these are already part of the result
---       in
---         --trace (show trees) $
---         nub $ trees ++ loop extendedTrees
---   in
---     loop [TMeta cat]
-
-
--- generateList :: Grammar -> String -> Int -> [TTree]
--- generateList grammar startCat depth =
---   let
---     trees = generateAllDepth (pgf grammar) (fromJust $ readType $ startCat) (Just depth)
---   in
--- --    map (gfAbsTreeToTTree $ pgf grammar) trees
---         map (gfAbsTreeToTTreeWithGrammar grammar) trees
-
-generateList :: Grammar -> String -> Int -> [TTree]
-generateList grammar cat depth =
+-- | The function 'generateTrees' generates a list of 'TTree's up to a certain depth given a grammar. Powered by the magic of feat
+generateTrees :: Grammar -> String -> Int -> [TTree]
+generateTrees grammar cat depth =
   let
     feats = map (\d -> let f = feat grammar in (featCard f cat d,featIth f cat d)) [0..depth]
   in
