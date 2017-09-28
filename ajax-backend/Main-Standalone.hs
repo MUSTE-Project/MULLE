@@ -18,7 +18,7 @@ import Muste.Tree
 filePath = "./demo"
 
 getFileName :: String -> String
-getFileName "/" = "muste.html"
+getFileName "/" = "index.html"
 getFileName ('/':fn) = fn
 
 getType :: String -> String
