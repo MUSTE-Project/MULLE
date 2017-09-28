@@ -157,6 +157,14 @@ globalClickHandler _ =
     -- Delete possible menus
     deleteMenu "suggestionList"
     deleteMenu "menuList"
+    Just parent <- elemById "exerciseTree"
+    children <- getChildren parent
+    -- Remove hover
+    mapM_ (\e -> setClass e "wordHover" False) children
+    -- Remove clicks
+    mapM_ (\e -> setAttr e "clicked" (show False)) children
+    mapM_ (\e -> unsetAttr e "clickcount") children
+
     
 -- Adds new menu points as divs to a "menu"
 newMenuPoint :: Elem -> String -> (MouseData -> IO ()) -> IO ()
@@ -212,8 +220,16 @@ wordClickHandler elem isGap (M menu) md =
                                   ]
     sequence_ $ map (\(T cost nlin tree) -> newMenuPoint sList (getMenuStr nlin selectedPath) (suggestionClickHandler parent tree) ) $ filter (\(T _ l _) -> l /= olin) suggestions
     appendChild documentBody sList
+    -- Highlight words
+    affectedChildren <- filterM (matchPrefix selectedPath) children
+    mapM_ (\e -> setClass e "wordHover" True) affectedChildren
     return ()
     where
+      matchPrefix :: Path -> Elem -> IO Bool
+      matchPrefix p e =
+        do
+          ep <- fmap read $ getAttr e "path" :: IO Path
+          return $ isPrefixOf p ep
       getMenuStr :: [LinToken] -> Path -> String
       getMenuStr nlin path =
         -- let
@@ -224,29 +240,28 @@ wordClickHandler elem isGap (M menu) md =
           let res = bind $ unwords $ map snd $ filter (\(p,_) -> isPrefixOf path p) nlin
           in if null res then "∅" else res
       -- Computes the longest common prefix and suffix for linearized trees
-      preAndSuffix :: Eq a => [a] -> [a] -> ([a],[a])
-      preAndSuffix [] _  = ([],[])
-      preAndSuffix _  [] = ([],[])
-      preAndSuffix a b =
-        let prefix :: Eq a => [a] -> [a] ->([a],[a])
-            prefix [] _ = ([],[])
-            prefix _ [] = ([],[])
-            prefix (a:resta) (b:restb)
-              | a == b = let (pre,suf) = prefix resta restb in (a:pre,suf)
-              | otherwise = ([],reverse $ postfix (reverse (a:resta)) (reverse (b:restb)))
-            postfix :: Eq a => [a] -> [a] -> [a]
-            postfix [] _ = []
-            postfix _ [] = []
-            postfix (a:resta) (b:restb)
-              | a == b = let suf = postfix resta restb in (a:suf)
-              | otherwise = []
-        in
-          prefix a b
+      -- preAndSuffix :: Eq a => [a] -> [a] -> ([a],[a])
+      -- preAndSuffix [] _  = ([],[])
+      -- preAndSuffix _  [] = ([],[])
+      -- preAndSuffix a b =
+      --   let prefix :: Eq a => [a] -> [a] ->([a],[a])
+      --       prefix [] _ = ([],[])
+      --       prefix _ [] = ([],[])
+      --       prefix (a:resta) (b:restb)
+      --         | a == b = let (pre,suf) = prefix resta restb in (a:pre,suf)
+      --         | otherwise = ([],reverse $ postfix (reverse (a:resta)) (reverse (b:restb)))
+      --       postfix :: Eq a => [a] -> [a] -> [a]
+      --       postfix [] _ = []
+      --       postfix _ [] = []
+      --       postfix (a:resta) (b:restb)
+      --         | a == b = let suf = postfix resta restb in (a:suf)
+      --         | otherwise = []
+      --   in
+      --     prefix a b
       -- Concatenates strings on GF BIND operator
       bind [] = []
       bind (' ':'&':'+':' ':rest) = bind rest
       bind (c:rest) = c:(bind rest)
-
 
 menuClickHandler :: Elem -> ServerMessage -> MouseData -> IO ()
 menuClickHandler elem sm _ =
