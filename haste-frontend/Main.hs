@@ -325,6 +325,7 @@ getServerResponse cm =
       Right sm -> do
 --          writeLog $ toJSString ("Got server response " ++ toString sm)
           smDecoded <- liftIO $ decodeServerMessage sm
+          writeLog $ toJSString ("Got server message " ++ show smDecoded)
           return $ smDecoded
       }
     return res
