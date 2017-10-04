@@ -57,7 +57,7 @@ input[type=radio], input[type=checkbox] {
 }
 
 .debug {
-    display: none;
+    /* display: none; */
     font-size: 50%;
     color: grey;
 }
@@ -137,6 +137,15 @@ input:checked + label {
 .highlighted {
     background-color: #eee;
     background-color: rgba(220,220,220,0.3); 
+}
+
+.greyed {
+    color: grey;
+}
+
+.marked {
+    /* color: red; */
+    font-weight: bold;
 }
 
 .clickable, .word, button, label, .highlighted {

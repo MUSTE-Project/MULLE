@@ -1,15 +1,15 @@
 
-// var DATA = {
-//     score: 0,
-//     A: {grammar: null,
-//         lin: null,
-//         tree: null,
-//         menu: null},
-//     B: {grammar: null,
-//         lin: null,
-//         tree: null,
-//         menu: null}
-// };
+var DATA = {
+    score: 0,
+    A: {grammar: null,
+        lin: null,
+        tree: null,
+        menu: null},
+    B: {grammar: null,
+        lin: null,
+        tree: null,
+        menu: null}
+};
 
 
 var AjaxTimeout = 1000; // milliseconds
@@ -61,29 +61,19 @@ function confirm_restart_game() {
 
 
 function restart_game() {
-    call_server({
-        score: 0,
-        a: {grammar: DefaultLang1,
-            tree: DefaultTree1,
-           },
-        b: {grammar: DefaultLang2,
-            tree: DefaultTree2,
-           }});
+    call_server(0,
+                DefaultLangA, DefaultTreeA, 
+                DefaultLangB, DefaultTreeB); 
 }
 
-/* The 'input' from the client to the server should be of this form:
 
-    { score: 34,
-      A: {grammar: "MusteEng", tree: "(StartUtt (UttS (UseCl ... (PredVP (...)) ...)))"},
-      B: {grammar: "MusteLat", tree: "(StartUtt (UttS (UseCl ... (PredVP (...)) ...)))"} }
-
-Note: the first time the game is started, the input should be 'null'
-*/
-
-    function call_server(input) {
-	console.log("Calling server with " + input);
+function call_server(score, grammarA, treeA, grammarB, treeB) {
+    var input = {score: 0,
+                 a: {grammar: grammarA, tree: treeA},
+                 b: {grammar: grammarB, tree: treeB}};
+	console.log("Calling server with", input);
     if (typeof(SERVER) === "function") {
-        handle_server_result(SERVER(input));
+        handle_server_response(SERVER(input));
     }
     else if (typeof(SERVER) === "string") {
         $.ajax({
@@ -92,137 +82,85 @@ Note: the first time the game is started, the input should be 'null'
             timeout: AjaxTimeout,
             url: SERVER, 
             dataType: "json",
-	    method: "POST",
-	    processData: false,
+	        method: "POST",
+	        processData: false,
             data: JSON.stringify(input)
         }).fail(function(jqxhr, status, error) {
             alert_error(status, error);
-        }).done(handle_server_result);
+        }).done(handle_server_response);
     }
 }
 
 
-/* The return data from the server should be like this:
-
-    { success: false,
-      score: 35,
-      A: { grammar: "MusteEng", tree: "(StartUtt (UttS (UseCl ... (PredVP (...)) ...)))",
-           lin: ["she", "doesn't", "break", "the", "yellow", "stones", "."],
-           menu: {"5,6" : [ [ {"cost":2,"lin":"apples","tree":"(StartUtt ...)"},
-                              ...],
-                            [ {"cost":2,"lin":"x y z","tree":"(StartUtt ...)"},
-                              ...]
-                          ],
-                  "4,4" : [ ... ],
-                  ...}
-          },
-      B: {...same as for A...}
-    }
-
-Note: the 'grammar' and the 'tree' should be exactly the same as the ones that the client sent to the server!
-*/
-
-function handle_server_result(data) {
-    console.log("data", data);
-    console.log("score", data.score);
-    set_score(data.score);
-    set_data('A', data.a);
-    set_data('B', data.b);
-    show_lin('A', data.a.lin);
-    show_lin('B', data.b.lin);
-    // mark_correct_phrases();
-    if (data.success) {
+function handle_server_response(response) {
+    DATA.score = response.score;
+    DATA.A = clean_server_data(response.a);
+    DATA.B = clean_server_data(response.b);
+    console.log('DATA', DATA);
+    show_lin('A', DATA.A.lin);
+    show_lin('B', DATA.B.lin);
+    $('#score').text(DATA.score);
+    if (response.success) {
         setTimeout(function(){
-            alert("WELL DONE!\n\nFinal score: " + data.score);
+            alert("WELL DONE!\n\nFinal score: " + DATA.score);
             restart_game();
         }, 500);
     }
 }
 
 
-function get_score() {
-    return parseInt($('#score').text());
+function clean_server_data(data) {
+    function clean_path(path) {
+        return path.toString().replace(/[,\[\]]/g,"");
+    }
+    function clean_lin(lin) {
+        return lin.map(function(pword){
+            return {word: pword[1], path: clean_path(pword[0])};
+        });
+    }
+    var result = {grammar: data.grammar,
+                  tree: parse_tree(data.tree),
+                  lin: clean_lin(data.lin),
+                  menu: {}};
+    for (var path in data.menu) {
+        result.menu[clean_path(path)] = data.menu[path].map(function(submenu){
+            return submenu.map(function(item){
+                return {score: item.score, tree: item.tree, lin: clean_lin(item.lin)};
+            });
+        });
+    }
+    return result;
 }
-
-
-function get_data(lang) {
-    return $('#' + lang).data();
-}
-
-
-function set_data(lang, data) {
-    $('#' + lang).data(data);
-}
-
-
-function set_score(newScore) {
-    $('#score').text(newScore);
-}
-
-
-function select_tree(data) {
-    console.log("SELECT", data);
-    var A = get_data('A');
-    var B = get_data('B');
-    call_server({
-        score: get_score(),
-        a: {grammar: A.grammar,
-            tree: data.lang == "A" ? data.tree : A.tree,
-           },
-        b: {grammar: B.grammar,
-            tree: data.lang == "B" ? data.tree : B.tree,
-           },
-    });
-    show_lin('A', A.lin);
-    show_lin('B', B.lin);
-    // mark_correct_phrases();
-}
-
-// function mark_correct_phrases() : void {
-//     $('.' + CORRECT).removeClass(CORRECT);
-//     $('.' + MATCHING).removeClass(MATCHING);
-//     if (!trees_are_connected()) {
-//         var t1 : GFTree = $('#A').data('tree');
-//         var t2 : GFTree = $('#B').data('tree');
-//         if (t1.toString() == t2.toString()) {
-//             $('.A-').addClass(CORRECT);
-//             $('.B-').addClass(CORRECT);
-//         } else {
-//             var equals : {[L:string] : {[path:string] : string}}
-//                 = equal_phrases('A', t1, 'B', t2);
-//             $('.phrase').each(function(){
-//                 var L : string = $(this).data('lang');
-//                 var path : string = $(this).data('path');
-//                 var refpath : string = equals[L][path];
-//                 $(this).toggleClass(MATCHING, Boolean(refpath));
-//             });
-//         }
-//     }
-// }
 
 
 function show_lin(lang, lin) {
+    console.log(lang,lin);
     clear_selection();
     var sentence = $('#' + lang).empty();
-    lin.forEach(function(word, i, lin){
-        var previous = lin[i-1];
-        var current = lin[i];
+    var tree = DATA[lang].tree;
+    for (var i=0; i<lin.length; i++) {
+        var previous = i > 0 ? lin[i-1].word : null;
+        var current = lin[i].word;
         var spacing = (previous == NOSPACING || current == NOSPACING || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
             ? ' ' : ' &nbsp; ';
         $('<span></span>')
             .addClass('space clickable').data({nr:i, lang:lang})
             .html(spacing).click(click_word)
             .appendTo(sentence);
+        var path = lin[i].path;
+        var subtree = lookup_subtree(path, tree);
         $('<span></span>')
-            .addClass('word clickable').data({nr:i, lang:lang})
-            .html(word).click(click_word)
+            .addClass('word clickable').data({nr:i, lang:lang, path:path, subtree:subtree})
+            .html(current + '<sub class="debug">' + path + ' ' + show_tree(subtree) + '</sub>')
+            .click(click_word)
             .appendTo(sentence);
-    });
+    }
     $('<span></span>')
         .addClass('space clickable').data({nr:lin.length, lang:lang})
         .html(' &nbsp; ').click(click_word)
         .appendTo(sentence);
 }
+
 
 
 function clear_selection() {
@@ -231,80 +169,49 @@ function clear_selection() {
 }
 
 
-function get_selection() {
-    var striked = $('.striked').map(function(_i, elem){
-        return $(elem).data().nr;
-    });
-    if (striked.length > 0) {
-        return [Math.min.apply(null, striked), 1 + Math.max.apply(null, striked)];
-    } else {
-        return null;
-    }
-}
-
-
-function next_selection(wordnr, selection, maxwidth) {
-    if (!selection) return [wordnr, wordnr+1];
-    var left = selection[0], right = selection[1]-1;
-    if (left > 0 && right > wordnr) {
-        return [left-1, right-1+1];
-    }
-    var width = right - left + 1;
-    if (width <= maxwidth) {
-        left = wordnr;
-        right = wordnr + width;
-        if (right >= maxwidth) {
-            right = maxwidth - 1;
-            left = right - width;
-        }
-        if (left >= 0) {
-            return [left, right+1];
-        }
-    }
-    return null;
-}
-
-
 function click_word(event) {
     console.log("-------------------------------------------------------------------------");
-    var clicked = $(event.target);
+    var clicked = $(event.target).closest('.clickable');
     var lang = clicked.data().lang;
-    var wordnr = clicked.data().nr;
-    var maxwidth = get_data(lang).lin.length;
-    console.log("Clicked", {lang: lang, wordnr: wordnr, len: maxwidth});
+    var path = clicked.data().path;
+    console.log("Clicked", {lang: lang, path: path});
 
     if (clicked.hasClass('striked') && $('#menus ul').length > 1) {
         $('#menus ul').first().remove();
     }
     else {
+        function next_selection(sel) {
+            return sel ? sel.slice(0, sel.length-1) : null;
+        }
         var selection =
-            (clicked.hasClass('striked') ? next_selection(wordnr, get_selection(), maxwidth) 
-            : clicked.hasClass('word') ? next_selection(wordnr, null, maxwidth)
-            : [wordnr, wordnr]).toString();
+            (clicked.hasClass('striked') ? next_selection($('#menus').data('selection'))
+             : clicked.hasClass('word') ? path
+             : /* clicked.hasClass('space')? */ path
+            );
         clear_selection();
-        var menus = get_data(lang).menu[selection];
+        var menus = DATA[lang].menu[selection];
         console.log("MENU["+selection+"]", menus);
         while (!menus) {
-            selection = next_selection(wordnr, selection, maxwidth);
-            if (!selection) return;
-            var menus = get_data(lang).menu[selection];
+            selection = next_selection(selection);
+            if (selection == null) return;
+            var menus = DATA[lang].menu[selection];
             console.log("MENU["+selection+"]", menus);
         }
 
         clicked.addClass('striked');
         $('#' + lang).find('.word')
             .filter(function(){
-                var nr = $(this).data().nr;
-                return selection[0] <= nr && nr < selection[1];
+                return $(this).data().path.startsWith(selection);
             })
             .addClass('striked');
-        $('#' + lang).find('.space')
-            .filter(function(){
-                var nr = $(this).data().nr;
-                return selection[0] < nr && nr < selection[1];
-            })
-            .addClass('striked');
+        // $('#' + lang).find('.space')
+        //     .filter(function(){
+        //         var nr = $(this).data().nr;
+        //         return lin[nr] ? path.startsWith(selection) : false;
+        //     })
+        //     .addClass('striked');
 
+        $('#menus').data('selection', selection);
         for (var i = 0; i < menus.length; i++) {
             var ul = $('<ul></ul>').appendTo($('#menus')).hide();
             for (var j = 0; j < menus[i].length; j++) {
@@ -312,12 +219,17 @@ function click_word(event) {
                 var menuitem = $('<span class="clickable">')
                     .data({'tree': item.tree, 'lang': lang})
                     .click(BUSY(function(c){
-                        select_tree($(c).data());
+                        select_menuitem($(c).data());
                     }));
                 if (item.lin.length == 0) {
-                    $('<span></span>').html("&empty;").appendTo(menuitem);;
+                    $('<span></span>').html("&empty;").appendTo(menuitem);
                 } else {
-                    $('<span></span>').text(item.lin).appendTo(menuitem);
+                    item.lin.forEach(function(pword){
+                        $('<span></span>').text(pword.word)
+                            .addClass(pword.path.startsWith(selection) ? 'marked' : 'greyed')
+                            .appendTo(menuitem);
+                        $('<span></span>').text(" ").appendTo(menuitem);
+                    });
                 }
                 $('<li></li>').append(menuitem).appendTo(ul);
             }
@@ -340,6 +252,15 @@ function click_word(event) {
 }
 
 
+function select_menuitem(item) {
+    console.log("SELECT", item);
+    call_server(DATA.score,
+                DATA.A.grammar, item.lang == "A" ? item.tree : show_tree(DATA.A.tree),
+                DATA.B.grammar, item.lang == "B" ? item.tree : show_tree(DATA.B.tree));
+}
+
+
+//////////////////////////////////////////////////////////////////////
 // Busy indicator
 
 var BUSY_DELAY = 50;
@@ -374,8 +295,81 @@ function pop_busy() {
 }
 
 
+//////////////////////////////////////////////////////////////////////
 // Error handling
 
 function alert_error(title, description) {
     alert("*** " + title + "***\n" + description);
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// Trees are of the form [node, [node, ...], ..., [node, ...]]
+
+function lookup_subtree(path, tree) {
+    for (var i=0; i<path.length; i++) {
+        tree = tree[1 + parseInt(path[i])];
+    }
+    return tree;
+}
+
+
+function show_tree(tree) {
+    var s = tree[0];
+    for (var i=1; i<tree.length; i++) {
+        s += " " + show_tree(tree[i]);
+    }
+    return "(" + s + ")";
+}
+
+function parse_tree(descr) {
+    var tokens = descr
+        .replace(/\( */g," (")
+        .replace(/\)/g," ) ")
+        .replace(/^ +| +$/g,"")
+        .split(/ +/);
+    if (tokens[0][0] !== "(") {
+        tokens[0] = "(" + tokens[0];
+        tokens.push(")");
+    }
+    var stack = [[]];
+    for (var i=0; i<tokens.length; i++) {
+        var token = tokens[i];
+        if (token[0] == "(") {
+            if (stack.length == 1 && stack[0].length > 0) {
+                console.log("PARSE ERROR: Expected end-of-string, found '(': " + descr);
+                return;
+            } else if (token.length <= 1) {
+                console.log("PARSE ERROR: Expected node, found end-of-string: " + descr);
+                return;
+            } else {
+                var node = token.slice(1);
+                stack.push([node]);
+            }
+        } else if (token == ")") {
+            if (stack.length == 1) {
+                var err = (stack[0].length == 0)
+                    ? "No matching open bracket" : "Expected end-of-string";
+                console.log("PARSE ERROR: " + err + ", found ')': " + descr);
+                return;
+            } else {
+                var tree = stack.pop();
+                stack[stack.length-1].push(tree);
+            }
+        } else if (/^\w+$/.test(token)) {
+            stack[stack.length-1].push([token]);
+        } else {
+            console.log("PARSE ERROR: Unknown token " + token + ": " + descr);
+            return;
+        }
+    }
+    if (stack.length > 1) {
+        console.log("PARSE ERROR: Expected close bracket, found end-of-string: " + descr);
+        return;
+    } else if (stack[0].length == 0) {
+        console.log("PARSE ERROR: Expected open bracket, found end-of-string: " + descr);
+        return;
+    } else {
+        return stack[0][0];
+    }
 }
