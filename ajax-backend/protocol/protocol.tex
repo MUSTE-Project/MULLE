@@ -1,8 +1,46 @@
 \documentclass{scrreprt}
+
+\usepackage{tikz}
+\usepackage{pgf-umlsd}
+\usepgflibrary{arrows} % for pgf-umlsd
+
 \title{MUSTE server protocol}
 \author{Herbert Lange}
 \date{Document version 0.0.1}
 \begin{document}
 \maketitle
+\section{Design principles}
+\begin{itemize}
+\item stateful - authentication happens once
+\item unidirectional - client sends request, server answers
+\end{itemize}
+\section{Message format}
+\begin{itemize}
+\item Client messages (CM) are messages from the client sent to the server
+\item Server messages (SM) are messages from the servert sent to a client
+\end{itemize}
+\begin{tabular}{p{0.12\textwidth}p{0.12\textwidth}p{0.3\textwidth}p{0.12\textwidth}p{0.3\textwidth}}
+  Direction & Message Code & \mbox{Data} & \mbox{Valid} \mbox{Responses} & Description \\
+  CM & CM001 & username, password & ??? & Send Login request \\
+  CM & CM002 & content of the survey form & ??? & Send result of the survey \\
+  CM & CM003 & & & Request lessons \\
+  CM & CM004 & grammar, language1, tree1, language2, tree2 & ??? & Send request for menus \\
+  SM & SM001 & session\_token & & Login successful \\
+  SM & SM002 & & & Login failed \\
+  SM & SM003 & & & Invalid Session \\
+  SM & SM004 & & & Lesson listing \\
+  SM & SM005 & & & Invalid grammar \\
+\end{tabular}
+\section{Sequences}
+Login error:
+\begin{sequencediagram}
+  \newthread{server}{Ajax-Server}{Server}
+
+  \newthread{client}{Web-Client}{Client}
+  
+  \begin{call}{client}{\shortstack{CM001\\username\\password}}{server}{SM002}
+  \end{call}
+
+\end{sequencediagram}
 
 \end{document}
