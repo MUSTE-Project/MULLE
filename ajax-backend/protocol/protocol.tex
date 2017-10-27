@@ -67,7 +67,81 @@
 
 \end{itemize}
 
+\section{Message Datatypes}
+
+General format:
+\begin{lstlisting}
+  {"message":string, "parameters":object}
+\end{lstlisting}
+With \texttt{message} field containing the message name and \texttt{parameters} containing (optional) message parameters.
+
+\begin{tabular}{lll}
+  Message & Parameters \\
+  CMLoginRequest &
+  \begin{lstlisting}
+    {"username":string,"password":string}
+  \end{lstlisting} \\
+  CMMOTDRequest &
+  \begin{lstlisting}
+    {"token":string}
+  \end{lstlisting} \\
+  CMDataResponse &
+  \begin{lstlisting}
+    {"token":string,"context":string,"data":["field":string,"value":string]}
+  \end{lstlisting} & {\bfseries\footnotesize 1} \\
+  CMLessonsRequest &
+  \begin{lstlisting}
+    {"token":string}
+  \end{lstlisting} \\
+  CMMenuRequest &
+  \begin{lstlisting}
+    {"token":string,"score":number,
+      "a":{"tree":string,"grammar":string},
+      "b":{"tree":string,"grammar":string}
+    }
+  \end{lstlisting} \\
+  SMLoginSuccessful &
+  \begin{lstlisting}
+    string
+  \end{lstlisting} & {\bfseries\footnotesize 2} \\
+  SMLoginFailed &
+  \begin{lstlisting}
+    null
+  \end{lstlisting} \\
+  SMMOTDResponse &
+  \begin{lstlisting}
+    string
+  \end{lstlisting} & {\bfseries\footnotesize 3} \\
+  SMSessionInvalid &
+  \begin{lstlisting}
+    string
+  \end{lstlisting} & {\bfseries\footnotesize 4} \\
+  SMLessonsList &
+  \begin{lstlisting}
+    [{"name":string,"passed":boolean}]
+  \end{lstlisting} \\
+  SMLessonInvalid &
+  \begin{lstlisting}
+    null
+  \end{lstlisting} \\
+  SMDataReceived &
+  \begin{lstlisting}
+    null
+  \end{lstlisting} \\
+  SMDataInvalid &
+  \begin{lstlisting}
+    string
+  \end{lstlisting} & {\bfseries\footnotesize 5} \\
 \end{tabular}
+
+\begin{description}
+\item[{\footnotesize 1}] \texttt{token} is an identifier assigned to the client session by the server. \texttt{value} can either be a number between 1 and 5 for fields with Likert scale and a string for the freeform fields
+\item[{\footnotesize 2}] String representing the token to be used by all following client requests
+\item[{\footnotesize 3}] a html fragment to be displayed as a message of the day
+\item[{\footnotesize 4}] String indicating indicating reason like timeout or not authenticated
+\item[{\footnotesize 5}] String for a potential error message
+\end{description}
+%% [{ name : string, passed : bool }]
 \section{Sequences}
 Login error:
 \begin{sequencediagram}
