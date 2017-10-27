@@ -1,7 +1,13 @@
 \documentclass{scrartcl}
 
+\usepackage{multirow}
+
+\usepackage{listings}
+\lstset{basicstyle=\footnotesize\ttfamily}
+
 \usepackage{tikz}
 \usepackage{pgf-umlsd}
+
 \usepgflibrary{arrows} % for pgf-umlsd
 
 \title{MUSTE server protocol}
@@ -9,27 +15,58 @@
 \date{Document version 0.0.1}
 \begin{document}
 \maketitle
+
 \section{Design principles}
+
 \begin{itemize}
 \item stateful - authentication happens once
 \item unidirectional - client sends request, server answers
 \end{itemize}
+
 \section{Message format}
+
 \begin{itemize}
 \item Client messages (CM) are messages from the client sent to the server
+
+  \begin{tabular}{llp{0.6\textwidth}}
+    Message Name                      & Valid Responses   & Description \\
+    \hline
+    \multirow{2}{*}{CMLoginRequest}   & SMLoginSuccessful & \multirow{2}{*}{Send login request} \\
+                                      & SMLoginFailed \\
+    \hline
+    \multirow{2}{*}{CMMOTDRequest}    & SMMOTDResponse    & \multirow{2}{0.6\textwidth}{Request a Message-of-the-day, e.g. the user survey from the server} \\
+                                      & SMSessionInvalid \\
+    \hline
+    \multirow{3}{*}{CMDataResponse}   & SMDataReceived    & \multirow{3}{*}{Send result of the survey} \\
+                                      & SMDataInvalid \\
+                                      & SMSessionInvalid \\
+    \hline
+    \multirow{2}{*}{CMLessonsRequest} & SMLessonsList     & \multirow{2}{*}{Request available lessons} \\
+                                      & SMSessionInvalid \\
+    \hline
+    \multirow{3}{*}{CMMenuRequest}    & SMMenuList        & \multirow{3}{*}{Send request for menus} \\
+                                      & SMLessonInvalid \\
+                                      & SMSessionInvalid \\
+  \hline
+\end{tabular}
+
 \item Server messages (SM) are messages from the servert sent to a client
+
+  \begin{tabular}{ll}
+    Message Name      & Description \\
+    \hline
+    SMLoginSuccessful & Login successful \\
+    SMLoginFailed     & Login failed \\
+    SMMOTDResponse    & A potential html-fragment for a message of the day \\
+    SMSessionInvalid  & Invalid Session \\
+    SMLessonsList     & Lesson listing \\
+    SMLessonInvalid   & Invalid lesson \\
+    SMDataReceived    & Data received \\
+    SMDataInvalid     & Invalid data
+  \end{tabular}
+
 \end{itemize}
-\begin{tabular}{p{0.12\textwidth}p{0.12\textwidth}p{0.3\textwidth}p{0.12\textwidth}p{0.3\textwidth}}
-  Direction & Message Code & \mbox{Data} & \mbox{Valid} \mbox{Responses} & Description \\
-  CM & CM001 & username, password & ??? & Send Login request \\
-  CM & CM002 & content of the survey form & ??? & Send result of the survey \\
-  CM & CM003 & & & Request lessons \\
-  CM & CM004 & grammar, language1, tree1, language2, tree2 & ??? & Send request for menus \\
-  SM & SM001 & session\_token & & Login successful \\
-  SM & SM002 & & & Login failed \\
-  SM & SM003 & & & Invalid Session \\
-  SM & SM004 & & & Lesson listing \\
-  SM & SM005 & & & Invalid grammar \\
+
 \end{tabular}
 \section{Sequences}
 Login error:
