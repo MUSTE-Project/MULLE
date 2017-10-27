@@ -143,15 +143,32 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
 \end{description}
 %% [{ name : string, passed : bool }]
 \section{Sequences}
-Login error:
+
 \begin{sequencediagram}
   \newthread{server}{Ajax-Server}{Server}
+  \newthread[5]{client}{Web-Client}{Client}
 
-  \newthread{client}{Web-Client}{Client}
-  
-  \begin{call}{client}{\shortstack{CM001\\username\\password}}{server}{SM002}
+  \begin{call}{client}{auth(user,password)}{server}{authSuccess(token)}
   \end{call}
 
+  \begin{call}{client}{sendSurvey(token,data)}{server}{dataReceived}
+  \end{call}
+  
+  
+  \begin{call}{client}{requestLessons(token)}{server}{lessonListing(lessons)}
+  \end{call}
+
+  \begin{call}{client}{initLesson(token,lesson)}{server}{newLesson(lang1,tree1,lang2,tree2)}
+  \end{call}
+
+  \begin{sdblock}{Lesson Loop}{}
+    %\begin { call }{ ps }{ PhysicsUpdate () }{ ps }{}
+    %\end { call }
+    \begin{call}{client}{newTree(...)}{server}{newMenu(...)}
+    \end{call}
+  \end{sdblock}
+  \begin{call}{client}{sendUsage(...)}{server}{dataReceived}
+  \end{call}
 \end{sequencediagram}
 
 \end{document}
