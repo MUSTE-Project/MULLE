@@ -1,2 +1,9 @@
 ajax-backend/dist
 dist
+*~
+*.gfo
+*.o
+*.hi
+.gitstats
+stuff
+gf/novo_modo
