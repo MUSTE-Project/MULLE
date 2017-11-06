@@ -44,6 +44,10 @@
     \multirow{2}{*}{CMLessonsRequest} & SMLessonsList     & \multirow{2}{*}{Request available lessons} \\
                                       & SMSessionInvalid \\
     \hline
+    \multirow{2}{*}{CMLessonInit}     & SMLessonStart     & \multirow{2}{*}{Start a new lesson} \\
+                                      & SMLessonInvalid \\
+                                      & SMSessionInvalid \\
+    \hline
     \multirow{3}{*}{CMMenuRequest}    & SMMenuList        & \multirow{3}{*}{Send request for menus} \\
                                       & SMLessonInvalid \\
                                       & SMSessionInvalid \\
@@ -59,10 +63,12 @@
     SMLoginFailed     & Login failed \\
     SMMOTDResponse    & A potential html-fragment for a message of the day \\
     SMSessionInvalid  & Invalid Session \\
-    SMLessonsList     & Lesson listing \\
-    SMLessonInvalid   & Invalid lesson \\
     SMDataReceived    & Data received \\
-    SMDataInvalid     & Invalid data
+    SMDataInvalid     & Invalid data \\
+    SMLessonsList     & Lesson listing \\
+    SMLessonStart     & Initial data for a lesson \\
+    SMLessonInvalid   & Invalid lesson \\
+    SMMenuList        & List of possible menus in a lesson \\
   \end{tabular}
 
 \end{itemize}
@@ -87,11 +93,16 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   \end{lstlisting} \\
   CMDataResponse &
   \begin{lstlisting}
-    {"token":string,"context":string,"data":["field":string,"value":string]}
+    {"token":string,"context":string,
+     "data":["field":string,"value":string]}
   \end{lstlisting} & {\bfseries\footnotesize 1} \\
   CMLessonsRequest &
   \begin{lstlisting}
     {"token":string}
+  \end{lstlisting} \\
+  CMLessonInit &
+  \begin{lstlisting}
+    {"token":string,"lesson":string}
   \end{lstlisting} \\
   CMMenuRequest &
   \begin{lstlisting}
@@ -120,6 +131,12 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   \begin{lstlisting}
     [{"name":string,"passed":boolean}]
   \end{lstlisting} \\
+  SMLessonStart &
+  \begin{lstlisting}
+    {"passed":bool,"score":number,
+      "a":{"lesson":string,"tree":string,"lin":[{"path":[number],"lin":string}],"menu":},
+      "b":...}:
+  \end{lstlisting} \\
   SMLessonInvalid &
   \begin{lstlisting}
     null
@@ -135,7 +152,12 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
 \end{tabular}
 
 \begin{description}
-\item[{\footnotesize 1}] \texttt{token} is an identifier assigned to the client session by the server. \texttt{value} can either be a number between 1 and 5 for fields with Likert scale and a string for the freeform fields
+\item[{\footnotesize 1}] \texttt{token} is an identifier assigned to the client session by the server. \texttt{context} defines the semantics of \texttt{data}.
+
+  \begin{itemize}
+  \item For \emph{startQuestionaire} and \emph{finalQuestionaire}: \texttt{field} can be one of \emph{Field1} to \emph{Field20} and \texttt{value} can either be a number between 1 and 5 for fields with Likert scale and a string for the freeform fields
+  \item For \emph{finishedSession} and \emph{canceledSession}: \texttt{field} is \emph{PlayTime} and \texttt{value} is the time used for completing the session or before canceling and going back
+  \end{itemize}
 \item[{\footnotesize 2}] String representing the token to be used by all following client requests
 \item[{\footnotesize 3}] a html fragment to be displayed as a message of the day
 \item[{\footnotesize 4}] String indicating indicating reason like timeout or not authenticated
@@ -147,17 +169,19 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
 \begin{sequencediagram}
   \newthread{server}{Ajax-Server}{Server}
   \newthread[5]{client}{Web-Client}{Client}
-
-  \begin{call}{client}{auth(user,password)}{server}{authSuccess(token)}
+  \begin{call}{client}{CMLoginRequest}{server}{SMLoginSuccessful}
   \end{call}
-
-  \begin{call}{client}{sendSurvey(token,data)}{server}{dataReceived}
+  
+  \begin{call}{client}{CMMOTDRequest}{server}{SMMOTDResponse}
   \end{call}
   
   
-  \begin{call}{client}{requestLessons(token)}{server}{lessonListing(lessons)}
+  \begin{call}{client}{CMDataResponse}{server}{SMDataReceived}
   \end{call}
 
+  \begin{call}{client}{CMLessonsRequest}{server}{SMLessonsList}
+  \end{call}
+  
   \begin{call}{client}{initLesson(token,lesson)}{server}{newLesson(lang1,tree1,lang2,tree2)}
   \end{call}
 
@@ -171,4 +195,5 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   \end{call}
 \end{sequencediagram}
 
+\section{Database}
 \end{document}
