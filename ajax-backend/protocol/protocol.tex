@@ -134,8 +134,18 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   SMLessonStart &
   \begin{lstlisting}
     {"passed":bool,"score":number,
-      "a":{"lesson":string,"tree":string,"lin":[{"path":[number],"lin":string}],"menu":},
-      "b":...}:
+      "a":{"lesson":string,"tree":string,"lin":[{"path":[number],"lin":string}],
+        "menu":{:[[{"score":number, "lin":[[[number],string]]}]]}},
+      "b":{"lesson":string,"tree":string,"lin":[{"path":[number],"lin":string}],
+        "menu":{:[[{"score":number, "lin":[[[number],string]]}]]}},}:
+  \end{lstlisting} \\
+  SMMenuList &
+  \begin{lstlisting}
+    {"passed":bool,"score":number,
+      "a":{"lesson":string,"tree":string,"lin":[{"path":[number],"lin":string}],
+        "menu":{:[[{"score":number, "lin":[[[number],string]]}]]}},
+      "b":{"lesson":string,"tree":string,"lin":[{"path":[number],"lin":string}],
+        "menu":{:[[{"score":number, "lin":[[[number],string]]}]]}},}:
   \end{lstlisting} \\
   SMLessonInvalid &
   \begin{lstlisting}
@@ -147,7 +157,7 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   \end{lstlisting} \\
   SMDataInvalid &
   \begin{lstlisting}
-    string
+    null
   \end{lstlisting} & {\bfseries\footnotesize 5} \\
 \end{tabular}
 
