@@ -16,11 +16,12 @@ import Data.Map
 import Muste.Tree
 
 filePath = "./demo"
+prefix = "/muste"
 
 getFileName :: String -> String
 getFileName "/" = "index.html"
 getFileName ('/':fn) = fn
-
+    
 getType :: String -> String
 getType fn
   | isSuffixOf "html" fn = "text/html"
@@ -265,7 +266,7 @@ demoPrec =
 
 handleRequest :: Grammar -> IORef (Maybe Precomputed) -> Bool -> Request -> IO Response
 handleRequest grammar prec isDemo request
-  | isPrefixOf "/cgi"(uriPath $ reqURI request) =
+  | isPrefixOf "/cgi" (dropPrefix prefix $ uriPath $ reqURI request) =
       do
         putStrLn $ "CGI" ++ (show request)
         prec <- initPrecomputed grammar prec (reqBody request)
@@ -276,11 +277,14 @@ handleRequest grammar prec isDemo request
   | otherwise = 
       do
         putStrLn $ "HTTP" ++ (show request)
-        let file = getFileName $ uriPath $ reqURI request
+        let file = getFileName $ dropPrefix prefix $ uriPath $ reqURI request
         let typ = getType file
-        content <- B.readFile $ filePath ++ "/" ++ file
+        putStrLn $ "filePath " ++ filePath ++ " file " ++ file ++ " original " ++ (uriPath $ reqURI request)
+        content <- B.readFile $ filePath ++ "/" ++ file 
         return (Response 200 [("Content-type",typ)] $ B.unpack content)
 
+dropPrefix prefix file | isPrefixOf prefix file = drop (length prefix) file
+                       | otherwise = file
 printHelp :: IO ()
 printHelp =
   do
