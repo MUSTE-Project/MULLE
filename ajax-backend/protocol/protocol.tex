@@ -7,7 +7,7 @@
 
 \usepackage{pgf}
 \usepackage{tikz}
-\usetikzlibrary{arrows,positioning,graphs} 
+\usetikzlibrary{arrows,positioning,graphs,shapes,shapes.geometric}
 %\usetikzlibrary{}
 
 \title{MUSTE server protocol}
@@ -278,4 +278,88 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   \end{tikzpicture}
 \end{minipage}
 \section{Database}
+\tikzset{
+  entity/.style={
+    draw,
+    rectangle
+  },
+  weak/.style={
+    draw,
+    rectangle,
+    double
+  },
+  attribute/.style={
+    draw,
+    ellipse
+  },
+  relationship/.style={
+    draw,
+    diamond,
+    aspect=1.6
+  },
+  supporting/.style={
+    draw,
+    diamond,
+    aspect=1.6,
+    double
+  }
+}
+\resizebox{\textwidth}{!}{
+\begin{tikzpicture}
+  \node[entity] (user) {User} ;
+  \node[attribute] (userUsername) [above left=1cm and 2cm of user] {\underline{Username}} ;
+  \node[attribute] (userPassword) [above=1cm of user] {Password} ;
+  \node[attribute] (userSalt) [above right= 1cm and 2cm of user] {Salt} ;
+  \node[entity] (session) at (7,-5) {Session} ;
+  \node[attribute] (sessionToken) [above left=1cm and 1cm of session] {\underline{Token}} ;
+  \node[attribute] (sessionStarttime) [below left=1cm and 1cm of session] {Starttime} ;
+  \node[entity] (lesson) [below=5cm of user] {Lesson} ;
+  \node[attribute] (lessonName) [above left=1cm and 2cm of lesson] {\underline{Name}} ;
+  \node[attribute] (lessonDescription) [below left=1cm and 2cm of lesson] {Description} ;
+  \node[weak] (exercise) [below=5cm of lesson] {Exercise} ;
+  \node[attribute] (exerciseTree) [below=2cm of exercise] {\underline{Tree}};
+  \node[relationship] (takes) [below left=2cm and 1cm of user] {takes} ;
+  \node[attribute] (takesProgress) [above left=1cm and 1cm of takes] {Progress} ;
+  \node[relationship] (lessonFinished) [below right=2cm and 1cm of user] {finished} ;
+  \node[attribute] (lessonFinishedTime) [above right=1cm and 1cm of lessonFinished] {Time} ;
+  \node[relationship] (usedBy) at (7,0) {usedBy} ;
+  \node[supporting] (definedIn) [below=2cm of lesson] {definedIn} ;
+  \node[relationship] (exerciseFinished) at (-7,-5) {finished} ;
+  \node[attribute] (exerciseFinishedTime) [right=1cm of exerciseFinished] {Time} ;
+  \path
+  % User attributes
+  (user) edge (userUsername)
+  (user) edge (userPassword)
+  (user) edge (userSalt)
+  % Session attributes
+  (session) edge (sessionToken)
+  (session) edge (sessionStarttime)
+  % Lesson attributes
+  (lesson) edge (lessonName)
+  (lesson) edge (lessonDescription)
+  % Exercise attributed
+  (exercise) edge (exerciseTree)
+  % takes relationship
+  (user) edge (takes)
+  (takes) edge (lesson)
+  % takes attributes
+  (takes) edge (takesProgress)
+  % finished relationship
+  (user) edge (lessonFinished)
+  (lessonFinished) edge (lesson)
+  % finished attributes
+  (lessonFinished) edge (lessonFinishedTime)
+  % uses relationship
+  (user) edge[(-] (usedBy)
+  (usedBy) edge (session)
+  % definedIn relationshio
+  (lesson) edge[(-] (definedIn)
+  (definedIn) edge (exercise)
+  % exerciseFinished attributes
+  (exerciseFinished) edge (exerciseFinishedTime)
+  ;
+  \draw (user) -- (-7,0) -- (exerciseFinished) ;
+  \draw (exercise) -- (-7,-11) -- (exerciseFinished) ;
+\end{tikzpicture}
+}
 \end{document}
