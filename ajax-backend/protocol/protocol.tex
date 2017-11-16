@@ -5,10 +5,10 @@
 \usepackage{listings}
 \lstset{basicstyle=\footnotesize\ttfamily}
 
+\usepackage{pgf}
 \usepackage{tikz}
-\usepackage{pgf-umlsd}
-
-\usepgflibrary{arrows} % for pgf-umlsd
+\usetikzlibrary{arrows,positioning,graphs} 
+%\usetikzlibrary{}
 
 \title{MUSTE server protocol}
 \author{Herbert Lange}
@@ -210,34 +210,72 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
 %% [{ name : string, passed : bool }]
 \section{Sequences}
 
-\begin{sequencediagram}
-  \newthread{server}{Ajax-Server}{Server}
-  \newthread[5]{client}{Web-Client}{Client}
-  \begin{call}{client}{CMLoginRequest}{server}{SMLoginSuccess}
-  \end{call}
+%% \begin{sequencediagram}
+%%   \newthread{server}{Ajax-Server}{Server}
+%%   \newthread[5]{client}{Web-Client}{Client}
+%%   \begin{call}{client}{CMLoginRequest}{server}{SMLoginSuccess}
+%%   \end{call}
   
-  \begin{call}{client}{CMMOTDRequest}{server}{SMMOTDResponse}
-  \end{call}
+%%   \begin{call}{client}{CMMOTDRequest}{server}{SMMOTDResponse}
+%%   \end{call}
   
   
-  \begin{call}{client}{CMDataResponse}{server}{SMDataReceived}
-  \end{call}
+%%   \begin{call}{client}{CMDataResponse}{server}{SMDataReceived}
+%%   \end{call}
 
-  \begin{call}{client}{CMLessonsRequest}{server}{SMLessonsList}
-  \end{call}
+%%   \begin{call}{client}{CMLessonsRequest}{server}{SMLessonsList}
+%%   \end{call}
   
-  \begin{call}{client}{CMClientInit}{server}{SMMenuList}
-  \end{call}
+%%   \begin{call}{client}{CMClientInit}{server}{SMMenuList}
+%%   \end{call}
 
-  \begin{sdblock}{Lesson Loop}{}
-    %\begin { call }{ ps }{ PhysicsUpdate () }{ ps }{}
-    %\end { call }
-    \begin{call}{client}{CMMenuRequest}{server}{SMMenuList}
-    \end{call}
-  \end{sdblock}
-  \begin{call}{client}{CMDataResponse}{server}{SMDataReceived}
-  \end{call}
-\end{sequencediagram}
-
+%%   \begin{sdblock}{Lesson Loop}{}
+%%     %\begin { call }{ ps }{ PhysicsUpdate () }{ ps }{}
+%%     %\end { call }
+%%     \begin{call}{client}{CMMenuRequest}{server}{SMMenuList}
+%%     \end{call}
+%%   \end{sdblock}
+%%   \begin{call}{client}{CMDataResponse}{server}{SMDataReceived}
+%%   \end{call}
+%% \end{sequencediagram}
+\begin{minipage}{\textwidth}
+  \hspace{-50px}\begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto]
+    %\draw[help lines] (0,0) grid (15,-20);
+    \node (client) {Client} ;
+    \node (server) [right=8cm of client] {Server} ;
+    \node[draw,circle,align=center] (login) [below=2cm of client] {Login-\\ Screen} ;
+    \node (s1) [below right=0.5cm and 8cm of login] {S1\footnote{S1,..,S5,C1 are hidden states}} ;
+    \node (c1) [below left=0.5cm and 8cm of s1] {C1} ;
+    \node (s2) [below right=0.5cm and 8cm of c1] {S2} ;
+    \node[draw,circle,align=center] (lesson) [below left=0.5cm and 8cm of s2] {Lesson-\\ List-\\ Screen} ;
+    \node (s3) [below right=0.5cm and 8cm of lesson] {S3} ;
+    \node[draw,circle,align=center] (exercise) [below left=0.5cm and 8cm of s3] {Exercise-\\ Screen} ;
+    \node (s4) [below right=0.5cm and 8cm of exercise] {S4} ;
+    \node[draw,circle,align=center] (result) [below left=0.5cm and 8cm of s4] {Result-\\ Screen} ;
+    \node (s5) [below right=0.5cm and 8cm of result] {S5} ;
+    \path
+    (login) edge [sloped]node {CMLoginRequest} (s1)
+    (s1) edge node [sloped] {SMLoginSuccess} (c1)
+    (c1) edge node [sloped] {CMLessonsRequest} (s2) 
+    (s2) edge node [sloped] {SMLessonsList} (lesson)
+    (lesson) edge node [sloped] {CMLessonInit} (s3)
+    (s3) edge node [above,sloped] {SMMenuList} (exercise)
+    (exercise) edge [bend right=10] node [below,pos=0.4,sloped]{SMMenuRequest} (s4)
+    (s4) edge [bend right=10] node [above,sloped] {SMMenuList} (exercise)
+    (s4) edge node [below,sloped] {SMMenuList\footnote{If session is passed i.e. if both trees are the same}} (result)
+    (result) edge node [sloped] {CMLogoutRequest} (s5);
+    %\fill[fill=red] (-6,-20) circle [radius=2pt];
+    %% \fill[fill=red] (-2,1) circle [radius=2pt];
+    \draw[->] (s1) .. controls (8,-3) and (2,-3) .. (login) node [above,sloped,midway,pos=0.6] {SMLoginFailed} ;
+    \draw[->] (s2) .. controls (12,-2) and (1,-2) .. (login) node [above,sloped,midway,pos=0.6] {SMLoginFailed} ;
+    \draw[->] (s3) .. controls (15,-1) and (0,-1) .. (login) node [above,sloped,midway,pos=0.6] {SMLoginFailed} ;
+    \draw[->] (s4) .. controls (18,0) and (-1,0) .. (login) node [above,sloped,midway,pos=0.6] {SMLoginFailed} ;
+    \draw[->] (result) .. controls (13,-15) and (13,-12) .. (s2) node [below,sloped,pos=0.4] {CMLessonsRequest} ;
+    \draw[->] (s5) .. controls (10,-15) and (13,-14) .. (13,-8) .. controls (13,1) and (-2,1) .. (login) node [above,sloped,midway,pos=0.5] {SMLogoutResponse} ;
+    \draw[->] (lesson) .. controls (-5,-20) and (8,-18) .. (s5) node [below,sloped,pos=0.6] {CMLogoutRequest} ;
+    \draw[->] (exercise) .. controls (-4,-18) and (8,-17) .. (s5) node [below,sloped,pos=0.6] {CMLogoutRequest} ;
+    \draw[->] (result) .. controls (-1,-16) and (8,-16) .. (s5) node [below,sloped,pos=0.6] {CMLogoutRequest} ;
+  \end{tikzpicture}
+\end{minipage}
 \section{Database}
 \end{document}
