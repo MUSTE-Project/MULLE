@@ -51,7 +51,9 @@
     \multirow{3}{*}{CMMenuRequest}    & SMMenuList        & \multirow{3}{*}{Send request for menus} \\
                                       & SMLessonInvalid \\
                                       & SMSessionInvalid \\
-  \hline
+    \hline
+    CMLogoutRequest                   & SMLogoutResponse & Ends a session \\
+    \hline
 \end{tabular}
 
 \item Server messages (SM) are messages from the servert sent to a client
@@ -83,27 +85,33 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
 
 \begin{tabular}{lll}
   Message & Parameters \\
+  \hline
   CMLoginRequest &
   \begin{lstlisting}
     {"username":string,"password":string}
   \end{lstlisting} \\
+  \hline
   CMMOTDRequest &
   \begin{lstlisting}
     {"token":string}
   \end{lstlisting} \\
+  \hline
   CMDataResponse &
   \begin{lstlisting}
     {"token":string,"context":string,
      "data":["field":string,"value":string]}
   \end{lstlisting} & {\bfseries\footnotesize 1} \\
+  \hline
   CMLessonsRequest &
   \begin{lstlisting}
     {"token":string}
   \end{lstlisting} \\
+  \hline
   CMLessonInit &
   \begin{lstlisting}
     {"token":string,"lesson":string}
   \end{lstlisting} \\
+  \hline
   CMMenuRequest &
   \begin{lstlisting}
     {"token":string,"score":number,
@@ -111,26 +119,38 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
       "b":{"tree":string,"grammar":string}
     }
   \end{lstlisting} \\
+  \hline
+  CMLogoutRequest &
+  \begin{lstlisting}
+    {"token":string}
+  \end{lstlisting} \\
+  \hline
   SMLoginSuccessful &
   \begin{lstlisting}
     {"token":string}
   \end{lstlisting} & {\bfseries\footnotesize 2} \\
+  \hline
   SMLoginFail &
   \begin{lstlisting}
     null
   \end{lstlisting} \\
+  \hline
   SMMOTDResponse &
   \begin{lstlisting}
     {"filename":string}
   \end{lstlisting} & {\bfseries\footnotesize 3} \\
+  \hline
   SMSessionInvalid &
   \begin{lstlisting}
     {"error":string}
   \end{lstlisting} & {\bfseries\footnotesize 4} \\
+  \hline
   SMLessonsList &
   \begin{lstlisting}
-    {"lessons":[{"name":string,"passed":boolean}]}
-  \end{lstlisting} \\
+    {"lessons":[{"name":string,"passed":boolean,
+                 "exercisecount":number}]}
+  \end{lstlisting} & {\bfseries\footnotesize 5} \\
+  \hline
   %% SMLessonStart &
   %% \begin{lstlisting}
   %%   {"passed":bool,"score":number,
@@ -150,19 +170,28 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
            "lin":[{"path":[number],"lin":string}],
            "menu":{:[[{"score":number,
                        "lin":[[[number],string]]}]]}}}:
-  \end{lstlisting} \\
+  \end{lstlisting} & {\bfseries\footnotesize 5} \\
+  \hline
   SMLessonInvalid &
   \begin{lstlisting}
     null
   \end{lstlisting} \\
+  \hline
   SMDataReceived &
   \begin{lstlisting}
     null
   \end{lstlisting} \\
+  \hline
   SMDataInvalid &
   \begin{lstlisting}
     {"error":string}
-  \end{lstlisting} & {\bfseries\footnotesize 5} \\
+  \end{lstlisting} & {\bfseries\footnotesize 6} \\
+  \hline
+  SMLogoutResponse &
+  \begin{lstlisting}
+    null
+  \end{lstlisting} \\
+  \hline
 \end{tabular}
 
 \begin{description}
@@ -175,7 +204,8 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
 \item[{\footnotesize 2}] The token to be used by all following client requests
 \item[{\footnotesize 3}] A file name to be displayed as a message of the day
 \item[{\footnotesize 4}] Reason like timeout or not authenticated
-\item[{\footnotesize 5}] Potential error message
+\item[{\footnotesize 5}] lessen \emph{name} and \emph{lesson} are the same as the name of the PGF used for the lesson
+\item[{\footnotesize 6}] Potential error message
 \end{description}
 %% [{ name : string, passed : bool }]
 \section{Sequences}
