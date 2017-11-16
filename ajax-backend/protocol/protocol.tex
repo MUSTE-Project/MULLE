@@ -5,10 +5,10 @@
 \usepackage{listings}
 \lstset{basicstyle=\footnotesize\ttfamily}
 
+\usepackage{pgf}
 \usepackage{tikz}
-\usepackage{pgf-umlsd}
-
-\usepgflibrary{arrows} % for pgf-umlsd
+\usetikzlibrary{arrows,positioning,graphs,shapes,shapes.geometric}
+%\usetikzlibrary{}
 
 \title{MUSTE server protocol}
 \author{Herbert Lange}
@@ -51,7 +51,9 @@
     \multirow{3}{*}{CMMenuRequest}    & SMMenuList        & \multirow{3}{*}{Send request for menus} \\
                                       & SMLessonInvalid \\
                                       & SMSessionInvalid \\
-  \hline
+    \hline
+    CMLogoutRequest                   & SMLogoutResponse & Ends a session \\
+    \hline
 \end{tabular}
 
 \item Server messages (SM) are messages from the servert sent to a client
@@ -83,27 +85,33 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
 
 \begin{tabular}{lll}
   Message & Parameters \\
+  \hline
   CMLoginRequest &
   \begin{lstlisting}
     {"username":string,"password":string}
   \end{lstlisting} \\
+  \hline
   CMMOTDRequest &
   \begin{lstlisting}
     {"token":string}
   \end{lstlisting} \\
+  \hline
   CMDataResponse &
   \begin{lstlisting}
     {"token":string,"context":string,
      "data":["field":string,"value":string]}
   \end{lstlisting} & {\bfseries\footnotesize 1} \\
+  \hline
   CMLessonsRequest &
   \begin{lstlisting}
     {"token":string}
   \end{lstlisting} \\
+  \hline
   CMLessonInit &
   \begin{lstlisting}
     {"token":string,"lesson":string}
   \end{lstlisting} \\
+  \hline
   CMMenuRequest &
   \begin{lstlisting}
     {"token":string,"score":number,
@@ -111,26 +119,38 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
       "b":{"tree":string,"grammar":string}
     }
   \end{lstlisting} \\
+  \hline
+  CMLogoutRequest &
+  \begin{lstlisting}
+    {"token":string}
+  \end{lstlisting} \\
+  \hline
   SMLoginSuccessful &
   \begin{lstlisting}
     {"token":string}
   \end{lstlisting} & {\bfseries\footnotesize 2} \\
+  \hline
   SMLoginFail &
   \begin{lstlisting}
     null
   \end{lstlisting} \\
+  \hline
   SMMOTDResponse &
   \begin{lstlisting}
     {"filename":string}
   \end{lstlisting} & {\bfseries\footnotesize 3} \\
+  \hline
   SMSessionInvalid &
   \begin{lstlisting}
     {"error":string}
   \end{lstlisting} & {\bfseries\footnotesize 4} \\
+  \hline
   SMLessonsList &
   \begin{lstlisting}
-    {"lessons":[{"name":string,"passed":boolean}]}
-  \end{lstlisting} \\
+    {"lessons":[{"name":string,"passed":boolean,
+                 "exercisecount":number}]}
+  \end{lstlisting} & {\bfseries\footnotesize 5} \\
+  \hline
   %% SMLessonStart &
   %% \begin{lstlisting}
   %%   {"passed":bool,"score":number,
@@ -150,19 +170,28 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
            "lin":[{"path":[number],"lin":string}],
            "menu":{:[[{"score":number,
                        "lin":[[[number],string]]}]]}}}:
-  \end{lstlisting} \\
+  \end{lstlisting} & {\bfseries\footnotesize 5} \\
+  \hline
   SMLessonInvalid &
   \begin{lstlisting}
     null
   \end{lstlisting} \\
+  \hline
   SMDataReceived &
   \begin{lstlisting}
     null
   \end{lstlisting} \\
+  \hline
   SMDataInvalid &
   \begin{lstlisting}
     {"error":string}
-  \end{lstlisting} & {\bfseries\footnotesize 5} \\
+  \end{lstlisting} & {\bfseries\footnotesize 6} \\
+  \hline
+  SMLogoutResponse &
+  \begin{lstlisting}
+    null
+  \end{lstlisting} \\
+  \hline
 \end{tabular}
 
 \begin{description}
@@ -175,39 +204,162 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
 \item[{\footnotesize 2}] The token to be used by all following client requests
 \item[{\footnotesize 3}] A file name to be displayed as a message of the day
 \item[{\footnotesize 4}] Reason like timeout or not authenticated
-\item[{\footnotesize 5}] Potential error message
+\item[{\footnotesize 5}] lessen \emph{name} and \emph{lesson} are the same as the name of the PGF used for the lesson
+\item[{\footnotesize 6}] Potential error message
 \end{description}
 %% [{ name : string, passed : bool }]
 \section{Sequences}
 
-\begin{sequencediagram}
-  \newthread{server}{Ajax-Server}{Server}
-  \newthread[5]{client}{Web-Client}{Client}
-  \begin{call}{client}{CMLoginRequest}{server}{SMLoginSuccess}
-  \end{call}
+%% \begin{sequencediagram}
+%%   \newthread{server}{Ajax-Server}{Server}
+%%   \newthread[5]{client}{Web-Client}{Client}
+%%   \begin{call}{client}{CMLoginRequest}{server}{SMLoginSuccess}
+%%   \end{call}
   
-  \begin{call}{client}{CMMOTDRequest}{server}{SMMOTDResponse}
-  \end{call}
+%%   \begin{call}{client}{CMMOTDRequest}{server}{SMMOTDResponse}
+%%   \end{call}
   
   
-  \begin{call}{client}{CMDataResponse}{server}{SMDataReceived}
-  \end{call}
+%%   \begin{call}{client}{CMDataResponse}{server}{SMDataReceived}
+%%   \end{call}
 
-  \begin{call}{client}{CMLessonsRequest}{server}{SMLessonsList}
-  \end{call}
+%%   \begin{call}{client}{CMLessonsRequest}{server}{SMLessonsList}
+%%   \end{call}
   
-  \begin{call}{client}{CMClientInit}{server}{SMMenuList}
-  \end{call}
+%%   \begin{call}{client}{CMClientInit}{server}{SMMenuList}
+%%   \end{call}
 
-  \begin{sdblock}{Lesson Loop}{}
-    %\begin { call }{ ps }{ PhysicsUpdate () }{ ps }{}
-    %\end { call }
-    \begin{call}{client}{CMMenuRequest}{server}{SMMenuList}
-    \end{call}
-  \end{sdblock}
-  \begin{call}{client}{CMDataResponse}{server}{SMDataReceived}
-  \end{call}
-\end{sequencediagram}
-
+%%   \begin{sdblock}{Lesson Loop}{}
+%%     %\begin { call }{ ps }{ PhysicsUpdate () }{ ps }{}
+%%     %\end { call }
+%%     \begin{call}{client}{CMMenuRequest}{server}{SMMenuList}
+%%     \end{call}
+%%   \end{sdblock}
+%%   \begin{call}{client}{CMDataResponse}{server}{SMDataReceived}
+%%   \end{call}
+%% \end{sequencediagram}
+\begin{minipage}{\textwidth}
+  \hspace{-50px}\begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto]
+    %\draw[help lines] (0,0) grid (15,-20);
+    \node (client) {Client} ;
+    \node (server) [right=8cm of client] {Server} ;
+    \node[draw,circle,align=center] (login) [below=2cm of client] {Login-\\ Screen} ;
+    \node (s1) [below right=0.5cm and 8cm of login] {S1\footnote{S1,..,S5,C1 are hidden states}} ;
+    \node (c1) [below left=0.5cm and 8cm of s1] {C1} ;
+    \node (s2) [below right=0.5cm and 8cm of c1] {S2} ;
+    \node[draw,circle,align=center] (lesson) [below left=0.5cm and 8cm of s2] {Lesson-\\ List-\\ Screen} ;
+    \node (s3) [below right=0.5cm and 8cm of lesson] {S3} ;
+    \node[draw,circle,align=center] (exercise) [below left=0.5cm and 8cm of s3] {Exercise-\\ Screen} ;
+    \node (s4) [below right=0.5cm and 8cm of exercise] {S4} ;
+    \node[draw,circle,align=center] (result) [below left=0.5cm and 8cm of s4] {Result-\\ Screen} ;
+    \node (s5) [below right=0.5cm and 8cm of result] {S5} ;
+    \path
+    (login) edge [sloped]node {CMLoginRequest} (s1)
+    (s1) edge node [sloped] {SMLoginSuccess} (c1)
+    (c1) edge node [sloped] {CMLessonsRequest} (s2) 
+    (s2) edge node [sloped] {SMLessonsList} (lesson)
+    (lesson) edge node [sloped] {CMLessonInit} (s3)
+    (s3) edge node [above,sloped] {SMMenuList} (exercise)
+    (exercise) edge [bend right=10] node [below,pos=0.4,sloped]{SMMenuRequest} (s4)
+    (s4) edge [bend right=10] node [above,sloped] {SMMenuList} (exercise)
+    (s4) edge node [below,sloped] {SMMenuList\footnote{If session is passed i.e. if both trees are the same}} (result)
+    (result) edge node [sloped] {CMLogoutRequest} (s5);
+    %\fill[fill=red] (-6,-20) circle [radius=2pt];
+    %% \fill[fill=red] (-2,1) circle [radius=2pt];
+    \draw[->] (s1) .. controls (8,-3) and (2,-3) .. (login) node [above,sloped,midway,pos=0.6] {SMLoginFailed} ;
+    \draw[->] (s2) .. controls (12,-2) and (1,-2) .. (login) node [above,sloped,midway,pos=0.6] {SMLoginFailed} ;
+    \draw[->] (s3) .. controls (15,-1) and (0,-1) .. (login) node [above,sloped,midway,pos=0.6] {SMLoginFailed} ;
+    \draw[->] (s4) .. controls (18,0) and (-1,0) .. (login) node [above,sloped,midway,pos=0.6] {SMLoginFailed} ;
+    \draw[->] (result) .. controls (13,-15) and (13,-12) .. (s2) node [below,sloped,pos=0.4] {CMLessonsRequest} ;
+    \draw[->] (s5) .. controls (10,-15) and (13,-14) .. (13,-8) .. controls (13,1) and (-2,1) .. (login) node [above,sloped,midway,pos=0.5] {SMLogoutResponse} ;
+    \draw[->] (lesson) .. controls (-5,-20) and (8,-18) .. (s5) node [below,sloped,pos=0.6] {CMLogoutRequest} ;
+    \draw[->] (exercise) .. controls (-4,-18) and (8,-17) .. (s5) node [below,sloped,pos=0.6] {CMLogoutRequest} ;
+    \draw[->] (result) .. controls (-1,-16) and (8,-16) .. (s5) node [below,sloped,pos=0.6] {CMLogoutRequest} ;
+  \end{tikzpicture}
+\end{minipage}
 \section{Database}
+\tikzset{
+  entity/.style={
+    draw,
+    rectangle
+  },
+  weak/.style={
+    draw,
+    rectangle,
+    double
+  },
+  attribute/.style={
+    draw,
+    ellipse
+  },
+  relationship/.style={
+    draw,
+    diamond,
+    aspect=1.6
+  },
+  supporting/.style={
+    draw,
+    diamond,
+    aspect=1.6,
+    double
+  }
+}
+\resizebox{\textwidth}{!}{
+\begin{tikzpicture}
+  \node[entity] (user) {User} ;
+  \node[attribute] (userUsername) [above left=1cm and 2cm of user] {\underline{Username}} ;
+  \node[attribute] (userPassword) [above=1cm of user] {Password} ;
+  \node[attribute] (userSalt) [above right= 1cm and 2cm of user] {Salt} ;
+  \node[entity] (session) at (7,-5) {Session} ;
+  \node[attribute] (sessionToken) [above left=1cm and 1cm of session] {\underline{Token}} ;
+  \node[attribute] (sessionStarttime) [below left=1cm and 1cm of session] {Starttime} ;
+  \node[entity] (lesson) [below=5cm of user] {Lesson} ;
+  \node[attribute] (lessonName) [above left=1cm and 2cm of lesson] {\underline{Name}} ;
+  \node[attribute] (lessonDescription) [below left=1cm and 2cm of lesson] {Description} ;
+  \node[weak] (exercise) [below=5cm of lesson] {Exercise} ;
+  \node[attribute] (exerciseTree) [below=2cm of exercise] {\underline{Tree}};
+  \node[relationship] (takes) [below left=2cm and 1cm of user] {takes} ;
+  \node[attribute] (takesProgress) [above left=1cm and 1cm of takes] {Progress} ;
+  \node[relationship] (lessonFinished) [below right=2cm and 1cm of user] {finished} ;
+  \node[attribute] (lessonFinishedTime) [above right=1cm and 1cm of lessonFinished] {Time} ;
+  \node[relationship] (usedBy) at (7,0) {usedBy} ;
+  \node[supporting] (definedIn) [below=2cm of lesson] {definedIn} ;
+  \node[relationship] (exerciseFinished) at (-7,-5) {finished} ;
+  \node[attribute] (exerciseFinishedTime) [right=1cm of exerciseFinished] {Time} ;
+  \path
+  % User attributes
+  (user) edge (userUsername)
+  (user) edge (userPassword)
+  (user) edge (userSalt)
+  % Session attributes
+  (session) edge (sessionToken)
+  (session) edge (sessionStarttime)
+  % Lesson attributes
+  (lesson) edge (lessonName)
+  (lesson) edge (lessonDescription)
+  % Exercise attributed
+  (exercise) edge (exerciseTree)
+  % takes relationship
+  (user) edge (takes)
+  (takes) edge (lesson)
+  % takes attributes
+  (takes) edge (takesProgress)
+  % finished relationship
+  (user) edge (lessonFinished)
+  (lessonFinished) edge (lesson)
+  % finished attributes
+  (lessonFinished) edge (lessonFinishedTime)
+  % uses relationship
+  (user) edge[(-] (usedBy)
+  (usedBy) edge (session)
+  % definedIn relationshio
+  (lesson) edge[(-] (definedIn)
+  (definedIn) edge (exercise)
+  % exerciseFinished attributes
+  (exerciseFinished) edge (exerciseFinishedTime)
+  ;
+  \draw (user) -- (-7,0) -- (exerciseFinished) ;
+  \draw (exercise) -- (-7,-11) -- (exerciseFinished) ;
+\end{tikzpicture}
+}
 \end{document}
