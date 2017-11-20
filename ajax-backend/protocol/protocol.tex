@@ -277,7 +277,11 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
     \draw[->] (result) .. controls (-1,-16) and (8,-16) .. (s5) node [below,sloped,pos=0.6] {CMLogoutRequest} ;
   \end{tikzpicture}
 \end{minipage}
+
 \section{Database}
+
+\subsection{ER-Diagram}
+
 \tikzset{
   entity/.style={
     draw,
@@ -312,20 +316,23 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   \node[attribute] (userSalt) [above right= 1cm and 2cm of user] {Salt} ;
   \node[entity] (session) at (7,-5) {Session} ;
   \node[attribute] (sessionToken) [above left=1cm and 1cm of session] {\underline{Token}} ;
-  \node[attribute] (sessionStarttime) [below left=1cm and 1cm of session] {Starttime} ;
+  \node[attribute] (sessionStarttime) [below=1cm of session] {Starttime} ;
   \node[entity] (lesson) [below=5cm of user] {Lesson} ;
-  \node[attribute] (lessonName) [above left=1cm and 2cm of lesson] {\underline{Name}} ;
-  \node[attribute] (lessonDescription) [below left=1cm and 2cm of lesson] {Description} ;
+  \node[attribute] (lessonName) [above left=1cm and 1cm of lesson] {\underline{Name}} ;
+  \node[attribute] (lessonGrammar) [left=1cm of lesson] {Grammar} ;
+  \node[attribute] (lessonDescription) [below left=1cm and 1cm of lesson] {Description} ;
   \node[weak] (exercise) [below=5cm of lesson] {Exercise} ;
-  \node[attribute] (exerciseTree) [below=2cm of exercise] {\underline{Tree}};
+  \node[attribute] (exerciseSourceTree) [below left=1cm and 1cm of exercise] {\underline{SourceTree}};
+  \node[attribute] (exerciseTargetTree) [below right=1cm and 1cm of exercise] {\underline{TargetTree}};
   \node[relationship] (takes) [below left=2cm and 1cm of user] {takes} ;
-  \node[attribute] (takesProgress) [above left=1cm and 1cm of takes] {Progress} ;
-  \node[relationship] (lessonFinished) [below right=2cm and 1cm of user] {finished} ;
-  \node[attribute] (lessonFinishedTime) [above right=1cm and 1cm of lessonFinished] {Time} ;
+%  \node[attribute] (takesProgress) [above left=1cm and 1cm of takes] {Progress} ;
+  \node[relationship] (lessonFinished) [below =2cm of user] {finished} ;
+  \node[attribute] (lessonFinishedTime) [below right=1cm and 1cm of lessonFinished] {Time} ;
   \node[relationship] (usedBy) at (7,0) {usedBy} ;
   \node[supporting] (definedIn) [below=2cm of lesson] {definedIn} ;
   \node[relationship] (exerciseFinished) at (-7,-5) {finished} ;
-  \node[attribute] (exerciseFinishedTime) [right=1cm of exerciseFinished] {Time} ;
+  \node[attribute] (exerciseFinishedTime) [above right=1cm and 1cm of exerciseFinished] {Time} ;
+  \node[relationship] (lessonUserExerciseList) [right=1.5cm of lesson] {exerciseInLesson};
   \path
   % User attributes
   (user) edge (userUsername)
@@ -337,13 +344,15 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   % Lesson attributes
   (lesson) edge (lessonName)
   (lesson) edge (lessonDescription)
+    (lesson) edge (lessonGrammar)
   % Exercise attributed
-  (exercise) edge (exerciseTree)
+  (exercise) edge (exerciseSourceTree)
+  (exercise) edge (exerciseTargetTree)
   % takes relationship
   (user) edge (takes)
   (takes) edge (lesson)
   % takes attributes
-  (takes) edge (takesProgress)
+%  (takes) edge (takesProgress)
   % finished relationship
   (user) edge (lessonFinished)
   (lessonFinished) edge (lesson)
@@ -357,9 +366,46 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   (definedIn) edge (exercise)
   % exerciseFinished attributes
   (exerciseFinished) edge (exerciseFinishedTime)
+  % lessonUserExerciseList
+  (user) edge (lessonUserExerciseList)
+  (lesson) edge (lessonUserExerciseList)
+  (lessonUserExerciseList) edge (exercise)
   ;
   \draw (user) -- (-7,0) -- (exerciseFinished) ;
   \draw (exercise) -- (-7,-11) -- (exerciseFinished) ;
 \end{tikzpicture}
 }
+
+\subsection{Schema}
+\begin{description}
+\item User(\underline{Username},Password,Salt)
+\item Session(\underline{Token},Starttime)
+\item Lesson(\underline{Name},Description,Grammar)
+\item Exercise(\underline{SourceTree},\underline{TargetTree},\underline{Lesson})
+  \begin{description}
+  \item Lesson $\rightarrow$ Lesson.Name
+  \end{description}
+\item FinishedExercise(\underline{User},\underline{SourceTree},\underline{TargetTree},\underline{Lesson},Time)
+  \begin{description}
+  \item User $\rightarrow$ User.Username
+  \item (SourceTree,TargetTree,Lesson) $\rightarrow$ Exercise.(SourceTree,TargetTree,Lesson)
+  \end{description}
+\item StartedLesson(\underline{Lesson},\underline{User})
+  \begin{description}
+  \item User $\rightarrow$ User.Username
+  \item Lesson $\rightarrow$ Lesson.Name
+  \end{description}
+\item FinishedLesson(\underline{Lesson},\underline{User},Time)
+  \begin{description}
+  \item User $\rightarrow$ User.Username
+  \item Lesson $\rightarrow$ Lesson.Name
+  \end{description}
+\item ExerciseList(\underline{User},\underline{SourceTree},\underline{TargetTree},\underline{Lesson})
+  \begin{description}
+  \item User $\rightarrow$ User.Username
+  \item (SourceTree,TargetTree,Lesson) $\rightarrow$ Exercise.(SourceTree,TargetTree,Lesson)
+  \item Lesson $\rightarrow$ Lesson.Name
+  \end{description}
+\end{description}
+
 \end{document}
