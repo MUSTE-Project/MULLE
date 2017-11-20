@@ -408,4 +408,66 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   \end{description}
 \end{description}
 
+\subsection{SQLite SQL}
+
+\begin{lstlisting}[language=SQL]
+  CREATE TABLE User (
+    Username TEXT,
+    Password TEXT,
+    Salt TEXT,
+     PRIMARY KEY(Username)
+    );
+  CREATE TABLE Session (
+    Token TEXT,
+    Starttime NUMERIC DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(Token)
+    );
+  CREATE TABLE Lesson (
+    Name TEXT,
+    Description TEXT,
+    Grammar TEXT,
+    PRIMARY KEY(Name)
+    );
+  CREATE TABLE Exercise (
+    SourceTree TEXT,
+    TargetTree TEXT,
+    Lesson TEXT,
+    PRIMARY KEY(SourceTree, TargetTree, Lesson),
+    FOREIGN KEY(Lesson) References Lesson(Name)
+    );
+  CREATE TABLE FinishedExercise(
+    User TEXT,
+    SourceTree TEXT,
+    TargetTree TEXT,
+    Lesson TEXT,
+    Time NUMERIC,
+    PRIMARY KEY(User,SourceTree,TargetTree,Lesson),
+    FOREIGN KEY(User) REFERENCES User(Username),
+    FOREIGN KEY(SourceTree,TargetTree,Lesson) REFERENCES Exercis(SourceTree,TargetTree,Lesson)
+    );
+  CREATE TABLE StartedLesson (
+    Lesson TEXT,
+    User TEXT,
+    PRIMARY KEY(Lesson,User),
+    FOREIGN KEY(Lesson) REFERENCES Lesson(Name),
+    FOREIGN KEY(User) REFERENCES User(Username)
+    );
+  CREATE TABLE FinishedLesson(
+    Lesson TEXT,
+    User TEXT,
+    Time NUMERIC,
+    FOREIgN KEY (User) REFERENCES User(Username),
+    FOREIGN KEY (Lesson) REFERENCES Lesson(Name)
+    );
+  CREATE TABLE ExerciseList(
+    User TEXT,
+    SourceTree TEXT,
+    TargetTree TEXT,
+    Lesson TEXT,
+    PRIMARY KEY(User,SourceTree,TargetTree,Lesson),
+    FOREIGN KEY(User) REFERENCES User(Username)
+    FOREIGN KEY(SourceTree,TargetTree,Lesson) REFERENCES Exercise(SourceTree,TargetTree,Lesson)
+    );
+\end{lstlisting}
+
 \end{document}
