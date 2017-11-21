@@ -114,7 +114,7 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   \hline
   CMMenuRequest &
   \begin{lstlisting}
-    {"token":string,"score":number,
+    {"token":string,"clicks":number,
       "a":{"tree":string,"grammar":string},
       "b":{"tree":string,"grammar":string}
     }
@@ -161,7 +161,7 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   %% \end{lstlisting} \\
   SMMenuList &
   \begin{lstlisting}
-    {"passed":bool,"score":number,
+    {"passed":bool,"clicks":number,
       "a":{"lesson":string,"tree":string,
            "lin":[{"path":[number],"lin":string}],
            "menu":{:[[{"score":number,
@@ -385,7 +385,7 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   \begin{description}
   \item Lesson $\rightarrow$ Lesson.Name
   \end{description}
-\item FinishedExercise(\underline{User},\underline{SourceTree},\underline{TargetTree},\underline{Lesson},Time)
+\item FinishedExercise(\underline{User},\underline{SourceTree},\underline{TargetTree},\underline{Lesson},Time,ClickCount)
   \begin{description}
   \item User $\rightarrow$ User.Username
   \item (SourceTree,TargetTree,Lesson) $\rightarrow$ Exercise.(SourceTree,TargetTree,Lesson)
@@ -441,6 +441,7 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
     TargetTree TEXT,
     Lesson TEXT,
     Time NUMERIC,
+    ClickCount NUMERIC,
     PRIMARY KEY(User,SourceTree,TargetTree,Lesson),
     FOREIGN KEY(User) REFERENCES User(Username),
     FOREIGN KEY(SourceTree,TargetTree,Lesson) REFERENCES Exercis(SourceTree,TargetTree,Lesson)
