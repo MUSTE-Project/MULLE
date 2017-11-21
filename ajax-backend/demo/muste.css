@@ -124,7 +124,7 @@ input:checked + label {
     top: 0;
 }
 
-#abortlesson {
+#abortlesson, #logoutbutton {
     padding: 5px 20px;
     position: fixed;
     right: 0; 

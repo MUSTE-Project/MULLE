@@ -46,8 +46,12 @@ function server_simulation(message, parameters) {
         SERVER_TOKEN = null;
         return server_response("SMSessionInvalid", {error: "Invalid token"});
     }
-    
+
     switch (message) {
+    case "CMLogoutRequest":
+        return server_response("SMLogoutResponse");
+        break;
+
     case "CMLoginRequest":
         if (USER_DATABASE[parameters.username] == parameters.password) {
             SERVER_TOKEN = parameters.username;
