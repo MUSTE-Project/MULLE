@@ -220,10 +220,12 @@ function show_lin(lang, lin) {
             .html(spacing).click(click_word)
             .appendTo(sentence);
         var path = lin[i].path;
+        var match = lin[i].matching;
         // var subtree = lookup_subtree(path, tree);
         $('<span>')
             .addClass('word clickable').data({nr:i, lang:lang, path:path /* , subtree:subtree */ })
-            .html(current + '<sub class="debug">' + path /* + ' ' + show_tree(subtree) */ + '</sub>')
+            .addClass(match ? 'correct' : '')
+            .html(current + '<sub class="debug">' + (match ? "=" : "") + path /* + ' ' + show_tree(subtree) */ + '</sub>')
             .click(click_word)
             .appendTo(sentence);
     }

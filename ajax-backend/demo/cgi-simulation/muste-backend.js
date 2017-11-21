@@ -77,14 +77,8 @@ function server_simulation(message, parameters) {
             return server_response("SMLessonInvalid", null);
         }
         var lesson = ALL_LESSONS[parameters.lesson];
-        return server_response("SMMenuList",
-                               {passed: false,
-                                lesson: parameters.lesson,
-                                total: lesson.total,
-                                exercise: lesson.passed + 1,
-                                score: 0,
-                                a: mkresult(DefaultA),
-                                b: mkresult(DefaultB)});
+        return server_menu_list(false, parameters.lesson, lesson.total,
+                                lesson.passed + 1, 0, DefaultA, DefaultB);
         break;
 
     case "CMMenuRequest":
@@ -100,14 +94,9 @@ function server_simulation(message, parameters) {
             lesson.passed = parameters.exercise;
             lesson.score += parameters.score + 1;
         }
-        return server_response("SMMenuList",
-                               {passed: passed,
-                                lesson: parameters.lesson,
-                                total: lesson.total,
-                                exercise: parameters.exercise,
-                                score: parameters.score + 1,
-                                a: mkresult(parameters.a),
-                                b: mkresult(parameters.b)});
+        return server_menu_list(passed, parameters.lesson, lesson.total,
+                                parameters.exercise, parameters.score + 1,
+                                parameters.a, parameters.b);
         break;
 
     case "CMMOTDRequest":
@@ -121,6 +110,26 @@ function server_simulation(message, parameters) {
         SERVER_TOKEN = null;
         break;        
     }
+}
+
+
+function server_menu_list(passed, lesson, total, exercise, score, a, b) {
+    var alin = Linearise(a.grammar, a.tree);
+    var blin = Linearise(b.grammar, b.tree);
+    var equals = equal_phrases(a.grammar, a.tree, b.grammar, b.tree);
+    alin.forEach(function(token) {
+        var bpath = equals[a.grammar][token.path];
+        token.matching = bpath;
+    });
+    blin.forEach(function(token) {
+        var apath = equals[b.grammar][token.path];
+        token.matching = apath;
+    });
+    var amenus = initialize_menus(a.grammar, a.tree);
+    var bmenus = initialize_menus(b.grammar, b.tree);
+    return server_response("SMMenuList", {passed:passed, lesson:lesson, total:total, exercise:exercise, score:score,
+                                          a: {grammar:a.grammar, tree:a.tree, lin:alin, menu:amenus},
+                                          b: {grammar:b.grammar, tree:b.tree, lin:blin, menu:bmenus}});
 }
 
 
