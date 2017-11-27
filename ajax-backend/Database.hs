@@ -61,7 +61,7 @@ initDB conn =
     execute_ conn "DROP TABLE IF EXISTS ExerciseList";
     execute_ conn "CREATE TABLE User (Username TEXT, Password BLOB, Salt BLOB, PRIMARY KEY(Username));"
     execute_ conn "CREATE TABLE Session (Token TEXT, Starttime NUMERIC DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(Token));"
-    execute_ conn "CREATE TABLE Lesson (Name TEXT, Description TEXT, Grammar TEXT, PRIMARY KEY(Name));"
+    execute_ conn "CREATE TABLE Lesson (Name TEXT, Description TEXT, Grammar TEXT, ExerciseCount NUMERIC, PRIMARY KEY(Name));"
     execute_ conn "CREATE TABLE Exercise (SourceTree TEXT, TargetTree TEXT, Lesson TEXT, PRIMARY KEY(SourceTree, TargetTree, Lesson), FOREIGN KEY(Lesson) References Lesson(Name));"
     execute_ conn "CREATE TABLE FinishedExercise (User TEXT, SourceTree TEXT, TargetTree TEXT, Lesson TEXT, Time NUMERIC, ClickCount NUMERIC, PRIMARY KEY (User,SourceTree, TargetTree, Lesson), FOREIGN KEY (User) REFERENCES User(Username), FOREIGN KEY(SourceTree, TargetTree, Lesson) REFERENCES Exercise(SourceTree, TargetTree, Lesson));"
     execute_ conn "CREATE TABLE StartedLesson (Lesson TEXT, User TEXT, PRIMARY KEY(Lesson, User), FOREIGN KEY(Lesson) REFERENCES Lesson(Name), FOREIGN KEY(User) REFERENCES User(Username));"
