@@ -72,7 +72,27 @@ initDB conn =
     addUser conn "user3" "pass3"
     addUser conn "user4" "pass4"
     addUser conn "user5" "pass5"
+    execute_ conn "INSERT INTO Lesson (Name,Description,Grammar) VALUES ('Prima Pars','Den första Lektionen fran boken','Prima.pgf',5);"
+    execute_ conn "INSERT INTO Lesson (Name,Description,Grammar) VALUES ('Seconda Pars','Den andra Lektionen fran boken','Secunda.pgf',8);"
+    execute_ conn "INSERT INTO Lesson (Name,Description,Grammar) VALUES ('Tertia Pars','Den tredje Lektionen fran boken','Tertia.pgf',12);"
+    execute_ conn "INSERT INTO Lesson (Name,Description,Grammar) VALUES ('Quarta Pars','Den fjärde Lektionen fran boken','Quarta.pgf',15);"
+    -- First lesson one editing steps between the trees
+    execute_ conn "INSERT INTO Exercise (SourceTree,TargetTree,Lesson) VALUES ('useS (useCl (simpleCl (useCNindefsg (useN vinum_N)) (complA sapiens_A)))','useS (useCl (simpleCl (usePron he_PP) (complA sapiens_A)))','Prima Pars');"
+    execute_ conn "INSERT INTO Exercise (SourceTree,TargetTree,Lesson) VALUES ('useS (useCl (simpleCl (usePN Augustus_PN) (transV tenere_V2 (useCNdefsg (useN imperium_N)))))','useS (useCl (simpleCl (useCNdefsg (useN imperator_N)) (transV tenere_V2 (useCNdefsg (useN imperium_N)))))','Prima Pars');"
+
+    execute_ conn "INSERT INTO Exercise (SourceTree,TargetTree,Lesson) VALUES ('useS (useCl (simpleCl (usePN Augustus_PN) (complA felix_A)))','useS (useCl (simpleCl (useCNdefsg (useN amicus_N)) (complA felix_A)))','Prima Pars');"
+    execute_ conn "INSERT INTO Exercise (SourceTree,TargetTree,Lesson) VALUES ('useS (useCl (simpleCl (usePN Augustus_PN) (complA felix_A)))','useS (useCl (simpleCl (useCNdefsg (useN pater_N)) (complA felix_A)))','Prima Pars');"
+
     
+    execute_ conn "INSERT INTO Exercise (SourceTree,TargetTree,Lesson) VALUES ('useS (useCl (simpleCl (usePN Augustus_PN) (complCN (useN imperator_N))))','useS (useCl (simpleCl (usePN Augustus_PN) (complCN (useN amicus_N))))','Prima Pars');"
+    execute_ conn "INSERT INTO Exercise (SourceTree,TargetTree,Lesson) VALUES ('useS (useCl (simpleCl (usePN Augustus_PN) (complCN (useN amicus_N))))','useS (useCl (simpleCl (usePN Augustus_PN) (complCN (useN imperator_N))))','Prima Pars');"
+    execute_ conn "INSERT INTO Exercise (SourceTree,TargetTree,Lesson) VALUES ('useS (useCl (simpleCl (usePN Augustus_PN) (complCN (useN imperator_N))))','useS (useCl (simpleCl (usePN Augustus_PN) (complCN (useN pater_N))))','Prima Pars');"
+    execute_ conn "INSERT INTO Exercise (SourceTree,TargetTree,Lesson) VALUES ('useS (useCl (simpleCl (usePN Augustus_PN) (complCN (useN pater_N))))','useS (useCl (simpleCl (usePN Augustus_PN) (complCN (useN imperator_N))))','Prima Pars');"
+    
+    execute_ conn "INSERT INTO Exercise (SourceTree,TargetTree,Lesson) VALUES ('useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) (usePN Augustus_PN)) (transV vincere_V2 (usePN Gallia_PN))))','useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) (usePN Augustus_PN)) (transV vincere_V2 (usePN Africa_PN))))','Prima Pars');"
+    execute_ conn "INSERT INTO Exercise (SourceTree,TargetTree,Lesson) VALUES ('useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) (usePN Augustus_PN)) (transV vincere_V2 (usePN Africa_PN))))','useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) (usePN Augustus_PN)) (transV vincere_V2 (usePN Gallia_PN))))','Prima Pars');"
+
+-- | start a new lesson by randomly choosing the right number of exercises and adding them to the users exercise list
 main =
   do
     putStrLn "Starting"
