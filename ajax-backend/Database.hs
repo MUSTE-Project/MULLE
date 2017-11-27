@@ -93,6 +93,17 @@ initDB conn =
     execute_ conn "INSERT INTO Exercise (SourceTree,TargetTree,Lesson) VALUES ('useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) (usePN Augustus_PN)) (transV vincere_V2 (usePN Africa_PN))))','useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) (usePN Augustus_PN)) (transV vincere_V2 (usePN Gallia_PN))))','Prima Pars');"
 
 -- | start a new lesson by randomly choosing the right number of exercises and adding them to the users exercise list
+startLesson :: Connection -> String -> String -> IO ()
+startLesson conn token lesson =
+  do
+    -- get user name
+    -- let userQuery = "SELECT Username FROM Session WHERE Token = ?;" :: Query
+    -- query conn userQuery [token]
+    -- get exercise count
+    -- get all exercises for lesson
+    -- randomly select
+    -- save in database
+    return ()
 main =
   do
     putStrLn "Starting"
