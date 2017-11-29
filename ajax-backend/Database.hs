@@ -11,6 +11,7 @@ import qualified Data.ByteString.Base64 as B64
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.Char8 as LB
 
+import Test.QuickCheck
 foo = ()
 
 import Data.Time.Clock
@@ -171,17 +172,27 @@ listLessons conn token =
     query conn listLessonsQuery [user] :: IO [(String,String,Int,Bool)]
     
 -- | start a new lesson by randomly choosing the right number of exercises and adding them to the users exercise list
-startLesson :: Connection -> String -> String -> IO ()
+startLesson :: Connection -> String -> String -> IO (String,String)
 startLesson conn token lesson =
   do
     -- get user name
-    -- let userQuery = "SELECT Username FROM Session WHERE Token = ?;" :: Query
-    -- query conn userQuery [token]
+    let userQuery = "SELECT User FROM Session WHERE Token = ?;" :: Query
+    [[user]] <- query conn userQuery [token] :: IO [[String]]
     -- get exercise count
+    let exerciseCountQuery = "SELECT ExerciseCount FROM Lesson WHERE Name = ?;" :: Query
+    [[count]] <- query conn exerciseCountQuery [lesson] :: IO [[Int]]
     -- get all exercises for lesson
+    let exerciseQuery = "SELECT SourceTree,TargetTree FROM Exercise WHERE Lesson = ?;" :: Query
+    trees <- query conn exerciseQuery [lesson] :: IO [(String,String)]
     -- randomly select
+    selectedTrees <- fmap (take count) $ generate $ shuffle trees
     -- save in database
+    let insertStartedLesson = "INSERT INTO StartedLesson (Lesson, User) VALUES (?,?);" :: Query
+    execute conn insertStartedLesson (lesson,user)
+    let insertExerciseList = "INSERT INTO ExerciseList (Lesson,User,SourceTree,TargetTree) VALUES (?,?,?,?);" :: Query
+    mapM_ (\(sTree,tTree) -> execute conn insertExerciseList (lesson,user,sTree,tTree)) selectedTrees
     return ()
+    
 main =
   do
     putStrLn "Starting"
