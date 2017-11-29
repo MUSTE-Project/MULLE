@@ -318,9 +318,10 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   \node[attribute] (sessionToken) [above left=1cm and 1cm of session] {\underline{Token}} ;
   \node[attribute] (sessionStarttime) [below=1cm of session] {Starttime} ;
   \node[entity] (lesson) [below=5cm of user] {Lesson} ;
-  \node[attribute] (lessonName) [above left=1cm and 1cm of lesson] {\underline{Name}} ;
+  \node[attribute] (lessonName) [below right=0.5cm and 0.5cm of lesson] {\underline{Name}} ;
   \node[attribute] (lessonGrammar) [left=1cm of lesson] {Grammar} ;
   \node[attribute] (lessonDescription) [below left=1cm and 1cm of lesson] {Description} ;
+  \node[attribute] (lessonExerciseDescription) [above left=1cm and 1cm of lesson] {ExerciseCount} ;
   \node[weak] (exercise) [below=5cm of lesson] {Exercise} ;
   \node[attribute] (exerciseSourceTree) [below left=1cm and 1cm of exercise] {\underline{SourceTree}};
   \node[attribute] (exerciseTargetTree) [below right=1cm and 1cm of exercise] {\underline{TargetTree}};
@@ -344,7 +345,8 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   % Lesson attributes
   (lesson) edge (lessonName)
   (lesson) edge (lessonDescription)
-    (lesson) edge (lessonGrammar)
+  (lesson) edge (lessonGrammar)
+  (lesson) edge (lessonExerciseDescription)
   % Exercise attributed
   (exercise) edge (exerciseSourceTree)
   (exercise) edge (exerciseTargetTree)
