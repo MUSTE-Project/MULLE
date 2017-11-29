@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Main where
+module Database where
 
 import Database.SQLite.Simple
+
 import Crypto.Random.API
 
 import Crypto.KDF.PBKDF2 hiding (generate)
@@ -12,7 +13,6 @@ import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.Char8 as LB
 
 import Test.QuickCheck
-foo = ()
 
 import Data.Time.Clock
 import Data.Time.Format
@@ -197,4 +197,4 @@ main =
   do
     putStrLn "Starting"
     con <- open "muste.db"
-    addUser con "user1" "pass1234"
+    initDB con
