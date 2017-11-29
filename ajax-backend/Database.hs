@@ -4,7 +4,7 @@ module Main where
 import Database.SQLite.Simple
 import Crypto.Random.API
 
-import Crypto.KDF.PBKDF2
+import Crypto.KDF.PBKDF2 hiding (generate)
 import Crypto.Hash
 
 import qualified Data.ByteString.Base64 as B64
@@ -26,27 +26,6 @@ createSalt =
     rng <- getSystemRandomGen
     -- return $ B64.encode $ fst $ genRandomBytes 512 rng
     return $ fst $ genRandomBytes 512 rng
-    
-addUser :: Connection -> String -> String -> IO ()
-addUser conn user pass =
-  do
-    salt <- createSalt
-    let safePw = hashPasswd (B.pack pass) salt
-    -- putStrLn $ "Salt: " ++ show salt ++ "\nsafePw: " ++ show safePw
-    let deleteQuery = "DELETE FROM User WHERE Username = ?;" :: Query
-    let insertQuery = "INSERT INTO User (Username, Password, Salt) VALUES (?,?,?);" :: Query
-    execute conn deleteQuery [user]
-    execute conn insertQuery (user,safePw,salt)
-
-authUser :: Connection -> String -> String -> IO (Bool)
-authUser conn user pass =
-  do
-    let q = "SELECT Password,Salt FROM User WHERE (Username == ?);" :: Query
-    r <- (query conn q [user]) :: IO [(B.ByteString,B.ByteString)]
-    let (dbPass,dbSalt) = head r
---    let pwHash = either error (hashPasswd (B.pack pass)) $ B64.decode dbSalt
-    let pwHash = hashPasswd (B.pack pass) dbSalt
-    return $ pwHash == dbPass
 
 initDB :: Connection -> IO ()
 initDB conn =
@@ -111,6 +90,29 @@ initDB conn =
     mapM_ (execute conn insertExerciseQuery) exercises
 
     
+addUser :: Connection -> String -> String -> IO ()
+addUser conn user pass =
+  do
+    -- Create a salted password
+    salt <- createSalt
+    let safePw = hashPasswd (B.pack pass) salt
+    -- Remove user if they already exists
+    let deleteQuery = "DELETE FROM User WHERE Username = ?;" :: Query
+    execute conn deleteQuery [user]
+    -- Add new user
+    let insertQuery = "INSERT INTO User (Username, Password, Salt) VALUES (?,?,?);" :: Query
+    execute conn insertQuery (user,safePw,salt)
+
+authUser :: Connection -> String -> String -> IO (Bool)
+authUser conn user pass =
+  do
+    -- Get password and salt from database
+    let selectPasswordSaltQuery = "SELECT Password,Salt FROM User WHERE (Username == ?);" :: Query
+    [(dbPass,dbSalt)] <- (query conn selectPasswordSaltQuery [user]) :: IO [(B.ByteString,B.ByteString)]
+    -- Generate new password hash and compare to the stored one
+    let pwHash = hashPasswd (B.pack pass) dbSalt
+    return $ pwHash == dbPass
+
 
 -- | start a new lesson by randomly choosing the right number of exercises and adding them to the users exercise list
 startLesson :: Connection -> String -> String -> IO ()
