@@ -161,6 +161,15 @@ verifySession conn token =
     if length sessions == 1 && newTimeStamp - oldTimeStamp <= 60*30 then return (True,"")
     else do { execute conn deleteSessionQuery [token] ; return (False,error) }
 
+-- | List all the lessons i.e. lesson name, description and exercise count
+listLessons :: Connection -> String -> IO [(String,String,Int,Bool)]
+listLessons conn token =
+  do
+    let listUserQuery = "SELECT User FROM Session WHERE Token = ?;"
+    let listLessonsQuery = "SELECT Name,Description,ExerciseCount,Name IN (SELECT Name FROM FinishedLesson WHERE User = ?) as Passed FROM Lesson;"
+    [[user]] <- query conn listUserQuery [token] :: IO [[String]]
+    query conn listLessonsQuery [user] :: IO [(String,String,Int,Bool)]
+    
 -- | start a new lesson by randomly choosing the right number of exercises and adding them to the users exercise list
 startLesson :: Connection -> String -> String -> IO ()
 startLesson conn token lesson =
