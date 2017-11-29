@@ -137,6 +137,12 @@ startSession conn user =
     execute conn insertSessionQuery (token,user,timeStamp,timeStamp)
     return token
 
+updateActivity :: Connection -> String -> IO()
+updateActivity conn token =
+  do
+    timeStamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime 
+    let updateSessionLastActiveQuery = "UPDATE Session SET LastActive = ? WHERE Token = ?;" :: Query
+    execute conn updateSessionLastActiveQuery (timeStamp,token)
 
 -- | start a new lesson by randomly choosing the right number of exercises and adding them to the users exercise list
 startLesson :: Connection -> String -> String -> IO ()
