@@ -269,9 +269,9 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
     %\fill[fill=red] (-6,-20) circle [radius=2pt];
     %% \fill[fill=red] (-2,1) circle [radius=2pt];
     \draw[->] (s1) .. controls (8,-3) and (2,-3) .. (login) node [above,sloped,midway,pos=0.6] {SMLoginFailed} ;
-    \draw[->] (s2) .. controls (12,-2) and (1,-2) .. (login) node [above,sloped,midway,pos=0.6] {SMLoginFailed} ;
-    \draw[->] (s3) .. controls (15,-1) and (0,-1) .. (login) node [above,sloped,midway,pos=0.6] {SMLoginFailed} ;
-    \draw[->] (s4) .. controls (18,0) and (-1,0) .. (login) node [above,sloped,midway,pos=0.6] {SMLoginFailed} ;
+    \draw[->] (s2) .. controls (12,-2) and (1,-2) .. (login) node [above,sloped,midway,pos=0.6] {SMSessionInvalid} ;
+    \draw[->] (s3) .. controls (15,-1) and (0,-1) .. (login) node [above,sloped,midway,pos=0.6] {SMSessionInvalid} ;
+    \draw[->] (s4) .. controls (18,0) and (-1,0) .. (login) node [above,sloped,midway,pos=0.6] {SMSessionInvalid} ;
     \draw[->] (result) .. controls (13,-15) and (13,-12) .. (s2) node [below,sloped,pos=0.4] {CMLessonsRequest} ;
     \draw[->] (s5) .. controls (10,-15) and (13,-14) .. (13,-8) .. controls (13,1) and (-2,1) .. (login) node [above,sloped,midway,pos=0.5] {SMLogoutResponse} ;
     \draw[->] (lesson) .. controls (-5,-20) and (8,-18) .. (s5) node [below,sloped,pos=0.6] {CMLogoutRequest} ;
