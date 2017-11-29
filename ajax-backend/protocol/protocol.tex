@@ -422,8 +422,8 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
 \begin{lstlisting}[language=SQL]
   CREATE TABLE User (
     Username TEXT,
-    Password TEXT,
-    Salt TEXT,
+    Password BLOB,
+    Salt BLOB,
      PRIMARY KEY(Username)
     );
   CREATE TABLE Session (
