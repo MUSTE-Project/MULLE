@@ -319,6 +319,7 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   \node[entity] (session) at (7,-5) {Session} ;
   \node[attribute] (sessionToken) [above left=1cm and 1cm of session] {\underline{Token}} ;
   \node[attribute] (sessionStarttime) [below=1cm of session] {Starttime} ;
+  \node[attribute] (sessionLastActive) [above right=1cm and 1cm of session] {LastActive} ;
   \node[entity] (lesson) [below=5cm of user] {Lesson} ;
   \node[attribute] (lessonName) [below right=0.5cm and 0.5cm of lesson] {\underline{Name}} ;
   \node[attribute] (lessonGrammar) [left=1cm of lesson] {Grammar} ;
@@ -343,6 +344,7 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   (user) edge (userSalt)
   % Session attributes
   (session) edge (sessionToken)
+  (session) edge (sessionLastActive)
   (session) edge (sessionStarttime)
   % Lesson attributes
   (lesson) edge (lessonName)
@@ -383,8 +385,11 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
 \subsection{Schema}
 \begin{description}
 \item User(\underline{Username},Password,Salt)
-\item Session(\underline{Token},Starttime)
-\item Lesson(\underline{Name},Description,Grammar)
+\item Session(\underline{Token},User,Starttime,LastActive)
+  \begin{description}
+  \item User $\rightarrow$ User.Username
+  \end{description}
+\item Lesson(\underline{Name},Description,Grammar,ExerciseCount)
 \item Exercise(\underline{SourceTree},\underline{TargetTree},\underline{Lesson})
   \begin{description}
   \item Lesson $\rightarrow$ Lesson.Name
@@ -424,12 +429,14 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   CREATE TABLE Session (
     Token TEXT,
     Starttime NUMERIC DEFAULT CURRENT_TIMESTAMP,
+    LastActive NUMERIC DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY(Token)
     );
   CREATE TABLE Lesson (
     Name TEXT,
     Description TEXT,
     Grammar TEXT,
+    ExerciseCount NUMERIC,
     PRIMARY KEY(Name)
     );
   CREATE TABLE Exercise (
