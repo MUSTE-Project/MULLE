@@ -147,8 +147,8 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   \hline
   SMLessonsList &
   \begin{lstlisting}
-    {"lessons":[{"name":string,"passed":boolean,
-                 "exercisecount":number}]}
+    {"lessons":[{"name":string,"description:string,
+                 "exercisecount":number,"passed":boolean}]}
   \end{lstlisting} & {\bfseries\footnotesize 5} \\
   \hline
   %% SMLessonStart &
@@ -165,11 +165,13 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
       "a":{"lesson":string,"tree":string,
            "lin":[{"path":[number],"lin":string}],
            "menu":{:[[{"score":number,
-                       "lin":[[[number],string]]}]]}},
+                       "lin":[{"path":[number],"lin":string,
+                               "matched":boolean}]}]]}},
       "b":{"lesson":string,"tree":string,
            "lin":[{"path":[number],"lin":string}],
            "menu":{:[[{"score":number,
-                       "lin":[[[number],string]]}]]}}}:
+                       "lin":[{"path":[number],"lin":string,
+                               "matched":boolean}]}]]}}}:
   \end{lstlisting} & {\bfseries\footnotesize 5} \\
   \hline
   SMLessonInvalid &
