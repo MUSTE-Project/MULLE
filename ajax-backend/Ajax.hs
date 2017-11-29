@@ -34,8 +34,6 @@ instance Exception ClientMessageException
 instance Exception ReadTreeException
 
 
-import qualified Data.Vector as V
-import qualified Data.Text as T
 data ClientTree = CT {
   cgrammar :: String,
   ctree :: String
@@ -158,25 +156,34 @@ instance ToJSON ClientMessage where
      
       
 --data CostTree = T { cost :: Int , lin :: String , tree :: String } deriving (Show)
-data CostTree = T { cost :: Int , lin :: [(Path,String)] , tree :: String } deriving (Show)
+
+data LinToken = LinToken { ltpath :: Path, ltlin :: String, ltmatched :: Bool } deriving (Show)
+data CostTree = CostTree { cost :: Int , lin :: LinToken , tree :: String } deriving (Show)
 -- lin is the full linearization
 
 --data Menu = M (Map.Map (Int,Int) [[CostTree]]) deriving (Show)
-data Menu = M (Map.Map Path [[CostTree]]) deriving (Show)
+data Menu = Menu (Map.Map Path [[CostTree]]) deriving (Show)
 
-data ServerTree = ST {
+data ServerTree = ServerTree {
   sgrammar :: String ,
   stree :: String,
   slin :: [(Path,String)] ,
   smenu :: Menu
   } deriving (Show) ;
 
+data Lesson = Lesson {
+  lname :: String,
+  ldescription :: String,
+  lexercises :: Int,
+  lpassed :: Bool
+  } deriving Show;
+
 data ServerMessage = SMNull
                    | SMLoginSuccess { stoken :: String }
                    | SMLoginFail
                    | SMMOTDResponse { sfilename :: String }
                    | SMSessionInvalid { serror :: String }
-                   | SMLessonsList { slessions :: [(String,Bool)] }
+                   | SMLessonsList { slessions :: [Lesson] }
                    | SMMenuList {
                        ssuccess :: Bool ,
                        sscore :: Int ,
@@ -188,23 +195,34 @@ data ServerMessage = SMNull
                    | SMDataInvalid { serror :: String }
                    deriving (Show) ;
 
+instance FromJSON LinToken where
+  parseJSON = withObject "LinToken" $ \v -> LinToken
+    <$> v .: T.pack "path"
+    <*> v .: T.pack "lin"
+    <*> v .: T.pack "matched"
 instance FromJSON CostTree where
-  parseJSON = withObject "CostTree" $ \v -> T
+  parseJSON = withObject "CostTree" $ \v -> CostTree
     <$> v .: T.pack "cost"
     <*> v .: T.pack "lin"
     <*> v .: T.pack "tree"
 
 instance FromJSON Menu where
-  parseJSON = withObject "CostTree" $ \v -> M
+  parseJSON = withObject "CostTree" $ \v -> Menu
     <$> v .: T.pack "menu"
     
 instance FromJSON ServerTree where
-  parseJSON = withObject "ServerTree" $ \v -> ST
+  parseJSON = withObject "ServerTree" $ \v -> ServerTree
     <$> v .: T.pack "grammar"
     <*> v .: T.pack "tree"
     <*> v .: T.pack "lin"
     <*> v .: T.pack "menu"
-    
+
+instance FromJSON Lesson where
+  parseJSON = withObject "Lesson" $ \v -> Lesson
+    <$> v .: T.pack "name"
+    <*> v .: T.pack "description"
+    <*> v .: T.pack "exercises"
+    <*> v .: T.pack "passed"
 instance FromJSON ServerMessage where
   parseJSON = withObject "ServerMessage" $ \v ->
     do
@@ -220,16 +238,8 @@ instance FromJSON ServerMessage where
             SMSessionInvalid <$> fromJust params .: T.pack "error" ;
         "SMLessonsList" ->
             (do
-              cdata <- fromJust params .: T.pack "lessons"
-              carray <- case cdata of {
-                  Array a -> sequence $ V.toList $ V.map (withObject "Lesson-List" $ \o -> do
-                                                             f <- o .: T.pack "name"
-                                                             v <- o .: T.pack "passed"
-                                                             return (f,v)
-                                                         ) a ;
-                    _ -> error "Boo, not an array"
-                  }
-              return $ SMLessonsList carray
+              clist <- fromJust params .: T.pack "lessons"
+              return $ SMLessonsList clist
             ) ;
         "SMMenuList" -> SMMenuList
             <$> fromJust params .: T.pack "success"
@@ -242,9 +252,17 @@ instance FromJSON ServerMessage where
             SMDataInvalid <$> fromJust params .: T.pack "error" ;
         }
 
+instance ToJSON LinToken where
+  toJSON (LinToken path lin matched) =
+    object [
+    T.pack "path" .= path ,
+    T.pack "lin" .= lin ,
+    T.pack "matched" .= matched
+    ]
+
 instance ToJSON CostTree where
     -- this generates a Value
-    toJSON (T score lin tree) =
+    toJSON (CostTree score lin tree) =
       object [
       T.pack "score" .= score ,
       T.pack "lin" .= lin ,
@@ -252,18 +270,26 @@ instance ToJSON CostTree where
       ]
 
 instance ToJSON Menu where
-    toJSON (M map) =
+    toJSON (Menu map) =
       object [ (pack $ show k) .= (Map.!) map  k | k <- Map.keys map]
 
 instance ToJSON ServerTree where
     -- this generates a Value
-    toJSON (ST grammar tree lin menu) =
+    toJSON (ServerTree grammar tree lin menu) =
       object [
       T.pack "grammar" .= grammar ,
       T.pack "tree" .= tree ,
       T.pack "lin" .= lin ,
       T.pack "menu" .= menu]
 
+instance ToJSON Lesson where
+  toJSON (Lesson name description exercises passed) =
+    object [
+    T.pack "name" .= name,
+    T.pack "description" .= description ,
+    T.pack "exercises" .= exercises ,
+    T.pack "passed" .= passed
+    ]
 
 
 instance ToJSON ServerMessage where
@@ -284,7 +310,7 @@ instance ToJSON ServerMessage where
     ]
   toJSON (SMLessonsList slessons) =
     createMessageObject "SMLessonsList" $ object [
-    T.pack "lessons" .= map (\(l,p) -> object [ T.pack "name" .= l, T.pack "passed" .= p]) slessons
+    T.pack "lessons" .= toJSON slessons 
     ]
   toJSON (SMMenuList ssuccess sscore sa sb) =
     createMessageObject "SMMenuList" $ object [
