@@ -12,14 +12,12 @@ var TIMER_START = null;
 $(function() {
     $('#loginform').submit(submit_login);
     $('#abortlesson').click(retrieve_lessons);
+    $('#logoutbutton').click(restart_everything);
     $('#body').click(click_body);
     window.setInterval(update_timer, 100);
     LOGIN_TOKEN = null;
     show_page("loginpage");
     loginform.name.focus();
-    // this should be removed...:
-    loginform.name.value = "peter";
-    loginform.pwd.value = "PETER";
 });
 
 
@@ -39,6 +37,7 @@ function show_page(page) {
 
 
 function restart_everything() {
+    call_server("CMLogoutRequest", {token: LOGIN_TOKEN});
     location.reload();
 }
 
@@ -49,25 +48,6 @@ function submit_login(evt) {
     }
     call_server("CMLoginRequest", {username: loginform.name.value, password: loginform.pwd.value});
 }
-
-
-// http://www.hunlock.com/blogs/Mastering_The_Back_Button_With_Javascript
-// window.onbeforeunload = function () {
-//    return "Are you sure you want to leave this now?";
-// }
-
-// window.location.hash = "no-back-button";
-// window.onhashchange = function(){window.location.hash="no-back-button";}
-
-// window.onpopstate = function (event) {
-//     if (event.state) {
-//         CurrentPage = event.state.page;
-//         var trees = event.state.trees;
-//         for (var lang in trees) {
-//             set_and_show_tree(lang, trees[lang]);
-//         }
-//     }
-// };
 
 
 function click_body(event) {
@@ -146,8 +126,8 @@ function start_lesson(lesson) {
 function show_exercise(parameters) {
     show_page("exercisepage");
     DATA = parameters;
-    /* DATA.a = */ clean_server_data(DATA.a);
-    /* DATA.b = */ clean_server_data(DATA.b);
+    clean_server_data(DATA.a);
+    clean_server_data(DATA.b);
     console.log('DATA', DATA);
     show_lin('a', DATA.a.lin);
     show_lin('b', DATA.b.lin);
@@ -175,6 +155,10 @@ function handle_server_response(response) {
     console.log("Response from server", message, parameters);
 
     switch (message) {
+    case "SMLogoutResponse":
+        location.reload();
+        break;
+        
     case "SMLoginSuccessful":
         LOGIN_TOKEN = parameters.token;
         retrieve_lessons();
@@ -210,28 +194,15 @@ function clean_server_data(data) {
         lin.forEach(function(pword){
             pword.path = clean_path(pword.path)
         });
-        // return lin.map(function(pword){
-        //     return {word: pword.word, path: clean_path(pword.path)};
-        // });
     }
     clean_lin(data.lin);
-    // var result = {grammar: data.grammar,
-    //               tree: data.tree,
-    //               lin: clean_lin(data.lin),
-    //               menu: {}};
     for (var path in data.menu) {
         data.menu[path].forEach(function(submenu){
             submenu.forEach(function(item){
                 clean_lin(item.lin);
             });
         });
-        // result.menu[clean_path(path)] = data.menu[path].map(function(submenu){
-        //     return submenu.map(function(item){
-        //         return {cost: item.cost, tree: item.tree, lin: clean_lin(item.lin)};
-        //     });
-        // });
     }
-    // return result;
 }
 
 
@@ -249,10 +220,12 @@ function show_lin(lang, lin) {
             .html(spacing).click(click_word)
             .appendTo(sentence);
         var path = lin[i].path;
+        var match = lin[i].matching;
         // var subtree = lookup_subtree(path, tree);
         $('<span>')
             .addClass('word clickable').data({nr:i, lang:lang, path:path /* , subtree:subtree */ })
-            .html(current + '<sub class="debug">' + path /* + ' ' + show_tree(subtree) */ + '</sub>')
+            .addClass(match ? 'correct' : '')
+            .html(current + '<sub class="debug">' + (match ? "=" : "") + path /* + ' ' + show_tree(subtree) */ + '</sub>')
             .click(click_word)
             .appendTo(sentence);
     }
@@ -401,74 +374,3 @@ function alert_error(title, description) {
     alert("*** " + title + "***\n" + description);
 }
 
-
-//////////////////////////////////////////////////////////////////////
-// Trees are of the form [node, [node, ...], ..., [node, ...]]
-
-// function lookup_subtree(path, tree) {
-//     for (var i=0; i<path.length; i++) {
-//         tree = tree[1 + parseInt(path[i])];
-//     }
-//     return tree;
-// }
-
-
-// function show_tree(tree) {
-//     var s = tree[0];
-//     for (var i=1; i<tree.length; i++) {
-//         s += " " + show_tree(tree[i]);
-//     }
-//     return "(" + s + ")";
-// }
-
-// function parse_tree(descr) {
-//     var tokens = descr
-//         .replace(/\( */g," (")
-//         .replace(/\)/g," ) ")
-//         .replace(/^ +| +$/g,"")
-//         .split(/ +/);
-//     if (tokens[0][0] !== "(") {
-//         tokens[0] = "(" + tokens[0];
-//         tokens.push(")");
-//     }
-//     var stack = [[]];
-//     for (var i=0; i<tokens.length; i++) {
-//         var token = tokens[i];
-//         if (token[0] == "(") {
-//             if (stack.length == 1 && stack[0].length > 0) {
-//                 console.log("PARSE ERROR: Expected end-of-string, found '(': " + descr);
-//                 return;
-//             } else if (token.length <= 1) {
-//                 console.log("PARSE ERROR: Expected node, found end-of-string: " + descr);
-//                 return;
-//             } else {
-//                 var node = token.slice(1);
-//                 stack.push([node]);
-//             }
-//         } else if (token == ")") {
-//             if (stack.length == 1) {
-//                 var err = (stack[0].length == 0)
-//                     ? "No matching open bracket" : "Expected end-of-string";
-//                 console.log("PARSE ERROR: " + err + ", found ')': " + descr);
-//                 return;
-//             } else {
-//                 var tree = stack.pop();
-//                 stack[stack.length-1].push(tree);
-//             }
-//         } else if (/^\w+$/.test(token)) {
-//             stack[stack.length-1].push([token]);
-//         } else {
-//             console.log("PARSE ERROR: Unknown token " + token + ": " + descr);
-//             return;
-//         }
-//     }
-//     if (stack.length > 1) {
-//         console.log("PARSE ERROR: Expected close bracket, found end-of-string: " + descr);
-//         return;
-//     } else if (stack[0].length == 0) {
-//         console.log("PARSE ERROR: Expected open bracket, found end-of-string: " + descr);
-//         return;
-//     } else {
-//         return stack[0][0];
-//     }
-// }

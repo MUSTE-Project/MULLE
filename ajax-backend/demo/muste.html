@@ -6,12 +6,6 @@
   <title>MUSTE</title>
   <link rel="stylesheet" href="muste.css" type="text/css"></link>
   <script type="text/javascript" src="jquery-1.11.1.min.js"></script>
-    <script>
-    var DefaultLangA = "PrimaEng" ;
-    var DefaultTreeA = "(useS (useCl (simpleCl (usePron he_PP) (complA Romanus_A))))";
-    var DefaultLangB = "PrimaLat" ;
-    var DefaultTreeB = "useS (useCl (simpleCl (usePN Augustus_PN) (complA laetus_A)))";
-  </script>
   <script type="text/javascript" src="muste-gui.js"></script>
   <script>
     var SERVER = "http://localhost:8080/cgi"
@@ -25,6 +19,7 @@
     var SERVER = server_simulation;
     initialize_simulation();
   </script>
+  <!-- End of server simulation -->
 </head>
 
 <body>
@@ -41,6 +36,7 @@
     </div>
 
     <div class="page" id="lessonspage">
+      <a href="" id="logoutbutton">Logga ut</a>
       <h1>MUSTE: Latinträning</h1>
       <table id="lessonslist"></table>
     </div>
