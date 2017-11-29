@@ -13,6 +13,9 @@ import qualified Data.ByteString.Lazy.Char8 as LB
 
 foo = ()
 
+import Data.Time.Clock
+import Data.Time.Format
+
 -- | hashPasswd returns a SHA512 hash of a PBKDF2 encoded password (SHA512,10000 iterations,1024 bytes output)
 hashPasswd :: B.ByteString -> B.ByteString -> B.ByteString
 hashPasswd pass salt =
@@ -119,6 +122,21 @@ changePassword conn user oldPass newPass =
     authed <- authUser conn user oldPass
     if authed then addUser conn user newPass else return ()
                                                           
+-- | Creates a new session. at the moment overly simplified
+startSession :: Connection -> String -> IO String
+startSession conn user =
+  do
+    -- maybe check for old sessions and clean up?
+    let deleteSessionQuery = "DELETE FROM Session WHERE User = ? ;" :: Query
+    execute conn deleteSessionQuery [user]
+    -- create new session
+    timeStamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime 
+    let sessionData = user ++ timeStamp
+    let token = show (hash (B.pack sessionData) :: Digest SHA3_512) :: String
+    let insertSessionQuery = "INSERT INTO Session (Token,User,Starttime,LastActive) VALUES (?,?,?,?);" :: Query
+    execute conn insertSessionQuery (token,user,timeStamp,timeStamp)
+    return token
+
 
 -- | start a new lesson by randomly choosing the right number of exercises and adding them to the users exercise list
 startLesson :: Connection -> String -> String -> IO ()
