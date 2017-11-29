@@ -444,7 +444,7 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
     TargetTree TEXT,
     Lesson TEXT,
     PRIMARY KEY(SourceTree, TargetTree, Lesson),
-    FOREIGN KEY(Lesson) References Lesson(Name)
+    FOREIGN KEY(Lesson) REFERENCES Lesson(Name)
     );
   CREATE TABLE FinishedExercise(
     User TEXT,
@@ -468,7 +468,7 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
     Lesson TEXT,
     User TEXT,
     Time NUMERIC,
-    FOREIgN KEY (User) REFERENCES User(Username),
+    FOREIGN KEY (User) REFERENCES User(Username),
     FOREIGN KEY (Lesson) REFERENCES Lesson(Name)
     );
   CREATE TABLE ExerciseList(
