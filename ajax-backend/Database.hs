@@ -113,6 +113,12 @@ authUser conn user pass =
     let pwHash = hashPasswd (B.pack pass) dbSalt
     return $ pwHash == dbPass
 
+changePassword :: Connection -> String -> String -> String -> IO ()
+changePassword conn user oldPass newPass =
+  do
+    authed <- authUser conn user oldPass
+    if authed then addUser conn user newPass else return ()
+                                                          
 
 -- | start a new lesson by randomly choosing the right number of exercises and adding them to the users exercise list
 startLesson :: Connection -> String -> String -> IO ()
