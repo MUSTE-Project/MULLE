@@ -144,6 +144,23 @@ updateActivity conn token =
     let updateSessionLastActiveQuery = "UPDATE Session SET LastActive = ? WHERE Token = ?;" :: Query
     execute conn updateSessionLastActiveQuery (timeStamp,token)
 
+verifySession :: Connection -> String -> IO (Bool,String)
+verifySession conn token =
+  do
+    -- Get potential user session(s)
+    let selectSessionQuery = "SELECT LastActive FROM Session WHERE Token = ?;" :: Query
+    sessions@[[lastActive]] <- query conn selectSessionQuery [token] :: IO [[Int]]
+    -- from here might not be executed due to lazy evaluation...
+    -- Compute the difference in time stamps
+    let oldTimeStamp = lastActive
+    timeStamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime 
+    let newTimeStamp = read timeStamp :: Int
+    let deleteSessionQuery = "DELETE FROM Session WHERE Token = ? ;"
+    let error = if length sessions == 0 then "Not current session" else if newTimeStamp - oldTimeStamp > 60 * 30 then "Session timeout" else "More than one session"
+    -- ... until here. check if a session exists and it is has been active in the last 15 minutes
+    if length sessions == 1 && newTimeStamp - oldTimeStamp <= 60*30 then return (True,"")
+    else do { execute conn deleteSessionQuery [token] ; return (False,error) }
+
 -- | start a new lesson by randomly choosing the right number of exercises and adding them to the users exercise list
 startLesson :: Connection -> String -> String -> IO ()
 startLesson conn token lesson =
