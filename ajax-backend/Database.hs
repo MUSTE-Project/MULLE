@@ -1,6 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Database where
 
+import Muste hiding (linearizeTree)
+import Muste.Grammar
+
 import Database.SQLite.Simple
 
 import Crypto.Random.API
@@ -11,6 +14,8 @@ import Crypto.Hash
 import qualified Data.ByteString.Base64 as B64
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.Char8 as LB
+
+import qualified Data.Map.Lazy as M
 
 import Test.QuickCheck
 
@@ -93,6 +98,20 @@ initDB conn =
            "Prima Pars")] :: [(String,String,String)]
     mapM_ (execute conn insertExerciseQuery) exercises
 
+initPrecomputed :: Connection -> IO (M.Map String Precomputed)
+initPrecomputed conn =
+  do
+    let selectLessonsGrammarsQuery = "SELECT Name,Grammar FROM Lesson;" :: Query
+    let selectStartTreesQuery = "SELECT SourceTree FROM Exercise WHERE Lesson = ?;" :: Query
+    l <- query_ conn selectLessonsGrammarsQuery :: IO [(String,String)]
+    -- map (\(lesson,grammar) -> do
+    --         pgf <-readPGF grammar
+    --         langs <- languages pgf
+    --         trees <- query conn selectStartTrees
+    --         precomputeTrees context 
+    --         ) lessons
+    foo <- [ (lesson, lang, precomputedTrees (pgfToGrammar pgf,lang) tree) | tree <- query conn selectStartTrees lesson , lang <- languages pgf, pgf <- readPGF grammar, (lesson,grammar) <- grammar]
+    return M.empty -- :: IO M.Map String Precomputed
     
 addUser :: Connection -> String -> String -> IO ()
 addUser conn user pass =
@@ -172,7 +191,7 @@ listLessons conn token =
     query conn listLessonsQuery [user] :: IO [(String,String,Int,Bool)]
     
 -- | start a new lesson by randomly choosing the right number of exercises and adding them to the users exercise list
-startLesson :: Connection -> String -> String -> IO (String,String)
+startLesson :: Connection -> String -> String -> IO () -- (String,String)
 startLesson conn token lesson =
   do
     -- get user name

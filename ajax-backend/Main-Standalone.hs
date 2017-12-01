@@ -265,13 +265,13 @@ demoPrec =
 
 handleRequest :: Grammar -> IORef (Maybe Precomputed) -> Bool -> Request -> IO Response
 handleRequest grammar prec isDemo request
-  | isPrefixOf "/cgi"(uriPath $ reqURI request) =
-      do
-        putStrLn $ "CGI" ++ (show request)
-        prec <- initPrecomputed grammar prec (reqBody request)
-        result <- if isDemo then handleClientRequest grammar demoPrec (reqBody request)
-                  else handleClientRequest grammar prec (reqBody request)
-        return (Response 200 [("Content-type","application/json")] result)
+  -- | isPrefixOf "/cgi"(uriPath $ reqURI request) =
+  --     do
+  --       putStrLn $ "CGI" ++ (show request)
+  --       prec <- initPrecomputed grammar prec (reqBody request)
+  --       result <- if isDemo then handleClientRequest grammar demoPrec (reqBody request)
+  --                 else handleClientRequest grammar prec (reqBody request)
+  --       return (Response 200 [("Content-type","application/json")] result)
 
   | otherwise = 
       do
