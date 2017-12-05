@@ -83,6 +83,8 @@ type PrecomputedTrees = [((TTree,Path),[(Int,[(Path,String)],TTree)])]
 
 type Precomputed = M.Map Language PrecomputedTrees
 
+type LessonsPrecomputed = M.Map String Precomputed
+
 precomputeTrees :: Context -> TTree -> PrecomputedTrees
 precomputeTrees context@(grammar,_) tree =
   let
