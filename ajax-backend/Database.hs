@@ -1,8 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Database where
 
+import PGF
+
 import Muste hiding (linearizeTree)
 import Muste.Grammar
+import Muste.Tree
 
 import Database.SQLite.Simple
 
@@ -98,20 +101,24 @@ initDB conn =
            "Prima Pars")] :: [(String,String,String)]
     mapM_ (execute conn insertExerciseQuery) exercises
 
-initPrecomputed :: Connection -> IO (M.Map String Precomputed)
+initPrecomputed :: Connection -> IO (LessonsPrecomputed)
 initPrecomputed conn =
   do
     let selectLessonsGrammarsQuery = "SELECT Name,Grammar FROM Lesson;" :: Query
     let selectStartTreesQuery = "SELECT SourceTree FROM Exercise WHERE Lesson = ?;" :: Query
-    l <- query_ conn selectLessonsGrammarsQuery :: IO [(String,String)]
-    -- map (\(lesson,grammar) -> do
-    --         pgf <-readPGF grammar
-    --         langs <- languages pgf
-    --         trees <- query conn selectStartTrees
-    --         precomputeTrees context 
-    --         ) lessons
-    foo <- [ (lesson, lang, precomputedTrees (pgfToGrammar pgf,lang) tree) | tree <- query conn selectStartTrees lesson , lang <- languages pgf, pgf <- readPGF grammar, (lesson,grammar) <- grammar]
-    return M.empty -- :: IO M.Map String Precomputed
+    grammarList <- query_ conn selectLessonsGrammarsQuery :: IO [(String,String)]
+    preTuples <- sequence $ map (\(lesson,grammar) -> do
+            -- get all langs
+            pgf <-readPGF grammar
+            let grammar = pgfToGrammar pgf
+            let langs = languages pgf
+            -- get all start trees
+            trees <- (map $ read . fromOnly) <$> (query conn selectStartTreesQuery [lesson] :: IO [(Only String)]) :: IO [TTree]
+            let contexts = [(grammar,lang) | lang <- langs]
+             -- precompute for every lang and start tree
+            return $ (lesson, M.fromList [(l,precomputeTrees c t) | c@(_,l) <- contexts, t <- trees])
+        ) grammarList
+    return $ M.fromList preTuples
     
 addUser :: Connection -> String -> String -> IO ()
 addUser conn user pass =
