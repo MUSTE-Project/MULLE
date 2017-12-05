@@ -114,9 +114,9 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   \hline
   CMMenuRequest &
   \begin{lstlisting}
-    {"token":string,"clicks":number,
-      "a":{"tree":string,"grammar":string},
-      "b":{"tree":string,"grammar":string}
+    {"token":string,"lesson":string,"clicks":number,
+      "a":{"tree":string,"lang":string},
+      "b":{"tree":string,"lang":string}
     }
   \end{lstlisting} \\
   \hline
@@ -161,17 +161,15 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   %% \end{lstlisting} \\
   SMMenuList &
   \begin{lstlisting}
-    {"passed":bool,"clicks":number,
-      "a":{"lesson":string,"tree":string,
-           "lin":[{"path":[number],"lin":string}],
+    {"lesson":string,"passed":bool,"clicks":number,
+      "a":{"lang":string,"tree":string,
+           "lin":[{"path":[number],"lin":string,"matched":boolean}],
            "menu":{:[[{"score":number,
-                       "lin":[{"path":[number],"lin":string,
-                               "matched":boolean}]}]]}},
-      "b":{"lesson":string,"tree":string,
-           "lin":[{"path":[number],"lin":string}],
+                       "lin":[{"path":[number],"lin":string}]}]]}},
+      "b":{"lang":string,"tree":string,
+           "lin":[{"path":[number],"lin":string,"matched":boolean}],
            "menu":{:[[{"score":number,
-                       "lin":[{"path":[number],"lin":string,
-                               "matched":boolean}]}]]}}}:
+                       "lin":[{"path":[number],"lin":string}]}]]}}}:
   \end{lstlisting} & {\bfseries\footnotesize 5} \\
   \hline
   SMLessonInvalid &

@@ -35,7 +35,7 @@ instance Exception ReadTreeException
 
 
 data ClientTree = CT {
-  cgrammar :: String,
+  clanguage :: String,
   ctree :: String
   } deriving (Show) ;
 
@@ -64,6 +64,7 @@ data ClientMessage = CMNull
                        }
                    | CMMenuRequest {
                        ctoken :: String,
+                       clesson :: String,
                        cscore :: Int ,
                        ca :: ClientTree ,
                        cb :: ClientTree
@@ -115,6 +116,7 @@ instance FromJSON ClientMessage where
         "CMMenuRequest" -> 
             CMMenuRequest
              <$> params .: T.pack "token"
+             <*> params .: T.pack "lesson"
              <*> params .: T.pack "score"
              <*> params .: T.pack "a"
              <*> params .: T.pack "b"             
@@ -122,10 +124,10 @@ instance FromJSON ClientMessage where
 
 instance ToJSON ClientTree where
     -- this generates a Value
-    toJSON (CT tree grammar) =
+    toJSON (CT tree language) =
       object [
       T.pack "tree" .= tree ,
-      T.pack "grammar" .= grammar
+      T.pack "language" .= language
       ]
 
 instance ToJSON ClientMessage where
@@ -145,9 +147,10 @@ instance ToJSON ClientMessage where
     T.pack "context" .= context ,
     T.pack "data" .= map (\(k,v) -> object [ T.pack "field" .= k, T.pack "value" .= v ]) cdata
     ]
-  toJSON (CMMenuRequest token score a b) =
+  toJSON (CMMenuRequest token lesson score a b) =
     createMessageObject "CMMenuRequest" $ object [
-    T.pack "token" .= token,
+    T.pack "token" .= token ,
+    T.pack "lesson" .= lesson ,
     T.pack "score" .= score ,
     T.pack "a" .= a ,
     T.pack "b" .= b
@@ -158,16 +161,17 @@ instance ToJSON ClientMessage where
 --data CostTree = T { cost :: Int , lin :: String , tree :: String } deriving (Show)
 
 data LinToken = LinToken { ltpath :: Path, ltlin :: String, ltmatched :: Bool } deriving (Show)
-data CostTree = CostTree { cost :: Int , lin :: LinToken , tree :: String } deriving (Show)
+data Linearization = Linearization { ltpath :: Path, ltlin :: String } deriving (Show)
+data CostTree = CostTree { cost :: Int , lin :: Linearization , tree :: String } deriving (Show)
 -- lin is the full linearization
 
 --data Menu = M (Map.Map (Int,Int) [[CostTree]]) deriving (Show)
 data Menu = Menu (Map.Map Path [[CostTree]]) deriving (Show)
 
 data ServerTree = ServerTree {
-  sgrammar :: String ,
+  slanguage :: String ,
   stree :: String,
-  slin :: [(Path,String)] ,
+  slin :: LinToken ,
   smenu :: Menu
   } deriving (Show) ;
 
@@ -185,8 +189,9 @@ data ServerMessage = SMNull
                    | SMSessionInvalid { serror :: String }
                    | SMLessonsList { slessions :: [Lesson] }
                    | SMMenuList {
-                       ssuccess :: Bool ,
-                       sscore :: Int ,
+                       slesson :: String ,
+                       spassed :: Bool ,
+                       sclicks :: Int ,
                        sa :: ServerTree ,
                        sb :: ServerTree
                        }
