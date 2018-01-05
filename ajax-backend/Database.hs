@@ -203,7 +203,7 @@ listLessons conn token =
     query conn listLessonsQuery [user] :: IO [(String,String,Int,Bool)]
     
 -- | start a new lesson by randomly choosing the right number of exercises and adding them to the users exercise list
-startLesson :: Connection -> String -> String -> IO (String,String)
+startLesson :: Connection -> String -> String -> IO (String,String,String,String)
 startLesson conn token lesson =
   do
     -- get user name
@@ -221,8 +221,12 @@ startLesson conn token lesson =
     let insertStartedLesson = "INSERT INTO StartedLesson (Lesson, User) VALUES (?,?);" :: Query
     execute conn insertStartedLesson (lesson,user)
     let insertExerciseList = "INSERT INTO ExerciseList (Lesson,User,SourceTree,TargetTree) VALUES (?,?,?,?);" :: Query
+    let ((sourceTree,targetTree):_) = selectedTrees
     mapM_ (\(sTree,tTree) -> execute conn insertExerciseList (lesson,user,sTree,tTree)) selectedTrees
-    return $ head selectedTrees
+    -- get languages
+    let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Lesson = ?" :: Query
+    [(sourceLang,targetLang)] <- query conn languagesQuery (Only lesson) :: IO [(String,String)]
+    return (sourceLang,sourceTree,targetLang,targetTree)
     
 main =
   do
