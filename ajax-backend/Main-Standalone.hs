@@ -10,11 +10,12 @@ import PGF
 import qualified Data.Map.Strict as Map
 import qualified Data.ByteString.Char8 as B
 import System.Environment
-import Data.IORef
 import Data.Maybe
 import Data.Map
 import Muste.Tree
-
+import Database.SQLite.Simple
+import Database
+import Protocol
 filePath = "./demo"
 
 getFileName :: String -> String
@@ -29,16 +30,14 @@ getType fn
   | isSuffixOf "ico" fn = "image/x-icon"
   | otherwise = "text/plain"
 
-
-handleRequest :: Grammar -> IORef (Maybe Precomputed) -> Bool -> Request -> IO Response
-handleRequest grammar prec isDemo request
-  -- | isPrefixOf "/cgi"(uriPath $ reqURI request) =
-  --     do
-  --       putStrLn $ "CGI" ++ (show request)
-  --       prec <- initPrecomputed grammar prec (reqBody request)
-  --       result <- if isDemo then handleClientRequest grammar demoPrec (reqBody request)
-  --                 else handleClientRequest grammar prec (reqBody request)
-  --       return (Response 200 [("Content-type","application/json")] result)
+-- Lesson -> Grammar
+handleRequest :: Connection -> Map String Grammar -> LessonsPrecomputed -> Request -> IO Response
+handleRequest conn prec request
+  | isPrefixOf "/cgi"(uriPath $ reqURI request) =
+      do
+        putStrLn $ "CGI" ++ (show request)
+        result <- handleClientRequest conn prec (reqBody request)
+        return (Response 200 [("Content-type","application/json")] result)
 
   | otherwise = 
       do
