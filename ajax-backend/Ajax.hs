@@ -164,7 +164,7 @@ instance ToJSON ClientMessage where
 --data CostTree = T { cost :: Int , lin :: String , tree :: String } deriving (Show)
 
 data LinToken = LinToken { ltpath :: Path, ltlin :: String, ltmatched :: Bool } deriving (Show)
-data Linearization = Linearization { ltpath :: Path, ltlin :: String } deriving (Show)
+data Linearization = Linearization { lpath :: Path, llin :: String } deriving (Show)
 data CostTree = CostTree { cost :: Int , lin :: Linearization , tree :: String } deriving (Show)
 -- lin is the full linearization
 
@@ -174,7 +174,7 @@ data Menu = Menu (Map.Map Path [[CostTree]]) deriving (Show)
 data ServerTree = ServerTree {
   slanguage :: String ,
   stree :: String,
-  slin :: LinToken ,
+  slin :: [LinToken] ,
   smenu :: Menu
   } deriving (Show) ;
 
@@ -208,6 +208,13 @@ instance FromJSON LinToken where
     <$> v .: T.pack "path"
     <*> v .: T.pack "lin"
     <*> v .: T.pack "matched"
+
+instance FromJSON Linearization where
+  parseJSON = withObject "Linearization" $ \v -> Linearization
+    <$> v .: T.pack "path"
+    <*> v .: T.pack "lin"
+    
+    
 instance FromJSON CostTree where
   parseJSON = withObject "CostTree" $ \v -> CostTree
     <$> v .: T.pack "cost"
@@ -268,6 +275,12 @@ instance ToJSON LinToken where
     T.pack "matched" .= matched
     ]
 
+instance ToJSON Linearization where
+  toJSON (Linearization path lin) =
+    object [
+    T.pack "path" .= path ,
+    T.pack "lin" .= lin
+    ]
 instance ToJSON CostTree where
     -- this generates a Value
     toJSON (CostTree score lin tree) =
