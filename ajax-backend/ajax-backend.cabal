@@ -66,7 +66,7 @@ executable ajax-backend
   If flag(CGI)
     build-depends:       base >=4.9 && <4.10, aeson >=0.9, text, bytestring, cgi >= 3001.3.0.2, containers, muste, gf
   Else
-    build-depends:       base >=4.9 && <4.10, aeson >=0.9, text, bytestring, httpd-shed, network-uri, containers, muste, gf, vector
+    build-depends:       base >=4.9 && <4.10, aeson >=0.9, text, bytestring, httpd-shed, network-uri,containers,muste,gf,vector,sqlite-simple,time,cryptonite,crypto-random-api,QuickCheck,base64-bytestring
   -- Directories containing source files.
   -- hs-source-dirs:      
   
