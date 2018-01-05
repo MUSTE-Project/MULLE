@@ -52,7 +52,7 @@ initDB conn =
     execute_ conn "DROP TABLE IF EXISTS ExerciseList";
     execute_ conn "CREATE TABLE User (Username TEXT, Password BLOB, Salt BLOB, PRIMARY KEY(Username));"
     execute_ conn "CREATE TABLE Session (User TEXT REFERENCES User(Username),Token TEXT, Starttime NUMERIC DEFAULT CURRENT_TIMESTAMP, LastActive NUMERIC DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(Token));"
-    execute_ conn "CREATE TABLE Lesson (Name TEXT, Description TEXT, Grammar TEXT, ExerciseCount NUMERIC, PRIMARY KEY(Name));"
+    execute_ conn "CREATE TABLE Lesson (Name TEXT, Description TEXT, Grammar TEXT, SourceLanguage TEXT, TargetLanguage TEXT, ExerciseCount NUMERIC, PRIMARY KEY(Name));"
     execute_ conn "CREATE TABLE Exercise (SourceTree TEXT, TargetTree TEXT, Lesson TEXT, PRIMARY KEY(SourceTree, TargetTree, Lesson), FOREIGN KEY(Lesson) References Lesson(Name));"
     execute_ conn "CREATE TABLE FinishedExercise (User TEXT, SourceTree TEXT, TargetTree TEXT, Lesson TEXT, Time NUMERIC, ClickCount NUMERIC, PRIMARY KEY (User,SourceTree, TargetTree, Lesson), FOREIGN KEY (User) REFERENCES User(Username), FOREIGN KEY(SourceTree, TargetTree, Lesson) REFERENCES Exercise(SourceTree, TargetTree, Lesson));"
     execute_ conn "CREATE TABLE StartedLesson (Lesson TEXT, User TEXT, PRIMARY KEY(Lesson, User), FOREIGN KEY(Lesson) REFERENCES Lesson(Name), FOREIGN KEY(User) REFERENCES User(Username));"
@@ -60,12 +60,12 @@ initDB conn =
     execute_ conn "CREATE TABLE ExerciseList (User TEXT, SourceTree TEXT, TargetTree TEXT, Lesson TEXT, PRIMARY KEY (User, SourceTree, TargetTree, Lesson), FOREIGN KEY(User) REFERENCES User(Username), FOREIGN KEY(SourceTree,TargetTree, Lesson) REFERENCES Exercise (SourceTree, TargetTree, Lesson));"
     let users = [("user1","pass1"),("user2","pass2"),("user3","pass3"),("user4","pass4"),("user5","pass5")]
     mapM_ (\(u,p) -> addUser conn u p) users
-    let insertLessonQuery = "INSERT INTO Lesson (Name,Description,Grammar,ExerciseCount) VALUES (?,?,?,?);" :: Query
-    let lessonData = [("Prima Pars","Den första Lektionen fran boken","Prima.pgf",5),
-                      ("Seconda Pars","Den andra Lektionen fran boken","Secunda.pgf",8),
-                      ("Tertia Pars","Den tredje Lektionen fran boken","Tertia.pgf",12),
-                      ("Quarta Pars","Den fjärde Lektionen fran boken","Quarta.pgf",15)
-                     ] :: [(String,String,String,Int)]
+    let insertLessonQuery = "INSERT INTO Lesson (Name,Description,Grammar,SourceLanguage,TargetLanguage,ExerciseCount) VALUES (?,?,?,?);" :: Query
+    let lessonData = [("Prima Pars","Den första Lektionen fran boken","Prima.pgf","PrimaLat","PrimaEng",5),
+                      ("Seconda Pars","Den andra Lektionen fran boken","Secunda.pgf","SecundaLat","SecundaEng",8),
+                      ("Tertia Pars","Den tredje Lektionen fran boken","Tertia.pgf","TertiaLat","TertiaEng",12),
+                      ("Quarta Pars","Den fjärde Lektionen fran boken","Quarta.pgf","QuartaLat","QuartaEng",15)
+                     ] :: [(String,String,String,String,String,Int)]
     mapM_ (execute conn insertLessonQuery) lessonData
     let insertExerciseQuery = "INSERT INTO Exercise (SourceTree,TargetTree,Lesson) VALUES (?,?,?);" :: Query
     let exercises = [
