@@ -121,7 +121,7 @@ getScoredTrees context t p =
   in
     zip3 scores lins nts
     
-suggestionFromPrecomputed :: Context -> PrecomputedTrees -> TTree -> [(Path,[(Int,[(Path,String)],TTree)])]
-suggestionFromPrecomputed _ [] _ = []
-suggestionFromPrecomputed context pc key =
+suggestionFromPrecomputed :: PrecomputedTrees -> TTree -> [(Path,[(Int,[(Path,String)],TTree)])]
+suggestionFromPrecomputed [] _ = []
+suggestionFromPrecomputed pc key =
   map (\((_,p),ts) -> (p,ts)) $ filter (\((t,_),_) -> t == key) pc
