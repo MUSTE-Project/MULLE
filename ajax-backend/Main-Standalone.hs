@@ -57,10 +57,9 @@ printHelp =
 main :: IO ()
 main =
   do
-    pgf <- readPGF "Grammar.pgf"
-    let grammar = pgfToGrammar pgf
     args <- getArgs
-    prec <- newIORef Nothing
+    dbConn <- open "muste.db"
+    (grammars,precs) <- initPrecomputed dbConn
     let isHelp = elem "--help" args
     if isHelp then printHelp
-      else do { server <- initServer 8080 (handleRequest grammar prec isDemo) ; return () }
+      else do { server <- initServer 8080 (handleRequest dbConn grammars precs) ; return () }
