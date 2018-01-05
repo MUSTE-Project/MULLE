@@ -81,8 +81,10 @@ preAndSuffix a b =
     
 type PrecomputedTrees = [((TTree,Path),[(Int,[(Path,String)],TTree)])]
 
+-- Language -> PrecomputedTrees
 type Precomputed = M.Map Language PrecomputedTrees
 
+-- Lesson -> Precomputed
 type LessonsPrecomputed = M.Map String Precomputed
 
 precomputeTrees :: Context -> TTree -> PrecomputedTrees
