@@ -257,8 +257,9 @@ instance FromJSON ServerMessage where
               return $ SMLessonsList clist
             ) ;
         "SMMenuList" -> SMMenuList
-            <$> fromJust params .: T.pack "success"
-            <*> fromJust params .: T.pack "score"
+            <$> fromJust params .: T.pack "lesson"
+            <*> fromJust params .: T.pack "passed"
+            <*> fromJust params .: T.pack "clicks"
             <*> fromJust params .: T.pack "a"
             <*> fromJust params .: T.pack "b" ;
         "SMLessonInvalid" -> return SMLessonInvalid ;
@@ -333,10 +334,11 @@ instance ToJSON ServerMessage where
     createMessageObject "SMLessonsList" $ object [
     T.pack "lessons" .= toJSON slessons 
     ]
-  toJSON (SMMenuList ssuccess sscore sa sb) =
+  toJSON (SMMenuList slesson spassed sclicks sa sb) =
     createMessageObject "SMMenuList" $ object [
-    T.pack "success" .= ssuccess ,
-    T.pack "score" .= sscore ,
+    T.pack "lesson" .= slesson,
+    T.pack "success" .= spassed ,
+    T.pack "score" .= sclicks ,
     T.pack "a" .= sa ,
     T.pack "b" .= sb
     ]
