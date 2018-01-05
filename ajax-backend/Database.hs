@@ -101,24 +101,29 @@ initDB conn =
            "Prima Pars")] :: [(String,String,String)]
     mapM_ (execute conn insertExerciseQuery) exercises
 
-initPrecomputed :: Connection -> IO (LessonsPrecomputed)
+-- Lesson -> Grammar
+initPrecomputed :: Connection -> IO (M.Map String Grammar, LessonsPrecomputed)
 initPrecomputed conn =
   do
     let selectLessonsGrammarsQuery = "SELECT Name,Grammar FROM Lesson;" :: Query
     let selectStartTreesQuery = "SELECT SourceTree FROM Exercise WHERE Lesson = ?;" :: Query
-    grammarList <- query_ conn selectLessonsGrammarsQuery :: IO [(String,String)]
+    lessonGrammarList <- query_ conn selectLessonsGrammarsQuery :: IO [(String,String)]
+    grammarList <- sequence $ map (\(lesson,grammarName) -> do
+                           -- get all langs
+                           pgf <-readPGF grammarName
+                           let grammar = pgfToGrammar pgf
+                           return (lesson,grammar)
+                           ) lessonGrammarList :: IO [(String,Grammar)]
     preTuples <- sequence $ map (\(lesson,grammar) -> do
             -- get all langs
-            pgf <-readPGF grammar
-            let grammar = pgfToGrammar pgf
-            let langs = languages pgf
+            let langs = languages (pgf grammar)
             -- get all start trees
-            trees <- (map $ read . fromOnly) <$> (query conn selectStartTreesQuery [lesson] :: IO [(Only String)]) :: IO [TTree]
+            trees <- (map (gfAbsTreeToTTree grammar . read . fromOnly)) <$> (query conn selectStartTreesQuery [lesson] :: IO [(Only String)]) :: IO [TTree]
             let contexts = [(grammar,lang) | lang <- langs]
              -- precompute for every lang and start tree
             return $ (lesson, M.fromList [(l,precomputeTrees c t) | c@(_,l) <- contexts, t <- trees])
         ) grammarList
-    return $ M.fromList preTuples
+    return (M.fromList grammarList,M.fromList preTuples)
     
 addUser :: Connection -> String -> String -> IO ()
 addUser conn user pass =
