@@ -66,6 +66,7 @@ data ClientMessage = CMNull
                        ctoken :: String,
                        clesson :: String,
                        cscore :: Int ,
+                       ctime :: Int , 
                        ca :: ClientTree ,
                        cb :: ClientTree
                        }
@@ -118,6 +119,7 @@ instance FromJSON ClientMessage where
              <$> params .: T.pack "token"
              <*> params .: T.pack "lesson"
              <*> params .: T.pack "score"
+             <*> params .: T.pack "time"
              <*> params .: T.pack "a"
              <*> params .: T.pack "b"             
          }
@@ -147,7 +149,7 @@ instance ToJSON ClientMessage where
     T.pack "context" .= context ,
     T.pack "data" .= map (\(k,v) -> object [ T.pack "field" .= k, T.pack "value" .= v ]) cdata
     ]
-  toJSON (CMMenuRequest token lesson score a b) =
+  toJSON (CMMenuRequest token lesson score time a b) =
     createMessageObject "CMMenuRequest" $ object [
     T.pack "token" .= token ,
     T.pack "lesson" .= lesson ,
