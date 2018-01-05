@@ -154,6 +154,7 @@ instance ToJSON ClientMessage where
     T.pack "token" .= token ,
     T.pack "lesson" .= lesson ,
     T.pack "score" .= score ,
+    T.pack "time" .= time ,
     T.pack "a" .= a ,
     T.pack "b" .= b
     ]
