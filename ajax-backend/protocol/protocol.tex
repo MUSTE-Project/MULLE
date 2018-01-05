@@ -322,7 +322,9 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   \node[attribute] (lessonName) [below right=0.5cm and 0.5cm of lesson] {\underline{Name}} ;
   \node[attribute] (lessonGrammar) [left=1cm of lesson] {Grammar} ;
   \node[attribute] (lessonDescription) [below left=1cm and 1cm of lesson] {Description} ;
-  \node[attribute] (lessonExerciseDescription) [above left=1cm and 1cm of lesson] {ExerciseCount} ;
+  \node[attribute] (lessonSourceLanguage) [below left=3cm and 1cm of lesson] {SourceLanguage} ;
+  \node[attribute] (lessonTargetLanguage) [below right=3cm and 1cm of lesson] {TargetLanguage} ;
+  \node[attribute] (lessonExerciseCount) [above left=1cm and 1cm of lesson] {ExerciseCount} ;
   \node[weak] (exercise) [below=5cm of lesson] {Exercise} ;
   \node[attribute] (exerciseSourceTree) [below left=1cm and 1cm of exercise] {\underline{SourceTree}};
   \node[attribute] (exerciseTargetTree) [below right=1cm and 1cm of exercise] {\underline{TargetTree}};
@@ -348,7 +350,9 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   (lesson) edge (lessonName)
   (lesson) edge (lessonDescription)
   (lesson) edge (lessonGrammar)
-  (lesson) edge (lessonExerciseDescription)
+  (lesson) edge (lessonExerciseCount)
+  (lesson) edge (lessonSourceLanguage)
+  (lesson) edge (lessonTargetLanguage)
   % Exercise attributed
   (exercise) edge (exerciseSourceTree)
   (exercise) edge (exerciseTargetTree)
@@ -387,7 +391,7 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   \begin{description}
   \item User $\rightarrow$ User.Username
   \end{description}
-\item Lesson(\underline{Name},Description,Grammar,ExerciseCount)
+\item Lesson(\underline{Name},Description,Grammar,SourceLanguage,TargetLanguage,ExerciseCount)
 \item Exercise(\underline{SourceTree},\underline{TargetTree},\underline{Lesson})
   \begin{description}
   \item Lesson $\rightarrow$ Lesson.Name
@@ -434,6 +438,8 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
     Name TEXT,
     Description TEXT,
     Grammar TEXT,
+    SourceLanguage TEXT,
+    TargetLanguage TEXT,
     ExerciseCount NUMERIC,
     PRIMARY KEY(Name)
     );
