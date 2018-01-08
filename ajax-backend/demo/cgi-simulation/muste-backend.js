@@ -6,9 +6,9 @@ var TypingFuns;
 var Linearise;
 var GeneratedTrees;
 
-var Grammar = Grasp;
-var Languages = ["GraspSwe", "GraspEng", "GraspGer"];
-var StartCat = 'Start';
+var Grammar = Prima;
+var Languages = [ "PrimaEng", "PrimaLat"];
+var StartCat = 'CS';
 
 var USER_DATABASE = {peter: "PETER",
                      herbert: "HERBERT"};
@@ -28,16 +28,12 @@ var ALL_LESSONS = {"Lektion Apa": {total: 5, passed: 5, score: 42},
 //                                   + " (ModCN (UseA (yellow_A)) (UseN (stone_N)))))))))")
 //                };
 
-var DefaultA = {grammar: "GraspSwe",
-                tree: parseGFTree("(StartUtt (UttS (UseCl (Perf) (Pos) (PredVP (UsePN (mary_PN))"
-                                  + " (UseVN (eat_V) (AdvNP (DetCN (DetQuant (IndefArt) (NumPl))"
-                                  + " (UseN (stone_N))) (UseAdverb (here_Adverb))))))))")
+var DefaultA = {grammar: "PrimaEng",
+                tree: parseGFTree("useS (useCl (simpleCl (usePN Augustus_PN) (transV tenere_V2 (useCNdefsg (useN imperium_N)))))")
                };
 
-var DefaultB = {grammar: "GraspGer",
-                tree: parseGFTree("(StartUtt (UttS (UseCl (Perf) (Pos) (PredVP (UsePN (mary_PN))"
-                                  + " (UseVN (eat_V) (AdvNP (DetCN (DetQuant (IndefArt) (NumPl))"
-                                  + " (UseN (fish_N))) (UseAdverb (here_Adverb))))))))")
+var DefaultB = {grammar: "PrimaLat",
+                tree: parseGFTree("useS (useCl (simpleCl (useCNdefsg (useN imperator_N)) (transV tenere_V2 (useCNdefsg (useN imperium_N)))))")
                };
 
 
