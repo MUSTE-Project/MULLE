@@ -2,11 +2,11 @@ module Protocol where
 
 import Ajax
 import Database
-import Muste hiding (linearizeTree)
+import Muste
 import Muste.Tree
 import Muste.Grammar
 import PGF
-import Data.Map ((!),Map(..))
+import Data.Map ((!),Map(..),fromList)
 
 import Database.SQLite.Simple
 
@@ -41,19 +41,30 @@ handleClientRequest conn grammars prec body =
       do
         verified <- verifySession conn token
         (sourceLang,sourceTree,targetLang,targetTree) <- startLesson conn token lesson
-        let gfSourceTree = gfAbsTreeToTTree (grammars ! lesson) (read sourceTree :: Tree)
-        let sourceLin = []
-        let sourceMenu = suggestionFromPrecomputed (prec ! lesson ! (read sourceLang :: Language)) gfSourceTree 
+        let grammar = (grammars ! lesson)
+        let sourceTTree = gfAbsTreeToTTree grammar (read sourceTree :: Tree)
+        let targetTTree = gfAbsTreeToTTree grammar (read targetTree :: Tree)
+        let tempSourceLin = linearizeTree (grammar,read sourceLang :: Language) sourceTTree
+        let tempTargetLin = linearizeTree (grammar,read sourceLang :: Language) targetTTree
+        let sourceLin = map (\(path,lin) -> LinToken path lin (matched path sourceTTree targetTTree) tempSourceLin
+        let sourceMenu = Menu $ fromList $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read sourceLang :: Language)) sourceTTree 
         let targetLin = []
-        let targetMenu = prec
+        let targetMenu = Menu $ fromList $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read targetLang :: Language)) targetTTree 
         let a = ServerTree sourceLang sourceTree sourceLin sourceMenu
         let b = ServerTree targetLang targetTree targetLin targetMenu
         returnVerifiedMessage verified (SMMenuList lesson False 0 a b )
         return "TODO"
     handleMenuRequest token lesson score time a b =
       return "TODO"
+    -- either encode a message or create an error message dependent on the outcome of the verification of the session
     tryVerified :: (Bool,String) -> ServerMessage -> ServerMessage
     tryVerified (True,_) m = m
     tryVerified (False,e) _ = (SMSessionInvalid e)
     returnVerifiedMessage v m = return $ encodeServerMessage $ tryVerified v m
+    -- Convert between the muste suggestion output and the ajax cost trees
+    suggestionToCostTree :: (Path, [(Int,[(Path,String)],TTree)]) -> (Path,[[CostTree]])
+    suggestionToCostTree (path,trees) =
+      (path, [map (\(cost,lin,tree) -> CostTree cost (map (uncurry Linearization) lin) (show $ ttreeToGFAbsTree tree)) trees])
+    -- Checks if a linearization token matches in both trees
+    matched p t1 t2 = if selectNode p t1 == selectNode p t2 then p else []
 
