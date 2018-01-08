@@ -32,11 +32,11 @@ getType fn
 
 -- Lesson -> Grammar
 handleRequest :: Connection -> Map String Grammar -> LessonsPrecomputed -> Request -> IO Response
-handleRequest conn prec request
+handleRequest conn grammars prec request
   | isPrefixOf "/cgi"(uriPath $ reqURI request) =
       do
         putStrLn $ "CGI" ++ (show request)
-        result <- handleClientRequest conn prec (reqBody request)
+        result <- handleClientRequest conn grammars prec (reqBody request)
         return (Response 200 [("Content-type","application/json")] result)
 
   | otherwise = 
