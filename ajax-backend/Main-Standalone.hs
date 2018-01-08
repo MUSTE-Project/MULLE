@@ -14,7 +14,7 @@ import Data.Maybe
 import Data.Map
 import Muste.Tree
 import Database.SQLite.Simple
-import Database
+import Database hiding (main)
 import Protocol
 filePath = "./demo"
 
