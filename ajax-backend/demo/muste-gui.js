@@ -128,6 +128,7 @@ function show_exercise(parameters) {
     DATA = parameters;
     clean_server_data(DATA.a);
     clean_server_data(DATA.b);
+    build_matching_classes(DATA);
     console.log('DATA', DATA);
     show_lin('a', DATA.a.lin);
     show_lin('b', DATA.b.lin);
@@ -206,6 +207,22 @@ function clean_server_data(data) {
 }
 
 
+function build_matching_classes(data) {
+    var MAX_CLASSES = 4;
+
+    data.matching_classes = {};
+    var matching_class = 0;
+    ["a", "b"].forEach(function(lang) {
+        data[lang].lin.forEach(function(token) {
+            if (token.matching && !data.matching_classes[token.path]) {
+                data.matching_classes[token.path] = "match-" + matching_class;
+                matching_class = (matching_class + 1) % MAX_CLASSES;
+            }
+        });
+    });
+}
+
+
 function show_lin(lang, lin) {
     clear_selection();
     var sentence = $('#' + lang).empty();
@@ -222,12 +239,14 @@ function show_lin(lang, lin) {
         var path = lin[i].path;
         var match = lin[i].matching;
         // var subtree = lookup_subtree(path, tree);
-        $('<span>')
+        var wordspan = $('<span>')
             .addClass('word clickable').data({nr:i, lang:lang, path:path /* , subtree:subtree */ })
-            .addClass(match ? 'correct' : '')
             .html(current + '<sub class="debug">' + (match ? "=" : "") + path /* + ' ' + show_tree(subtree) */ + '</sub>')
             .click(click_word)
             .appendTo(sentence);
+        if (match) {
+            wordspan.addClass('match').addClass(DATA.matching_classes[path]);
+        }
     }
     $('<span>')
         .addClass('space clickable').data({nr:lin.length, lang:lang})

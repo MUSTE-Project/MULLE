@@ -193,15 +193,15 @@ input:checked + label {
     padding: 0 0.4em;
 }
 
-.matching {
-    background-color: #ddf;
-}
+.match-0 { background-color: #cfc }
+.match-1 { background-color: #fdd }
+.match-2 { background-color: #ffc }
+.match-3 { background-color: #cff }
+.match-4 { background-color: #eef }
 
-.correct {
-    background-color: #cfc;
-}
+.correct { background-color: #cfc }
 
-.correct, .matching {
+.correct, .match {
     border-radius: 10px;
     padding: 0 5px;
 }
