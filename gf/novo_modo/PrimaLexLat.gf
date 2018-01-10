@@ -1,4 +1,4 @@
---# -path=/home/herb/src/own/GF-latin/api:/home/herb/src/own/GF-latin:.
+--# -path=latin-rgl/api:latin-rgl:.
 concrete PrimaLexLat of PrimaLex = CatLat ** PrimaLexI with (Cat=CatLat), (Structural=StructuralLat), (Lexicon=LexiconLat) ** open ParadigmsLat, ExtraLat, (I=IrregLat), Prelude in {
   lin
     imperium_N = mkN "imperium" ;

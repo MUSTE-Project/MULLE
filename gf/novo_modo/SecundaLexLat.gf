@@ -1,4 +1,4 @@
---# -path=/home/herb/src/own/GF-latin/api:/home/herb/src/own/GF-latin:.
+--# -path=latin-rgl/api:latin-rgl:.
 concrete SecundaLexLat of SecundaLex = CatLat ** SecundaLexI with (Cat=CatLat), (Structural=StructuralLat), (Lexicon=LexiconLat), (PrimaLex=PrimaLexLat) ** open ParadigmsLat, ExtraLat, (I=IrregLat), Prelude, ParamX, (R=ResLat) in {
   lin
     tectum_N = Lexicon.roof_N ;

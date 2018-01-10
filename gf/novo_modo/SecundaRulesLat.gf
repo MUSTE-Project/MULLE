@@ -1,4 +1,4 @@
---# -path=/home/herb/src/own/GF-latin/api:/home/herb/src/own/GF-latin:.
+--# -path=latin-rgl/api:latin-rgl:.
 concrete SecundaRulesLat of SecundaRules = CatLat ** SecundaRulesI with (Cat=CatLat),(Syntax=SyntaxLat),(PrimaRules=PrimaRulesLat)  ** open ExtraLat,ResLat in {
   lincat CS = Str ;
   lin

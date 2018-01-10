@@ -1,0 +1,3 @@
+[submodule "latin-rgl"]
+	path = latin-rgl
+	url = https://github.com/daherb/GF-latin.git

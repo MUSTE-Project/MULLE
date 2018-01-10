@@ -1,4 +1,4 @@
---# -path=/home/herb/src/own/GF-latin/api:/home/herb/src/own/GF-latin:.
+--# -path=latin-rgl/api:latin-rgl:.
 concrete PrimaRulesLat of PrimaRules = CatLat ** PrimaRulesI with (Cat=CatLat),(Syntax=SyntaxLat),(Extra = ExtraLat) ** open ResLat in {
   lincat
     CS = AdvPos => Str ;
