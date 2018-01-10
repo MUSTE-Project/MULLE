@@ -6,9 +6,9 @@ var TypingFuns;
 var Linearise;
 var GeneratedTrees;
 
-var Grammar = Grasp;
-var Languages = ["GraspSwe", "GraspEng", "GraspGer"];
-var StartCat = 'Start';
+var Grammar = Prima;
+var Languages = [ "PrimaEng", "PrimaLat"];
+var StartCat = 'CS';
 
 var USER_DATABASE = {peter: "PETER",
                      herbert: "HERBERT"};
@@ -22,24 +22,33 @@ var ALL_LESSONS = {"Lektion Apa": {total: 5, passed: 5, score: 42},
                    "Lektion Fan": {total: 5, passed: 0, score: 0}};
 
 
-// var DefaultA = {grammar: "GraspSwe",
-//                 tree: parseGFTree("(StartUtt (UttS (UseCl (Pres) (Neg) (PredVP (UsePron (she_Pron))"
-//                                   + " (UseVN (break_V) (DetCN (DetQuant (DefArt) (NumPl))"
-//                                   + " (ModCN (UseA (yellow_A)) (UseN (stone_N)))))))))")
-//                };
-
-var DefaultA = {grammar: "GraspSwe",
-                tree: parseGFTree("(StartUtt (UttS (UseCl (Perf) (Pos) (PredVP (UsePN (mary_PN))"
-                                  + " (UseVN (eat_V) (AdvNP (DetCN (DetQuant (IndefArt) (NumPl))"
-                                  + " (UseN (stone_N))) (UseAdverb (here_Adverb))))))))")
+var DefaultA = {"Lektion Apa": {grammar: "PrimaEng",
+                                tree: parseGFTree("(useS (useCl (simpleCl (useCNindefsg (useN vinum_N)) (complA sapiens_A))))")},
+                "Lektion Bunte": {grammar: "PrimaEng",
+                                  tree: parseGFTree("(useS (useCl (simpleCl (usePN Augustus_PN) (transV tenere_V2 (useCNdefsg (useN imperium_N))))))")},
+                "Lektion Caesar": {grammar: "PrimaEng",
+                                   tree: parseGFTree("(useS (useCl (simpleCl (usePN Augustus_PN) (complA felix_A))))")},
+                "Lektion Dahlia": {grammar: "PrimaEng",
+                                   tree: parseGFTree("(useS (useCl (simpleCl (usePN Augustus_PN) (complCN (useN imperator_N)))))")},
+                "Lektion Eufori": {grammar: "PrimaEng",
+                                   tree: parseGFTree("(useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) (usePN Augustus_PN)) (transV vincere_V2 (usePN Gallia_PN)))))")},
+                "Lektion Fan": {grammar: "PrimaEng",
+                                tree: parseGFTree("(useS (useCl (simpleCl (usePN Augustus_PN) (complCN (useN imperator_N)))))")}
                };
 
-var DefaultB = {grammar: "GraspGer",
-                tree: parseGFTree("(StartUtt (UttS (UseCl (Perf) (Pos) (PredVP (UsePN (mary_PN))"
-                                  + " (UseVN (eat_V) (AdvNP (DetCN (DetQuant (IndefArt) (NumPl))"
-                                  + " (UseN (fish_N))) (UseAdverb (here_Adverb))))))))")
+var DefaultB = {"Lektion Apa": {grammar: "PrimaLat",
+                                tree: parseGFTree("(useS (useCl (simpleCl (usePron he_PP) (complA sapiens_A))))")},
+                "Lektion Bunte": {grammar: "PrimaLat",
+                                  tree: parseGFTree("(useS (useCl (simpleCl (useCNdefsg (useN imperator_N)) (transV tenere_V2 (useCNdefsg (useN imperium_N))))))")},
+                "Lektion Caesar": {grammar: "PrimaLat",
+                                   tree: parseGFTree("(useS (useCl (simpleCl (useCNdefsg (useN amicus_N)) (complA felix_A))))")},
+                "Lektion Dahlia": {grammar: "PrimaLat",
+                                   tree: parseGFTree("(useS (useCl (simpleCl (usePN Augustus_PN) (complCN (useN pater_N)))))")},
+                "Lektion Eufori": {grammar: "PrimaLat",
+                                   tree: parseGFTree("(useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) (usePN Augustus_PN)) (transV vincere_V2 (usePN Africa_PN)))))")},
+                "Lektion Fan": {grammar: "PrimaLat",
+                                tree: parseGFTree("(useS (useCl (simpleCl (usePN Augustus_PN) (complCN (useN amicus_N)))))")}
                };
-
 
 function server_simulation(message, parameters) {
     if (parameters && parameters.token && parameters.token !== SERVER_TOKEN) {
@@ -78,7 +87,7 @@ function server_simulation(message, parameters) {
         }
         var lesson = ALL_LESSONS[parameters.lesson];
         return server_menu_list(false, parameters.lesson, lesson.total,
-                                lesson.passed + 1, 0, DefaultA, DefaultB);
+                                lesson.passed + 1, 0, DefaultA[parameters.lesson], DefaultB[parameters.lesson]);
         break;
 
     case "CMMenuRequest":
