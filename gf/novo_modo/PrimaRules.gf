@@ -20,8 +20,7 @@ fun
   advS : Adv -> S -> S ;
   intransV : V -> VP ;
   transV : V2 -> NP -> VP ;
-  complA : A -> VP ;
-  complCN : CN -> VP ;
+  complVA : VA -> AP -> VP ;
   useS : S -> CS ;
 
 }

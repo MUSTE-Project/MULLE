@@ -4,6 +4,9 @@ concrete PrimaLexLat of PrimaLex = CatLat ** PrimaLexI
   open ParadigmsLat, ExtraLat, (I=IrregLat), Prelude in {
 
 lin
+  copula_VA = mkVA I.be_V ;
+  copula_V2 = mkV2 I.be_V Nom_Prep ;
+
   imperium_N = mkN "imperium" ;
   Romanus_A = mkA "Romanus" False;
   imperator_N = mkN "imperator" "imperatoris" masculine ;

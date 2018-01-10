@@ -18,8 +18,7 @@ lin
   advS adv s = lin S (mkS (lin Adv adv) (lin S s)) ;
   intransV v = lin VP (mkVP (lin V v)) ;
   transV v2 np = lin VP (mkVP (lin V2 v2) (lin NP np)) ;
-  complA a = lin VP (mkVP (lin A a) ) ;
-  complCN cn = lin VP (mkVP (lin CN cn)) ;
+  complVA va ap = lin VP (mkVP va ap) ;
   --    useS s = lin Utt (mkUtt (lin S s)) ;
 
 }
