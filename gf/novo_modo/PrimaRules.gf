@@ -15,7 +15,7 @@ fun
   conjNP : NP -> NP -> NP ;
   useN : N -> CN ;
   attribCN : AP -> CN -> CN ;
-  apposCNdefsg : CN -> NP -> NP ;
+  apposCNdefsg : CN -> PN -> NP ;
   useCl : Cl -> S ;
   advS : Adv -> S -> S ;
   intransV : V -> VP ;

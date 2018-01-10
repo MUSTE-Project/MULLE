@@ -13,7 +13,7 @@ lin
   conjNP np1 np2 = lin NP (mkNP and_Conj (lin NP np1) (lin NP np2)) ;
   useN n = lin CN (mkCN (lin N n)) ;
   attribCN ap cn = lin CN (mkCN (lin AP ap) (lin CN cn)) ;
-  apposCNdefsg cn np = lin NP (mkNP theSg_Det (mkCN cn np));
+  apposCNdefsg cn pn = lin NP (mkNP theSg_Det (mkCN cn (mkNP pn)));
   useCl cl = lin S (mkS (mkTemp presentTense simultaneousAnt) positivePol (lin CL cl)) ;
   advS adv s = lin S (mkS (lin Adv adv) (lin S s)) ;
   intransV v = lin VP (mkVP (lin V v)) ;

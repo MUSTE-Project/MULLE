@@ -5,7 +5,7 @@ concrete PrimaLexEng of PrimaLex = CatEng ** PrimaLexI
 lin
   imperium_N = mkN "empire" "empires" ;
   Romanus_A = mkA "Roman" ;
-  imperator_N = mkN "emperor" "emperors" ;
+  imperator_N = mkN "imperator" ;
   civitas_N = mkN "society" "societies" ;
   externus_A = compoundA (mkA "foreign") ;
   vincere_V2 = mkV2 (mkV "conquer" "conquers" "conquered" "conquered" "conquering") ;
@@ -15,12 +15,12 @@ lin
   devenire_V2 = mkV2 Irreg.become_V ;
   Gallia_PN = mkPN (mkN "Gaul") ;
   Africa_PN = mkPN "Africa" ;
-  Germanus_N = mkN "Germanic" ;
+  Germanus_N = mkN "German" ;
   hostis_N = mkN "enemy" "enemies" ;
   dicere_V = Irreg.say_V ;
 
   Augustus_PN = mkPN (mkN "Augustus") ;
-  Caesar_N = mkN "Casear" ;
+  Caesar_N = mkN "emperor" ;
 
   laetus_A = mkA "happy" "happier" ;
   anxius_A = mkA "troubled" ;
