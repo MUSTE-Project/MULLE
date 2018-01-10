@@ -47,7 +47,7 @@ var DefaultB = {"Lektion Apa": {grammar: "PrimaLat",
                 "Lektion Eufori": {grammar: "PrimaLat",
                                    tree: parseGFTree("(useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) Augustus_PN) (transV vincere_V2 (usePN Africa_PN)))))")},
                 "Lektion Fan": {grammar: "PrimaLat",
-                                tree: parseGFTree("(useS (useCl (simpleCl (usePN Augustus_PN) (complCN (useN amicus_N)))))")}
+                                tree: parseGFTree("(useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN amicus_N))))))")}
                };
 
 function server_simulation(message, parameters) {
