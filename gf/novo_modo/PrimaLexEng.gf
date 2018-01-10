@@ -2,7 +2,13 @@ concrete PrimaLexEng of PrimaLex = CatEng ** PrimaLexI
   with (Cat=CatEng), (Structural=StructuralEng), (Lexicon=LexiconEng) **
   open ParadigmsEng, (Irreg=IrregEng), (Verb=VerbEng), (Res=ResEng), Prelude in {
 
+-- Note: The English RGL cannot encode the Copula as a regular verb, this is the best we can do:
+oper verbBe = mkV "be" "is" "was" "been" "being" ;
+
 lin
+  copula_VA = mkVA verbBe ;
+  copula_V2 = mkV2 verbBe ;
+
   imperium_N = mkN "empire" "empires" ;
   Romanus_A = mkA "Roman" ;
   imperator_N = mkN "imperator" ;
