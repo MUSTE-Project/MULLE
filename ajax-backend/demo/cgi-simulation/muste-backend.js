@@ -23,29 +23,29 @@ var ALL_LESSONS = {"Lektion Apa": {total: 5, passed: 5, score: 42},
 
 
 var DefaultA = {"Lektion Apa": {grammar: "PrimaSwe",
-                                tree: parseGFTree("(useS (useCl (simpleCl (useCNindefsg (useN vinum_N)) (complA sapiens_A))))")},
+                                tree: parseGFTree("(useS (useCl (simpleCl (useCNdefsg (useN vinum_N)) (complVA copula_VA (useA sapiens_A)))))")},
                 "Lektion Bunte": {grammar: "PrimaSwe",
                                   tree: parseGFTree("(useS (useCl (simpleCl (usePN Augustus_PN) (transV tenere_V2 (useCNdefsg (useN imperium_N))))))")},
                 "Lektion Caesar": {grammar: "PrimaSwe",
-                                   tree: parseGFTree("(useS (useCl (simpleCl (usePN Augustus_PN) (complA felix_A))))")},
+                                   tree: parseGFTree("(useS (useCl (simpleCl (usePN Augustus_PN) (complVA copula_VA (useA felix_A)))))")},
                 "Lektion Dahlia": {grammar: "PrimaSwe",
-                                   tree: parseGFTree("(useS (useCl (simpleCl (usePN Augustus_PN) (complCN (useN imperator_N)))))")},
+                                   tree: parseGFTree("(useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN imperator_N))))))")},
                 "Lektion Eufori": {grammar: "PrimaSwe",
-                                   tree: parseGFTree("(useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) (usePN Augustus_PN)) (transV vincere_V2 (usePN Gallia_PN)))))")},
+                                   tree: parseGFTree("(useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) Augustus_PN) (transV vincere_V2 (usePN Gallia_PN)))))")},
                 "Lektion Fan": {grammar: "PrimaSwe",
-                                tree: parseGFTree("(useS (useCl (simpleCl (usePN Augustus_PN) (complCN (useN imperator_N)))))")}
+                                tree: parseGFTree("(useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN imperator_N))))))")}
                };
 
 var DefaultB = {"Lektion Apa": {grammar: "PrimaLat",
-                                tree: parseGFTree("(useS (useCl (simpleCl (usePron he_PP) (complA sapiens_A))))")},
+                                tree: parseGFTree("(useS (useCl (simpleCl (usePron he_PP) (complVA copula_VA (useA sapiens_A)))))")},
                 "Lektion Bunte": {grammar: "PrimaLat",
                                   tree: parseGFTree("(useS (useCl (simpleCl (useCNdefsg (useN imperator_N)) (transV tenere_V2 (useCNdefsg (useN imperium_N))))))")},
                 "Lektion Caesar": {grammar: "PrimaLat",
-                                   tree: parseGFTree("(useS (useCl (simpleCl (useCNdefsg (useN amicus_N)) (complA felix_A))))")},
+                                   tree: parseGFTree("(useS (useCl (simpleCl (useCNdefsg (useN amicus_N)) (complVA copula_VA (useA felix_A)))))")},
                 "Lektion Dahlia": {grammar: "PrimaLat",
-                                   tree: parseGFTree("(useS (useCl (simpleCl (usePN Augustus_PN) (complCN (useN pater_N)))))")},
+                                   tree: parseGFTree("(useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN pater_N))))))")},
                 "Lektion Eufori": {grammar: "PrimaLat",
-                                   tree: parseGFTree("(useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) (usePN Augustus_PN)) (transV vincere_V2 (usePN Africa_PN)))))")},
+                                   tree: parseGFTree("(useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) Augustus_PN) (transV vincere_V2 (usePN Africa_PN)))))")},
                 "Lektion Fan": {grammar: "PrimaLat",
                                 tree: parseGFTree("(useS (useCl (simpleCl (usePN Augustus_PN) (complCN (useN amicus_N)))))")}
                };
