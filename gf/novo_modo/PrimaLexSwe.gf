@@ -1,11 +1,12 @@
 concrete PrimaLexSwe of PrimaLex = CatSwe ** PrimaLexI
   with (Cat=CatSwe), (Structural=StructuralSwe), (Lexicon=LexiconSwe) **
-  open ParadigmsSwe, (Verb=VerbSwe), (Res=ResSwe), Prelude in {
+  open ParadigmsSwe, (Irreg=IrregSwe), (Verb=VerbSwe), (Res=ResSwe), Prelude in {
 
 lin  
   copula_VA = mkVA Res.verbBe ;
   copula_V2 = mkV2 Res.verbBe ;
 
+  tenere_V2 = mkV2 (mkV Irreg.ta_V "hand om") ; 
   imperium_N = mkN "imperie" "imperiet" "imperier" "imperierna" ;
   Romanus_A = mkA "romersk" ;
   imperator_N = mkN "härskare" "härskare" ;

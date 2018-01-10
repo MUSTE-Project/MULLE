@@ -4,7 +4,6 @@ incomplete concrete PrimaLexI of PrimaLex = Cat **
 lin
   magnus_A = Lexicon.big_A ;
   habere_V2 = Structural.have_V2 ;
-  tenere_V2 = Lexicon.hold_V2 ;
   multus_Det = Structural.many_Det ;
 
   he_PP = Structural.he_Pron ;

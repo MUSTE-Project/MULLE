@@ -9,7 +9,7 @@ fun
   usePN : PN -> NP ;
   usePron : Pron -> NP ;
   useCNdefsg : CN -> NP ;
-  useCNindefsg : CN -> NP ;
+  -- useCNindefsg : CN -> NP ;
   useCNindefpl : CN -> NP ;
   complexNP : Det -> CN -> NP ;
   conjNP : NP -> NP -> NP ;

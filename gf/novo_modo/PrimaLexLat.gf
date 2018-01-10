@@ -7,6 +7,7 @@ lin
   copula_VA = mkVA I.be_V ;
   copula_V2 = mkV2 I.be_V Nom_Prep ;
 
+  tenere_V2 = Lexicon.hold_V2 ;
   imperium_N = mkN "imperium" ;
   Romanus_A = mkA "Romanus" False;
   imperator_N = mkN "imperator" "imperatoris" masculine ;

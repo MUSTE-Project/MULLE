@@ -7,7 +7,7 @@ lin
   usePN pn = lin NP (mkNP (lin PN pn)) ;
   usePron pron = lin NP (mkNP (lin Pron pron)) ;
   useCNdefsg cn = lin NP (mkNP theSg_Det (lin CN cn)) ;
-  useCNindefsg cn = lin NP (mkNP aSg_Det (lin CN cn)) ;
+  -- useCNindefsg cn = lin NP (mkNP aSg_Det (lin CN cn)) ;
   useCNindefpl cn = lin NP (mkNP aPl_Det (lin CN cn));
   complexNP det cn = lin NP (mkNP (lin Det det) (lin CN cn)) ;
   conjNP np1 np2 = lin NP (mkNP and_Conj (lin NP np1) (lin NP np2)) ;

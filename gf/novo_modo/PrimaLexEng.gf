@@ -9,6 +9,7 @@ lin
   copula_VA = mkVA verbBe ;
   copula_V2 = mkV2 verbBe ;
 
+  tenere_V2 = mkV2 (Irreg.keep_V) ;
   imperium_N = mkN "empire" "empires" ;
   Romanus_A = mkA "Roman" ;
   imperator_N = mkN "imperator" ;
