@@ -34,7 +34,7 @@ instance Exception ClientMessageException
 instance Exception ReadTreeException
 
 
-data ClientTree = CT {
+data ClientTree = ClientTree {
   clanguage :: String,
   ctree :: String
   } deriving (Show) ;
@@ -73,7 +73,7 @@ data ClientMessage = CMNull
                    deriving (Show) ;
   
 instance FromJSON ClientTree where
-  parseJSON = withObject "ClientTree" $ \v -> CT
+  parseJSON = withObject "ClientTree" $ \v -> ClientTree
     <$> v .: T.pack "grammar"
     <*> v .: T.pack "tree"
     
@@ -126,7 +126,7 @@ instance FromJSON ClientMessage where
 
 instance ToJSON ClientTree where
     -- this generates a Value
-    toJSON (CT tree language) =
+    toJSON (ClientTree tree language) =
       object [
       T.pack "tree" .= tree ,
       T.pack "language" .= language
