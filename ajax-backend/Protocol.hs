@@ -34,7 +34,7 @@ handleClientRequest conn grammars prec body =
       do
         verified <- verifySession conn token
         lessons <- listLessons conn token
-        let lessonList = map (\(name,description,exercises,passed) -> Lesson name description exercises passed) lessons
+        let lessonList = map (\(name,description,exercises,passed,score) -> Lesson name description exercises passed score) lessons
         returnVerifiedMessage verified (SMLessonsList lessonList)
     handleLessonInit :: String -> String -> Map String Grammar -> LessonsPrecomputed -> IO String
     handleLessonInit token lesson grammars prec =
