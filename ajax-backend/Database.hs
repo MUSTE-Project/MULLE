@@ -211,6 +211,16 @@ startLesson conn token lesson =
     -- get user name
     let userQuery = "SELECT User FROM Session WHERE Token = ?;" :: Query
     [[user]] <- query conn userQuery [token] :: IO [[String]]
+    let checkLessonStartedQuery = "SELECT COUNT(*) FROM StartedLesson WHERE User = ? AND Lesson = ?" :: Query
+    isRunning <- (0 /=) . fromOnly . head <$> (query conn checkLessonStartedQuery [user,lesson] :: IO [Only Int])
+    if isRunning then
+      continueLesson conn user lesson
+    else
+      newLesson conn user lesson
+     
+newLesson :: Connection -> String -> String -> IO (String,String,String,String)
+newLesson conn user lesson =
+  do
     -- get exercise count
     let exerciseCountQuery = "SELECT ExerciseCount FROM Lesson WHERE Name = ?;" :: Query
     [[count]] <- query conn exerciseCountQuery [lesson] :: IO [[Int]]
@@ -226,10 +236,18 @@ startLesson conn token lesson =
     let ((sourceTree,targetTree):_) = selectedTrees
     mapM_ (\(sTree,tTree) -> execute conn insertExerciseList (lesson,user,sTree,tTree)) selectedTrees
     -- get languages
-    let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Lesson = ?" :: Query
+    let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?" :: Query
     [(sourceLang,targetLang)] <- query conn languagesQuery (Only lesson) :: IO [(String,String)]
     return (sourceLang,sourceTree,targetLang,targetTree)
-    
+
+continueLesson :: Connection -> String -> String -> IO (String,String,String,String)
+continueLesson conn user lesson =
+  do
+    let selectExerciseListQuery = "SELECT SourceTree,TargetTree FROM ExerciseList WHERE Lesson = ? AND User = ?;" :: Query
+    ((sourceTree,targetTree):_) <- query conn selectExerciseListQuery [lesson,user] :: IO [(String,String)]
+    let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?" :: Query
+    [(sourceLang,targetLang)] <- query conn languagesQuery (Only lesson) :: IO [(String,String)]
+    return (sourceLang,sourceTree,targetLang,targetTree)
 main =
   do
     putStrLn "Starting"
