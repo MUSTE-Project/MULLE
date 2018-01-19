@@ -144,10 +144,10 @@ authUser conn user pass =
   do
     -- Get password and salt from database
     let selectPasswordSaltQuery = "SELECT Password,Salt FROM User WHERE (Username == ?);" :: Query
-    [(dbPass,dbSalt)] <- (query conn selectPasswordSaltQuery [user]) :: IO [(B.ByteString,B.ByteString)]
+    userList@[(dbPass,dbSalt)] <- (query conn selectPasswordSaltQuery [user]) :: IO [(B.ByteString,B.ByteString)]
     -- Generate new password hash and compare to the stored one
     let pwHash = hashPasswd (B.pack pass) dbSalt
-    return $ pwHash == dbPass
+    return $ length userList >0 && pwHash == dbPass
 
 changePassword :: Connection -> String -> String -> String -> IO ()
 changePassword conn user oldPass newPass =
