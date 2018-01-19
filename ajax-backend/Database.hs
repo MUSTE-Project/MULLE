@@ -195,13 +195,14 @@ verifySession conn token =
     else do { execute conn deleteSessionQuery [token] ; return (False,error) }
 
 -- | List all the lessons i.e. lesson name, description and exercise count
-listLessons :: Connection -> String -> IO [(String,String,Int,Bool)]
+listLessons :: Connection -> String -> IO [(String,String,Int,Int,Int)]
 listLessons conn token =
   do
     let listUserQuery = "SELECT User FROM Session WHERE Token = ?;"
-    let listLessonsQuery = "SELECT Name,Description,ExerciseCount,Name IN (SELECT Name FROM FinishedLesson WHERE User = ?) as Passed FROM Lesson;"
+    let listLessonsQuery = "SELECT Name,Description,ExerciseCount, (SELECT COUNT(*) FROM FinishedExercise WHERE User = ? AND Lesson = Name) as Passed, (SELECT ifnull(SUM(ClickCount),0) FROM FinishedExercise WHERE User = ? AND Lesson = Name) as Score FROM Lesson;" -- TODO probably more test data?
     [[user]] <- query conn listUserQuery [token] :: IO [[String]]
-    query conn listLessonsQuery [user] :: IO [(String,String,Int,Bool)]
+    query conn listLessonsQuery [user,user] :: IO [(String,String,Int,Int,Int)]
+    
     
 -- | start a new lesson by randomly choosing the right number of exercises and adding them to the users exercise list
 startLesson :: Connection -> String -> String -> IO (String,String,String,String)
