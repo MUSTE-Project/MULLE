@@ -214,10 +214,9 @@ replaceNode oldTree _ _ =
 
 -- | The function 'generateTrees' generates a list of 'TTree's up to a certain depth given a grammar. Powered by the magic of feat
 generateTrees :: Grammar -> String -> Int -> [TTree]
-generateTrees grammar cat depth =
+generateTrees grammar cat size =
   let
-    feats = map (\d -> let f = feat grammar in (featCard f cat d,featIth f cat d)) [0..depth]
+    feats = map (\d -> let f = feat grammar in (featCard f cat d,featIth f cat d)) [0..size]
   in
-    concat $ map (\(max,fs) -> map fs [0..max-1]) feats
-
+    concatMap (\(max,fs) -> map fs [0..max-1]) feats
 

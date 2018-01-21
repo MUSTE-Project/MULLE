@@ -92,7 +92,7 @@ precomputeTrees context@(grammar,_) tree =
   let
     cat = getTreeCat tree
     lin = linearizeTree context tree
-    allTrees = generateTrees grammar cat (maxDepth tree + 2)
+    allTrees = generateTrees grammar cat (maxDepth tree + 5) -- Problem?!?
   in
     [((t,p),getScoredTrees context t p) | t <- allTrees, p <- getPathes t]
 
