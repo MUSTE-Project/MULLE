@@ -16,6 +16,13 @@ import Muste.Tree
 import Database.SQLite.Simple
 import Database hiding (main)
 import Protocol
+import Data.Time
+import Control.Monad
+
+-- Switch loggin on/off
+logging = True
+logFile = "messagelog.txt"
+
 filePath = "./demo"
 
 getFileName :: String -> String
@@ -35,8 +42,10 @@ handleRequest :: Connection -> Map String Grammar -> LessonsPrecomputed -> Reque
 handleRequest conn grammars prec request
   | isPrefixOf "/cgi"(uriPath $ reqURI request) =
       do
-        putStrLn $ "CGI" ++ (show request)
+        putStrLn $ "CGI-Request" ++ (show request)        
+        when logging (do { timestamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime ; appendFile logFile $ timestamp ++ "\t" ++ show request ++ "\n"}) 
         result <- handleClientRequest conn grammars prec (reqBody request)
+        when logging (do { timestamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime ; appendFile logFile $ timestamp ++ "\t" ++ show result ++ "\n"}) 
         return (Response 200 [("Content-type","application/json")] result)
 
   | otherwise = 
