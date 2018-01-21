@@ -100,7 +100,7 @@ function show_lessons(lessons) {
             $('<a href="">').text(lsn.name).data({lesson: lsn.name}).click(select_lesson)
         ).appendTo(item);
         $('<td>').append(
-            $('<span>').text(lsn.passed + " avklarade av " + lsn.total + " övningar, " + lsn.score + " poäng")
+            $('<span>').text(lsn.passedcount + " avklarade av " + lsn.exercisecount + " övningar, " + lsn.score + " poäng")
         ).appendTo(item);
         if (lsn.passed >= lsn.total) {
             item.addClass("greyed");
@@ -161,7 +161,7 @@ function handle_server_response(response) {
         location.reload();
         break;
         
-    case "SMLoginSuccessful":
+    case "SMLoginSuccess":
         LOGIN_TOKEN = parameters.token;
         retrieve_lessons();
         break;
@@ -229,8 +229,8 @@ function show_lin(lang, lin) {
     var sentence = $('#' + lang).empty();
     // var tree = parse_tree(DATA[lang].tree);
     for (var i=0; i<lin.length; i++) {
-        var previous = i > 0 ? lin[i-1].word : null;
-        var current = lin[i].word;
+        var previous = i > 0 ? lin[i-1].lin : null;
+        var current = lin[i].lin;
         var spacing = (previous == NOSPACING || current == NOSPACING || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
             ? ' ' : ' &nbsp; ';
         $('<span>')
