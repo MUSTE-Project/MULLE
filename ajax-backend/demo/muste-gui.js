@@ -74,6 +74,7 @@ function call_server(message, parameters) {
 	        processData: false,
             data: JSON.stringify({message: message, parameters: parameters})
         }).fail(function(jqxhr, status, error) {
+            console.log("...failed");
             alert_error(status, error);
         }).done(handle_server_response);
     }
