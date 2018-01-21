@@ -61,7 +61,7 @@ handleClientRequest conn grammars prec body =
     -- Convert between the muste suggestion output and the ajax cost trees
     suggestionToCostTree :: (Path, [(Int,[(Path,String)],TTree)]) -> (Path,[[CostTree]])
     suggestionToCostTree (path,trees) =
-      (path, [map (\(cost,lin,tree) -> CostTree cost (map (uncurry Linearization) lin) (show $ ttreeToGFAbsTree tree)) trees])
+      (path, [map (\(cost,lin,tree) -> CostTree cost (map (uncurry Linearization) lin) (showTTree tree)) trees])
     -- Checks if a linearization token matches in both trees
     matched p t1 t2 = if selectNode t1 p == selectNode t2 p then p else []
     -- gets the menus for a lesson, two trees and two languages
@@ -71,10 +71,10 @@ handleClientRequest conn grammars prec body =
           sourceTTree = gfAbsTreeToTTree grammar (read sourceTree :: Tree)
           targetTTree = gfAbsTreeToTTree grammar (read targetTree :: Tree)
           tempSourceLin = linearizeTree (grammar,read sourceLang :: Language) sourceTTree
-          tempTargetLin = linearizeTree (grammar,read sourceLang :: Language) targetTTree
+          tempTargetLin = linearizeTree (grammar,read targetLang :: Language) targetTTree
           sourceLin = map (\(path,lin) -> LinToken path lin (matched path sourceTTree targetTTree)) tempSourceLin
           sourceMenu = Menu $ fromList $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read sourceLang :: Language)) sourceTTree 
-          targetLin = map (\(path,lin) -> LinToken path lin (matched path sourceTTree targetTTree)) tempSourceLin
+          targetLin = map (\(path,lin) -> LinToken path lin (matched path sourceTTree targetTTree)) tempTargetLin
           targetMenu = Menu $ fromList $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read targetLang :: Language)) targetTTree 
         -- At the moment the menu is not really a list of menus but instead a list with only one menu as the only element
           a = ServerTree sourceLang sourceTree sourceLin sourceMenu
