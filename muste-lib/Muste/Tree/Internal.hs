@@ -149,6 +149,7 @@ ttreeToLTree tree =
     convert (TMeta cat) = LNode (mkCId cat) (-1) [LNode (mkCId "_") (-1) [LLeaf]]
     convert (TNode _ (Fun cat _) []) = LNode (mkCId cat) (-1) []
     convert (TNode _ (Fun cat _) ts) = LNode (mkCId cat) (-1) (map convert ts)
+    convert rest = error $ "Could not convert tree due to lack of types" ++ show rest
     -- Update the labels in a tree
     update :: Int -> LTree -> (Int, LTree)
     update pos LLeaf = (pos, LLeaf)
