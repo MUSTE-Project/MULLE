@@ -45,7 +45,26 @@ instance TreeC TTree where
   selectBranch (TNode _ _ trees) i
     | i < 0 || i >= length trees = Nothing
     | otherwise = Just (trees !! i)
-                 
+
+-- | A generic tree with types is in TreeC class
+instance TreeC LTree where
+  showTree = show
+  selectNode t [] = Just t
+  selectNode t [b] = selectBranch t b
+  selectNode t (hd:tl) =
+    let
+        branch = selectBranch t hd
+    in
+      case branch of {
+        Just b -> selectNode b tl ;
+        Nothing -> Nothing
+      }
+  selectBranch (LLeaf) _ = Nothing
+  selectBranch (LNode _ _ [] ) _ = Nothing
+  selectBranch (LNode _ _ trees) i
+    | i < 0 || i >= length trees = Nothing
+    | otherwise = Just (trees !! i)
+      
 -- List-related functions
 -- | The function 'listReplace' replaces an element in a 'List' if the position exists
 listReplace :: [a] -> Pos -> a -> [a]
