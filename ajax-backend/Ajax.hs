@@ -70,6 +70,9 @@ data ClientMessage = CMNull
                        ca :: ClientTree ,
                        cb :: ClientTree
                        }
+                   | CMLogoutRequest {
+                       ctoken :: String
+                       }
                    deriving (Show) ;
   
 instance FromJSON ClientTree where
@@ -121,7 +124,11 @@ instance FromJSON ClientMessage where
              <*> params .: T.pack "score"
              <*> params .: T.pack "time"
              <*> params .: T.pack "a"
-             <*> params .: T.pack "b"             
+             <*> params .: T.pack "b" ;
+        "CMLogoutRequest" ->
+            CMLogoutRequest
+            <$> params .: T.pack "token" ;
+        _ -> error ( "Unexpected message " ++ show v)
          }
 
 instance ToJSON ClientTree where
@@ -157,6 +164,10 @@ instance ToJSON ClientMessage where
     T.pack "time" .= time ,
     T.pack "a" .= a ,
     T.pack "b" .= b
+    ]
+  toJSON (CMLogoutRequest token) =
+    createMessageObject "CMLogoutRequest" $ object [
+    T.pack "token" .= token
     ]
 
      
@@ -202,6 +213,7 @@ data ServerMessage = SMNull
                    | SMLessonInvalid
                    | SMDataReceived
                    | SMDataInvalid { serror :: String }
+                   | SMLogoutResponse
                    deriving (Show) ;
 
 instance FromJSON LinToken where
@@ -269,6 +281,7 @@ instance FromJSON ServerMessage where
         "SMDataReceived" -> return SMDataReceived ;
         "SMDataInvalid" ->
             SMDataInvalid <$> fromJust params .: T.pack "error" ;
+        "SMLogoutResponse" -> return SMLogoutResponse ;
         }
 
 instance ToJSON LinToken where
@@ -354,6 +367,8 @@ instance ToJSON ServerMessage where
     createMessageObject "SMDataInvalid" $ object [
     T.pack "error" .= (String $ T.pack error)
     ]
+  toJSON SMLogoutResponse =
+    createMessageObject "SMLogoutResponse" A.Null
 
 decodeClientMessage :: String -> ClientMessage
 decodeClientMessage s =
