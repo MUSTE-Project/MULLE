@@ -58,6 +58,11 @@ handleClientRequest conn grammars prec body =
           verified <- verifySession conn token
           let (a,b) = assembleMenus lesson (langa,treea) (langb,treeb)
           returnVerifiedMessage verified (SMMenuList lesson False (clicks + 1) a b )
+    handleLogoutRequest token =
+        do
+          endSession conn token
+          return $ encodeServerMessage SMLogoutResponse
+
     -- either encode a message or create an error message dependent on the outcome of the verification of the session
     tryVerified :: (Bool,String) -> ServerMessage -> ServerMessage
     tryVerified (True,_) m = m
