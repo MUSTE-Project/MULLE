@@ -332,6 +332,7 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
 %  \node[attribute] (takesProgress) [above left=1cm and 1cm of takes] {Progress} ;
   \node[relationship] (lessonFinished) [below =2cm of user] {finished} ;
   \node[attribute] (lessonFinishedTime) [below right=1cm and 1cm of lessonFinished] {Time} ;
+  \node[attribute] (lessonFinishedClicks) [above right=1cm and 1cm of lessonFinished] {Clicks} ;
   \node[relationship] (usedBy) at (7,0) {usedBy} ;
   \node[supporting] (definedIn) [below=2cm of lesson] {definedIn} ;
   \node[relationship] (exerciseFinished) at (-7,-5) {finished} ;
@@ -366,6 +367,7 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   (lessonFinished) edge (lesson)
   % finished attributes
   (lessonFinished) edge (lessonFinishedTime)
+  (lessonFinished) edge (lessonFinishedClicks)
   % uses relationship
   (user) edge[(-] (usedBy)
   (usedBy) edge (session)
@@ -406,7 +408,7 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
   \item User $\rightarrow$ User.Username
   \item Lesson $\rightarrow$ Lesson.Name
   \end{description}
-\item FinishedLesson(\underline{Lesson},\underline{User},Time)
+\item FinishedLesson(\underline{Lesson},\underline{User},Time,ClickCount)
   \begin{description}
   \item User $\rightarrow$ User.Username
   \item Lesson $\rightarrow$ Lesson.Name
@@ -472,6 +474,7 @@ With \texttt{message} field containing the message name and \texttt{parameters} 
     Lesson TEXT,
     User TEXT,
     Time NUMERIC,
+    ClickCount NUMERIC,
     FOREIGN KEY (User) REFERENCES User(Username),
     FOREIGN KEY (Lesson) REFERENCES Lesson(Name)
     );
