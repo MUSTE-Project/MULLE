@@ -8,20 +8,25 @@ import Muste.Grammar
 import PGF
 import Data.Map ((!),Map(..),fromList)
 
+import Control.Exception
 import Database.SQLite.Simple
 
 handleClientRequest :: Connection -> Map String Grammar -> LessonsPrecomputed -> String -> IO String
 handleClientRequest conn grammars prec body =
   do
     let cm = decodeClientMessage body
-    case cm of {
-      CMLoginRequest user pass -> handleLoginRequest user pass ;
-      -- CMMOTDRequest token -> handleMOTDRequest token
-      -- CMDataRequest token context data -> handleDataRequest token context data
-      CMLessonsRequest token -> handleLessonsRequest token ;
-      CMLessonInit token lesson -> handleLessonInit token lesson grammars prec ;
-      CMMenuRequest token lesson score time a b -> handleMenuRequest token lesson score time a b
-      }
+    catch (
+      case cm of {
+        CMLoginRequest user pass -> handleLoginRequest user pass ;
+        -- CMMOTDRequest token -> handleMOTDRequest token
+        -- CMDataRequest token context data -> handleDataRequest token context data
+        CMLessonsRequest token -> handleLessonsRequest token ;
+        CMLessonInit token lesson -> handleLessonInit token lesson grammars prec ;
+        CMMenuRequest token lesson score time a b -> handleMenuRequest token lesson score time a b ;
+        CMLogoutRequest token -> handleLogoutRequest token
+        }
+      )
+      (\(DatabaseException msg) -> do { putStrLn $ "Exception: " ++ msg ; return $ encodeServerMessage SMLogoutResponse })
   where
     handleLoginRequest :: String -> String -> IO String
     handleLoginRequest user pass =

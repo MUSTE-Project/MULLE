@@ -25,6 +25,10 @@ import Test.QuickCheck
 import Data.Time.Clock
 import Data.Time.Format
 
+import Control.Exception
+
+data DatabaseException = DatabaseException String deriving (Show)
+instance Exception DatabaseException
 -- | hashPasswd returns a SHA512 hash of a PBKDF2 encoded password (SHA512,10000 iterations,1024 bytes output)
 hashPasswd :: B.ByteString -> B.ByteString -> B.ByteString
 hashPasswd pass salt =
@@ -144,11 +148,14 @@ authUser conn user pass =
   do
     -- Get password and salt from database
     let selectPasswordSaltQuery = "SELECT Password,Salt FROM User WHERE (Username == ?);" :: Query
-    userList@[(dbPass,dbSalt)] <- (query conn selectPasswordSaltQuery [user]) :: IO [(B.ByteString,B.ByteString)]
+    userList <- (query conn selectPasswordSaltQuery [user]) :: IO [(B.ByteString,B.ByteString)]
     -- Generate new password hash and compare to the stored one
-    let pwHash = hashPasswd (B.pack pass) dbSalt
-    return $ length userList >0 && pwHash == dbPass
-
+    if length userList == 1 then
+      let (dbPass,dbSalt) = head userList
+          pwHash = hashPasswd (B.pack pass) dbSalt
+      in return $ pwHash == dbPass
+    else
+      return False
 changePassword :: Connection -> String -> String -> String -> IO ()
 changePassword conn user oldPass newPass =
   do
@@ -182,15 +189,15 @@ verifySession conn token =
   do
     -- Get potential user session(s)
     let selectSessionQuery = "SELECT LastActive FROM Session WHERE Token = ?;" :: Query
-    sessions@[[lastActive]] <- query conn selectSessionQuery [token] :: IO [[Int]]
+    sessions <- query conn selectSessionQuery [token] :: IO [Only Int]
     -- from here might not be executed due to lazy evaluation...
     -- Compute the difference in time stamps
-    let oldTimeStamp = lastActive
+    let oldTimeStamp = fromOnly . head $ sessions
     timeStamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime 
     let newTimeStamp = read timeStamp :: Int
     let deleteSessionQuery = "DELETE FROM Session WHERE Token = ? ;"
     let error = if length sessions == 0 then "Not current session" else if newTimeStamp - oldTimeStamp > 60 * 30 then "Session timeout" else "More than one session"
-    -- ... until here. check if a session exists and it is has been active in the last 15 minutes
+    -- ... until here. check if a session exists and it is has been active in the last 30 minutes
     if length sessions == 1 && newTimeStamp - oldTimeStamp <= 60*30 then return (True,"")
     else do { execute conn deleteSessionQuery [token] ; return (False,error) }
 
@@ -200,8 +207,11 @@ listLessons conn token =
   do
     let listUserQuery = "SELECT User FROM Session WHERE Token = ?;"
     let listLessonsQuery = "SELECT Name,Description,ExerciseCount, (SELECT COUNT(*) FROM FinishedExercise WHERE User = ? AND Lesson = Name) as Passed, (SELECT ifnull(SUM(ClickCount),0) FROM FinishedExercise WHERE User = ? AND Lesson = Name) as Score FROM Lesson;" -- TODO probably more test data?
-    [[user]] <- query conn listUserQuery [token] :: IO [[String]]
-    query conn listLessonsQuery [user,user] :: IO [(String,String,Int,Int,Int)]
+    users <- query conn listUserQuery [token] :: IO [Only String]
+    if length users == 1 then
+      let user = fromOnly . head $ users in query conn listLessonsQuery [user,user] :: IO [(String,String,Int,Int,Int)]
+    else
+      throw $ DatabaseException "More or less than expected numbers of users"
     
     
 -- | start a new lesson by randomly choosing the right number of exercises and adding them to the users exercise list
@@ -237,8 +247,11 @@ newLesson conn user lesson =
     mapM_ (\(sTree,tTree) -> execute conn insertExerciseList (lesson,user,sTree,tTree)) selectedTrees
     -- get languages
     let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?" :: Query
-    [(sourceLang,targetLang)] <- query conn languagesQuery (Only lesson) :: IO [(String,String)]
-    return (sourceLang,sourceTree,targetLang,targetTree)
+    langs <- query conn languagesQuery (Only lesson) :: IO [(String,String)]
+    if length langs == 1 then 
+      let (sourceLang,targetLang) = head langs in return (sourceLang,sourceTree,targetLang,targetTree)
+    else
+      throw $ DatabaseException "Couldn't find the languages"
 
 continueLesson :: Connection -> String -> String -> IO (String,String,String,String)
 continueLesson conn user lesson =
