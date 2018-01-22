@@ -17,9 +17,17 @@ $(function() {
     $('#logoutbutton').click(restart_everything);
     $('#body').click(click_body);
     window.setInterval(update_timer, 100);
-    LOGIN_TOKEN = null;
-    show_page("loginpage");
-    loginform.name.focus();
+    console.log(window.sessionStorage);
+    if (window.sessionStorage.getItem("LOGIN_TOKEN") == null)
+    {
+	show_page("loginpage");
+	loginform.name.focus();
+    }
+    else
+    {
+	LOGIN_TOKEN = window.sessionStorage.getItem("LOGIN_TOKEN");
+	retrieve_lessons();
+    }
 });
 
 function elapsed_time() {
@@ -164,11 +172,13 @@ function handle_server_response(response) {
 
     switch (message) {
     case "SMLogoutResponse":
+	window.sessionStorage.removeItem("LOGIN_TOKEN");
         location.reload();
         break;
         
     case "SMLoginSuccess":
         LOGIN_TOKEN = parameters.token;
+	window.sessionStorage.setItem("LOGIN_TOKEN",LOGIN_TOKEN);
         retrieve_lessons();
         break;
 
