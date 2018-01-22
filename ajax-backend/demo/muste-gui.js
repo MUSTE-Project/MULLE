@@ -20,11 +20,14 @@ $(function() {
     loginform.name.focus();
 });
 
-
+function elapsed_time() {
+    var elapsed = new Date().getTime() - TIMER_START;
+    var secs = Math.floor(elapsed / 1000);
+    return secs;
+}
 function update_timer() {
     if (TIMER_START) {
-        var elapsed = new Date().getTime() - TIMER_START;
-        var secs = Math.floor(elapsed / 1000);
+	var secs = elapsed_time();
         $("#timer").text(secs + " s");
     }
 }
