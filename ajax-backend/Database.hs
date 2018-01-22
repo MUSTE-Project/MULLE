@@ -274,6 +274,12 @@ finishExercise conn token lesson time clicks =
     execute conn insertFinishedExerciseQuery (user, lesson, sourceTree, targetTree, time, clicks)
     -- check if all exercises finished
 
+endSession :: Connection -> String -> IO ()
+endSession conn token =
+  do
+    let deleteSessionQuery = "DELETE FROM Session WHERE Token = ?;" :: Query
+    execute conn deleteSessionQuery [token]
+    
 main =
   do
     putStrLn "Starting"
