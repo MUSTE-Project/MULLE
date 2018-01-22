@@ -9,6 +9,8 @@ var DATA = null;
 var LOGIN_TOKEN = null;
 var TIMER_START = null;
 
+var EXERCISES = [];
+
 $(function() {
     $('#loginform').submit(submit_login);
     $('#abortlesson').click(retrieve_lessons);
@@ -98,6 +100,7 @@ function show_lessons(lessons) {
     var table = $("#lessonslist");
     table.empty();
     lessons.forEach(function(lsn) {
+	EXERCISES[lsn.name] = {passed : lsn.passedcount, total : lsn.exercisecount} ;
         var item = $('<tr>');
         $('<td>').append(
             $('<a href="">').text(lsn.name).data({lesson: lsn.name}).click(select_lesson)
@@ -137,8 +140,8 @@ function show_exercise(parameters) {
     show_lin('a', DATA.a.lin);
     show_lin('b', DATA.b.lin);
     $('#score').text(DATA.score);
-    $('#lessoncounter').text(DATA.lesson + ": övning " + DATA.exercise + " av " + DATA.total);
-    if (parameters.passed) {
+    $('#lessoncounter').text(DATA.lesson + ": övning " + EXERCISES[DATA.lesson].passed + " av " + EXERCISES[DATA.lesson].total);
+    if (parameters.success) {
         var elapsed_time = Math.floor((new Date().getTime() - TIMER_START) / 1000);
         setTimeout(function(){
             alert("BRAVO!" +
