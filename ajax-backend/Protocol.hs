@@ -52,7 +52,11 @@ handleClientRequest conn grammars prec body =
     -- Check if finished here
       | treea == treeb =
         do
-          return "TODO"
+          verified <- verifySession conn token
+          -- TODO Stuff in the database
+          when (fst verified) (finishExercise conn token lesson time clicks)
+          let (a,b) = assembleMenus lesson (langa,treea) (langb,treeb)
+          returnVerifiedMessage verified (SMMenuList lesson True (clicks + 1) a b)
       | otherwise =
         do
           verified <- verifySession conn token

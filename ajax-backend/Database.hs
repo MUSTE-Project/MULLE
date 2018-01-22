@@ -256,11 +256,24 @@ newLesson conn user lesson =
 continueLesson :: Connection -> String -> String -> IO (String,String,String,String)
 continueLesson conn user lesson =
   do
-    let selectExerciseListQuery = "SELECT SourceTree,TargetTree FROM ExerciseList WHERE Lesson = ? AND User = ?;" :: Query
+    let selectExerciseListQuery = "SELECT SourceTree,TargetTree FROM ExerciseList WHERE Lesson = ? AND User = ? AND (User,SourceTree,TargetTree,Lesson) NOT IN (SELECT User,SourceTree,TargetTree,Lesson FROM FinishedExercise);" :: Query
     ((sourceTree,targetTree):_) <- query conn selectExerciseListQuery [lesson,user] :: IO [(String,String)]
     let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?" :: Query
     [(sourceLang,targetLang)] <- query conn languagesQuery (Only lesson) :: IO [(String,String)]
     return (sourceLang,sourceTree,targetLang,targetTree)
+
+finishExercise :: Connection -> String -> String -> Int -> Int -> IO ()
+finishExercise conn token lesson time clicks =
+  do
+    -- get user name
+    let userQuery = "SELECT User FROM Session WHERE Token = ?;" :: Query
+    [[user]] <- query conn userQuery [token] :: IO [[String]]
+    let selectExerciseListQuery = "SELECT SourceTree,TargetTree FROM ExerciseList WHERE Lesson = ? AND User = ? AND (User,SourceTree,TargetTree,Lesson) NOT IN (SELECT User,SourceTree,TargetTree,Lesson FROM FinishedExercise);" :: Query
+    ((sourceTree,targetTree):_) <- query conn selectExerciseListQuery [lesson,user] :: IO [(String,String)]
+    let insertFinishedExerciseQuery = "INSERT INTO FinishedExercise (User,Lesson,SourceTree,TargetTree,Time,ClickCount) VALUES (?,?,?,?,?,?);" :: Query
+    execute conn insertFinishedExerciseQuery (user, lesson, sourceTree, targetTree, time, clicks)
+    -- check if all exercises finished
+
 main =
   do
     putStrLn "Starting"
