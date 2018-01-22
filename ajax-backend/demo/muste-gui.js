@@ -200,6 +200,7 @@ function clean_server_data(data) {
             pword.path = convert_path(pword.path)
         });
     }
+    console.log(data.lin);
     clean_lin(data.lin);
     for (var path in data.menu) {
         data.menu[path].forEach(function(submenu){
@@ -321,7 +322,7 @@ function click_word(event) {
                     $('<span>').html("&empty;").appendTo(menuitem);
                 } else {
                     item.lin.forEach(function(pword){
-                        $('<span>').text(pword.word)
+                        $('<span>').text(pword.lin)
                             .addClass(pword.path.startsWith(selection) ? 'marked' : 'greyed')
                             .appendTo(menuitem);
                         $('<span>').text(" ").appendTo(menuitem);
@@ -351,6 +352,7 @@ function click_word(event) {
 function select_menuitem(item) {
     DATA[item.lang].tree = item.tree;
     DATA.token = LOGIN_TOKEN;
+    DATA.time = elapsed_time();
     call_server("CMMenuRequest", DATA);
 }
 
