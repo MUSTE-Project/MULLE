@@ -285,9 +285,6 @@ function click_word(event) {
              : /* clicked.hasClass('space')? */ path
             );
         clear_selection();
-	selection = "[" + selection.split("").map(function(item) {
-    return parseInt(item, 10);
-	}).toString() + "]";
         var menus = DATA[lang].menu[selection];
         console.log("MENU["+selection+"]", menus);
         while (!(menus && menus.length)) {
