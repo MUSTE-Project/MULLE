@@ -192,12 +192,12 @@ function handle_server_response(response) {
 
 
 function clean_server_data(data) {
-    function clean_path(path) {
-        return path.toString().replace(/[,\[\]]/g,"");
+    function convert_path(path) {
+        return "[" + path.toString() + "]" ;//.replace(/[,\[\]]/g,"");
     }
     function clean_lin(lin) {
         lin.forEach(function(pword){
-            pword.path = clean_path(pword.path)
+            pword.path = convert_path(pword.path)
         });
     }
     clean_lin(data.lin);
