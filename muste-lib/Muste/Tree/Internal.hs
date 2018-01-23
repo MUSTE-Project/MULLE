@@ -240,6 +240,4 @@ generateTrees grammar cat size =
   in
     concatMap (\(max,fs) -> map fs [0..max-1]) feats
 
-showTTree (TMeta m) = m
-showTTree (TNode id _ []) = id
-showTTree (TNode id _ cs) = id ++ " (" ++ (unwords . map showTTree) cs ++ ")"
+showTTree = showExpr [] . ttreeToGFAbsTree
