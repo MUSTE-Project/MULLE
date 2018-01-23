@@ -7,9 +7,12 @@ import Muste.Tree
 import Muste.Grammar
 import PGF
 import Data.Map ((!),Map(..),fromList)
+import qualified Data.Map.Lazy as M
 import Control.Monad
 import Control.Exception
 import Database.SQLite.Simple
+import Data.List
+import Data.Maybe
 
 handleClientRequest :: Connection -> Map String Grammar -> LessonsPrecomputed -> String -> IO String
 handleClientRequest conn grammars prec body =
@@ -53,9 +56,8 @@ handleClientRequest conn grammars prec body =
       | treea == treeb =
         do
           verified <- verifySession conn token
-          -- TODO Stuff in the database
           when (fst verified) (finishExercise conn token lesson time clicks)
-          let (a,b) = assembleMenus lesson (langa,treea) (langb,treeb)
+          let (a,b) = emptyMenus lesson (langa,treea) (langb,treeb)
           returnVerifiedMessage verified (SMMenuList lesson True (clicks + 1) a b)
       | otherwise =
         do
@@ -93,5 +95,19 @@ handleClientRequest conn grammars prec body =
         -- At the moment the menu is not really a list of menus but instead a list with only one menu as the only element
           a = ServerTree sourceLang sourceTree sourceLin sourceMenu
           b = ServerTree targetLang targetTree targetLin targetMenu
+      in
+        (a,b)
+    emptyMenus :: String -> (String,String) -> (String,String) -> (ServerTree,ServerTree)
+    emptyMenus lesson (sourceLang,sourceTree) (targetLang,targetTree) =
+      let
+        grammar = (grammars ! lesson)
+        sourceTTree = gfAbsTreeToTTree grammar (read sourceTree :: Tree)
+        targetTTree = gfAbsTreeToTTree grammar (read targetTree :: Tree)
+        tempSourceLin = linearizeTree (grammar,read sourceLang :: Language) sourceTTree
+        tempTargetLin = linearizeTree (grammar,read targetLang :: Language) targetTTree
+        sourceLin = map (\(path,lin) -> LinToken path lin (matched path sourceTTree targetTTree)) tempSourceLin
+        targetLin = map (\(path,lin) -> LinToken path lin (matched path sourceTTree targetTTree)) tempTargetLin
+        a = ServerTree sourceLang sourceTree sourceLin (Menu M.empty)
+        b = ServerTree targetLang targetTree targetLin (Menu M.empty)
       in
         (a,b)
