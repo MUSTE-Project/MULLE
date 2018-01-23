@@ -24,11 +24,13 @@ logging = True
 logFile = "messagelog.txt"
 
 filePath = "./demo"
-
+webPrefix = "/"
 getFileName :: String -> String
-getFileName "/" = "index.html"
-getFileName ('/':fn) = fn
-
+-- getFileName "/" = "index.html"
+-- getFileName ('/':fn) = fn
+getFileName name
+  | name == webPrefix = "index.html"
+  | isPrefixOf webPrefix name = drop (length webPrefix) name
 getType :: String -> String
 getType fn
   | isSuffixOf "html" fn = "text/html"
@@ -40,7 +42,7 @@ getType fn
 -- Lesson -> Grammar
 handleRequest :: Connection -> Map String Grammar -> LessonsPrecomputed -> Request -> IO Response
 handleRequest conn grammars prec request
-  | isPrefixOf "/cgi"(uriPath $ reqURI request) =
+  | isPrefixOf (webPrefix ++ "/cgi") (uriPath $ reqURI request) =
       do
         putStrLn $ "CGI-Request" ++ (show request)        
         when logging (do { timestamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime ; appendFile logFile $ timestamp ++ "\t" ++ show request ++ "\n"}) 
