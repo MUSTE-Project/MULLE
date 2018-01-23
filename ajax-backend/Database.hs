@@ -274,6 +274,16 @@ finishExercise conn token lesson time clicks =
     let insertFinishedExerciseQuery = "INSERT INTO FinishedExercise (User,Lesson,SourceTree,TargetTree,Time,ClickCount) VALUES (?,?,?,?,?,?);" :: Query
     execute conn insertFinishedExerciseQuery (user, lesson, sourceTree, targetTree, time, clicks)
     -- check if all exercises finished
+    let countFinishesExercisesQuery = "SELECT COUNT(*) FROM FinishedExercise WHERE User = ? AND Lesson = ?;" :: Query
+    let countExercisesInLesson = "SELECT ExerciseCount FROM Lesson WHERE Name = ?;" :: Query
+    let deleteStartedLessonQuery = "DELETE FROM StartedLesson WHERE User = ? AND Lesson = ? ;" :: Query
+    let insertFinishedLessonQuery = "INSERT INTO FinishedLesson (User,Lesson,Time) VALUES (?,?,(SELECT SUM(Time) FROM FinishedExercise WHERE User = ? AND Lesson = ?));"
+    [[finishedCount]] <- query conn countFinishesExercisesQuery [user,lesson] :: IO [[Int]]
+    [[exerciseCount]] <- query conn countExercisesInLesson [lesson] :: IO [[Int]]
+    if finishedCount >= exerciseCount then do
+      execute conn deleteStartedLessonQuery [user,lesson]
+      execute conn insertFinishedLessonQuery [user,lesson,user,lesson]
+    else return ()
 
 endSession :: Connection -> String -> IO ()
 endSession conn token =
