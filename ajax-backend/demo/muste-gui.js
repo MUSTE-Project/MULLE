@@ -206,7 +206,7 @@ function handle_server_response(response) {
 
 function clean_server_data(data) {
     function convert_path(path) {
-        return "[" + path.toString() + "]" ;//.replace(/[,\[\]]/g,"");
+        return path.toString().replace(/[,\[\]]/g,"");
     }
     function clean_lin(lin) {
         lin.forEach(function(pword){
@@ -215,12 +215,15 @@ function clean_server_data(data) {
     }
     console.log(data.lin);
     clean_lin(data.lin);
-    for (var path in data.menu) {
-        data.menu[path].forEach(function(submenu){
+    var oldmenu = data.menu;
+    data.menu = {};
+    for (var path in oldmenu) {
+        oldmenu[path].forEach(function(submenu){
             submenu.forEach(function(item){
                 clean_lin(item.lin);
             });
         });
+	data.menu[convert_path(path)] = oldmenu[path];
     }
 }
 
@@ -232,7 +235,7 @@ function build_matching_classes(data) {
     var matching_class = 0;
     ["a", "b"].forEach(function(lang) {
         data[lang].lin.forEach(function(token) {
-            if (token.matching && !data.matching_classes[token.path]) {
+            if (token.matched && !data.matching_classes[token.path]) {
                 data.matching_classes[token.path] = "match-" + matching_class;
                 matching_class = (matching_class + 1) % MAX_CLASSES;
             }
@@ -255,7 +258,7 @@ function show_lin(lang, lin) {
             .html(spacing).click(click_word)
             .appendTo(sentence);
         var path = lin[i].path;
-        var match = lin[i].matching;
+        var match = lin[i].matched;
         // var subtree = lookup_subtree(path, tree);
         var wordspan = $('<span>')
             .addClass('word clickable').data({nr:i, lang:lang, path:path /* , subtree:subtree */ })
@@ -335,8 +338,12 @@ function click_word(event) {
                     $('<span>').html("&empty;").appendTo(menuitem);
                 } else {
                     item.lin.forEach(function(pword){
+			var marked = pword.path.startsWith(selection);
+			//var marked = pword.path.replace(/[\[\]]/g,"").startsWith(selection.replace(/[\[\]]/g,""));
+			//var marked = selection.replace(/[\[\]]/g,"").startsWith(pword.path.replace(/[\[\]]/g,""));
+			//console.log(marked, pword.lin, pword.path.replace(/[\[\]]/g,""), selection.replace(/[\[\]]/g,""));
                         $('<span>').text(pword.lin)
-                            .addClass(pword.path.startsWith(selection) ? 'marked' : 'greyed')
+			    .addClass(marked ? 'marked' : 'greyed')
                             .appendTo(menuitem);
                         $('<span>').text(" ").appendTo(menuitem);
                     });
