@@ -42,7 +42,7 @@ getType fn
 -- Lesson -> Grammar
 handleRequest :: Connection -> Map String Grammar -> LessonsPrecomputed -> Request -> IO Response
 handleRequest conn grammars prec request
-  | isPrefixOf (webPrefix ++ "/cgi") (uriPath $ reqURI request) =
+  | isInfixOf ("/cgi") (uriPath $ reqURI request) =
       do
         putStrLn $ "CGI-Request" ++ (show request)        
         when logging (do { timestamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime ; appendFile logFile $ timestamp ++ "\t" ++ show request ++ "\n"}) 
