@@ -81,14 +81,18 @@ preAndSuffix a b =
     
 type PrecomputedTrees = [((TTree,Path),[(Int,[(Path,String)],TTree)])]
 
+-- Language -> PrecomputedTrees
 type Precomputed = M.Map Language PrecomputedTrees
+
+-- Lesson -> Precomputed
+type LessonsPrecomputed = M.Map String Precomputed
 
 precomputeTrees :: Context -> TTree -> PrecomputedTrees
 precomputeTrees context@(grammar,_) tree =
   let
     cat = getTreeCat tree
     lin = linearizeTree context tree
-    allTrees = generateTrees grammar cat (maxDepth tree + 2)
+    allTrees = generateTrees grammar cat (maxDepth tree + 5) -- Problem?!?
   in
     [((t,p),getScoredTrees context t p) | t <- allTrees, p <- getPathes t]
 
@@ -119,7 +123,7 @@ getScoredTrees context t p =
   in
     zip3 scores lins nts
     
-suggestionFromPrecomputed :: Context -> PrecomputedTrees -> TTree -> [(Path,[(Int,[(Path,String)],TTree)])]
-suggestionFromPrecomputed _ [] _ = []
-suggestionFromPrecomputed context pc key =
+suggestionFromPrecomputed :: PrecomputedTrees -> TTree -> [(Path,[(Int,[(Path,String)],TTree)])]
+suggestionFromPrecomputed [] _ = []
+suggestionFromPrecomputed pc key =
   map (\((_,p),ts) -> (p,ts)) $ filter (\((t,_),_) -> t == key) pc

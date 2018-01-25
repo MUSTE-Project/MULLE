@@ -4,22 +4,64 @@ body, button, ul {
     margin: 0;
 }
 
-body, button {
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; 
-    font-weight: 300;
-    font-size: 18pt; 
-    border: 0;
-}
-
-button {
-    background-color: transparent;
-}
-
 body, #body {
     background-color: #ccc;
     width: 100%;
     height: 100%;
 } 
+
+body, button, input, table, tr, td {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; 
+    font-weight: 300;
+    font-size: large; 
+    border: 0;
+}
+
+#loginform td, input {
+    padding: 5px 10px;
+}
+
+strong {
+    font-weight: 700;
+}
+
+/* #loginpage, #lessonspage { */
+/*     margin: 5% 20%; */
+/* } */
+
+h1 {
+    text-align: center;
+    margin: 5%;
+    /* border: 1px green solid; */
+}    
+
+#loginform table, #lessonslist {
+    margin: 5% auto;
+    /* border: 1px green solid; */
+}
+
+/* #lessonslist td { */
+/*     border: 1px red solid; */
+/* } */
+
+a {
+    background-color: white;
+    margin: 0.3em;
+    padding: 0.3em 0.6em;
+    display: inline-block;
+    border-radius: 20px;
+    text-decoration: none;
+}
+
+.greyed a {
+    background-color: #ddd;
+}
+
+
+
+button {
+    background-color: transparent;
+}
 
 #container {
     width: 100%;
@@ -57,13 +99,9 @@ input[type=radio], input[type=checkbox] {
 }
 
 .debug {
-    /* display: none; */
+    display: none;
     font-size: 50%;
     color: grey;
-}
-
-#score {
-    padding: 0 0.2em;
 }
 
 #mainmenu label, #mainmenu button {
@@ -75,6 +113,36 @@ input[type=radio], input[type=checkbox] {
 input:checked + label {
     color: black; 
     font-weight: bolder;
+}
+
+
+
+#lessoncounter {
+    padding: 5px 20px;
+    position: fixed;
+    left: 0; 
+    top: 0;
+}
+
+#abortlesson, #logoutbutton {
+    padding: 5px 20px;
+    position: fixed;
+    right: 0; 
+    top: 0;
+}
+
+#score {
+    padding: 5px 20px;
+    position: fixed;
+    left: 0; 
+    bottom: 0;
+}
+
+#timer {
+    padding: 5px 20px;
+    position: fixed;
+    right: 0; 
+    bottom: 0;
 }
 
 #busy-indicator {
@@ -100,6 +168,7 @@ input:checked + label {
 }
 
 #mainmenu-toggler, #mainmenu {
+    padding: 5px 20px;
     position: fixed; 
     right: 0; 
     top: 0;
@@ -124,14 +193,17 @@ input:checked + label {
     padding: 0 0.4em;
 }
 
-.matching {
-    background-color: #ddf;
-    border-radius: 10px;
-}
+.match-0 { background-color: #cfc }
+.match-1 { background-color: #fdd }
+.match-2 { background-color: #ffc }
+.match-3 { background-color: #cff }
+.match-4 { background-color: #eef }
 
-.correct {
-    background-color: #cfc;
+.correct { background-color: #cfc }
+
+.correct, .match {
     border-radius: 10px;
+    padding: 0 5px;
 }
 
 .highlighted {
@@ -161,7 +233,7 @@ input:checked + label {
 }
 
 .word.clickable:hover {
-    padding: 0 5px;
+    padding: 0 10px;
 }
 
 .clickable:hover, button:hover, label:hover {

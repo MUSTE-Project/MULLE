@@ -6,42 +6,57 @@
   <title>MUSTE</title>
   <link rel="stylesheet" href="muste.css" type="text/css"></link>
   <script type="text/javascript" src="jquery-1.11.1.min.js"></script>
-    <script>
-    var DefaultLangA = "PrimaEng" ;
-    var DefaultTreeA = "(useS (useCl (simpleCl (usePron he_PP) (complA Romanus_A))))";
-    var DefaultLangB = "PrimaLat" ;
-    var DefaultTreeB = "useS (useCl (simpleCl (usePN Augustus_PN) (complA laetus_A)))";
-  </script>
   <script type="text/javascript" src="muste-gui.js"></script>
   <script>
     var SERVER = "http://localhost:8080/cgi"
   </script>
 
-  <!-- Comment this out if you want to run on the server: -->
-  <!-- script type="text/javascript" src="cgi-simulation/GF.js"></script>
-  <script type="text/javascript" src="cgi-simulation/grammar.js"></script>
+  <!-- Comment this if you want to run on the server:>
+  <script type="text/javascript" src="cgi-simulation/GF.js"></script>
+  <script type="text/javascript" src="cgi-simulation/prima.js"></script>
   <script type="text/javascript" src="cgi-simulation/muste-backend.js"></script>
   <script>
     var SERVER = server_simulation;
     initialize_simulation();
-  </script -->
+  </script>
+  < End of server simulation -->
 </head>
 
 <body>
-<div id="body">
+  <div id="body">
+    <div class="page" id="loginpage">
+      <h1>MUSTE: Latinträning</h1>
+      <form id="loginform">
+        <table>
+          <tr><td><strong>Användare:</strong></td> <td><input type="text" name="name"></td></tr>
+          <tr><td><strong>Lösenord:</strong></td> <td><input type="password" name="pwd"></td>
+            <td><input type="submit" value="Login"></td></tr>
+        </table>
+      </form>      
+    </div>
 
-  <span id="score"></span>
-  <span id="busy-indicator" class="idle"></span>
-  <!-- Unicode Character 'BLACK CIRCLE' (U+25CF) -->
+    <div class="page" id="lessonspage">
+      <a href="" id="logoutbutton">Logga ut</a>
+      <h1>MUSTE: Latinträning</h1>
+      <table id="lessonslist"></table>
+    </div>
 
-  <div id="container">
-    <div id="A" class="sentence prevent-body-click"></div>
-    <div class="vertical-separator"></div>
-    <div id="B"class="sentence prevent-body-click"></div>
+    <div class="page" id="exercisepage">
+      <span id="lessoncounter"></span>
+      <span id="score"></span>
+      <span id="timer"></span>
+      <span id="busy-indicator" class="idle"></span>
+      <!-- Unicode Character 'BLACK CIRCLE' (U+25CF) -->
+      <a href="" id="abortlesson">Avbryt lektion</a>
+
+      <div id="container">
+        <div id="a" class="sentence prevent-body-click"></div>
+        <div class="vertical-separator"></div>
+        <div id="b"class="sentence prevent-body-click"></div>
+      </div>
+
+      <div id="menus" class="prevent-body-click"></div>
+    </div>
   </div>
-
-  <div id="menus" class="prevent-body-click"></div>
-
-</div>
 </body>
 </html>

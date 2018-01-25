@@ -1,2 +1,23 @@
 ajax-backend/dist
 dist
+*~
+#gf files
+*.gfo
+*.dot
+*.png
+#haskell files
+*.o
+*.hi
+*.prof
+.gitstats
+stuff
+gf/novo_modo/*.gfs
+gf/novo_modo/*.txt
+#latex files
+*.fls
+*.aux
+*.dvi
+*.fdb_latexmk
+*.log
+doc/
+gf/*.pgf
