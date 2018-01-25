@@ -1,5 +1,8 @@
 abstract SecundaLex = Cat ** {
   fun
+    copula_VA : VA ;
+    copula_V2 : V2 ;
+
     -- Vocabulary p23
     Romanus_N : N ;
     olim_Adv : Adv ;

@@ -27,7 +27,7 @@ abstract SecundaRules = Cat ** {
 --    advCN : Adv -> CN -> CN ;
     intransV : V -> VP ;
     transV : V2 -> NP -> VP ;
-    complA : A -> VP ;
+    complVA : VA -> AP -> VP ;
 --    complN : N -> VP ;
     complCN : CN -> VP ;
     prepNP : Prep -> NP -> Adv ;

@@ -1,5 +1,8 @@
 incomplete concrete SecundaLexI of SecundaLex = Cat ** open Structural, Lexicon, PrimaLex in {
   lin
+    copula_VA = PrimaLex.copula_VA ;
+    copula_V2 = PrimaLex.copula_V2 ;
+
     terra_N = Lexicon.country_N ;
     et_Conj = Structural.and_Conj ;
     cum_Prep = Structural.with_Prep ;
