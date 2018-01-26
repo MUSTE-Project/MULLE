@@ -194,8 +194,7 @@ data Lesson = Lesson {
   ldescription :: String,
   lexercisecount :: Int,
   lpassedcount :: Int,
-  lscore :: Int,
-  lenabled :: Bool
+  lscore :: Int
   } deriving Show;
 
 data ServerMessage = SMNull
@@ -253,7 +252,6 @@ instance FromJSON Lesson where
     <*> v .: T.pack "exercisecount"
     <*> v .: T.pack "passedcount"
     <*> v .: T.pack "score"
-    <*> v .: T.pack "enabled"
     
 instance FromJSON ServerMessage where
   parseJSON = withObject "ServerMessage" $ \v ->
@@ -323,14 +321,13 @@ instance ToJSON ServerTree where
       T.pack "menu" .= menu]
 
 instance ToJSON Lesson where
-  toJSON (Lesson name description exercises passed score enabled) =
+  toJSON (Lesson name description exercises passed score) =
     object [
     T.pack "name" .= name,
     T.pack "description" .= description ,
     T.pack "exercisecount" .= exercises ,
     T.pack "passedcount" .= passed ,
-    T.pack "score" .= score ,
-    T.pack "enabled" .= enabled
+    T.pack "score" .= score
     ]
 
 
