@@ -1,6 +1,11 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Main where
-import Network.Shed.Httpd
+--import Network.Shed.Httpd
 import Network.URI
+import Network.Wai.Handler.Warp
+import Network.Wai
+import Network.HTTP.Types.Status
+
 import Data.List
 import System.IO
 import Ajax
@@ -9,6 +14,7 @@ import Muste.Grammar
 import PGF
 import qualified Data.Map.Strict as Map
 import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString.Lazy as LB
 import System.Environment
 import Data.Maybe
 import Data.Map
@@ -40,28 +46,34 @@ getType fn
   | otherwise = "text/plain"
 
 -- Lesson -> Grammar
-handleRequest :: Connection -> Map String Grammar -> LessonsPrecomputed -> Request -> IO Response
-handleRequest conn grammars prec request
-  | isInfixOf ("/cgi") (uriPath $ reqURI request) =
+handleRequest :: Connection -> Map String Grammar -> LessonsPrecomputed -> Application
+handleRequest conn grammars prec request response
+  -- do
+  --   putStrLn $ B.unpack $ rawPathInfo request
+  --   putStrLn =<< (fmap show $ strictRequestBody request)
+  --   response (responseLBS status200 [] "Hello World")
+    
+  | isInfixOf ("/cgi") (B.unpack $ rawPathInfo request) =
       do
         putStrLn $ "CGI-Request" ++ (show request)        
-        when logging (do { timestamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime ; appendFile logFile $ timestamp ++ "\t" ++ show request ++ "\n"}) 
-        result <- handleClientRequest conn grammars prec (reqBody request)
+        when logging (do { timestamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime ; appendFile logFile $ timestamp ++ "\t" ++ show request ++ "\n"})
+        body <- fmap (B.unpack . LB.toStrict) $ strictRequestBody request
+        result <- handleClientRequest conn grammars prec body
         when logging (do { timestamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime ; appendFile logFile $ timestamp ++ "\t" ++ show result ++ "\n"}) 
-        return (Response 200 [("Content-type","application/json")] result)
 
+        response (responseLBS status200 [("Content-type","application/json")] $ LB.fromStrict $ B.pack result)
   | otherwise = 
       do
         putStrLn $ "HTTP" ++ (show request)
-        let file = getFileName $ uriPath $ reqURI request
+        let file = getFileName $ B.unpack $ rawPathInfo request
         let typ = getType file
         content <- B.readFile $ filePath ++ "/" ++ file
-        return (Response 200 [("Content-type",typ)] $ B.unpack content)
-
+        response (responseLBS status200 [("Content-type",B.pack typ)] $ LB.fromStrict content)
 printHelp :: IO ()
 printHelp =
   do
     putStrLn "Standalone backend for muste."
+
 
 
 main :: IO ()
@@ -72,4 +84,4 @@ main =
     (grammars,precs) <- initPrecomputed dbConn
     let isHelp = elem "--help" args
     if isHelp then printHelp
-      else do { server <- initServer 8080 (handleRequest dbConn grammars precs) ; return () }
+    else runSettings (setPort 8080 defaultSettings) (handleRequest dbConn grammars precs)
