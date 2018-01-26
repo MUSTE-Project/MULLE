@@ -37,6 +37,8 @@ getFileName :: String -> String
 getFileName name
   | name == webPrefix = "index.html"
   | isPrefixOf webPrefix name = drop (length webPrefix) name
+  | otherwise = error $ "bad name " ++ name
+    
 getType :: String -> String
 getType fn
   | isSuffixOf "html" fn = "text/html"
