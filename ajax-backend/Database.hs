@@ -26,10 +26,12 @@ import Data.Time.Clock
 import Data.Time.Format
 
 import qualified Data.Text as T
+
 import Control.Exception
 
 data DatabaseException = DatabaseException String deriving (Show)
 instance Exception DatabaseException
+
 -- | hashPasswd returns a SHA512 hash of a PBKDF2 encoded password (SHA512,10000 iterations,1024 bytes output)
 hashPasswd :: B.ByteString -> B.ByteString -> B.ByteString
 hashPasswd pass salt =
@@ -307,3 +309,4 @@ main =
     writeFile "/dev/null" (show precs)
     putStrLn "Finished, shutting down"
     close con
+
