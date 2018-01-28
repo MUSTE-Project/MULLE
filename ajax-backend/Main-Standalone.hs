@@ -49,12 +49,6 @@ getType fn
 
 -- Lesson -> Grammar
 handleRequest :: Connection -> Map String Grammar -> LessonsPrecomputed -> Application
-handleRequest conn grammars prec request response
-  -- do
-  --   putStrLn $ B.unpack $ rawPathInfo request
-  --   putStrLn =<< (fmap show $ strictRequestBody request)
-  --   response (responseLBS status200 [] "Hello World")
-    
   | isInfixOf ("/cgi") (B.unpack $ rawPathInfo request) =
       do
         putStrLn $ "CGI-Request" ++ (show request)        
