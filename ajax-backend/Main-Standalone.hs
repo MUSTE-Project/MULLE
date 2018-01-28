@@ -49,14 +49,14 @@ getType fn
 
 -- Lesson -> Grammar
 handleRequest :: Connection -> Map String Grammar -> LessonsPrecomputed -> Application
+handleRequest conn grammars prec request response    
   | isInfixOf ("/cgi") (B.unpack $ rawPathInfo request) =
       do
         putStrLn $ "CGI-Request" ++ (show request)        
-        when logging (do { timestamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime ; appendFile logFile $ timestamp ++ "\t" ++ show request ++ "\n"})
         body <- fmap (B.unpack . LB.toStrict) $ strictRequestBody request
+        when logging (do { timestamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime ; appendFile logFile $ timestamp ++ "\tCGI-Request\t" ++ show body ++ "\n"})
         result <- handleClientRequest conn grammars prec body
-        when logging (do { timestamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime ; appendFile logFile $ timestamp ++ "\t" ++ show result ++ "\n"}) 
-
+        when logging (do { timestamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime ; appendFile logFile $ timestamp ++ "\tCGI-Response\t" ++ show result ++ "\n"}) 
         response (responseLBS status200 [("Content-type","application/json")] $ LB.fromStrict $ B.pack result)
   | otherwise = 
       do
