@@ -121,7 +121,7 @@ function show_lessons(lessons) {
 	    ).appendTo(item);
 	}
         $('<td>').append(
-            $('<span>').text(lsn.passedcount + " avklarade av " + lsn.exercisecount + " övningar, " + lsn.score + " klicka i " + lsn.time + " sekunder")
+            $('<span>').text(lsn.passedcount + " avklarade av " + lsn.exercisecount + " övningar, " + lsn.score + " klick i " + lsn.time + " sekunder")
         ).appendTo(item);
         if (lsn.passed || lsn.passed >= lsn.total) {
             item.addClass("finished");
@@ -166,7 +166,7 @@ function show_exercise(parameters) {
         var elapsed_time = Math.floor((new Date().getTime() - TIMER_START) / 1000);
         setTimeout(function(){
             alert("BRAVO!" +
-                  "     Poäng: " + DATA.score +
+                  "     Klick: " + DATA.score +
                   "     Tid: " + elapsed_time + " sekunder");
             if (DATA.exercise < DATA.total) {
                 start_lesson(DATA.lesson);
