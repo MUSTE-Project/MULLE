@@ -181,14 +181,14 @@ initDB conn =
            "useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) Augustus_PN) (transV vincere_V2 (usePN Gallia_PN))))",
            "Prima Pars")] :: [(String,String,String)]
     mapM_ (execute conn insertExerciseQuery) exercises
-    let insertFinishedExerciseQuery = "INSERT INTO FinishedExercise (User,SourceTree,TargetTree,Lesson,Time,ClickCount) VALUES ('herbert','useS (useCl (simpleCl (useCNindefsg (useN vinum_N)) (complA sapiens_A)))','useS (useCl (simpleCl (usePron he_PP) (complA sapiens_A)))','Prima Pars',15,5);" :: Query
-    execute_ conn insertFinishedExerciseQuery
+    -- let insertFinishedExerciseQuery = "INSERT INTO FinishedExercise (User,SourceTree,TargetTree,Lesson,Time,ClickCount,Round) VALUES ('herbert','useS (useCl (simpleCl (useCNindefsg (useN vinum_N)) (complA sapiens_A)))','useS (useCl (simpleCl (usePron he_PP) (complA sapiens_A)))','Prima Pars',15,5,1);" :: Query
+    -- execute_ conn insertFinishedExerciseQuery
     
 -- Lesson -> Grammar
 initPrecomputed :: Connection -> IO (M.Map String Grammar, LessonsPrecomputed)
 initPrecomputed conn =
   do
-    let selectLessonsGrammarsQuery = "SELECT Name,Grammar FROM Lesson;" :: Query
+    let selectLessonsGrammarsQuery = "SELECT Name, Grammar FROM Lesson;" :: Query
     let selectStartTreesQuery = "SELECT SourceTree FROM Exercise WHERE Lesson = ?;" :: Query
     lessonGrammarList <- query_ conn selectLessonsGrammarsQuery :: IO [(String,String)]
     grammarList <- sequence $ map (\(lesson,grammarName) -> do
