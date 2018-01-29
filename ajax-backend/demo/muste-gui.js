@@ -110,16 +110,29 @@ function show_lessons(lessons) {
     lessons.forEach(function(lsn) {
 	EXERCISES[lsn.name] = {passed : lsn.passedcount, total : lsn.exercisecount} ;
         var item = $('<tr>');
+	if (lsn.enabled) {
+          $('<td>').append(
+              $('<a href="">').text(lsn.name).data({lesson: lsn.name}).click(select_lesson)
+          ).appendTo(item);
+	}
+	else {
+	    $('<td>').append(
+		$('<a href="">').text(lsn.name).data({lesson: lsn.name})
+	    ).appendTo(item);
+	}
         $('<td>').append(
-            $('<a href="">').text(lsn.name).data({lesson: lsn.name}).click(select_lesson)
+            $('<span>').text(lsn.passedcount + " avklarade av " + lsn.exercisecount + " övningar, " + lsn.score + " klick i " + lsn.time + " sekunder")
         ).appendTo(item);
-        $('<td>').append(
-            $('<span>').text(lsn.passedcount + " avklarade av " + lsn.exercisecount + " övningar, " + lsn.score + " poäng")
-        ).appendTo(item);
-        if (lsn.passed >= lsn.total) {
-            item.addClass("greyed");
+        if (lsn.passed || lsn.passed >= lsn.total) {
+            item.addClass("finished");
         }
+	if (!lsn.enabled) {
+	    item.addClass("disabled");
+	}
         item.appendTo(table);
+	var item = $('<tr>');
+	$('<td>').text(lsn.description).appendTo(item);
+	item.appendTo(table);
     });
 }
 
@@ -153,7 +166,7 @@ function show_exercise(parameters) {
         var elapsed_time = Math.floor((new Date().getTime() - TIMER_START) / 1000);
         setTimeout(function(){
             alert("BRAVO!" +
-                  "     Poäng: " + DATA.score +
+                  "     Klick: " + DATA.score +
                   "     Tid: " + elapsed_time + " sekunder");
             if (DATA.exercise < DATA.total) {
                 start_lesson(DATA.lesson);

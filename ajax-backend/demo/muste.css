@@ -57,7 +57,13 @@ a {
     background-color: #ddd;
 }
 
-
+.finished a {
+    color: green;
+}
+.disabled a {
+    color: red;
+    text-decoration: line-through;
+}
 
 button {
     background-color: transparent;

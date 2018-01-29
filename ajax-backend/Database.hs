@@ -17,7 +17,7 @@ import Crypto.Hash
 import qualified Data.ByteString.Base64 as B64
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.Char8 as LB
-
+import qualified Data.Text as T
 import qualified Data.Map.Lazy as M
 
 import Test.QuickCheck
@@ -54,22 +54,96 @@ initDB conn =
     execute_ conn "DROP TABLE IF EXISTS StartedLesson;"
     execute_ conn "DROP TABLE IF EXISTS FinishedLesson;"
     execute_ conn "DROP TABLE IF EXISTS ExerciseList";
-    execute_ conn "CREATE TABLE User (Username TEXT, Password BLOB, Salt BLOB, PRIMARY KEY(Username));"
-    execute_ conn "CREATE TABLE Session (User TEXT REFERENCES User(Username),Token TEXT, Starttime NUMERIC DEFAULT CURRENT_TIMESTAMP, LastActive NUMERIC DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(Token));"
-    execute_ conn "CREATE TABLE Lesson (Name TEXT, Description TEXT, Grammar TEXT, SourceLanguage TEXT, TargetLanguage TEXT, ExerciseCount NUMERIC, PRIMARY KEY(Name));"
-    execute_ conn "CREATE TABLE Exercise (SourceTree TEXT, TargetTree TEXT, Lesson TEXT, PRIMARY KEY(SourceTree, TargetTree, Lesson), FOREIGN KEY(Lesson) References Lesson(Name));"
-    execute_ conn "CREATE TABLE FinishedExercise (User TEXT, SourceTree TEXT, TargetTree TEXT, Lesson TEXT, Time NUMERIC, ClickCount NUMERIC, PRIMARY KEY (User,SourceTree, TargetTree, Lesson), FOREIGN KEY (User) REFERENCES User(Username), FOREIGN KEY(SourceTree, TargetTree, Lesson) REFERENCES Exercise(SourceTree, TargetTree, Lesson));"
-    execute_ conn "CREATE TABLE StartedLesson (Lesson TEXT, User TEXT, PRIMARY KEY(Lesson, User), FOREIGN KEY(Lesson) REFERENCES Lesson(Name), FOREIGN KEY(User) REFERENCES User(Username));"
-    execute_ conn "CREATE TABLE FinishedLesson (Lesson TEXT, User TEXT, Time NUMERIC, ClickCount NUMERIC, FOREIGN KEY (User) REFERENCES User(Username), FOREIGN KEY (Lesson) REFERENCES Lesson(Name));"
-    execute_ conn "CREATE TABLE ExerciseList (User TEXT, SourceTree TEXT, TargetTree TEXT, Lesson TEXT, PRIMARY KEY (User, SourceTree, TargetTree, Lesson), FOREIGN KEY(User) REFERENCES User(Username), FOREIGN KEY(SourceTree,TargetTree, Lesson) REFERENCES Exercise (SourceTree, TargetTree, Lesson));"
-    let users = [("herbert","HERBERT"),("peter","PETER"),("user1","pass1"),("user2","pass2"),("user3","pass3"),("user4","pass4"),("user5","pass5")]
-    mapM_ (\(u,p) -> addUser conn u p) users
-    let insertLessonQuery = "INSERT INTO Lesson (Name,Description,Grammar,SourceLanguage,TargetLanguage,ExerciseCount) VALUES (?,?,?,?,?,?);" :: Query
-    let lessonData = [("Prima Pars","Den första Lektionen fran boken","Prima.pgf","PrimaLat","PrimaSwe",5),
-                      ("Seconda Pars","Den andra Lektionen fran boken","Secunda.pgf","SecundaLat","SecundaSwe",8),
-                      ("Tertia Pars","Den tredje Lektionen fran boken","Tertia.pgf","TertiaLat","TertiaSwe",12),
-                      ("Quarta Pars","Den fjärde Lektionen fran boken","Quarta.pgf","QuartaLat","QuartaSwe",15)
-                     ] :: [(String,String,String,String,String,Int)]
+    let createUserTableQuery =
+          Query $ T.pack $ "CREATE TABLE User (" ++
+                              "Username TEXT NOT NULL," ++
+                              "Password BLOB NOT NULL," ++
+                              "Salt BLOB NOT NULL," ++
+                              "Enabled BOOL NOT NULL DEFAULT 0," ++
+                              "PRIMARY KEY(Username));"
+    let createSessionTableQuery =
+          Query $ T.pack $ "CREATE TABLE Session (" ++
+                             "User TEXT NOT NULL REFERENCES User(Username)," ++
+                             "Token TEXT," ++
+                             "Starttime NUMERIC NOT NULL DEFAULT CURRENT_TIMESTAMP," ++
+                             "LastActive NUMERIC NOT NULL DEFAULT CURRENT_TIMESTAMP," ++
+                             "PRIMARY KEY(Token));"
+    let createLessonTableQuery =
+          Query $ T.pack $ "CREATE TABLE Lesson (" ++
+                             "Name TEXT," ++
+                             "Description TEXT NOT NULL," ++
+                             "Grammar TEXT NOT NULL," ++
+                             "SourceLanguage TEXT NOT NULL," ++
+                             "TargetLanguage TEXT NOT NULL," ++
+                             "ExerciseCount NUMERIC NOT NULL," ++
+                             "Enabled BOOL NOT NULL DEFAULT 0," ++
+                             "Repeatable BOOL NOT NULL DEFAULT 1," ++
+                             "PRIMARY KEY(Name));"
+    let createExerciseTableQuery =
+          Query $ T.pack $ "CREATE TABLE Exercise (" ++
+                             "SourceTree TEXT," ++
+                             "TargetTree TEXT," ++
+                             "Lesson TEXT," ++
+                             "Timeout NUMERIC NOT NULL DEFAULT 0," ++
+                             "PRIMARY KEY(SourceTree, TargetTree, Lesson)," ++
+                             "FOREIGN KEY(Lesson) References Lesson(Name));"
+    let createFinishedExerciseTableQuery =
+          Query $ T.pack $ "CREATE TABLE FinishedExercise (" ++
+                             "User TEXT," ++
+                             "SourceTree TEXT," ++
+                             "TargetTree TEXT," ++
+                             "Lesson TEXT," ++
+                             "Time NUMERIC NOT NULL," ++
+                             "ClickCount NUMERIC NOT NULL," ++
+                             "Round NUMERIC NOT NULL," ++
+                             "PRIMARY KEY (User,SourceTree, TargetTree, Lesson, Round)," ++
+                             "FOREIGN KEY (User) REFERENCES User(Username)," ++
+                             "FOREIGN KEY(SourceTree, TargetTree, Lesson) REFERENCES Exercise(SourceTree, TargetTree, Lesson));"
+    let createStartedLessonTableQuery =
+          Query $ T.pack $ "CREATE TABLE StartedLesson (" ++
+                             "Lesson TEXT," ++
+                             "User TEXT," ++
+                             "Round NUMERIC NOT NULL DEFAULT 1," ++
+                             "PRIMARY KEY(Lesson, User, Round)," ++
+                             "FOREIGN KEY(Lesson) REFERENCES Lesson(Name), FOREIGN KEY(User) REFERENCES User(Username));"
+    let createFinishedLessonTableQuery =
+          Query $ T.pack $ "CREATE TABLE FinishedLesson (" ++
+                             "Lesson TEXT," ++
+                             "User TEXT," ++
+                             "Time NUMERIC NOT NULL," ++
+                             "ClickCount NUMERIC NOT NULL," ++
+                             "Round NUMERIC NOT NULL DEFAULT 1," ++
+                             "PRIMARY KEY (Lesson, User)," ++
+                             "FOREIGN KEY (User) REFERENCES User(Username)," ++
+                             "FOREIGN KEY (Lesson) REFERENCES Lesson(Name));"
+    let createExerciseListTableQuery =
+          Query $ T.pack $ "CREATE TABLE ExerciseList (" ++
+                             "User TEXT," ++
+                             "SourceTree TEXT," ++
+                             "TargetTree TEXT," ++
+                             "Lesson TEXT," ++
+                             "Round NUMERIC NOT NULL DEFAULT 1," ++
+                             "PRIMARY KEY (User, SourceTree, TargetTree, Lesson, Round)," ++
+                             "FOREIGN KEY(User) REFERENCES User(Username)," ++
+                             "FOREIGN KEY(SourceTree,TargetTree, Lesson) REFERENCES Exercise (SourceTree, TargetTree, Lesson));"
+    execute_ conn createUserTableQuery
+    execute_ conn createSessionTableQuery
+    execute_ conn createLessonTableQuery
+    execute_ conn createExerciseTableQuery
+    execute_ conn createFinishedExerciseTableQuery 
+    execute_ conn createStartedLessonTableQuery 
+    execute_ conn createFinishedLessonTableQuery
+    execute_ conn createExerciseListTableQuery
+    let users = [
+          ("herbert","HERBERT",1),
+          ("peter","PETER",1)]
+    mapM_ (\(u,p,e) -> addUser conn u p e) users
+    let insertLessonQuery = "INSERT INTO Lesson (Name,Description,Grammar,SourceLanguage,TargetLanguage,ExerciseCount,Enabled,Repeatable) VALUES (?,?,?,?,?,?,?,?);" :: Query
+    let lessonData = [("Prima Pars","Den första Lektionen fran boken \"Novo modo\"","Prima.pgf","PrimaLat","PrimaSwe",5,1,1),
+                      ("Seconda Pars","Den andra Lektionen fran boken \"Novo modo\"","Secunda.pgf","SecundaLat","SecundaSwe",8,0,1),
+                      ("Tertia Pars","Den tredje Lektionen fran boken \"Novo modo\"","Tertia.pgf","TertiaLat","TertiaSwe",12,0,1),
+                      ("Quarta Pars","Den fjärde Lektionen fran boken \"Novo modo\"","Quarta.pgf","QuartaLat","QuartaSwe",15,0,1)
+                     ] :: [(String,String,String,String,String,Int,Int,Int)]
     mapM_ (execute conn insertLessonQuery) lessonData
     let insertExerciseQuery = "INSERT INTO Exercise (SourceTree,TargetTree,Lesson) VALUES (?,?,?);" :: Query
     let exercises = [
@@ -104,14 +178,14 @@ initDB conn =
            "useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) Augustus_PN) (transV vincere_V2 (usePN Gallia_PN))))",
            "Prima Pars")] :: [(String,String,String)]
     mapM_ (execute conn insertExerciseQuery) exercises
-    let insertFinishedExerciseQuery = "INSERT INTO FinishedExercise (User,SourceTree,TargetTree,Lesson,Time,ClickCount) VALUES ('herbert','useS (useCl (simpleCl (useCNindefsg (useN vinum_N)) (complA sapiens_A)))','useS (useCl (simpleCl (usePron he_PP) (complA sapiens_A)))','Prima Pars',15,5);" :: Query
-    execute_ conn insertFinishedExerciseQuery
+    -- let insertFinishedExerciseQuery = "INSERT INTO FinishedExercise (User,SourceTree,TargetTree,Lesson,Time,ClickCount,Round) VALUES ('herbert','useS (useCl (simpleCl (useCNindefsg (useN vinum_N)) (complA sapiens_A)))','useS (useCl (simpleCl (usePron he_PP) (complA sapiens_A)))','Prima Pars',15,5,1);" :: Query
+    -- execute_ conn insertFinishedExerciseQuery
     
 -- Lesson -> Grammar
 initPrecomputed :: Connection -> IO (M.Map String Grammar, LessonsPrecomputed)
 initPrecomputed conn =
   do
-    let selectLessonsGrammarsQuery = "SELECT Name,Grammar FROM Lesson;" :: Query
+    let selectLessonsGrammarsQuery = "SELECT Name, Grammar FROM Lesson;" :: Query
     let selectStartTreesQuery = "SELECT SourceTree FROM Exercise WHERE Lesson = ?;" :: Query
     lessonGrammarList <- query_ conn selectLessonsGrammarsQuery :: IO [(String,String)]
     grammarList <- sequence $ map (\(lesson,grammarName) -> do
@@ -131,8 +205,8 @@ initPrecomputed conn =
         ) grammarList
     return (M.fromList grammarList,M.fromList preTuples)
     
-addUser :: Connection -> String -> String -> IO ()
-addUser conn user pass =
+addUser :: Connection -> String -> String -> Int -> IO ()
+addUser conn user pass enabled =
   do
     -- Create a salted password
     salt <- createSalt
@@ -141,27 +215,27 @@ addUser conn user pass =
     let deleteQuery = "DELETE FROM User WHERE Username = ?;" :: Query
     execute conn deleteQuery [user]
     -- Add new user
-    let insertQuery = "INSERT INTO User (Username, Password, Salt) VALUES (?,?,?);" :: Query
-    execute conn insertQuery (user,safePw,salt)
+    let insertQuery = "INSERT INTO User (Username, Password, Salt, Enabled) VALUES (?,?,?,?);" :: Query
+    execute conn insertQuery (user,safePw,salt,enabled)
 
 authUser :: Connection -> String -> String -> IO (Bool)
 authUser conn user pass =
   do
     -- Get password and salt from database
-    let selectPasswordSaltQuery = "SELECT Password,Salt FROM User WHERE (Username == ?);" :: Query
-    userList <- (query conn selectPasswordSaltQuery [user]) :: IO [(B.ByteString,B.ByteString)]
+    let selectPasswordSaltQuery = "SELECT Password,Salt,Enabled FROM User WHERE (Username = ?);" :: Query
+    userList <- (query conn selectPasswordSaltQuery [user]) :: IO [(B.ByteString,B.ByteString,Bool)]
     -- Generate new password hash and compare to the stored one
     if length userList == 1 then
-      let (dbPass,dbSalt) = head userList
+      let (dbPass,dbSalt,enabled) = head userList
           pwHash = hashPasswd (B.pack pass) dbSalt
-      in return $ pwHash == dbPass
+      in return $ enabled && pwHash == dbPass
     else
       return False
 changePassword :: Connection -> String -> String -> String -> IO ()
 changePassword conn user oldPass newPass =
   do
     authed <- authUser conn user oldPass
-    if authed then addUser conn user newPass else return ()
+    if authed then addUser conn user newPass 1 else return ()
                                                           
 -- | Creates a new session. at the moment overly simplified
 startSession :: Connection -> String -> IO String
@@ -203,14 +277,27 @@ verifySession conn token =
     else do { execute conn deleteSessionQuery [token] ; return (False,error) }
 
 -- | List all the lessons i.e. lesson name, description and exercise count
-listLessons :: Connection -> String -> IO [(String,String,Int,Int,Int)]
+listLessons :: Connection -> String -> IO [(String,String,Int,Int,Int,Int,Bool,Bool)]
 listLessons conn token =
   do
-    let listUserQuery = "SELECT User FROM Session WHERE Token = ?;"
-    let listLessonsQuery = "SELECT Name,Description,ExerciseCount, (SELECT COUNT(*) FROM FinishedExercise WHERE User = ? AND Lesson = Name) as Passed, (SELECT ifnull(SUM(ClickCount),0) FROM FinishedExercise WHERE User = ? AND Lesson = Name) as Score FROM Lesson;" -- TODO probably more test data?
+    let listUserQuery = "SELECT User FROM Session WHERE Token = ?;" :: Query
+    let listLessonsQuery =
+          Query $ T.pack $ "WITH userName AS (SELECT ?), " ++
+                           "maxRounds AS (SELECT Lesson,IFNULL(MAX(Round),0) AS Round FROM (SELECT * FROM StartedLesson UNION SELECT Lesson,User,Round FROM FinishedLesson)) " ++
+                           "SELECT Name, Description, ExerciseCount," ++
+                           "(SELECT COUNT(*) AS Passed FROM FinishedExercise WHERE " ++
+                           "User = (SELECT * FROM userName) AND Lesson = Name AND Round = (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)) AS Passed, " ++
+                           "(SELECT IFNULL(SUM(ClickCount),0) FROM FinishedExercise F WHERE " ++
+                           "User = (SELECT * from UserName) AND Lesson = Name  AND Round = (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)) AS Score, " ++
+                           "(SELECT IFNULL(SUM(Time),0) FROM FinishedExercise F WHERE " ++
+                           "User = (SELECT * from UserName) AND Lesson = Name  AND Round = (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)) AS Time, " ++
+                           "(SELECT IFNULL(COUNT(*),0) FROM FinishedLesson WHERE " ++
+                           "User = (SELECT * from UserName) AND Lesson = Name) AS Passed, " ++
+                           "Enabled " ++
+                           "FROM Lesson;" :: Query -- TODO probably more test data?
     users <- query conn listUserQuery [token] :: IO [Only String]
     if length users == 1 then
-      let user = fromOnly . head $ users in query conn listLessonsQuery [user,user] :: IO [(String,String,Int,Int,Int)]
+      let user = fromOnly . head $ users in query conn listLessonsQuery [user] :: IO [(String,String,Int,Int,Int,Int,Bool,Bool)]
     else
       throw $ DatabaseException "More or less than expected numbers of users"
     
@@ -235,20 +322,23 @@ newLesson conn user lesson =
     -- get exercise count
     let exerciseCountQuery = "SELECT ExerciseCount FROM Lesson WHERE Name = ?;" :: Query
     [[count]] <- query conn exerciseCountQuery [lesson] :: IO [[Int]]
+    -- get lesson round
+    let lessonRoundQuery = "SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;" :: Query
+    [[round]] <- query conn lessonRoundQuery [user,lesson] :: IO [[Int]]
     -- get all exercises for lesson
     let exerciseQuery = "SELECT SourceTree,TargetTree FROM Exercise WHERE Lesson = ?;" :: Query
     trees <- query conn exerciseQuery [lesson] :: IO [(String,String)]
     -- randomly select
     selectedTrees <- fmap (take count) $ generate $ shuffle trees
     -- save in database
-    let insertStartedLesson = "INSERT INTO StartedLesson (Lesson, User) VALUES (?,?);" :: Query
-    execute conn insertStartedLesson (lesson,user)
-    let insertExerciseList = "INSERT INTO ExerciseList (Lesson,User,SourceTree,TargetTree) VALUES (?,?,?,?);" :: Query
+    let insertStartedLesson = "INSERT INTO StartedLesson (Lesson, User, Round) VALUES (?,?,?);" :: Query
+    execute conn insertStartedLesson (lesson,user,round + 1)
+    let insertExerciseList = "INSERT INTO ExerciseList (Lesson,User,SourceTree,TargetTree,Round) VALUES (?,?,?,?,?);" :: Query
     let ((sourceTree,targetTree):_) = selectedTrees
-    mapM_ (\(sTree,tTree) -> execute conn insertExerciseList (lesson,user,sTree,tTree)) selectedTrees
+    mapM_ (\(sTree,tTree) -> execute conn insertExerciseList (lesson,user,sTree,tTree,round)) selectedTrees
     -- get languages
-    let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?" :: Query
-    langs <- query conn languagesQuery (Only lesson) :: IO [(String,String)]
+    let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;" :: Query
+    langs <- query conn languagesQuery [lesson] :: IO [(String,String)]
     if length langs == 1 then 
       let (sourceLang,targetLang) = head langs in return (sourceLang,sourceTree,targetLang,targetTree)
     else
@@ -259,8 +349,8 @@ continueLesson conn user lesson =
   do
     let selectExerciseListQuery = "SELECT SourceTree,TargetTree FROM ExerciseList WHERE Lesson = ? AND User = ? AND (User,SourceTree,TargetTree,Lesson) NOT IN (SELECT User,SourceTree,TargetTree,Lesson FROM FinishedExercise);" :: Query
     ((sourceTree,targetTree):_) <- query conn selectExerciseListQuery [lesson,user] :: IO [(String,String)]
-    let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?" :: Query
-    [(sourceLang,targetLang)] <- query conn languagesQuery (Only lesson) :: IO [(String,String)]
+    let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;" :: Query
+    [(sourceLang,targetLang)] <- query conn languagesQuery [lesson] :: IO [(String,String)]
     return (sourceLang,sourceTree,targetLang,targetTree)
 
 finishExercise :: Connection -> String -> String -> Int -> Int -> IO ()
@@ -269,20 +359,32 @@ finishExercise conn token lesson time clicks =
     -- get user name
     let userQuery = "SELECT User FROM Session WHERE Token = ?;" :: Query
     [[user]] <- query conn userQuery [token] :: IO [[String]]
+    -- get lesson round
+    let lessonRoundQuery = "SELECT ifnull(MAX(Round),1) FROM StartedLesson WHERE User = ? AND Lesson = ?;" :: Query
+    [[round]] <- query conn lessonRoundQuery [user,lesson] :: IO [[Int]]
     let selectExerciseListQuery = "SELECT SourceTree,TargetTree FROM ExerciseList WHERE Lesson = ? AND User = ? AND (User,SourceTree,TargetTree,Lesson) NOT IN (SELECT User,SourceTree,TargetTree,Lesson FROM FinishedExercise);" :: Query
     ((sourceTree,targetTree):_) <- query conn selectExerciseListQuery [lesson,user] :: IO [(String,String)]
-    let insertFinishedExerciseQuery = "INSERT INTO FinishedExercise (User,Lesson,SourceTree,TargetTree,Time,ClickCount) VALUES (?,?,?,?,?,?);" :: Query
-    execute conn insertFinishedExerciseQuery (user, lesson, sourceTree, targetTree, time, clicks)
+    let insertFinishedExerciseQuery = "INSERT INTO FinishedExercise (User,Lesson,SourceTree,TargetTree,Time,ClickCount,Round) VALUES (?,?,?,?,?,?,?);" :: Query
+    execute conn insertFinishedExerciseQuery (user, lesson, sourceTree, targetTree, time, clicks + 1, round)
     -- check if all exercises finished
-    let countFinishesExercisesQuery = "SELECT COUNT(*) FROM FinishedExercise WHERE User = ? AND Lesson = ?;" :: Query
+    let countFinishesExercisesQuery = "SELECT COUNT(*) FROM FinishedExercise F WHERE User = ? AND Lesson = ? AND Round = (SELECT MAX(Round) FROM StartedLesson WHERE User = F.User AND Lesson = F.Lesson);" :: Query
     let countExercisesInLesson = "SELECT ExerciseCount FROM Lesson WHERE Name = ?;" :: Query
     let deleteStartedLessonQuery = "DELETE FROM StartedLesson WHERE User = ? AND Lesson = ? ;" :: Query
-    let insertFinishedLessonQuery = "INSERT INTO FinishedLesson (User,Lesson,Time) VALUES (?,?,(SELECT SUM(Time) FROM FinishedExercise WHERE User = ? AND Lesson = ?));"
+    let insertFinishedLessonQuery =
+          Query $ T.pack $ "WITH userName AS (SELECT ?)," ++
+                           "lessonName AS (SELECT ?)," ++
+                           "roundCount as (SELECT MAX(Round) FROM StartedLesson WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName)) " ++
+                           "INSERT INTO FinishedLesson (User,Lesson,Time,ClickCount,Round) VALUES " ++
+                           "((SELECT * FROM userName)," ++
+                           "(SELECT * FROM lessonName)," ++
+                           "(SELECT SUM(Time) FROM FinishedExercise WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName) AND Round = (SELECT * FROM roundCount))," ++
+                           "(SELECT SUM(clickcount) FROM FinishedExercise WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName) AND Round = (SELECT * FROM roundCount))," ++
+                           "(SELECT * FROM roundCount));"
     [[finishedCount]] <- query conn countFinishesExercisesQuery [user,lesson] :: IO [[Int]]
     [[exerciseCount]] <- query conn countExercisesInLesson [lesson] :: IO [[Int]]
     if finishedCount >= exerciseCount then do
+      execute conn insertFinishedLessonQuery [user,lesson]
       execute conn deleteStartedLessonQuery [user,lesson]
-      execute conn insertFinishedLessonQuery [user,lesson,user,lesson]
     else return ()
 
 endSession :: Connection -> String -> IO ()
