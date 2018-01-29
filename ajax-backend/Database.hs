@@ -280,17 +280,29 @@ verifySession conn token =
     else do { execute conn deleteSessionQuery [token] ; return (False,error) }
 
 -- | List all the lessons i.e. lesson name, description and exercise count
-listLessons :: Connection -> String -> IO [(String,String,Int,Int,Int,Bool)]
+listLessons :: Connection -> String -> IO [(String,String,Int,Int,Int)]
 listLessons conn token =
   do
     let listUserQuery = "SELECT User FROM Session WHERE Token = ?;" :: Query
-    let listLessonsQuery = Query (T.pack $ "SELECT Name,Description,ExerciseCount," ++
-                           "(SELECT COUNT(*) FROM FinishedExercise WHERE User = ? AND Lesson = Name) as Passed," ++
-                           "(SELECT ifnull(SUM(ClickCount),0) FROM FinishedExercise WHERE User = ? AND Lesson = Name) as Score," ++
-                           "(Passed AND Repeateable AND Enabled) AS Doable FROM Lesson;") :: Query -- TODO probably more test data?
+    let listLessonsQuery =
+          -- Query $T.pack $ "WITH userName AS (SELECT ?)," ++
+          --                 "roundsCount AS (SELECT Lesson,ifnull(MAX(Round),0) AS Round FROM FinishedLesson F WHERE User = (SELECT * FROM userName))" ++
+          --                 "activeLesson AS (SELECT Lesson, ((SELECT COUNT(*) FROM StartedLesson WHERE Lesson = L.Lesson) AND) AS Active FROM Lesson L),
+          --                 "SELECT Name, Description, ExerciseCount," ++
+          --                 "(SELECT COUNT(*) FROM FinishedExercise WHERE User = (SELECT * FROM userName) AND Lesson = Name AND (SELECT Active FROM activeLesson WHERE Lesson = Name)) as Passed," ++
+          --                  "(SELECT ifnull(SUM(ClickCount),0) FROM FinishedExercise F WHERE User = ? AND Lesson = Name  AND (SELECT Active FROM activeLesson WHERE Lesson = Name)) as Score " ++
+          --                  "FROM Lesson L;") :: Query -- TODO probably more test data?
+          Query $ T.pack $ "WITH userName AS (SELECT ?), " ++
+                           "maxRounds AS (SELECT Lesson,IFNULL(MAX(Round),0) AS Round FROM (SELECT * FROM StartedLesson UNION SELECT Lesson,User,Round FROM FinishedLesson)) " ++
+                           "SELECT Name, Description, ExerciseCount," ++
+                           "(SELECT COUNT(*) AS Passed FROM FinishedExercise WHERE " ++
+                           "User = (SELECT * FROM userName) AND Lesson = Name AND Round = (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)) AS Passed, " ++
+                           "(SELECT IFNULL(SUM(ClickCount),0) FROM FinishedExercise F WHERE " ++
+                           "User = (SELECT * from UserName) AND Lesson = Name  AND Round = (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)) AS Score " ++
+                           "FROM Lesson;" :: Query -- TODO probably more test data?
     users <- query conn listUserQuery [token] :: IO [Only String]
     if length users == 1 then
-      let user = fromOnly . head $ users in query conn listLessonsQuery [user,user] :: IO [(String,String,Int,Int,Int,Bool)]
+      let user = fromOnly . head $ users in query conn listLessonsQuery [user] :: IO [(String,String,Int,Int,Int)]
     else
       throw $ DatabaseException "More or less than expected numbers of users"
     
@@ -315,20 +327,23 @@ newLesson conn user lesson =
     -- get exercise count
     let exerciseCountQuery = "SELECT ExerciseCount FROM Lesson WHERE Name = ?;" :: Query
     [[count]] <- query conn exerciseCountQuery [lesson] :: IO [[Int]]
+    -- get lesson round
+    let lessonRoundQuery = "SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;" :: Query
+    [[round]] <- query conn lessonRoundQuery [user,lesson] :: IO [[Int]]
     -- get all exercises for lesson
     let exerciseQuery = "SELECT SourceTree,TargetTree FROM Exercise WHERE Lesson = ?;" :: Query
     trees <- query conn exerciseQuery [lesson] :: IO [(String,String)]
     -- randomly select
     selectedTrees <- fmap (take count) $ generate $ shuffle trees
     -- save in database
-    let insertStartedLesson = "INSERT INTO StartedLesson (Lesson, User) VALUES (?,?);" :: Query
-    execute conn insertStartedLesson (lesson,user)
-    let insertExerciseList = "INSERT INTO ExerciseList (Lesson,User,SourceTree,TargetTree) VALUES (?,?,?,?);" :: Query
+    let insertStartedLesson = "INSERT INTO StartedLesson (Lesson, User, Round) VALUES (?,?,?);" :: Query
+    execute conn insertStartedLesson (lesson,user,round + 1)
+    let insertExerciseList = "INSERT INTO ExerciseList (Lesson,User,SourceTree,TargetTree,Round) VALUES (?,?,?,?,?);" :: Query
     let ((sourceTree,targetTree):_) = selectedTrees
-    mapM_ (\(sTree,tTree) -> execute conn insertExerciseList (lesson,user,sTree,tTree)) selectedTrees
+    mapM_ (\(sTree,tTree) -> execute conn insertExerciseList (lesson,user,sTree,tTree,round)) selectedTrees
     -- get languages
-    let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Exercise WHERE Lesson = ? AND SourceTree = ? AND TargetTree = ?;" :: Query
-    langs <- query conn languagesQuery [lesson,sourceTree,targetTree] :: IO [(String,String)]
+    let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;" :: Query
+    langs <- query conn languagesQuery [lesson] :: IO [(String,String)]
     if length langs == 1 then 
       let (sourceLang,targetLang) = head langs in return (sourceLang,sourceTree,targetLang,targetTree)
     else
@@ -339,8 +354,8 @@ continueLesson conn user lesson =
   do
     let selectExerciseListQuery = "SELECT SourceTree,TargetTree FROM ExerciseList WHERE Lesson = ? AND User = ? AND (User,SourceTree,TargetTree,Lesson) NOT IN (SELECT User,SourceTree,TargetTree,Lesson FROM FinishedExercise);" :: Query
     ((sourceTree,targetTree):_) <- query conn selectExerciseListQuery [lesson,user] :: IO [(String,String)]
-    let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Exercise WHERE Lesson = ? AND SourceTree = ? AND TargetTree = ?;" :: Query
-    [(sourceLang,targetLang)] <- query conn languagesQuery [lesson,sourceTree,targetTree] :: IO [(String,String)]
+    let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;" :: Query
+    [(sourceLang,targetLang)] <- query conn languagesQuery [lesson] :: IO [(String,String)]
     return (sourceLang,sourceTree,targetLang,targetTree)
 
 finishExercise :: Connection -> String -> String -> Int -> Int -> IO ()
@@ -349,21 +364,33 @@ finishExercise conn token lesson time clicks =
     -- get user name
     let userQuery = "SELECT User FROM Session WHERE Token = ?;" :: Query
     [[user]] <- query conn userQuery [token] :: IO [[String]]
+    -- get lesson round
+    let lessonRoundQuery = "SELECT ifnull(MAX(Round),1) FROM StartedLesson WHERE User = ? AND Lesson = ?;" :: Query
+    [[round]] <- query conn lessonRoundQuery [user,lesson] :: IO [[Int]]
     let selectExerciseListQuery = "SELECT SourceTree,TargetTree FROM ExerciseList WHERE Lesson = ? AND User = ? AND (User,SourceTree,TargetTree,Lesson) NOT IN (SELECT User,SourceTree,TargetTree,Lesson FROM FinishedExercise);" :: Query
     ((sourceTree,targetTree):_) <- query conn selectExerciseListQuery [lesson,user] :: IO [(String,String)]
-    let insertFinishedExerciseQuery = "INSERT INTO FinishedExercise (User,Lesson,SourceTree,TargetTree,Time,ClickCount) VALUES (?,?,?,?,?,?);" :: Query
-    execute conn insertFinishedExerciseQuery (user, lesson, sourceTree, targetTree, time, clicks)
+    let insertFinishedExerciseQuery = "INSERT INTO FinishedExercise (User,Lesson,SourceTree,TargetTree,Time,ClickCount,Round) VALUES (?,?,?,?,?,?,?);" :: Query
+    execute conn insertFinishedExerciseQuery (user, lesson, sourceTree, targetTree, time, clicks + 1, round)
     -- TODO finish lesson
     -- check if all exercises finished
-    let countFinishesExercisesQuery = "SELECT COUNT(*) FROM FinishedExercise WHERE User = ? AND Lesson = ?;" :: Query
+    let countFinishesExercisesQuery = "SELECT COUNT(*) FROM FinishedExercise F WHERE User = ? AND Lesson = ? AND Round = (SELECT MAX(Round) FROM StartedLesson WHERE User = F.User AND Lesson = F.Lesson);" :: Query
     let countExercisesInLesson = "SELECT ExerciseCount FROM Lesson WHERE Name = ?;" :: Query
     let deleteStartedLessonQuery = "DELETE FROM StartedLesson WHERE User = ? AND Lesson = ? ;" :: Query
-    let insertFinishedLessonQuery = "INSERT INTO FinishedLesson (User,Lesson,Time) VALUES (?,?,(SELECT SUM(Time) FROM FinishedExercise WHERE User = ? AND Lesson = ?));"
+    let insertFinishedLessonQuery =
+          Query $ T.pack $ "WITH userName AS (SELECT ?)," ++
+                           "lessonName AS (SELECT ?)," ++
+                           "roundCount as (SELECT MAX(Round) FROM StartedLesson WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName)) " ++
+                           "INSERT INTO FinishedLesson (User,Lesson,Time,ClickCount,Round) VALUES " ++
+                           "((SELECT * FROM userName)," ++
+                           "(SELECT * FROM lessonName)," ++
+                           "(SELECT SUM(Time) FROM FinishedExercise WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName) AND Round = (SELECT * FROM roundCount))," ++
+                           "(SELECT SUM(clickcount) FROM FinishedExercise WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName) AND Round = (SELECT * FROM roundCount))," ++
+                           "(SELECT * FROM roundCount));"
     [[finishedCount]] <- query conn countFinishesExercisesQuery [user,lesson] :: IO [[Int]]
     [[exerciseCount]] <- query conn countExercisesInLesson [lesson] :: IO [[Int]]
     if finishedCount >= exerciseCount then do
+      execute conn insertFinishedLessonQuery [user,lesson]
       execute conn deleteStartedLessonQuery [user,lesson]
-      execute conn insertFinishedLessonQuery [user,lesson,user,lesson]
     else return ()
 
 endSession :: Connection -> String -> IO ()
