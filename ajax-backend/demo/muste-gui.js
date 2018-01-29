@@ -130,6 +130,9 @@ function show_lessons(lessons) {
 	    item.addClass("disabled");
 	}
         item.appendTo(table);
+	var item = $('<tr>');
+	$('<td>').text(lsn.description).appendTo(item);
+	item.appendTo(table);
     });
 }
 
