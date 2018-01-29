@@ -219,7 +219,7 @@ addUser conn user pass enabled =
     execute conn deleteQuery [user]
     -- Add new user
     let insertQuery = "INSERT INTO User (Username, Password, Salt, Enabled) VALUES (?,?,?,?);" :: Query
-    execute conn insertQuery (user,safePw,salt)
+    execute conn insertQuery (user,safePw,salt,enabled)
 
 authUser :: Connection -> String -> String -> IO (Bool)
 authUser conn user pass =
