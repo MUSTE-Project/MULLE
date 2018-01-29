@@ -57,14 +57,86 @@ initDB conn =
     execute_ conn "DROP TABLE IF EXISTS StartedLesson;"
     execute_ conn "DROP TABLE IF EXISTS FinishedLesson;"
     execute_ conn "DROP TABLE IF EXISTS ExerciseList";
-    execute_ conn "CREATE TABLE User (Username TEXT NOT NULL, Password BLOB NOT NULL, Salt BLOB NOT NULL, enabled BOOL NOT NULL DEFAULT 0, PRIMARY KEY(Username));"
-    execute_ conn "CREATE TABLE Session (User TEXT NOT NULL REFERENCES User(Username), Token TEXT, Starttime NUMERIC NOT NULL DEFAULT CURRENT_TIMESTAMP, LastActive NUMERIC NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(Token));"
-    execute_ conn "CREATE TABLE Lesson (Name TEXT, Description TEXT NOT NULL, ExerciseCount NUMERIC NOT NULL, Enabled BOOL NOT NULL DEFAULT 0, Repeatable BOOL DEFAULT 1, PRIMARY KEY(Name));"
-    execute_ conn "CREATE TABLE Exercise (SourceTree TEXT, TargetTree TEXT, Lesson TEXT, Grammar TEXT NOT NULL, SourceLanguage TEXT NOT NULL, TargetLanguage TEXT NOT NULL, Timeout NUMERIC NOT NULL DEFAULT 0, PRIMARY KEY(SourceTree, TargetTree, Lesson), FOREIGN KEY(Lesson) References Lesson(Name));"
-    execute_ conn "CREATE TABLE FinishedExercise (User TEXT, SourceTree TEXT, TargetTree TEXT, Lesson TEXT, Time NUMERIC NOT NULL, ClickCount NUMERIC NOT NULL, Ignore BOOL NOT NULL DEFAULT 0, PRIMARY KEY (User,SourceTree, TargetTree, Lesson), FOREIGN KEY (User) REFERENCES User(Username), FOREIGN KEY(SourceTree, TargetTree, Lesson) REFERENCES Exercise(SourceTree, TargetTree, Lesson));"
-    execute_ conn "CREATE TABLE StartedLesson (Lesson TEXT, User TEXT, PRIMARY KEY(Lesson, User), FOREIGN KEY(Lesson) REFERENCES Lesson(Name), FOREIGN KEY(User) REFERENCES User(Username));"
-    execute_ conn "CREATE TABLE FinishedLesson (Lesson TEXT, User TEXT, Time NUMERIC NOT NULL, ClickCount NUMERIC NOT NULL, PRIMARY KEY (Lesson, User), FOREIGN KEY (User) REFERENCES User(Username), FOREIGN KEY (Lesson) REFERENCES Lesson(Name));"
-    execute_ conn "CREATE TABLE ExerciseList (User TEXT, SourceTree TEXT, TargetTree TEXT, Lesson TEXT, PRIMARY KEY (User, SourceTree, TargetTree, Lesson), FOREIGN KEY(User) REFERENCES User(Username), FOREIGN KEY(SourceTree,TargetTree, Lesson) REFERENCES Exercise (SourceTree, TargetTree, Lesson));"
+    let createUserTableQuery =
+          Query $ T.pack $ "CREATE TABLE User (" ++
+                              "Username TEXT NOT NULL," ++
+                              "Password BLOB NOT NULL," ++
+                              "Salt BLOB NOT NULL," ++
+                              "Enabled BOOL NOT NULL DEFAULT 0," ++
+                              "PRIMARY KEY(Username));"
+    let createSessionTableQuery =
+          Query $ T.pack $ "CREATE TABLE Session (" ++
+                             "User TEXT NOT NULL REFERENCES User(Username)," ++
+                             "Token TEXT," ++
+                             "Starttime NUMERIC NOT NULL DEFAULT CURRENT_TIMESTAMP," ++
+                             "LastActive NUMERIC NOT NULL DEFAULT CURRENT_TIMESTAMP," ++
+                             "PRIMARY KEY(Token));"
+    let createLessonTableQuery =
+          Query $ T.pack $ "CREATE TABLE Lesson (" ++
+                             "Name TEXT," ++
+                             "Description TEXT NOT NULL," ++
+                             "Grammar TEXT NOT NULL," ++
+                             "SourceLanguage TEXT NOT NULL," ++
+                             "TargetLanguage TEXT NOT NULL," ++
+                             "ExerciseCount NUMERIC NOT NULL," ++
+                             "Enabled BOOL NOT NULL DEFAULT 0," ++
+                             "Repeatable BOOL NOT NULL DEFAULT 1," ++
+                             "PRIMARY KEY(Name));"
+    let createExerciseTableQuery =
+          Query $ T.pack $ "CREATE TABLE Exercise (" ++
+                             "SourceTree TEXT," ++
+                             "TargetTree TEXT," ++
+                             "Lesson TEXT," ++
+                             "Timeout NUMERIC NOT NULL DEFAULT 0," ++
+                             "PRIMARY KEY(SourceTree, TargetTree, Lesson)," ++
+                             "FOREIGN KEY(Lesson) References Lesson(Name));"
+    let createFinishedExerciseTableQuery =
+          Query $ T.pack $ "CREATE TABLE FinishedExercise (" ++
+                             "User TEXT," ++
+                             "SourceTree TEXT," ++
+                             "TargetTree TEXT," ++
+                             "Lesson TEXT," ++
+                             "Time NUMERIC NOT NULL," ++
+                             "ClickCount NUMERIC NOT NULL," ++
+                             "Round NUMERIC NOT NULL," ++
+                             "PRIMARY KEY (User,SourceTree, TargetTree, Lesson, Round)," ++
+                             "FOREIGN KEY (User) REFERENCES User(Username)," ++
+                             "FOREIGN KEY(SourceTree, TargetTree, Lesson) REFERENCES Exercise(SourceTree, TargetTree, Lesson));"
+    let createStartedLessonTableQuery =
+          Query $ T.pack $ "CREATE TABLE StartedLesson (" ++
+                             "Lesson TEXT," ++
+                             "User TEXT," ++
+                             "Round NUMERIC NOT NULL DEFAULT 1," ++
+                             "PRIMARY KEY(Lesson, User, Round)," ++
+                             "FOREIGN KEY(Lesson) REFERENCES Lesson(Name), FOREIGN KEY(User) REFERENCES User(Username));"
+    let createFinishedLessonTableQuery =
+          Query $ T.pack $ "CREATE TABLE FinishedLesson (" ++
+                             "Lesson TEXT," ++
+                             "User TEXT," ++
+                             "Time NUMERIC NOT NULL," ++
+                             "ClickCount NUMERIC NOT NULL," ++
+                             "Round NUMERIC NOT NULL DEFAULT 1," ++
+                             "PRIMARY KEY (Lesson, User)," ++
+                             "FOREIGN KEY (User) REFERENCES User(Username)," ++
+                             "FOREIGN KEY (Lesson) REFERENCES Lesson(Name));"
+    let createExerciseListTableQuery =
+          Query $ T.pack $ "CREATE TABLE ExerciseList (" ++
+                             "User TEXT," ++
+                             "SourceTree TEXT," ++
+                             "TargetTree TEXT," ++
+                             "Lesson TEXT," ++
+                             "Round NUMERIC NOT NULL DEFAULT 1," ++
+                             "PRIMARY KEY (User, SourceTree, TargetTree, Lesson, Round)," ++
+                             "FOREIGN KEY(User) REFERENCES User(Username)," ++
+                             "FOREIGN KEY(SourceTree,TargetTree, Lesson) REFERENCES Exercise (SourceTree, TargetTree, Lesson));"
+    execute_ conn createUserTableQuery
+    execute_ conn createSessionTableQuery
+    execute_ conn createLessonTableQuery
+    execute_ conn createExerciseTableQuery
+    execute_ conn createFinishedExerciseTableQuery 
+    execute_ conn createStartedLessonTableQuery 
+    execute_ conn createFinishedLessonTableQuery
+    execute_ conn createExerciseListTableQuery
     let users = [
           ("herbert","HERBERT",1),
           ("peter","PETER",1)]
