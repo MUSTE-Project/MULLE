@@ -225,13 +225,13 @@ authUser :: Connection -> String -> String -> IO (Bool)
 authUser conn user pass =
   do
     -- Get password and salt from database
-    let selectPasswordSaltQuery = "SELECT Password,Salt FROM User WHERE (Username == ?);" :: Query
-    userList <- (query conn selectPasswordSaltQuery [user]) :: IO [(B.ByteString,B.ByteString)]
+    let selectPasswordSaltQuery = "SELECT Password,Salt,Enabled FROM User WHERE (Username = ?);" :: Query
+    userList <- (query conn selectPasswordSaltQuery [user]) :: IO [(B.ByteString,B.ByteString,Bool)]
     -- Generate new password hash and compare to the stored one
     if length userList == 1 then
-      let (dbPass,dbSalt) = head userList
+      let (dbPass,dbSalt,enabled) = head userList
           pwHash = hashPasswd (B.pack pass) dbSalt
-      in return $ pwHash == dbPass
+      in return $ enabled && pwHash == dbPass
     else
       return False
 changePassword :: Connection -> String -> String -> String -> IO ()
