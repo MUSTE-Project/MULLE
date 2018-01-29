@@ -143,9 +143,9 @@ initDB conn =
     mapM_ (\(u,p,e) -> addUser conn u p e) users
     let insertLessonQuery = "INSERT INTO Lesson (Name,Description,Grammar,SourceLanguage,TargetLanguage,ExerciseCount,Enabled,Repeatable) VALUES (?,?,?,?,?,?,?,?);" :: Query
     let lessonData = [("Prima Pars","Den första Lektionen fran boken","Prima.pgf","PrimaLat","PrimaSwe",5,1,1),
-                      ("Seconda Pars","Den andra Lektionen fran boken","Secunda.pgf","SecundaLat","SecundaSwe",8,1,1),
-                      ("Tertia Pars","Den tredje Lektionen fran boken","Tertia.pgf","TertiaLat","TertiaSwe",12,1,1),
-                      ("Quarta Pars","Den fjärde Lektionen fran boken","Quarta.pgf","QuartaLat","QuartaSwe",15,1,1)
+                      ("Seconda Pars","Den andra Lektionen fran boken","Secunda.pgf","SecundaLat","SecundaSwe",8,0,1),
+                      ("Tertia Pars","Den tredje Lektionen fran boken","Tertia.pgf","TertiaLat","TertiaSwe",12,0,1),
+                      ("Quarta Pars","Den fjärde Lektionen fran boken","Quarta.pgf","QuartaLat","QuartaSwe",15,0,1)
                      ] :: [(String,String,String,String,String,Int,Int,Int)]
     mapM_ (execute conn insertLessonQuery) lessonData
     let insertExerciseQuery = "INSERT INTO Exercise (SourceTree,TargetTree,Lesson) VALUES (?,?,?);" :: Query
