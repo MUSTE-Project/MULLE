@@ -110,6 +110,16 @@ function show_lessons(lessons) {
     lessons.forEach(function(lsn) {
 	EXERCISES[lsn.name] = {passed : lsn.passedcount, total : lsn.exercisecount} ;
         var item = $('<tr>');
+	if (lsn.enabled) {
+          $('<td>').append(
+              $('<a href="">').text(lsn.name).data({lesson: lsn.name}).click(select_lesson)
+          ).appendTo(item);
+	}
+	else {
+	    $('<td>').append(
+		$('<a href="">').text(lsn.name).data({lesson: lsn.name})
+	    ).appendTo(item);
+	}
         $('<td>').append(
             $('<a href="">').text(lsn.name).data({lesson: lsn.name}).click(select_lesson)
         ).appendTo(item);
@@ -119,6 +129,9 @@ function show_lessons(lessons) {
         if (lsn.passed >= lsn.total) {
             item.addClass("greyed");
         }
+	if (!lsn.enabled) {
+	    item.addClass("disabled");
+	}
         item.appendTo(table);
     });
 }
