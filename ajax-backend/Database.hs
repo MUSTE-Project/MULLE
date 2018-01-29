@@ -285,13 +285,6 @@ listLessons conn token =
   do
     let listUserQuery = "SELECT User FROM Session WHERE Token = ?;" :: Query
     let listLessonsQuery =
-          -- Query $T.pack $ "WITH userName AS (SELECT ?)," ++
-          --                 "roundsCount AS (SELECT Lesson,ifnull(MAX(Round),0) AS Round FROM FinishedLesson F WHERE User = (SELECT * FROM userName))" ++
-          --                 "activeLesson AS (SELECT Lesson, ((SELECT COUNT(*) FROM StartedLesson WHERE Lesson = L.Lesson) AND) AS Active FROM Lesson L),
-          --                 "SELECT Name, Description, ExerciseCount," ++
-          --                 "(SELECT COUNT(*) FROM FinishedExercise WHERE User = (SELECT * FROM userName) AND Lesson = Name AND (SELECT Active FROM activeLesson WHERE Lesson = Name)) as Passed," ++
-          --                  "(SELECT ifnull(SUM(ClickCount),0) FROM FinishedExercise F WHERE User = ? AND Lesson = Name  AND (SELECT Active FROM activeLesson WHERE Lesson = Name)) as Score " ++
-          --                  "FROM Lesson L;") :: Query -- TODO probably more test data?
           Query $ T.pack $ "WITH userName AS (SELECT ?), " ++
                            "maxRounds AS (SELECT Lesson,IFNULL(MAX(Round),0) AS Round FROM (SELECT * FROM StartedLesson UNION SELECT Lesson,User,Round FROM FinishedLesson)) " ++
                            "SELECT Name, Description, ExerciseCount," ++
