@@ -141,45 +141,45 @@ initDB conn =
           ("herbert","HERBERT",1),
           ("peter","PETER",1)]
     mapM_ (\(u,p,e) -> addUser conn u p e) users
-    let insertLessonQuery = "INSERT INTO Lesson (Name,Description,ExerciseCount,Enabled,Repeatable) VALUES (?,?,?,?,?);" :: Query
-    let lessonData = [("Prima Pars","Den första Lektionen fran boken",5,1,1),
-                      ("Seconda Pars","Den andra Lektionen fran boken",8,1,1),
-                      ("Tertia Pars","Den tredje Lektionen fran boken",12,1,1),
-                      ("Quarta Pars","Den fjärde Lektionen fran boken",15,1,1)
-                     ] :: [(String,String,Int,Int,Int)]
+    let insertLessonQuery = "INSERT INTO Lesson (Name,Description,Grammar,SourceLanguage,TargetLanguage,ExerciseCount,Enabled,Repeatable) VALUES (?,?,?,?,?,?,?,?);" :: Query
+    let lessonData = [("Prima Pars","Den första Lektionen fran boken","Prima.pgf","PrimaLat","PrimaSwe",5,1,1),
+                      ("Seconda Pars","Den andra Lektionen fran boken","Secunda.pgf","SecundaLat","SecundaSwe",8,1,1),
+                      ("Tertia Pars","Den tredje Lektionen fran boken","Tertia.pgf","TertiaLat","TertiaSwe",12,1,1),
+                      ("Quarta Pars","Den fjärde Lektionen fran boken","Quarta.pgf","QuartaLat","QuartaSwe",15,1,1)
+                     ] :: [(String,String,String,String,String,Int,Int,Int)]
     mapM_ (execute conn insertLessonQuery) lessonData
-    let insertExerciseQuery = "INSERT INTO Exercise (SourceTree,TargetTree,Lesson,Grammar,SourceLanguage,TargetLanguage) VALUES (?,?,?,?,?,?);" :: Query
+    let insertExerciseQuery = "INSERT INTO Exercise (SourceTree,TargetTree,Lesson) VALUES (?,?,?);" :: Query
     let exercises = [
           ("useS (useCl (simpleCl (useCNdefsg (useN vinum_N)) (complVA copula_VA (useA sapiens_A))))",
            "useS (useCl (simpleCl (usePron he_PP) (complVA copula_VA (useA sapiens_A))))",
-           "Prima Pars","Prima.pgf","PrimaLat","PrimaSwe"),
+           "Prima Pars"),
           ("useS (useCl (simpleCl (usePN Augustus_PN) (transV tenere_V2 (useCNdefsg (useN imperium_N)))))",
            "useS (useCl (simpleCl (useCNdefsg (useN imperator_N)) (transV tenere_V2 (useCNdefsg (useN imperium_N)))))",
-           "Prima Pars","Prima.pgf","PrimaLat","PrimaSwe"),
+           "Prima Pars"),
           ("useS (useCl (simpleCl (usePN Augustus_PN) (complVA copula_VA (useA felix_A))))",
            "useS (useCl (simpleCl (useCNdefsg (useN amicus_N)) (complVA copula_VA (useA felix_A))))",
-           "Prima Pars","Prima.pgf","PrimaLat","PrimaSwe"),
+           "Prima Pars"),
           ("useS (useCl (simpleCl (usePN Augustus_PN) (complVA copula_VA (useA felix_A))))",
            "useS (useCl (simpleCl (useCNdefsg (useN pater_N)) (complVA copula_VA (useA felix_A))))",
-           "Prima Pars","Prima.pgf","PrimaLat","PrimaSwe"),
+           "Prima Pars"),
           ("useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN imperator_N)))))",
            "useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN amicus_N)))))",
-           "Prima Pars","Prima.pgf","PrimaLat","PrimaSwe"),
+           "Prima Pars"),
           ("useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN amicus_N)))))",
            "useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN imperator_N)))))",
-           "Prima Pars","Prima.pgf","PrimaLat","PrimaSwe"),
+           "Prima Pars"),
           ("useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN imperator_N)))))",
            "useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN pater_N)))))",
-           "Prima Pars","Prima.pgf","PrimaLat","PrimaSwe"),
+           "Prima Pars"),
           ("useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN pater_N)))))",
            "useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN imperator_N)))))",
-           "Prima Pars","Prima.pgf","PrimaLat","PrimaSwe"),
+           "Prima Pars"),
           ("useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) Augustus_PN) (transV vincere_V2 (usePN Gallia_PN))))",
            "useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) Augustus_PN) (transV vincere_V2 (usePN Africa_PN))))",
-           "Prima Pars","Prima.pgf","PrimaLat","PrimaSwe"),
+           "Prima Pars"),
           ("useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) Augustus_PN) (transV vincere_V2 (usePN Africa_PN))))",
            "useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) Augustus_PN) (transV vincere_V2 (usePN Gallia_PN))))",
-           "Prima Pars","Prima.pgf","PrimaLat","PrimaSwe")] :: [(String,String,String,String,String,String)]
+           "Prima Pars")] :: [(String,String,String)]
     mapM_ (execute conn insertExerciseQuery) exercises
     let insertFinishedExerciseQuery = "INSERT INTO FinishedExercise (User,SourceTree,TargetTree,Lesson,Time,ClickCount) VALUES ('herbert','useS (useCl (simpleCl (useCNindefsg (useN vinum_N)) (complA sapiens_A)))','useS (useCl (simpleCl (usePron he_PP) (complA sapiens_A)))','Prima Pars',15,5);" :: Query
     execute_ conn insertFinishedExerciseQuery
