@@ -195,6 +195,8 @@ data Lesson = Lesson {
   lexercisecount :: Int,
   lpassedcount :: Int,
   lscore :: Int,
+  ltime :: Int,
+  lfinished :: Bool,
   lenabled :: Bool
   } deriving Show;
 
@@ -253,6 +255,8 @@ instance FromJSON Lesson where
     <*> v .: T.pack "exercisecount"
     <*> v .: T.pack "passedcount"
     <*> v .: T.pack "score"
+    <*> v .: T.pack "time"
+    <*> v .: T.pack "passed"
     <*> v .: T.pack "enabled"
     
 instance FromJSON ServerMessage where
@@ -323,13 +327,15 @@ instance ToJSON ServerTree where
       T.pack "menu" .= menu]
 
 instance ToJSON Lesson where
-  toJSON (Lesson name description exercises passed score enabled) =
+  toJSON (Lesson name description exercises passedcount score time passed enabled) =
     object [
     T.pack "name" .= name,
     T.pack "description" .= description ,
     T.pack "exercisecount" .= exercises ,
-    T.pack "passedcount" .= passed ,
-    T.pack "score" .= score ,
+    T.pack "passedcount" .= passedcount ,
+    T.pack "score" .= score,
+    T.pack "time" .= time,
+    T.pack "passed" .= passed,
     T.pack "enabled" .= enabled
     ]
 

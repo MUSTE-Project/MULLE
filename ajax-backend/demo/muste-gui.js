@@ -121,13 +121,10 @@ function show_lessons(lessons) {
 	    ).appendTo(item);
 	}
         $('<td>').append(
-            $('<a href="">').text(lsn.name).data({lesson: lsn.name}).click(select_lesson)
+            $('<span>').text(lsn.passedcount + " avklarade av " + lsn.exercisecount + " övningar, " + lsn.score + " klicka i " + lsn.time + " sekunder")
         ).appendTo(item);
-        $('<td>').append(
-            $('<span>').text(lsn.passedcount + " avklarade av " + lsn.exercisecount + " övningar, " + lsn.score + " poäng")
-        ).appendTo(item);
-        if (lsn.passed >= lsn.total) {
-            item.addClass("greyed");
+        if (lsn.passed || lsn.passed >= lsn.total) {
+            item.addClass("finished");
         }
 	if (!lsn.enabled) {
 	    item.addClass("disabled");

@@ -280,7 +280,7 @@ verifySession conn token =
     else do { execute conn deleteSessionQuery [token] ; return (False,error) }
 
 -- | List all the lessons i.e. lesson name, description and exercise count
-listLessons :: Connection -> String -> IO [(String,String,Int,Int,Int,Bool)]
+listLessons :: Connection -> String -> IO [(String,String,Int,Int,Int,Int,Bool,Bool)]
 listLessons conn token =
   do
     let listUserQuery = "SELECT User FROM Session WHERE Token = ?;" :: Query
@@ -292,11 +292,15 @@ listLessons conn token =
                            "User = (SELECT * FROM userName) AND Lesson = Name AND Round = (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)) AS Passed, " ++
                            "(SELECT IFNULL(SUM(ClickCount),0) FROM FinishedExercise F WHERE " ++
                            "User = (SELECT * from UserName) AND Lesson = Name  AND Round = (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)) AS Score, " ++
+                           "(SELECT IFNULL(SUM(Time),0) FROM FinishedExercise F WHERE " ++
+                           "User = (SELECT * from UserName) AND Lesson = Name  AND Round = (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)) AS Time, " ++
+                           "(SELECT IFNULL(COUNT(*),0) FROM FinishedLesson WHERE " ++
+                           "User = (SELECT * from UserName) AND Lesson = Name) AS Passed, " ++
                            "Enabled " ++
                            "FROM Lesson;" :: Query -- TODO probably more test data?
     users <- query conn listUserQuery [token] :: IO [Only String]
     if length users == 1 then
-      let user = fromOnly . head $ users in query conn listLessonsQuery [user] :: IO [(String,String,Int,Int,Int,Bool)]
+      let user = fromOnly . head $ users in query conn listLessonsQuery [user] :: IO [(String,String,Int,Int,Int,Int,Bool,Bool)]
     else
       throw $ DatabaseException "More or less than expected numbers of users"
     
