@@ -113,7 +113,7 @@ initDB conn =
                              "Time NUMERIC NOT NULL," ++
                              "ClickCount NUMERIC NOT NULL," ++
                              "Round NUMERIC NOT NULL DEFAULT 1," ++
-                             "PRIMARY KEY (Lesson, User)," ++
+                             "PRIMARY KEY (Lesson, User, Round)," ++
                              "FOREIGN KEY (User) REFERENCES User(Username)," ++
                              "FOREIGN KEY (Lesson) REFERENCES Lesson(Name));"
     let createExerciseListTableQuery =
@@ -291,7 +291,7 @@ listLessons conn token =
                            "User = (SELECT * from UserName) AND Lesson = Name  AND Round = (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)) AS Score, " ++
                            "(SELECT IFNULL(SUM(Time),0) FROM FinishedExercise F WHERE " ++
                            "User = (SELECT * from UserName) AND Lesson = Name  AND Round = (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)) AS Time, " ++
-                           "(SELECT IFNULL(COUNT(*),0) FROM FinishedLesson WHERE " ++
+                           "(SELECT MIN(IFNULL(COUNT(*),0),1) FROM FinishedLesson WHERE " ++
                            "User = (SELECT * from UserName) AND Lesson = Name) AS Passed, " ++
                            "Enabled " ++
                            "FROM Lesson;" :: Query -- TODO probably more test data?
@@ -347,8 +347,11 @@ newLesson conn user lesson =
 continueLesson :: Connection -> String -> String -> IO (String,String,String,String)
 continueLesson conn user lesson =
   do
-    let selectExerciseListQuery = "SELECT SourceTree,TargetTree FROM ExerciseList WHERE Lesson = ? AND User = ? AND (User,SourceTree,TargetTree,Lesson) NOT IN (SELECT User,SourceTree,TargetTree,Lesson FROM FinishedExercise);" :: Query
-    ((sourceTree,targetTree):_) <- query conn selectExerciseListQuery [lesson,user] :: IO [(String,String)]
+    -- get lesson round
+    let lessonRoundQuery = "SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;" :: Query
+    [[round]] <- query conn lessonRoundQuery [user,lesson] :: IO [[Int]]
+    let selectExerciseListQuery = "SELECT SourceTree,TargetTree FROM ExerciseList WHERE Lesson = ? AND User = ? AND (User,SourceTree,TargetTree,Lesson) NOT IN (SELECT User,SourceTree,TargetTree,Lesson FROM FinishedExercise WHERE Round = ?);" :: Query
+    ((sourceTree,targetTree):_) <- query conn selectExerciseListQuery (lesson,user,round) :: IO [(String,String)]
     let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;" :: Query
     [(sourceLang,targetLang)] <- query conn languagesQuery [lesson] :: IO [(String,String)]
     return (sourceLang,sourceTree,targetLang,targetTree)
@@ -362,8 +365,8 @@ finishExercise conn token lesson time clicks =
     -- get lesson round
     let lessonRoundQuery = "SELECT ifnull(MAX(Round),1) FROM StartedLesson WHERE User = ? AND Lesson = ?;" :: Query
     [[round]] <- query conn lessonRoundQuery [user,lesson] :: IO [[Int]]
-    let selectExerciseListQuery = "SELECT SourceTree,TargetTree FROM ExerciseList WHERE Lesson = ? AND User = ? AND (User,SourceTree,TargetTree,Lesson) NOT IN (SELECT User,SourceTree,TargetTree,Lesson FROM FinishedExercise);" :: Query
-    ((sourceTree,targetTree):_) <- query conn selectExerciseListQuery [lesson,user] :: IO [(String,String)]
+    let selectExerciseListQuery = "SELECT SourceTree,TargetTree FROM ExerciseList WHERE Lesson = ? AND User = ? AND (User,SourceTree,TargetTree,Lesson) NOT IN (SELECT User,SourceTree,TargetTree,Lesson FROM FinishedExercise WHERE Round = ?);" :: Query
+    ((sourceTree,targetTree):_) <- query conn selectExerciseListQuery (lesson,user,round) :: IO [(String,String)]
     let insertFinishedExerciseQuery = "INSERT INTO FinishedExercise (User,Lesson,SourceTree,TargetTree,Time,ClickCount,Round) VALUES (?,?,?,?,?,?,?);" :: Query
     execute conn insertFinishedExerciseQuery (user, lesson, sourceTree, targetTree, time, clicks + 1, round)
     -- check if all exercises finished

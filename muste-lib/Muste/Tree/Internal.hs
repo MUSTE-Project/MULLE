@@ -240,4 +240,17 @@ generateTrees grammar cat size =
   in
     concatMap (\(max,fs) -> map fs [0..max-1]) feats
 
+-- | Show the tree in a simpler form
 showTTree = showExpr [] . ttreeToGFAbsTree
+
+countNodes :: TTree -> Int
+countNodes (TMeta _) = 1
+countNodes (TNode _ _ []) = 1
+countNodes (TNode _ _ ts) = 1 + (sum $ map countNodes ts)
+
+countMatchedNodes :: TTree -> TTree -> Int
+countMatchedNodes tree1 tree2 =
+  let
+    pathes = getPathes tree1
+  in
+    length $ filter (\p -> selectNode tree1 p == selectNode tree2 p) pathes
