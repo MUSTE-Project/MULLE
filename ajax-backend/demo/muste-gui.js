@@ -248,7 +248,7 @@ function build_matching_classes(data) {
     var matching_class = 0;
     ["a", "b"].forEach(function(lang) {
         data[lang].lin.forEach(function(token) {
-            if (token.matched && !data.matching_classes[token.path]) {
+            if (token.matched && token.matched.length && !data.matching_classes[token.path]) {
                 data.matching_classes[token.path] = "match-" + matching_class;
                 matching_class = (matching_class + 1) % MAX_CLASSES;
             }
@@ -271,7 +271,7 @@ function show_lin(lang, lin) {
             .html(spacing).click(click_word)
             .appendTo(sentence);
         var path = lin[i].path;
-        var match = lin[i].matched;
+        var match = lin[i].matched && lin[i].matched.length;
         // var subtree = lookup_subtree(path, tree);
         var wordspan = $('<span>')
             .addClass('word clickable').data({nr:i, lang:lang, path:path /* , subtree:subtree */ })
