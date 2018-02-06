@@ -102,8 +102,12 @@ rateTree context t1 t2 =
     lin1 = (map snd $ linearizeTree context t1)
     lin2 = (map snd $ linearizeTree context t2)
     (p,s) = preAndSuffix lin1 lin2
+    nct1 = countNodes t1
+    nmch1 = countMatchedNodes t1 t2
+    nct2 = countNodes t2
+    nmch2 = countMatchedNodes t2 t1
   in
-    length lin1 - (length p) - (length s)
+    length lin2 - (length p) - (length s) + (nct2 - nmch1)
 
 newTrees :: Context -> TTree -> Path -> [TTree]
 newTrees context t path =
