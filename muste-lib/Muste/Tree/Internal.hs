@@ -240,6 +240,7 @@ generateTrees grammar cat size =
   in
     concatMap (\(max,fs) -> map fs [0..max-1]) feats
 
+-- | Show the tree in a simpler form
 showTTree = showExpr [] . ttreeToGFAbsTree
 
 countNodes :: TTree -> Int
