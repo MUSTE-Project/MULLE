@@ -294,7 +294,7 @@ listLessons conn token =
                            "User = (SELECT * from UserName) AND Lesson = Name  AND Round = (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)) AS Score, " ++
                            "(SELECT IFNULL(SUM(Time),0) FROM FinishedExercise F WHERE " ++
                            "User = (SELECT * from UserName) AND Lesson = Name  AND Round = (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)) AS Time, " ++
-                           "(SELECT IFNULL(COUNT(*),0) FROM FinishedLesson WHERE " ++
+                           "(SELECT MIN(IFNULL(COUNT(*),0),1) FROM FinishedLesson WHERE " ++
                            "User = (SELECT * from UserName) AND Lesson = Name) AS Passed, " ++
                            "Enabled " ++
                            "FROM Lesson;" :: Query -- TODO probably more test data?
