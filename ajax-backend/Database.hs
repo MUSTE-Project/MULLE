@@ -116,7 +116,7 @@ initDB conn =
                              "Time NUMERIC NOT NULL," ++
                              "ClickCount NUMERIC NOT NULL," ++
                              "Round NUMERIC NOT NULL DEFAULT 1," ++
-                             "PRIMARY KEY (Lesson, User)," ++
+                             "PRIMARY KEY (Lesson, User, Round)," ++
                              "FOREIGN KEY (User) REFERENCES User(Username)," ++
                              "FOREIGN KEY (Lesson) REFERENCES Lesson(Name));"
     let createExerciseListTableQuery =
