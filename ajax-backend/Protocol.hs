@@ -91,7 +91,7 @@ handleClientRequest conn grammars prec body =
           sourceLin = map (\(path,lin) -> LinToken path lin (matched path sourceTTree targetTTree)) tempSourceLin
           sourceMenu = Menu $ fromList $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read sourceLang :: Language)) sourceTTree 
           targetLin = map (\(path,lin) -> LinToken path lin (matched path sourceTTree targetTTree)) tempTargetLin
-          targetMenu = Menu $ fromList $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read targetLang :: Language)) targetTTree 
+          targetMenu = Menu $ fromList $ filterCostTrees $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read targetLang :: Language)) targetTTree
         -- At the moment the menu is not really a list of menus but instead a list with only one menu as the only element
           a = ServerTree sourceLang sourceTree sourceLin sourceMenu
           b = ServerTree targetLang targetTree targetLin targetMenu
@@ -111,3 +111,25 @@ handleClientRequest conn grammars prec body =
         b = ServerTree targetLang targetTree targetLin (Menu M.empty)
       in
         (a,b)
+filterCostTrees :: [(Path,[[CostTree]])] -> [(Path,[[CostTree]])]
+filterCostTrees trees =
+
+  let
+    -- remove trees of cost 1
+    filtered1 = map (\(p,ts) -> (p,map (filter (\(CostTree c _ _) -> c/= 0)) ts)) trees :: [(Path,[[CostTree]])]
+    -- remove menu items that already appear further down the tree
+    filtered2 = thoroughlyClean $ sortBy (\(a,_) (b,_) -> compare (length b) (length a)) filtered1
+    -- remove empty menus
+    filtered3 = filter (\(p,ts) -> ts /= [] && ts /= [[]] ) filtered2 :: [(Path,[[CostTree]])]
+    -- sort by cost
+    sorted = map (\(p,ts) -> (p, map (sortBy (\(CostTree c1 _ _) (CostTree c2 _ _) -> compare c1 c2)) ts)) filtered3
+  in
+    sorted
+
+-- | Removes menu items further up in the tree if they already show up further down
+-- | Attention: Assumes that [[CostTree] actually contains only one menu
+thoroughlyClean :: [(Path,[[CostTree]])] -> [(Path,[[CostTree]])]
+thoroughlyClean [] = []
+thoroughlyClean ((p,[ts]):pts) =
+  (p,[ts]):(thoroughlyClean $ map (\(pp,[tt]) -> (pp,[tt \\ ts])) pts)
+  
