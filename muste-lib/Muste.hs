@@ -92,7 +92,8 @@ precomputeTrees context@(grammar,_) tree =
   let
     cat = getTreeCat tree
     lin = linearizeTree context tree
-    allTrees = generateTrees grammar cat (maxDepth tree + 5) -- Problem?!?
+--    allTrees = generateTrees grammar cat (maxDepth tree + 5) -- Problem?!?
+    allTrees = generateTrees grammar cat (countNodes tree + 1)
   in
     [((t,p),getScoredTrees context t p) | t <- allTrees, p <- getPathes t]
 
@@ -114,7 +115,9 @@ newTrees context t path =
   let
     subTree = fromJust $ selectNode t path
     cat = getTreeCat subTree
+    -- Should be fixed but leads to performance problems
     suggestions = filter (\n -> maxDepth n <= maxDepth subTree + 2) $ generateTrees (fst context) cat (maxDepth subTree + 2)
+--    suggestions = filter (\n -> maxDepth n <= maxDepth subTree + 1) $ generateTrees (fst context) cat (countNodes subTree + 1)
   in
     map (replaceNode t path) suggestions
 
