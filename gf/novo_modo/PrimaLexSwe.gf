@@ -6,32 +6,31 @@ lin
   copula_VA = mkVA Res.verbBe ;
   copula_V2 = mkV2 Res.verbBe ;
 
-  tenere_V2 = mkV2 (mkV Irreg.ta_V "hand om") ; 
-  imperium_N = mkN "imperie" "imperiet" "imperier" "imperierna" ;
+  imperium_N = mkN "rike" "riket" "riken" "rikena" ;
   Romanus_A = mkA "romersk" ;
-  imperator_N = mkN "härskare" "härskare" ;
-  civitas_N = mkN "samhälle" ;
-  externus_A = mkA "främmande" ;
-  vincere_V2 = mkV2 "erövra" ;
-  victus_A = mkA "erövrad" ;
+  imperator_N = mkN "kejsare" ;
+  civitas_N = mkN "stat" ;
+  externus_A = mkA "uttländsk" ;
+  vincere_V2 = mkV2 "besegrar" ;
+  victus_A = mkA "besegrad" ;
   saepe_Adv = mkAdv "ofta" ;
   provincia_N = mkN "provins" "provinser" ;
   devenire_V2 = mkV2 (mkV "bli" "blir" "bli" "blev" "blivit" "bliven" "blivande") ;
   Gallia_PN = mkPN "Gallien" ;
   Africa_PN = mkPN "Afrika" ;
-  Germanus_N = mkN "tysk" ;
+  Germanus_N = mkN "german" ;
   hostis_N = mkN "fiende" "fiender" ;
   dicere_V = mkV "säga" "säger" "säg" "sade" "sagt" "sagd" ;
 
   Augustus_PN = mkPN "Augustus" ;
-  Caesar_N = mkN "kejsare" "kejsare" ;
+  Caesar_N = mkN "Caesar" ;
 
   laetus_A = mkA "glad" ;
-  anxius_A = mkA "ängslig" ;
-  felix_A = mkA "lyckosam" "lyckosamt" "lyckosamma" "lyckosammare" "lyckosammast" ;
+  anxius_A = mkA "orolig" ;
+  felix_A = mkA "lycklig" ;
   coniux_N = mkN "hustru" "hustrun" "hustrur" "hustrurna"  ;
   sapiens_A = mkA "vis" ;
-  numen_N = mkN "gudomlighet" "gudomligheter" ;
+  numen_N = mkN "gudom" ;
   ingens_A = mkA "enorm" ;
 
 }

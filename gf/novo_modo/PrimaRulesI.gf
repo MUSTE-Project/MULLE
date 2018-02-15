@@ -1,7 +1,11 @@
-incomplete concrete PrimaRulesI of PrimaRules = Cat **
+incomplete concrete PrimaRulesI of PrimaRules = Cat, Conjunction**
   open Syntax, Extra in {
 
+lincat
+  ListNP = Conjunction.ListNP;
+
 lin
+    
   useA a = lin AP (mkAP (lin A a)) ;
   simpleCl np vp = lin Cl (mkCl (lin NP np) (lin VP vp)) ;
   usePN pn = lin NP (mkNP (lin PN pn)) ;
@@ -10,7 +14,10 @@ lin
   useCNindefsg cn = lin NP (mkNP aSg_Det (lin CN cn)) ;
   useCNindefpl cn = lin NP (mkNP aPl_Det (lin CN cn));
   complexNP det cn = lin NP (mkNP (lin Det det) (lin CN cn)) ;
-  conjNP np1 np2 = lin NP (mkNP and_Conj (lin NP np1) (lin NP np2)) ;
+--  conjNP np1 np2 = lin NP (mkNP and_Conj (lin NP np1) (lin NP np2)) ;
+  conjNP np1 np2 = lin ListNP (mkListNP (lin NP np1) (lin NP np2)) ;
+  extConjNP lnp np = lin ListNP (mkListNP (lin NP np) (lin ListNP lnp) );
+  useConjNP conj lnp = lin NP (mkNP (lin Conj conj) (lin ListNP lnp));
   useN n = lin CN (mkCN (lin N n)) ;
   attribCN ap cn = lin CN (mkCN (lin AP ap) (lin CN cn)) ;
   apposCNdefsg cn pn = lin NP (mkNP theSg_Det (mkCN cn (mkNP pn)));

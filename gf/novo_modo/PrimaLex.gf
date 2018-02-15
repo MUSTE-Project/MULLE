@@ -7,7 +7,6 @@ fun
   imperium_N : N ;
   Romanus_A : A ;
   magnus_A : A ;
-  --    esse_V : V ; -- copula is not needed in the lexicon
   imperator_N : N ;
   habere_V2 : V2 ;
   tenere_V2 : V2 ;
@@ -43,5 +42,5 @@ fun
   Augustus_PN : PN ;
   Caesar_N : N ;
   he_PP : Pron ;
-
+  and_Conj : Conj ;
 }

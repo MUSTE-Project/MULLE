@@ -1,4 +1,4 @@
-abstract PrimaRules = Cat ** {
+abstract PrimaRules = Cat, Conjunction ** {
 
 cat CS ;
 
@@ -12,7 +12,9 @@ fun
   useCNindefsg : CN -> NP ;
   useCNindefpl : CN -> NP ;
   complexNP : Det -> CN -> NP ;
-  conjNP : NP -> NP -> NP ;
+  conjNP : NP -> NP -> ListNP ;
+  extConjNP : ListNP -> NP -> ListNP ;
+  useConjNP : Conj -> ListNP -> NP ;
   useN : N -> CN ;
   attribCN : AP -> CN -> CN ;
   apposCNdefsg : CN -> PN -> NP ;
