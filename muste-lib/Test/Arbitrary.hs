@@ -1,3 +1,5 @@
+import Test.QuickCheck
+import Muste.Grammar
 -- {-# LANGUAGE FlexibleContexts #-}
 -- {-# LANGUAGE FlexibleInstances #-}
 -- -- | Click is in the Arbitrary class for QuickCheck
@@ -9,18 +11,18 @@
 --       return $ Click pos count
 
 -- -- A 'FunType' can be generated randomly
--- instance Arbitrary FunType where
---   arbitrary =
---     frequency [(9,sized newFun),(1,return NoType)]
---     where
---       newFun len = do
---         let ids = ['A'..'E']
---         cat <- elements ids
---         cats <- resize len $ listOf1 $ elements ids
---         return $ Fun [cat] (map charToString cats)
---       charToString c = [c]
+instance Arbitrary FunType where
+   arbitrary =
+     sized newFun -- frequency [(9,sized newFun),(1,return NoType)]
+     where
+       newFun len = do
+         let ids = ['A'..'E']
+         cat <- elements ids
+         cats <- resize len $ listOf1 $ elements ids
+         return $ Fun [cat] (map charToString cats)
+       charToString c = [c]
 
--- -- A 'FunType' can be generated randomly
+-- -- A 'Rule' can be generated randomly
 -- instance Arbitrary Rule where
 --   arbitrary =
 --     do

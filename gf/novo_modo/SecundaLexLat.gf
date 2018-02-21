@@ -4,6 +4,7 @@ concrete SecundaLexLat of SecundaLex = CatLat ** SecundaLexI with (Cat=CatLat), 
     tectum_N = Lexicon.roof_N ;
     mons_N = Lexicon.mountain_N ;
     Romanus_N = mkN "Romanus" ;
+    Romanus_A = mkA "Romanus" ;
     olim_Adv = mkAdv "olim" ;
     Palatinus_A = mkA "Palatinus" ;
     habitare_V2 = mkV2 (mkV "habitare" ) ;
@@ -15,8 +16,9 @@ concrete SecundaLexLat of SecundaLex = CatLat ** SecundaLexI with (Cat=CatLat), 
     Italia_PN = mkPN (mkN "Italia") ;
     colere_V2 = mkV2 ( mkV "colere" "colo" "colui" "cultum" ) ;
     Sabinus_N = mkN ( "Sabinus" | "Sabina" ) ;
+    Sabinus_A = mkA "Sabinus" ;
     Etruscus_N = mkN "Etruscus" ;
-    contendere_V2 = mkV2 ( mkV "contendere" "contendo" "contendi" "contentum" );
+    contendere_V2 = mkV2 ( mkV "contendere" "contendo" "contendi" "contentum" ) Structural.with_Prep;
     quamquam_Adv = mkAdv "quamquam" ;
     Italicus_A = mkA "Italicus";
     tradere_V2 = mkV2 (mkV "tradere" "trado" "tradidi" "traditum" );
@@ -30,7 +32,7 @@ concrete SecundaLexLat of SecundaLex = CatLat ** SecundaLexI with (Cat=CatLat), 
     facere_V = I.make_V ;
     fallax_A = mkA "fallax";
     festivitas_N = mkN "festivitas" "festivitatis" feminine ;
-    praeparere_V2 = mkV2 (mkV "praeparere");
+    praeparare_V2 = mkV2 (mkV "praeparare");
     Roma_PN = mkPN (mkN "Roma" );
     invitare_V2 = mkV2 (mkV "invitare");
     gaudere_V = mkV "gaudere" ; -- semi-deponent
@@ -56,4 +58,7 @@ concrete SecundaLexLat of SecundaLex = CatLat ** SecundaLexI with (Cat=CatLat), 
     domus_N = Lexicon.house_N ;
     
     comma_Conj = mkConj "" "," Pl R.Comma ;
+    colon_Conj = mkConj "" ":" Pl R.Colon ;
+    on_Prep = ExtraLat.Gen_Prep ;
+    dicere_V2 = mkV2 Lexicon.say_VS ExtraLat.Dat_Prep ;
 }

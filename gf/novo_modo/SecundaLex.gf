@@ -5,6 +5,7 @@ abstract SecundaLex = Cat ** {
 
     -- Vocabulary p23
     Romanus_N : N ;
+    Romanus_A : A ;
     olim_Adv : Adv ;
     tectum_N : N ;
     mons_N : N ;
@@ -20,6 +21,7 @@ abstract SecundaLex = Cat ** {
     Italia_PN : PN ;
     colere_V2 : V2 ;
     Sabinus_N : N ;
+    Sabinus_A : A ;
     Etruscus_N : N ;
     et_Conj : Conj ;
     cum_Prep : Prep ;
@@ -54,7 +56,7 @@ abstract SecundaLex = Cat ** {
     maritus_N : N ;
     fallax_A : A ;
     festivitas_N : N ;
-    praeparere_V2 : V2 ;
+    praeparare_V2 : V2 ;
     rex_N : N ;
     mulier_N : N ;
     Roma_PN : PN ;
@@ -91,5 +93,10 @@ abstract SecundaLex = Cat ** {
     -- Not in vocabulary list but in text
     they_PP : Pron ;
     comma_Conj : Conj ;
+    colon_Conj : Conj ;
     habere_V2 : V2 ;
+    on_Prep : Prep;
+    magnus_A : A ;
+    dicere_V2 : V2 ;
+    nos_Pron : Pron ;
 }

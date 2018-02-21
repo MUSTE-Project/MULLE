@@ -180,7 +180,7 @@ initDB conn =
     mapM_ (execute conn insertExerciseQuery) exercises
     -- let insertFinishedExerciseQuery = "INSERT INTO FinishedExercise (User,SourceTree,TargetTree,Lesson,Time,ClickCount,Round) VALUES ('herbert','useS (useCl (simpleCl (useCNindefsg (useN vinum_N)) (complA sapiens_A)))','useS (useCl (simpleCl (usePron he_PP) (complA sapiens_A)))','Prima Pars',15,5,1);" :: Query
     -- execute_ conn insertFinishedExerciseQuery
-    
+
 -- Lesson -> Grammar
 initPrecomputed :: Connection -> IO (M.Map String Grammar, LessonsPrecomputed)
 initPrecomputed conn =
