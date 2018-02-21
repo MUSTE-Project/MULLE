@@ -3,13 +3,13 @@ abstract SecundaRules = Cat, Conjunction ** {
   fun
     useA : A -> AP ; -- Prima
     simpleCl : NP -> VP -> Cl ; -- Prima
-    usePN : PN -> NP ; -- Prima
+--    usePN : PN -> NP ; -- Prima -- not used yet
     usePron : Pron -> NP ; -- Prima
     useCNdefsg : CN -> NP ; -- Prima
     useCNindefpl : CN -> NP ; -- Prima?
-    conjNP : NP -> NP -> ListNP ; -- Prima 
-    extConjNP : ListNP -> NP -> ListNP ; -- Prima
-    useConjNP : Conj -> ListNP -> NP ; -- Prima
+--    conjNP : NP -> NP -> ListNP ; -- Prima -- not used yet
+--    extConjNP : ListNP -> NP -> ListNP ; -- Prima -- not used yet
+--    useConjNP : Conj -> ListNP -> NP ; -- Prima -- not used yet
     useN : N -> CN ; -- Prima
     attribCN : AP -> CN -> CN ; -- Prima
     advS : Adv -> S -> S ; -- Prima
@@ -28,19 +28,19 @@ abstract SecundaRules = Cat, Conjunction ** {
 
     
     useCNdefpl : CN -> NP ;
-    prepNP : NP -> Prep -> NP -> NP ;
+--    prepNP : NP -> Prep -> NP -> NP ; -- not used yet
 
     advNP : Adv -> NP -> NP ;
     
     -- Obs: Hacky for sentence 4, not really working?
-    useNPCS : NP -> CS ;
-    conjCS : Conj -> CS -> CS -> CS ;
+--    useNPCS : NP -> CS ; -- not used yet
+--    conjCS : Conj -> CS -> CS -> CS ; -- not used yet
 
     useVVCl : NP -> VV -> VP -> Cl ;
 --     attribNP : NP -> NP -> Cl ;
 --     infCL : NP -> VV -> VP -> Cl ;
 
-     possNP : NP -> NP -> NP ;
+--     possNP : NP -> NP -> NP ; -- not used yet
 --     locNP : NP -> NP -> NP ;
 
 --     -- apposCN : CN -> NP -> CN ;
