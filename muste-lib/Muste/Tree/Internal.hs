@@ -233,12 +233,12 @@ replaceNode oldTree _ _ =
   oldTree -- No more subtrees, cancel search
 
 -- | The function 'generateTrees' generates a list of 'TTree's up to a certain depth given a grammar. Powered by the magic of feat
-generateTrees :: Grammar -> String -> Int -> [TTree]
-generateTrees grammar cat size =
+generateTrees :: Grammar -> String -> [[TTree]]
+generateTrees grammar cat =
   let
-    feats = map (\d -> let f = feat grammar in (featCard f cat d,featIth f cat d)) [0..size]
+    feats = map (\d -> let f = feat grammar in (featCard f cat d,featIth f cat d)) [0..]
   in
-    concatMap (\(max,fs) -> map fs [0..max-1]) feats
+    map (\(max,fs) -> map fs [0..max-1]) feats
 
 -- | Show the tree in a simpler form
 showTTree = showExpr [] . ttreeToGFAbsTree
