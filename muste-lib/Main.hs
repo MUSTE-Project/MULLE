@@ -56,7 +56,8 @@ handleClick debug context precomputedTrees tree wordList click clickPos =
     let extend = pos newClick `mod` 2 == 0 -- click between words
     -- Get suggestions
     when debug $ putStrLn "Get new suggestions"
-    let suggestions = concat $ map (\(_,ts) -> map (\(_,l,t) -> (linearizeList False False l,t)) ts) $ filter ((path ==) . fst) $ suggestionFromPrecomputed precomputedTrees tree :: [(String,TTree)]
+--    let suggestions = concat $ map (\(_,ts) -> map (\(_,l,t) -> (linearizeList False False l,t)) ts) $ filter ((path ==) . fst) $ suggestionFromPrecomputed precomputedTrees tree :: [(String,TTree)]
+    let suggestions = concat $ map (\(_,ts) -> map (\(_,l,t) -> (linearizeList False False l,t)) ts) $ filter ((path ==) . fst) $ getSuggestions context tree :: [(String,TTree)]
     when debug $ mapM_ (\(a,(b,c)) -> putStrLn $ show a ++ ". " ++ b ++ " - " ++ show c) $ zip [1..] suggestions
     when debug $ putStrLn "Linearize new suggestions"
     -- let linSubTree = map snd $ linearizeTree grammar language $ fromJust $ selectNode tree path

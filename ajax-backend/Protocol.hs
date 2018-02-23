@@ -84,14 +84,17 @@ handleClientRequest conn grammars prec body =
     assembleMenus :: String -> (String,String) -> (String,String) -> (ServerTree,ServerTree)
     assembleMenus lesson (sourceLang,sourceTree) (targetLang,targetTree) =
       let grammar = (grammars ! lesson)
+          sourceContext = (grammars ! lesson,read sourceLang :: Language)
+          targetContext = (grammars ! lesson,read targetLang :: Language)
           sourceTTree = gfAbsTreeToTTree grammar (read sourceTree :: Tree)
           targetTTree = gfAbsTreeToTTree grammar (read targetTree :: Tree)
           tempSourceLin = linearizeTree (grammar,read sourceLang :: Language) sourceTTree
           tempTargetLin = linearizeTree (grammar,read targetLang :: Language) targetTTree
           sourceLin = map (\(path,lin) -> LinToken path lin (matched path sourceTTree targetTTree)) tempSourceLin
-          sourceMenu = Menu $ fromList $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read sourceLang :: Language)) sourceTTree 
+--          sourceMenu = Menu $ fromList $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read sourceLang :: Language)) sourceTTree
+          sourceMenu = Menu $ fromList $ map suggestionToCostTree $ getSuggestions sourceContext  sourceTTree 
           targetLin = map (\(path,lin) -> LinToken path lin (matched path sourceTTree targetTTree)) tempTargetLin
-          targetMenu = Menu $ fromList $ filterCostTrees $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read targetLang :: Language)) targetTTree
+          targetMenu = Menu $ fromList $ filterCostTrees $ map suggestionToCostTree $ getSuggestions targetContext targetTTree
         -- At the moment the menu is not really a list of menus but instead a list with only one menu as the only element
           a = ServerTree sourceLang sourceTree sourceLin sourceMenu
           b = ServerTree targetLang targetTree targetLin targetMenu
