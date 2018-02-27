@@ -17,7 +17,7 @@ import Data.List
 
 type Context = (Grammar,Language)
 
-type LinToken = (Path,String)
+-- type LinToken = (Path,String)
   
 
 data LinToken = LinToken { ltpath :: Path, ltlin :: String, ltmatched :: Path } deriving (Show)
@@ -37,10 +37,10 @@ linearizeTree (grammar,language) ttree =
         deep _     (Bracket _ _   _ _ _ []) = []
         -- Ordinary leaf
         deep ltree (Bracket _ fid _ _ _ [Leaf token]) =
-          [(getPath ltree fid, token)]
+          [(LinToken (getPath ltree fid) token [])]
         -- Meta leaf
         deep ltree (Bracket _ fid _ _ [n@(EMeta id)] _) =
-          [(getPath ltree fid, "?" ++ show id)]
+          [(LinToken (getPath ltree fid) ("?" ++ show id) [])]
         -- In the middle of the tree
         deep ltree (Bracket _ fid _ _ _ bs) =
           broad ltree fid bs []
@@ -52,7 +52,7 @@ linearizeTree (grammar,language) ttree =
           let
             b = broad ltree fid bss ts
           in
-            (getPath ltree fid, token):b
+            (LinToken (getPath ltree fid) token []):b
         -- In the middle of the nodes
         broad ltree fid (bs:bss)           ts =
           let
@@ -68,7 +68,7 @@ linearizeTree (grammar,language) ttree =
     pgfGrammar = pgf grammar
     brackets = bracketedLinearize pgfGrammar language abstree :: [BracketedString]
   in
-    if (not $ isEmptyGrammar grammar) && elem language (languages $ pgf grammar) && (not $ null brackets) then bracketsToTuples ltree $ head brackets else [([],"?0")]
+    if (not $ isEmptyGrammar grammar) && elem language (languages $ pgf grammar) && (not $ null brackets) then bracketsToTuples ltree $ head brackets else [(LinToken [] "?0" [])]
 
 -- Computes the longest common prefix and suffix for linearized trees
 preAndSuffix :: Eq a => [a] -> [a] -> ([a],[a])
@@ -111,8 +111,8 @@ precomputeTrees context@(grammar,_) tree =
 rateTree :: Context -> TTree -> TTree -> Int
 rateTree context t1 t2 =
   let
-    lin1 = (map snd $ linearizeTree context t1)
-    lin2 = (map snd $ linearizeTree context t2)
+    lin1 = (map ltlin $ linearizeTree context t1)
+    lin2 = (map ltlin $ linearizeTree context t2)
     (p,s) = preAndSuffix lin1 lin2
     nct1 = countNodes t1
     nmch1 = countMatchedNodes t1 t2
@@ -137,8 +137,8 @@ getScoredTrees :: Context -> TTree -> Path -> [(Int,[(Path,String)],TTree)]
 getScoredTrees context t p =
   let
     nts = newTrees context t p
-    scores = map (rateTree context t) nts
-    lins = map (linearizeTree context) nts
+    scores = map (rateTree context t) nts :: [Int]
+    lins = map (map (\(LinToken p l _) -> (p,l))) $ map (linearizeTree context) nts :: [[(Path,String)]]
   in
     zip3 scores lins nts
     
@@ -155,7 +155,8 @@ getPrunedSuggestions context@(grammar,_) tree =
   let
     similar = collectSimilarTrees grammar (2,2) tree :: [(Path, TTree, [(Int, TTree, TTree, TTree)])]
   in
-    map (\(path,_,trees) -> (path,map (\(cost, subtree,_,_) -> let fullTree = replaceNode tree path subtree in (cost, linearizeTree context fullTree, fullTree)) trees)) similar
+    map (\(path,_,trees) -> (path,map (\(cost, subtree,_,_) -> let fullTree = replaceNode tree path subtree in (cost, map (\(LinToken p l _) -> (p,l)) $ linearizeTree context fullTree, fullTree)) trees)) similar
+
 
 filterCostTrees :: [(Path,[[CostTree]])] -> [(Path,[[CostTree]])]
 filterCostTrees trees =
