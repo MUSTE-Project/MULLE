@@ -188,3 +188,10 @@ getCleanMenu :: Context -> TTree -> M.Map Path [[CostTree]]
 getCleanMenu context tree =
   M.fromList $ filterCostTrees $ (map suggestionToCostTree) $ getPrunedSuggestions context tree
 
+showCleanMenu :: Context -> M.Map Path [[CostTree]] -> String
+showCleanMenu context menu =
+    unlines $ map (\(path,trees) -> show path ++ " :\n" ++ (unlines $ concatMap (map (showCostTree context path)) trees)) [(k,menu M.! k) | k <- sort $ M.keys menu]
+
+showCostTree :: Context -> Path -> CostTree -> String
+showCostTree context path (CostTree cost lin tree) =
+  "\t" ++ show cost ++ " - " ++ (unwords $ map llin lin) ++ " - " ++ (showTTree $ fromJust $ selectNode (gfAbsTreeToTTree (fst context) $ read tree) path)
