@@ -60,8 +60,9 @@ handleClick debug context tree wordList click clickPos =
     when debug $ putStrLn "Get new suggestions"
 --    let suggestions = concat $ map (\(_,ts) -> map (\(_,l,t) -> (linearizeList False False l,t)) ts) $ filter ((path ==) . fst) $ suggestionFromPrecomputed precomputedTrees tree :: [(String,TTree)]
     -- let suggestions = concat $ map (\(_,ts) -> map (\(_,l,t) -> (linearizeList False False l,t)) ts) $ filter ((path ==) . ltpath) $ getSuggestions context tree :: [(String,TTree)]
-    let menu = getCleanMenu context tree M.! path
-    let suggestions = concatMap (map (\(CostTree cost lins tree) -> (unwords $ map llin lins,gfAbsTreeToTTree (fst context) (read tree :: Tree)))) $ menu :: [(String,TTree)]
+    let menu = getCleanMenu context tree
+    when debug $ writeFile "menu.txt" $ showCleanMenu context menu
+    let suggestions = concatMap (map (\(CostTree cost lins tree) -> (unwords $ map llin lins,gfAbsTreeToTTree (fst context) (read tree :: Tree)))) $ getFromMenu menu path :: [(String,TTree)]
     when debug $ mapM_ (\(pos,(lin,tree)) -> putStrLn $ show pos ++ ". " ++ lin ++ " - " ++ showTTree tree) $ zip [1..] suggestions
     when debug $ putStrLn "Linearize new suggestions"
     -- let linSubTree = map snd $ linearizeTree grammar language $ fromJust $ selectNode tree path
@@ -77,6 +78,12 @@ handleClick debug context tree wordList click clickPos =
 
     return (Just newClick,newTree,debug)
 
+-- | handle missing pathes in the menu list
+getFromMenu :: M.Map Path [[CostTree]] -> Path -> [[CostTree]]
+getFromMenu menu path =
+  if path `elem` M.keys menu then menu M.! path
+  else getFromMenu menu (take (length path -1) path)
+       
 -- | Takes the linearized old subtree and a new subtree to categorize as and insert, delete or replace
 printSuggestion :: [String] -> [String] -> String
 printSuggestion oldWords newWords =
