@@ -1,4 +1,4 @@
-abstract SecundaRules = Cat, Conjunction ** {
+abstract SecundaRules = Cat ** { -- , Conjunction ** {
   cat CS ;
   fun
     useA : A -> AP ; -- Prima
