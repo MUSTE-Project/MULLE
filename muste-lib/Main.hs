@@ -9,9 +9,9 @@ import Control.Monad
 import qualified Data.Map.Lazy as M
 -- startTree = "useS (useCl (simpleCl (usePN Augustus_PN) (intransV dicere_V)))"
 sourceTree = "useS (pastS (simpleCl (useCNdefpl (useN Sabinus_N)) (transV amare_V2 (useCNdefpl (useN liber_N)))))"
-sourceLang = mkCId "PrimaLat"
+sourceLang = mkCId "SecundaLat"
 targetTree = "useS (negPastS (simpleCl (useCNdefpl (useN iuvenis_N)) (transV copula_V2 (useCNindefpl (attribCN (useA Romanus_A) (useN liber_N))))))"
-grammarFile = "../gf/novo_modo/Prima.pgf"
+grammarFile = "../gf/novo_modo/Secunda.pgf"
 depth = 5 -- performance?
 
 -- | Type for a click that has both a position and a count
