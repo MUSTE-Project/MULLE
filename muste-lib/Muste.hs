@@ -154,7 +154,7 @@ getSuggestions context tree =
 getPrunedSuggestions :: Context -> TTree -> [(Path,[(Int,[(Path,String)],TTree)])]
 getPrunedSuggestions context@(grammar,_) tree =
   let
-    similar = collectSimilarTrees grammar (2,2) tree :: [(Path, TTree, [(Int, TTree, TTree, TTree)])]
+    similar = collectSimilarTrees grammar (1,5) tree :: [(Path, TTree, [(Int, TTree, TTree, TTree)])]
   in
     map (\(path,_,trees) -> (path,map (\(cost, subtree,_,_) -> let fullTree = replaceNode tree path subtree in (cost, map (\(LinToken p l _) -> (p,l)) $ linearizeTree context fullTree, fullTree)) trees)) similar
 
