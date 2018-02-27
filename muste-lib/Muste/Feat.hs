@@ -75,13 +75,15 @@ mkFEAT gr =
      else (0, error "empty")
 
    catList' [c] s =
-     parts [ (n, \i -> [TNode f t (h i)])
+     parts ( [(1, \i -> [TMeta c]) | s == 1 ]
+             ++
+           [ (n, \i -> [TNode f t (h i)])
            | s > 0 
            , r@(Function f t) <- getAllRules gr
            , let (Fun y xs) = t
            , y == c
            , let (n,h) = catList xs (s-1)
-          ]
+          ])
 
    catList' (c:cs) s =
      parts [ (nx*nxs, \i -> hx (i `mod` nx) ++ hxs (i `div` nx))
