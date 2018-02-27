@@ -14,6 +14,12 @@ type Context = (Grammar,Language)
 
 type LinToken = (Path,String)
   
+
+data LinToken = LinToken { ltpath :: Path, ltlin :: String, ltmatched :: Path } deriving (Show)
+data Linearization = Linearization { lpath :: Path, llin :: String } deriving (Show,Eq)
+data CostTree = CostTree { cost :: Int , lin :: [Linearization] , tree :: String } deriving (Show,Eq)
+
+-- lin is the full linearization
 -- | The 'linearizeTree' function linearizes a TTree to a list of tokens and pathes to the nodes that create it
 linearizeTree :: Context -> TTree ->  [LinToken]
 linearizeTree (grammar,language) ttree = 

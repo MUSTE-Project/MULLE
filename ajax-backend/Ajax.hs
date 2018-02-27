@@ -174,10 +174,6 @@ instance ToJSON ClientMessage where
       
 --data CostTree = T { cost :: Int , lin :: String , tree :: String } deriving (Show)
 
-data LinToken = LinToken { ltpath :: Path, ltlin :: String, ltmatched :: Path } deriving (Show)
-data Linearization = Linearization { lpath :: Path, llin :: String } deriving (Show,Eq)
-data CostTree = CostTree { cost :: Int , lin :: [Linearization] , tree :: String } deriving (Show,Eq)
--- lin is the full linearization
 
 --data Menu = M (Map.Map (Int,Int) [[CostTree]]) deriving (Show)
 data Menu = Menu (Map.Map Path [[CostTree]]) deriving (Show)
