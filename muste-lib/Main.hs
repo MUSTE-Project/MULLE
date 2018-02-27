@@ -6,10 +6,11 @@ import Data.Maybe
 import System.Exit
 import Control.Monad
 
-startTree = "useS (useCl (simpleCl (usePN Africa_PN) (complA externus_A)))"
+import qualified Data.Map.Lazy as M
+startTree = "useS (useCl (simpleCl (usePN Augustus_PN) (intransV dicere_V)))"
 startLang = mkCId "PrimaLat"
 
-grammarFile = "gf/novo_modo/Prima.pgf"
+grammarFile = "../gf/novo_modo/Prima.pgf"
 depth = 5 -- performance?
 
 -- | Type for a click that has both a position and a count
@@ -30,8 +31,8 @@ linearizeList debug positions list =
     conditionalString True s = s
     conditionalString False _ = ""
     extendedList :: [(Integer, (Path, [Char]))]
-    extendedList = zip [0..] $ if debug || positions then concatMap (\e@(ep,es) -> [(ep," "),e]) list ++ [([]," ")] -- insert "gaps between the words and point the end of the list to the root of the tree
-                               else list 
+    extendedList = zip [0..] $ if debug || positions then concatMap (\e@(LinToken ep es _) -> [(ep," "),(ep,es)]) list ++ [([]," ")] -- insert "gaps between the words and point the end of the list to the root of the tree
+                               else map (\(LinToken p l _) -> (p,l)) list 
   in
     unwords $ map (\(pos,(path,s)) -> conditionalString positions ("(" ++ show pos ++ ") ") ++ s ++ conditionalString debug (" " ++ show path)) extendedList
 
@@ -49,7 +50,7 @@ handleClick debug context precomputedTrees tree wordList click clickPos =
     let newClick = fromJust $ updateClick click clickPos -- that should never be Nothing -> QuickCheck test for updateClick
     -- Compute the path given the click position and click count
     let tokenPos = pos newClick `div` 2
-    let path = if tokenPos == length wordList then [] else take (length (fst $ wordList !! tokenPos) - (count newClick - 1)) $ fst $ wordList !! tokenPos
+    let path = if tokenPos == length wordList then [] else take (length (ltpath $ wordList !! tokenPos) - (count newClick - 1)) $ ltpath $ wordList !! tokenPos
     putStrLn $ "You clicked on position " ++ show ( pos newClick ) ++ " for the " ++ show ( count newClick ) ++ " time."
     when debug $ putStrLn $ "That gives token no. " ++ show tokenPos
     when debug $ putStrLn $ "The current path is " ++ show path
@@ -57,11 +58,12 @@ handleClick debug context precomputedTrees tree wordList click clickPos =
     -- Get suggestions
     when debug $ putStrLn "Get new suggestions"
 --    let suggestions = concat $ map (\(_,ts) -> map (\(_,l,t) -> (linearizeList False False l,t)) ts) $ filter ((path ==) . fst) $ suggestionFromPrecomputed precomputedTrees tree :: [(String,TTree)]
-    let suggestions = concat $ map (\(_,ts) -> map (\(_,l,t) -> (linearizeList False False l,t)) ts) $ filter ((path ==) . fst) $ getSuggestions context tree :: [(String,TTree)]
-    when debug $ mapM_ (\(a,(b,c)) -> putStrLn $ show a ++ ". " ++ b ++ " - " ++ show c) $ zip [1..] suggestions
+    -- let suggestions = concat $ map (\(_,ts) -> map (\(_,l,t) -> (linearizeList False False l,t)) ts) $ filter ((path ==) . ltpath) $ getSuggestions context tree :: [(String,TTree)]
+    let suggestions = concatMap (map (\(CostTree cost lins tree) -> (unwords $ map llin lins,gfAbsTreeToTTree (fst context) (read tree :: Tree)))) $ getCleanMenu context tree M.! path :: [(String,TTree)]
+    when debug $ mapM_ (\(pos,(lin,tree)) -> putStrLn $ show pos ++ ". " ++ lin ++ " - " ++ showTTree tree) $ zip [1..] suggestions
     when debug $ putStrLn "Linearize new suggestions"
     -- let linSubTree = map snd $ linearizeTree grammar language $ fromJust $ selectNode tree path
-    mapM_ (\(a,(b,_)) -> putStrLn $ show a ++ ". " ++ printSuggestion (map snd wordList) (words b)) $ zip [1..] suggestions
+    mapM_ (\(a,(b,_)) -> putStrLn $ show a ++ ". " ++ printSuggestion (map ltlin wordList) (words b)) $ zip [1..] suggestions
     -- do something to the tree
     let cat = getTreeCat $ fromJust $ selectNode tree path
     when debug $ putStrLn $ "The category is " ++ cat ++ "."
