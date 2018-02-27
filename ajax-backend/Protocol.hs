@@ -86,10 +86,10 @@ handleClientRequest conn grammars prec body =
           targetTTree = gfAbsTreeToTTree grammar (read targetTree :: Tree)
           tempSourceLin = linearizeTree (grammar,read sourceLang :: Language) sourceTTree
           tempTargetLin = linearizeTree (grammar,read targetLang :: Language) targetTTree
-          sourceLin = map (\(path,lin) -> LinToken path lin (matched path sourceTTree targetTTree)) tempSourceLin
+          sourceLin = map (\(LinToken path lin _) -> LinToken path lin (matched path sourceTTree targetTTree)) tempSourceLin
 --          sourceMenu = Menu $ fromList $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read sourceLang :: Language)) sourceTTree
           sourceMenu = Menu $ M.empty -- fromList $ map suggestionToCostTree $ getSuggestions sourceContext  sourceTTree 
-          targetLin = map (\(path,lin) -> LinToken path lin (matched path sourceTTree targetTTree)) tempTargetLin
+          targetLin = map (\(LinToken path lin _) -> LinToken path lin (matched path sourceTTree targetTTree)) tempTargetLin
 --          targetMenu = Menu $ fromList $ filterCostTrees $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read targetLang :: Language)) targetTTree
           targetMenu = Menu $ getCleanMenu targetContext targetTTree
         -- At the moment the menu is not really a list of menus but instead a list with only one menu as the only element
@@ -105,8 +105,8 @@ handleClientRequest conn grammars prec body =
         targetTTree = gfAbsTreeToTTree grammar (read targetTree :: Tree)
         tempSourceLin = linearizeTree (grammar,read sourceLang :: Language) sourceTTree
         tempTargetLin = linearizeTree (grammar,read targetLang :: Language) targetTTree
-        sourceLin = map (\(path,lin) -> LinToken path lin (matched path sourceTTree targetTTree)) tempSourceLin
-        targetLin = map (\(path,lin) -> LinToken path lin (matched path sourceTTree targetTTree)) tempTargetLin
+        sourceLin = map (\(LinToken path lin _) -> LinToken path lin (matched path sourceTTree targetTTree)) tempSourceLin
+        targetLin = map (\(LinToken path lin _) -> LinToken path lin (matched path sourceTTree targetTTree)) tempTargetLin
         a = ServerTree sourceLang sourceTree sourceLin (Menu M.empty)
         b = ServerTree targetLang targetTree targetLin (Menu M.empty)
       in
