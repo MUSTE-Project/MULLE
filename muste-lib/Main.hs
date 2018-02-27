@@ -7,9 +7,10 @@ import System.Exit
 import Control.Monad
 
 import qualified Data.Map.Lazy as M
-startTree = "useS (useCl (simpleCl (usePN Augustus_PN) (intransV dicere_V)))"
-startLang = mkCId "PrimaLat"
-
+-- startTree = "useS (useCl (simpleCl (usePN Augustus_PN) (intransV dicere_V)))"
+sourceTree = "useS (pastS (simpleCl (useCNdefpl (useN Sabinus_N)) (transV amare_V2 (useCNdefpl (useN liber_N)))))"
+sourceLang = mkCId "PrimaLat"
+targetTree = "useS (negPastS (simpleCl (useCNdefpl (useN iuvenis_N)) (transV copula_V2 (useCNindefpl (attribCN (useA Romanus_A) (useN liber_N))))))"
 grammarFile = "../gf/novo_modo/Prima.pgf"
 depth = 5 -- performance?
 
@@ -104,15 +105,16 @@ loop context debug tree click =
   do
     -- Show the linearized tree
     let wordList = linearizeTree context tree
+    putStrLn $ "Goal tree is " ++ targetTree
     putStrLn $ linearizeList debug True wordList
     -- Ask for the click
     putStrLn "What position do you want to click on?"
     putStrLn "Just press Enter to reset clicks"
     input <- getLine
     let selection = reads input :: [(Int,String)]
-    (newClick,newTree,newDebug) <- if (not $ null selection) && ((snd $ head selection) == "") then handleClick debug context precomputed tree wordList click (fst $ head selection) else handleCommand debug tree Nothing input
-    loop context newDebug precomputed newTree newClick
+    (newClick,newTree,newDebug) <- if (not $ null selection) && ((snd $ head selection) == "") then handleClick debug context tree wordList click (fst $ head selection) else handleCommand debug tree Nothing input
     if (showTTree newTree == targetTree) then do { putStrLn "You matched the trees!" ; return tree }
+    else loop context newDebug newTree newClick
   
 main =
   do
@@ -121,7 +123,7 @@ main =
     grammar <- pgfToGrammar <$> readPGF grammarFile
     when defaultDebug $ putStrLn "Starting loop"
     -- modify the tree, use the first language in the grammar. no previous click
-    let tree = gfAbsTreeToTTree grammar $ fromJust $ readExpr startTree
+    let tree = gfAbsTreeToTTree grammar $ fromJust $ readExpr sourceTree
     let (v,p) = isValid tree
     let context = (grammar,sourceLang)
 --    let precomputedTrees = precomputeTrees context tree
