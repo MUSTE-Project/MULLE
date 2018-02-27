@@ -142,14 +142,15 @@ getScoredTrees context t p =
   in
     zip3 scores lins nts
     
--- suggestionFromPrecomputed :: PrecomputedTrees -> TTree -> [(Path,[(Int,[(Path,String)],TTree)])]
--- suggestionFromPrecomputed [] _ = []
--- suggestionFromPrecomputed pc key =
---   map (\((_,p),ts) -> (p,ts)) $ filter (\((t,_),_) -> t == key) pc
+suggestionFromPrecomputed :: PrecomputedTrees -> TTree -> [(Path,[(Int,[(Path,String)],TTree)])]
+suggestionFromPrecomputed [] _ = []
+suggestionFromPrecomputed pc key =
+   map (\((_,p),ts) -> (p,ts)) $ filter (\((t,_),_) -> t == key) pc
 
 getSuggestions :: Context -> TTree -> [(Path,[(Int,[(Path,String)],TTree)])]
 getSuggestions context tree =
   [ (p,getScoredTrees context tree p) | p <- getPathes tree]
+  
 getPrunedSuggestions :: Context -> TTree -> [(Path,[(Int,[(Path,String)],TTree)])]
 getPrunedSuggestions context@(grammar,_) tree =
   let

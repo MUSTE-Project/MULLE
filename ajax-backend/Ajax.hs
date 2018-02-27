@@ -170,10 +170,6 @@ instance ToJSON ClientMessage where
     T.pack "token" .= token
     ]
 
-     
-      
---data CostTree = T { cost :: Int , lin :: String , tree :: String } deriving (Show)
-
 
 --data Menu = M (Map.Map (Int,Int) [[CostTree]]) deriving (Show)
 data Menu = Menu (Map.Map Path [[CostTree]]) deriving (Show)
