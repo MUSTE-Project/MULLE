@@ -74,10 +74,6 @@ handleClientRequest conn grammars prec body =
     tryVerified (True,_) m = m
     tryVerified (False,e) _ = (SMSessionInvalid e)
     returnVerifiedMessage v m = return $ encodeServerMessage $ tryVerified v m
-    -- Convert between the muste suggestion output and the ajax cost trees
-    suggestionToCostTree :: (Path, [(Int,[(Path,String)],TTree)]) -> (Path,[[CostTree]])
-    suggestionToCostTree (path,trees) =
-      (path, [map (\(cost,lin,tree) -> CostTree cost (map (uncurry Linearization) lin) (showTTree tree)) trees])
     -- Checks if a linearization token matches in both trees
     matched p t1 t2 = if selectNode t1 p == selectNode t2 p then p else []
     -- gets the menus for a lesson, two trees and two languages
@@ -95,7 +91,7 @@ handleClientRequest conn grammars prec body =
           sourceMenu = Menu $ M.empty -- fromList $ map suggestionToCostTree $ getSuggestions sourceContext  sourceTTree 
           targetLin = map (\(path,lin) -> LinToken path lin (matched path sourceTTree targetTTree)) tempTargetLin
 --          targetMenu = Menu $ fromList $ filterCostTrees $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read targetLang :: Language)) targetTTree
-          targetMenu = Menu $ fromList $ filterCostTrees $ map suggestionToCostTree $ getPrunedSuggestions targetContext targetTTree
+          targetMenu = Menu $ getCleanMenu targetContext targetTTree
         -- At the moment the menu is not really a list of menus but instead a list with only one menu as the only element
           a = ServerTree sourceLang sourceTree sourceLin sourceMenu
           b = ServerTree targetLang targetTree targetLin targetMenu

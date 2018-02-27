@@ -157,6 +157,10 @@ getPrunedSuggestions context@(grammar,_) tree =
   in
     map (\(path,_,trees) -> (path,map (\(cost, subtree,_,_) -> let fullTree = replaceNode tree path subtree in (cost, map (\(LinToken p l _) -> (p,l)) $ linearizeTree context fullTree, fullTree)) trees)) similar
 
+-- | Convert between the muste suggestion output and the ajax cost trees
+suggestionToCostTree :: (Path, [(Int,[(Path,String)],TTree)]) -> (Path,[[CostTree]])
+suggestionToCostTree (path,trees) =
+  (path, [map (\(cost,lin,tree) -> CostTree cost (map (uncurry Linearization) lin) (showTTree tree)) trees])
 
 filterCostTrees :: [(Path,[[CostTree]])] -> [(Path,[[CostTree]])]
 filterCostTrees trees =
@@ -178,3 +182,8 @@ thoroughlyClean :: [(Path,[[CostTree]])] -> [(Path,[[CostTree]])]
 thoroughlyClean [] = []
 thoroughlyClean ((p,[ts]):pts) =
   (p,[ts]):(thoroughlyClean $ map (\(pp,[tt]) -> (pp,[tt \\ ts])) pts)
+
+getCleanMenu :: Context -> TTree -> M.Map Path [[CostTree]]
+getCleanMenu context tree =
+  M.fromList $ filterCostTrees $ (map suggestionToCostTree) $ getPrunedSuggestions context tree
+
