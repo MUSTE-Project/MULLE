@@ -74,8 +74,9 @@ handleClick debug context tree wordList click clickPos =
     putStrLn "Just press Enter to go back"
     input <- getLine
     let selection = reads input :: ([(Int,String)])
-    (_,newTree,_) <- if (not $ null selection) && ((snd $ head selection) == "") then handleSelection debug tree path suggestions (fst $ head selection) else handleCommand debug tree click input 
-
+    (_,newTree,_) <- if (not $ null selection) && ((snd $ head selection) == "") && ((fst $ head selection) /= 0) then handleSelection debug tree path suggestions (fst $ head selection)
+                     else if ((fst $ head selection) == 0) then handleClick debug context tree wordList (Just newClick) clickPos
+                          else handleCommand debug tree click input 
     return (Just newClick,newTree,debug)
 
 -- | handle missing pathes in the menu list
