@@ -42,7 +42,7 @@ defaultDebug = True
 handleSelection :: Bool -> TTree -> Path -> [(String,TTree)] -> Int -> IO (Maybe Click, TTree,Bool)
 handleSelection debug tree path suggestions selection =
   do
-    when debug $ putStrLn $ show suggestions
+--    when debug $ putStrLn $ show suggestions
     return (Nothing,snd $ suggestions !! ( selection - 1),debug)
     
 handleClick :: Bool -> Context -> TTree -> [LinToken] -> Maybe Click -> Int -> IO (Maybe Click, TTree,Bool)
