@@ -44,8 +44,8 @@ handleSelection debug tree path suggestions selection =
     when debug $ putStrLn $ show suggestions
     return (Nothing,snd $ suggestions !! ( selection - 1),debug)
     
-handleClick :: Bool -> Context -> PrecomputedTrees -> TTree -> [LinToken] -> Maybe Click -> Int -> IO (Maybe Click, TTree,Bool)
-handleClick debug context precomputedTrees tree wordList click clickPos =
+handleClick :: Bool -> Context -> TTree -> [LinToken] -> Maybe Click -> Int -> IO (Maybe Click, TTree,Bool)
+handleClick debug context tree wordList click clickPos =
   do
     let newClick = fromJust $ updateClick click clickPos -- that should never be Nothing -> QuickCheck test for updateClick
     -- Compute the path given the click position and click count
@@ -99,8 +99,8 @@ handleCommand debug tree click command
     do
       putStrLn "I don't know what you want from me"
       return (click,tree,debug)
-loop :: Context -> Bool -> PrecomputedTrees -> TTree -> Maybe Click -> IO TTree
-loop context debug precomputed tree click =
+loop :: Context -> Bool -> TTree -> Maybe Click -> IO TTree
+loop context debug tree click =
   do
     -- Show the linearized tree
     let wordList = linearizeTree context tree
@@ -112,7 +112,7 @@ loop context debug precomputed tree click =
     let selection = reads input :: [(Int,String)]
     (newClick,newTree,newDebug) <- if (not $ null selection) && ((snd $ head selection) == "") then handleClick debug context precomputed tree wordList click (fst $ head selection) else handleCommand debug tree Nothing input
     loop context newDebug precomputed newTree newClick
-    return tree
+    if (showTTree newTree == targetTree) then do { putStrLn "You matched the trees!" ; return tree }
   
 main =
   do
@@ -123,9 +123,10 @@ main =
     -- modify the tree, use the first language in the grammar. no previous click
     let tree = gfAbsTreeToTTree grammar $ fromJust $ readExpr startTree
     let (v,p) = isValid tree
-    let context = (grammar,startLang)
-    let precomputedTrees = precomputeTrees context tree
-    if v then loop context defaultDebug precomputedTrees tree Nothing
+    let context = (grammar,sourceLang)
+--    let precomputedTrees = precomputeTrees context tree
+--    if v then loop context defaultDebug precomputedTrees tree Nothing
+    if v then loop context defaultDebug tree Nothing
     else error $ "Invalid starting tree. Problem in Node " ++ show p
     return ()               
   
