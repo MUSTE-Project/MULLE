@@ -123,7 +123,7 @@ main =
     grammar <- pgfToGrammar <$> readPGF grammarFile
     when defaultDebug $ putStrLn "Starting loop"
     -- modify the tree, use the first language in the grammar. no previous click
-    let tree = gfAbsTreeToTTree grammar $ fromJust $ readExpr sourceTree
+    let tree = gfAbsTreeToTTree grammar $ read sourceTree
     let (v,p) = isValid tree
     let context = (grammar,sourceLang)
 --    let precomputedTrees = precomputeTrees context tree
