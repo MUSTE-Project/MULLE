@@ -166,7 +166,7 @@ suggestionToCostTree (path,trees) =
 filterCostTrees :: [(Path,[[CostTree]])] -> [(Path,[[CostTree]])]
 filterCostTrees trees =
   let
-    -- remove trees of cost 1
+    -- remove trees of cost 0
     filtered1 = map (\(p,ts) -> (p,map (filter (\(CostTree c _ _) -> c /= 0)) ts)) trees :: [(Path,[[CostTree]])]
     -- remove menu items that already appear further down the tree
     filtered2 = thoroughlyClean $ sortBy (\(a,_) (b,_) -> compare (length b) (length a)) filtered1
