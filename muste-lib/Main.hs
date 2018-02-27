@@ -107,6 +107,7 @@ loop context debug tree click =
     -- Show the linearized tree
     let wordList = linearizeTree context tree
     putStrLn $ "Goal tree is " ++ targetTree
+    putStrLn $ "Current tree is " ++ (showTTree tree)
     putStrLn $ linearizeList debug True wordList
     -- Ask for the click
     putStrLn "What position do you want to click on?"
