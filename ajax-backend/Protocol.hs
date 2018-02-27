@@ -94,8 +94,8 @@ handleClientRequest conn grammars prec body =
 --          sourceMenu = Menu $ fromList $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read sourceLang :: Language)) sourceTTree
           sourceMenu = Menu $ M.empty -- fromList $ map suggestionToCostTree $ getSuggestions sourceContext  sourceTTree 
           targetLin = map (\(path,lin) -> LinToken path lin (matched path sourceTTree targetTTree)) tempTargetLin
-          targetMenu = Menu $ fromList $ filterCostTrees $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read targetLang :: Language)) targetTTree
---          targetMenu = Menu $ fromList $ filterCostTrees $ map suggestionToCostTree $ getSuggestions targetContext targetTTree
+--          targetMenu = Menu $ fromList $ filterCostTrees $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read targetLang :: Language)) targetTTree
+          targetMenu = Menu $ fromList $ filterCostTrees $ map suggestionToCostTree $ getPrunedSuggestions targetContext targetTTree
         -- At the moment the menu is not really a list of menus but instead a list with only one menu as the only element
           a = ServerTree sourceLang sourceTree sourceLin sourceMenu
           b = ServerTree targetLang targetTree targetLin targetMenu

@@ -10,6 +10,11 @@ import PGF.Internal (Expr(..))
 import Data.Maybe
 import qualified Data.Map.Lazy as M
 
+import Muste.Prune
+
+
+import Data.List
+
 type Context = (Grammar,Language)
 
 type LinToken = (Path,String)
@@ -145,6 +150,13 @@ getScoredTrees context t p =
 getSuggestions :: Context -> TTree -> [(Path,[(Int,[(Path,String)],TTree)])]
 getSuggestions context tree =
   [ (p,getScoredTrees context tree p) | p <- getPathes tree]
+getPrunedSuggestions :: Context -> TTree -> [(Path,[(Int,[(Path,String)],TTree)])]
+getPrunedSuggestions context@(grammar,_) tree =
+  let
+    similar = collectSimilarTrees grammar (2,2) tree :: [(Path, TTree, [(Int, TTree, TTree, TTree)])]
+  in
+    map (\(path,_,trees) -> (path,map (\(cost, subtree,_,_) -> let fullTree = replaceNode tree path subtree in (cost, linearizeTree context fullTree, fullTree)) trees)) similar
+
 filterCostTrees :: [(Path,[[CostTree]])] -> [(Path,[[CostTree]])]
 filterCostTrees trees =
   let
