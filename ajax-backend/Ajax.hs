@@ -21,7 +21,7 @@ import Data.List
 import Data.Maybe
 
 import Muste.Tree
--- import Muste
+import Muste
 
 -- import Debug.Trace
 
