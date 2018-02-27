@@ -67,6 +67,7 @@ handleClick debug context tree wordList click clickPos =
     when debug $ putStrLn "Linearize new suggestions"
     -- let linSubTree = map snd $ linearizeTree grammar language $ fromJust $ selectNode tree path
     mapM_ (\(a,(b,_)) -> putStrLn $ show a ++ ". " ++ printSuggestion (map ltlin wordList) (words b)) $ zip [1..] suggestions
+    putStrLn "0. Click again"
     -- do something to the tree
     let cat = getTreeCat $ fromJust $ selectNode tree path
     when debug $ putStrLn $ "The category is " ++ cat ++ "."
