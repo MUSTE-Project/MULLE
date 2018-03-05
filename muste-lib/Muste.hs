@@ -120,16 +120,14 @@ getPrunedSuggestions context@(grammar, _, precomputed) tree =
 filterCostTrees :: [(Path, [[CostTree]])] -> [(Path, [[CostTree]])]
 filterCostTrees trees =
   let
-    filtered1, filtered2, filtered3 :: [(Path, [[CostTree]])]
+    filtered1, filtered2 :: [(Path, [[CostTree]])]
     -- remove trees of cost 0
     filtered1 = [(p, [[t | t@(CostTree c _ _) <- ts, c /= 0] | ts <- tss]) | (p, tss) <- trees]
-    -- remove menu items that already appear further down the tree
-    filtered2 = thoroughlyClean $ sortBy (\(a,_) (b,_) -> compare (length b) (length a)) filtered1
     -- remove empty menus
-    filtered3 = [r | r@(p,tss) <- filtered2, tss /= [] && tss /= [[]]]
+    filtered2 = [r | r@(p,tss) <- filtered1, tss /= [] && tss /= [[]]]
     -- sort by cost
     compareCostTrees (CostTree c1 _ _) (CostTree c2 _ _) = compare c1 c2
-    sorted = [(p, [sortBy compareCostTrees ts | ts <- tss]) | (p, tss) <- filtered3]
+    sorted = [(p, [sortBy compareCostTrees ts | ts <- tss]) | (p, tss) <- filtered2]
   in
     sorted
 
