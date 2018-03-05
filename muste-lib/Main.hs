@@ -6,13 +6,23 @@ import Data.Maybe
 import System.Exit
 import Control.Monad
 
+import qualified Data.List as List
 import qualified Data.Map.Lazy as M
--- startTree = "useS (useCl (simpleCl (usePN Augustus_PN) (intransV dicere_V)))"
-sourceTree = "useS (pastS (simpleCl (useCNdefpl (useN Sabinus_N)) (transV amare_V2 (useCNdefpl (useN liber_N)))))"
-sourceLang = mkCId "SecundaLat"
-targetTree = "useS (negPastS (simpleCl (useCNdefpl (useN iuvenis_N)) (transV copula_V2 (useCNindefpl (attribCN (useA Romanus_A) (useN liber_N))))))"
-grammarFile = "../gf/novo_modo/Secunda.pgf"
-depth = 5 -- performance?
+import qualified Muste.Feat as F
+import qualified Muste.Prune as P
+
+sourceTree = "useS (useCl (simpleCl (useCNdefsg (useN civitas_N)) (transV habere_V2 (usePron he_PP))))"
+targetTree = "useS (useCl (simpleCl (complexNP multus_Det (useN amicus_N)) (transV habere_V2 (useCNindefsg (useN hostis_N)))))"
+sourceLang = mkCId "PrimaLat"
+targetLang = mkCId "PrimaSwe"
+grammarFile = "../gf/novo_modo/Prima.pgf"
+
+-- sourceTree = "useS (pastS (simpleCl (useCNdefpl (useN Sabinus_N)) (transV amare_V2 (useCNdefpl (useN liber_N)))))"
+-- targetTree = "useS (negPastS (simpleCl (useCNdefpl (useN iuvenis_N)) (transV copula_V2 (useCNindefpl (attribCN (useA Romanus_A) (useN liber_N))))))"
+-- sourceLang = mkCId "SecundaLat"
+-- targetLang = mkCId "SecundaSwe"
+-- grammarFile = "../gf/novo_modo/Secunda.pgf"
+
 
 -- | Type for a click that has both a position and a count
 data Click = Click { pos :: Int, count :: Int } deriving (Show,Eq)
@@ -32,10 +42,13 @@ linearizeList debug positions list =
     conditionalString True s = s
     conditionalString False _ = ""
     extendedList :: [(Integer, (Path, [Char]))]
-    extendedList = zip [0..] $ if debug || positions then concatMap (\e@(LinToken ep es _) -> [(ep," "),(ep,es)]) list ++ [([]," ")] -- insert "gaps between the words and point the end of the list to the root of the tree
-                               else map (\(LinToken p l _) -> (p,l)) list 
+    extendedList = zip [0..] $ if debug || positions then
+                                   -- insert "gaps between the words and point the end of the list to the root of the tree
+                                   [(ep, es') | (LinToken ep es _) <- list, es' <- [" ", es]] ++ [([], " ")]
+                               else [(p, l) | (LinToken p l _) <- list]
   in
-    unwords $ map (\(pos,(path,s)) -> conditionalString positions ("(" ++ show pos ++ ") ") ++ s ++ conditionalString debug (" " ++ show path)) extendedList
+    unwords [conditionalString positions ("(" ++ show pos ++ ") ") ++ s ++ conditionalString debug (" " ++ show path) |
+             (pos, (path, s)) <- extendedList]
 
 defaultDebug = True
 
@@ -44,9 +57,9 @@ handleSelection debug tree path suggestions selection =
   do
 --    when debug $ putStrLn $ show suggestions
     return (Nothing,snd $ suggestions !! ( selection - 1),debug)
-    
+
 handleClick :: Bool -> Context -> TTree -> [LinToken] -> Maybe Click -> Int -> IO (Maybe Click, TTree,Bool)
-handleClick debug context tree wordList click clickPos =
+handleClick debug context@(grammar, _, _) tree wordList click clickPos =
   do
     let newClick = fromJust $ updateClick click clickPos -- that should never be Nothing -> QuickCheck test for updateClick
     -- Compute the path given the click position and click count
@@ -58,15 +71,15 @@ handleClick debug context tree wordList click clickPos =
     let extend = pos newClick `mod` 2 == 0 -- click between words
     -- Get suggestions
     when debug $ putStrLn "Get new suggestions"
---    let suggestions = concat $ map (\(_,ts) -> map (\(_,l,t) -> (linearizeList False False l,t)) ts) $ filter ((path ==) . fst) $ suggestionFromPrecomputed precomputedTrees tree :: [(String,TTree)]
-    -- let suggestions = concat $ map (\(_,ts) -> map (\(_,l,t) -> (linearizeList False False l,t)) ts) $ filter ((path ==) . ltpath) $ getSuggestions context tree :: [(String,TTree)]
     let menu = getCleanMenu context tree
     when debug $ writeFile "menu.txt" $ showCleanMenu context menu
-    let suggestions = concatMap (map (\(CostTree cost lins tree) -> (unwords $ map llin lins,gfAbsTreeToTTree (fst context) (read tree :: Tree)))) $ getFromMenu menu path :: [(String,TTree)]
-    when debug $ mapM_ (\(pos,(lin,tree)) -> putStrLn $ show pos ++ ". " ++ lin ++ " - " ++ showTTree tree) $ zip [1..] suggestions
+    let suggestions = [(unwords $ map llin lins, gfAbsTreeToTTree grammar (read tree :: Tree)) |
+                       costTrees <- getFromMenu menu path, (CostTree cost lins tree) <- costTrees] :: [(String, TTree)]
+    when debug $ forM_ (zip [1..] suggestions) $ \(pos,(lin,tree)) ->
+        do putStrLn $ show pos ++ ". " ++ lin ++ " - " ++ showTTree tree
     when debug $ putStrLn "Linearize new suggestions"
-    -- let linSubTree = map snd $ linearizeTree grammar language $ fromJust $ selectNode tree path
-    mapM_ (\(a,(b,_)) -> putStrLn $ show a ++ ". " ++ printSuggestion (map ltlin wordList) (words b)) $ zip [1..] suggestions
+    forM_ (zip [1..] suggestions) $ \(a,(b,_)) ->
+        do putStrLn $ show a ++ ". " ++ printSuggestion (map ltlin wordList) (words b)
     putStrLn "0. Click again"
     -- do something to the tree
     let cat = getTreeCat $ fromJust $ selectNode tree path
@@ -74,10 +87,10 @@ handleClick debug context tree wordList click clickPos =
     putStrLn $ "Which replacement do you want to have?"
     putStrLn "Just press Enter to go back"
     input <- getLine
-    let selection = reads input :: ([(Int,String)])
-    (_,newTree,_) <- if (not $ null selection) && ((snd $ head selection) == "") && ((fst $ head selection) /= 0) then handleSelection debug tree path suggestions (fst $ head selection)
-                     else if ((fst $ head selection) == 0) then handleClick debug context tree wordList (Just newClick) clickPos
-                          else handleCommand debug tree click input 
+    (_, newTree, _) <- case reads input of
+                         [(0, "")] -> handleClick debug context tree wordList (Just newClick) clickPos
+                         [(n, "")] -> handleSelection debug tree path suggestions n
+                         _         -> handleCommand debug tree click input 
     return (Just newClick,newTree,debug)
 
 -- | handle missing pathes in the menu list
@@ -110,6 +123,7 @@ handleCommand debug tree click command
     do
       putStrLn "I don't know what you want from me"
       return (click,tree,debug)
+
 loop :: Context -> Bool -> TTree -> Maybe Click -> IO TTree
 loop context debug tree click =
   do
@@ -122,24 +136,71 @@ loop context debug tree click =
     putStrLn "What position do you want to click on?"
     putStrLn "Just press Enter to reset clicks"
     input <- getLine
-    let selection = reads input :: [(Int,String)]
-    (newClick,newTree,newDebug) <- if (not $ null selection) && ((snd $ head selection) == "") then handleClick debug context tree wordList click (fst $ head selection) else handleCommand debug tree Nothing input
-    if (showTTree newTree == targetTree) then do { putStrLn "You matched the trees!" ; return tree }
-    else loop context newDebug newTree newClick
-  
+    (newClick,newTree,newDebug) <- case reads input of
+                                     [(n, "")] -> handleClick debug context tree wordList click n
+                                     _         -> handleCommand debug tree Nothing input
+    if (showTTree newTree == targetTree) then
+        do putStrLn "You matched the trees!"
+           return tree
+    else
+        do loop context newDebug newTree newClick
+
+
 main =
   do
     -- load the grammar
     when defaultDebug $ putStrLn "Loading grammar"
     grammar <- pgfToGrammar <$> readPGF grammarFile
+    let context = buildContext grammar sourceLang
     when defaultDebug $ putStrLn "Starting loop"
     -- modify the tree, use the first language in the grammar. no previous click
     let tree = gfAbsTreeToTTree grammar $ read sourceTree
     let (v,p) = isValid tree
-    let context = (grammar,sourceLang)
---    let precomputedTrees = precomputeTrees context tree
---    if v then loop context defaultDebug precomputedTrees tree Nothing
-    if v then loop context defaultDebug tree Nothing
-    else error $ "Invalid starting tree. Problem in Node " ++ show p
-    return ()               
-  
+    if not v then
+        error $ "Invalid starting tree. Problem in Node " ++ show p
+    else
+        -- loop context defaultDebug tree Nothing
+        printMenu context targetLang tree
+
+
+printMenu :: Context -> CId -> TTree -> IO ()
+printMenu context@(grammar, _, _) targetLang tree =
+    do let menustructure = getCleanMenu context tree
+       forM_ (M.toList menustructure) $ \(path, menus) ->
+           do let Just subtree = selectNode tree path
+              let TNode _ (Fun subcat _) _ = subtree
+              let lin = convLinTokens $ linearizeTree context tree
+              let tlin = convLinTokens $ linearizeTree context tree
+              putStrLn $ showPath path ++ " : " ++ subcat ++ "  -  " ++ showFocusLin path lin ++ "  -  " ++ showFocusLin path tlin ++ "  -  " ++ showTTree subtree
+              forM_ menus $ \costtrees ->
+                  do putStr $ " (" ++ show (length costtrees) ++ ")"
+                     forM_ costtrees $ \(CostTree cost lin ctree) ->
+                         do let t = gfAbsTreeToTTree grammar (read ctree)
+                            let Just sub = selectNode t path
+                            let tlin = convLinTokens $ linearizeTree context t
+                            putStrLn $ "\t" ++ show cost ++ "  -  " ++ showFocusLin path lin ++ "  -  " ++ showFocusLin path tlin ++ "  -  " ++ showTTree sub
+              putStrLn ""
+
+       let lin = linearizeTree context tree
+       putStrLn $ showTTree tree
+       putStrLn $ unwords [w | LinToken _ w _ <- lin]
+       putStrLn ""
+       let cats = List.nub [cat | (F.Function _ (F.Fun cat _)) <- F.getAllRules grammar]
+       putStrLn $ show (length cats) ++ " categories:"
+       let (_, _, precomputedTrees) = context
+       forM_ precomputedTrees $ \(cat, trees) ->
+           do putStrLn $ "\t" ++ cat ++ ": " ++ show (length trees) ++ " adjunction trees, max size " ++ show (maximum [countNodes t | t <- trees]) ++ " nodes"
+       putStrLn ""
+
+showPath :: Path -> String
+showPath p = concatMap show p
+
+showFocusLin :: Path -> [Linearization] -> String
+showFocusLin path lin = unwords [wrap (lpath tok) (llin tok) | tok <- lin]
+    where wrap p t | path `List.isPrefixOf` p = "<" ++ t ++ ">"
+                   | otherwise = t
+
+convLinTokens :: [LinToken] -> [Linearization]
+convLinTokens toks = [Linearization path word | LinToken path word _ <- toks]
+
+
