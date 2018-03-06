@@ -11,23 +11,26 @@ import Data.Maybe
 import qualified Data.Map.Lazy as M
 
 import Muste.Prune
-
-
 import Data.List
 
-type Context = (Grammar,Language)
 
--- type LinToken = (Path,String)
-  
+type PrecomputedTrees = AdjunctionTrees
+type Context = (Grammar, Language, PrecomputedTrees)
+
 
 data LinToken = LinToken { ltpath :: Path, ltlin :: String, ltmatched :: Path } deriving (Show)
 data Linearization = Linearization { lpath :: Path, llin :: String } deriving (Show,Eq)
 data CostTree = CostTree { cost :: Int , lin :: [Linearization] , tree :: String } deriving (Show,Eq)
 
+
+buildContext :: Grammar -> CId -> Context
+buildContext grammar lang = (grammar, lang, getAdjunctionTrees grammar)
+
+
 -- lin is the full linearization
 -- | The 'linearizeTree' function linearizes a TTree to a list of tokens and pathes to the nodes that create it
 linearizeTree :: Context -> TTree ->  [LinToken]
-linearizeTree (grammar,language) ttree = 
+linearizeTree (grammar, language, _) ttree = 
   let
     -- Convert the BracketedString to the list of string/path tuples
     bracketsToTuples :: LTree -> BracketedString -> [LinToken]
@@ -89,30 +92,13 @@ preAndSuffix a b =
         | otherwise = []
   in
     prefix a b
-    
-type PrecomputedTrees = [((TTree,Path),[(Int,[(Path,String)],TTree)])]
 
--- Language -> PrecomputedTrees
-type Precomputed = M.Map Language PrecomputedTrees
-
--- Lesson -> Precomputed
-type LessonsPrecomputed = M.Map String Precomputed
-
-precomputeTrees :: Context -> TTree -> PrecomputedTrees
-precomputeTrees context@(grammar,_) tree =
-  let
-    cat = getTreeCat tree
-    lin = linearizeTree context tree
---    allTrees = generateTrees grammar cat (maxDepth tree + 5) -- Problem?!?
-    allTrees = concat $ take (countNodes tree + 1) $ generateTrees grammar cat 
-  in
-    [((t,p),getScoredTrees context t p) | t <- allTrees, p <- getPathes t]
 
 rateTree :: Context -> TTree -> TTree -> Int
 rateTree context t1 t2 =
   let
-    lin1 = (map ltlin $ linearizeTree context t1)
-    lin2 = (map ltlin $ linearizeTree context t2)
+    lin1 = [w | LinToken _ w _ <- linearizeTree context t1]
+    lin2 = [w | LinToken _ w _ <- linearizeTree context t2]
     (p,s) = preAndSuffix lin1 lin2
     nct1 = countNodes t1
     nmch1 = countMatchedNodes t1 t2
@@ -121,59 +107,27 @@ rateTree context t1 t2 =
   in
     length lin2 - (length p) - (length s) + (nct2 - nmch1)
 
-newTrees :: Context -> TTree -> Path -> [TTree]
-newTrees context t path =
-  let
-    subTree = fromJust $ selectNode t path
-    cat = getTreeCat subTree
-    -- Should be fixed but leads to performance problems
---    suggestions = filter (\n -> maxDepth n <= maxDepth subTree + 2) $ generateTrees (fst context) cat (maxDepth subTree + 2)
-    -- suggestions = filter (\n -> maxDepth n <= maxDepth subTree + 1) $ concat $ drop (countNodes subTree `div` 2 - 1) $ generateTrees (fst context) cat (countNodes subTree)
-    suggestions = filter (\n -> maxDepth n <= maxDepth subTree + 1) $ concat $ take (countNodes subTree + 1) (generateTrees (fst context) cat)
-  in
-    map (replaceNode t path) suggestions
+getPrunedSuggestions :: Context -> TTree -> [(Path, [[CostTree]])]
+getPrunedSuggestions context@(grammar, _, precomputed) tree =
+    [ (path, [[ CostTree cost lin (showTTree fullTree) |
+                (cost, subtree, _, _) <- trees,
+                let fullTree = replaceNode tree path subtree,
+                let lin = [Linearization p l | (LinToken p l _) <- linearizeTree context fullTree]
+              ]]) |
+      (path, _, trees) <- collectSimilarTrees grammar precomputed tree
+    ]
 
-getScoredTrees :: Context -> TTree -> Path -> [(Int,[(Path,String)],TTree)]
-getScoredTrees context t p =
-  let
-    nts = newTrees context t p
-    scores = map (rateTree context t) nts :: [Int]
-    lins = map (map (\(LinToken p l _) -> (p,l))) $ map (linearizeTree context) nts :: [[(Path,String)]]
-  in
-    zip3 scores lins nts
-    
-suggestionFromPrecomputed :: PrecomputedTrees -> TTree -> [(Path,[(Int,[(Path,String)],TTree)])]
-suggestionFromPrecomputed [] _ = []
-suggestionFromPrecomputed pc key =
-   map (\((_,p),ts) -> (p,ts)) $ filter (\((t,_),_) -> t == key) pc
-
-getSuggestions :: Context -> TTree -> [(Path,[(Int,[(Path,String)],TTree)])]
-getSuggestions context tree =
-  [ (p,getScoredTrees context tree p) | p <- getPathes tree]
-  
-getPrunedSuggestions :: Context -> TTree -> [(Path,[(Int,[(Path,String)],TTree)])]
-getPrunedSuggestions context@(grammar,_) tree =
-  let
-    similar = collectSimilarTrees grammar (1,5) tree :: [(Path, TTree, [(Int, TTree, TTree, TTree)])]
-  in
-    map (\(path,_,trees) -> (path,map (\(cost, subtree,_,_) -> let fullTree = replaceNode tree path subtree in (cost, map (\(LinToken p l _) -> (p,l)) $ linearizeTree context fullTree, fullTree)) trees)) similar
-
--- | Convert between the muste suggestion output and the ajax cost trees
-suggestionToCostTree :: (Path, [(Int,[(Path,String)],TTree)]) -> (Path,[[CostTree]])
-suggestionToCostTree (path,trees) =
-  (path, [map (\(cost,lin,tree) -> CostTree cost (map (uncurry Linearization) lin) (showTTree tree)) trees])
-
-filterCostTrees :: [(Path,[[CostTree]])] -> [(Path,[[CostTree]])]
+filterCostTrees :: [(Path, [[CostTree]])] -> [(Path, [[CostTree]])]
 filterCostTrees trees =
   let
+    filtered1, filtered2 :: [(Path, [[CostTree]])]
     -- remove trees of cost 0
-    filtered1 = map (\(p,ts) -> (p,map (filter (\(CostTree c _ _) -> c /= 0)) ts)) trees :: [(Path,[[CostTree]])]
-    -- remove menu items that already appear further down the tree
-    filtered2 = thoroughlyClean $ sortBy (\(a,_) (b,_) -> compare (length b) (length a)) filtered1
+    filtered1 = [(p, [[t | t@(CostTree c _ _) <- ts, c /= 0] | ts <- tss]) | (p, tss) <- trees]
     -- remove empty menus
-    filtered3 = filter (\(p,ts) -> ts /= [] && ts /= [[]] ) filtered2 :: [(Path,[[CostTree]])]
+    filtered2 = [r | r@(p,tss) <- filtered1, tss /= [] && tss /= [[]]]
     -- sort by cost
-    sorted = map (\(p,ts) -> (p, map (sortBy (\(CostTree c1 _ _) (CostTree c2 _ _) -> compare c1 c2)) ts)) filtered3
+    compareCostTrees (CostTree c1 _ _) (CostTree c2 _ _) = compare c1 c2
+    sorted = [(p, [sortBy compareCostTrees ts | ts <- tss]) | (p, tss) <- filtered2]
   in
     sorted
 
@@ -181,17 +135,19 @@ filterCostTrees trees =
 -- | Attention: Assumes that [[CostTree] actually contains only one menu
 thoroughlyClean :: [(Path,[[CostTree]])] -> [(Path,[[CostTree]])]
 thoroughlyClean [] = []
-thoroughlyClean ((p,[ts]):pts) =
-  (p,[ts]):(thoroughlyClean $ map (\(pp,[tt]) -> (pp,[tt \\ ts])) pts)
+thoroughlyClean ((p,[ts]):pts) = (p, [ts]) : thoroughlyClean [(pp, [tt \\ ts]) | (pp, [tt]) <- pts]
 
 getCleanMenu :: Context -> TTree -> M.Map Path [[CostTree]]
-getCleanMenu context tree =
-  M.fromList $ filterCostTrees $ (map suggestionToCostTree) $ getPrunedSuggestions context tree
+getCleanMenu context tree = M.fromList $ filterCostTrees $ getPrunedSuggestions context tree
 
 showCleanMenu :: Context -> M.Map Path [[CostTree]] -> String
 showCleanMenu context menu =
-    unlines $ map (\(path,trees) -> show path ++ " :\n" ++ (unlines $ concatMap (map (showCostTree context path)) trees)) [(k,menu M.! k) | k <- sort $ M.keys menu]
+    unlines [show path ++ " :\n" ++ unlines [showCostTree context path t | ts <- trees, t <- ts] |
+             path <- sort (M.keys menu), let trees = menu M.! path]
 
 showCostTree :: Context -> Path -> CostTree -> String
-showCostTree context path (CostTree cost lin tree) =
-  "\t" ++ show cost ++ " - " ++ (unwords $ map llin lin) ++ " - " ++ (showTTree $ fromJust $ selectNode (gfAbsTreeToTTree (fst context) $ read tree) path)
+showCostTree (grammar, _, _) path (CostTree cost lin tree) =
+    ("\t" ++ show cost ++ " - " ++
+     unwords [w | Linearization _ w <- lin] ++ " - " ++
+     (showTTree $ fromJust $ selectNode (gfAbsTreeToTTree grammar (read tree)) path))
+

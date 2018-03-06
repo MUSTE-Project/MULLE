@@ -14,8 +14,8 @@ import Database.SQLite.Simple
 import Data.List
 import Data.Maybe
 
-handleClientRequest :: Connection -> Map String Grammar -> LessonsPrecomputed -> String -> IO String
-handleClientRequest conn grammars prec body =
+handleClientRequest :: Connection -> Map String (Map String Context) -> String -> IO String
+handleClientRequest conn contexts body =
   do
     let cm = decodeClientMessage body
     catch (
@@ -24,8 +24,8 @@ handleClientRequest conn grammars prec body =
         -- CMMOTDRequest token -> handleMOTDRequest token
         -- CMDataRequest token context data -> handleDataRequest token context data
         CMLessonsRequest token -> handleLessonsRequest token ;
-        CMLessonInit token lesson -> handleLessonInit token lesson grammars prec ;
-        CMMenuRequest token lesson score time a b -> handleMenuRequest token lesson score time a b ;
+        CMLessonInit token lesson -> handleLessonInit contexts token lesson ;
+        CMMenuRequest token lesson score time a b -> handleMenuRequest contexts token lesson score time a b ;
         CMLogoutRequest token -> handleLogoutRequest token
         }
       )
@@ -44,25 +44,25 @@ handleClientRequest conn grammars prec body =
         lessons <- listLessons conn token
         let lessonList = map (\(name,description,exercises,passedcount,score,time,passed,enabled) -> Lesson name description exercises passedcount score time passed enabled) lessons
         returnVerifiedMessage verified (SMLessonsList lessonList)
-    handleLessonInit :: String -> String -> Map String Grammar -> LessonsPrecomputed -> IO String
-    handleLessonInit token lesson grammars prec =
+    handleLessonInit :: Map String (Map String Context) -> String -> String -> IO String
+    handleLessonInit contexts token lesson =
       do
         verified <- verifySession conn token
         (sourceLang,sourceTree,targetLang,targetTree) <- startLesson conn token lesson
-        let (a,b) = assembleMenus lesson (sourceLang,sourceTree) (targetLang,targetTree)
+        let (a,b) = assembleMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree)
         returnVerifiedMessage verified (SMMenuList lesson False 0 a b )
-    handleMenuRequest token lesson clicks time ctreea@(ClientTree langa treea) ctreeb@(ClientTree langb treeb)
+    handleMenuRequest contexts token lesson clicks time ctreea@(ClientTree langa treea) ctreeb@(ClientTree langb treeb)
     -- Check if finished here
       | treea == treeb =
         do
           verified <- verifySession conn token
           when (fst verified) (finishExercise conn token lesson time clicks)
-          let (a,b) = emptyMenus lesson (langa,treea) (langb,treeb)
+          let (a,b) = emptyMenus contexts lesson (langa,treea) (langb,treeb)
           returnVerifiedMessage verified (SMMenuList lesson True (clicks + 1) a b)
       | otherwise =
         do
           verified <- verifySession conn token
-          let (a,b) = assembleMenus lesson (langa,treea) (langb,treeb)
+          let (a,b) = assembleMenus contexts lesson (langa,treea) (langb,treeb)
           returnVerifiedMessage verified (SMMenuList lesson False (clicks + 1) a b )
     handleLogoutRequest token =
         do
@@ -77,15 +77,15 @@ handleClientRequest conn grammars prec body =
     -- Checks if a linearization token matches in both trees
     matched p t1 t2 = if selectNode t1 p == selectNode t2 p then p else []
     -- gets the menus for a lesson, two trees and two languages
-    assembleMenus :: String -> (String,String) -> (String,String) -> (ServerTree,ServerTree)
-    assembleMenus lesson (sourceLang,sourceTree) (targetLang,targetTree) =
-      let grammar = (grammars ! lesson)
-          sourceContext = (grammars ! lesson,read sourceLang :: Language)
-          targetContext = (grammars ! lesson,read targetLang :: Language)
+    assembleMenus :: Map String (Map String Context) -> String -> (String,String) -> (String,String) -> (ServerTree,ServerTree)
+    assembleMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree) =
+      let grammar = (\(g,_,_) -> g) (contexts ! lesson ! sourceLang)
+          sourceContext = contexts ! lesson ! sourceLang
+          targetContext = contexts ! lesson ! targetLang
           sourceTTree = gfAbsTreeToTTree grammar (read sourceTree :: Tree)
           targetTTree = gfAbsTreeToTTree grammar (read targetTree :: Tree)
-          tempSourceLin = linearizeTree (grammar,read sourceLang :: Language) sourceTTree
-          tempTargetLin = linearizeTree (grammar,read targetLang :: Language) targetTTree
+          tempSourceLin = linearizeTree sourceContext sourceTTree
+          tempTargetLin = linearizeTree targetContext targetTTree
           sourceLin = map (\(LinToken path lin _) -> LinToken path lin (matched path sourceTTree targetTTree)) tempSourceLin
 --          sourceMenu = Menu $ fromList $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read sourceLang :: Language)) sourceTTree
           sourceMenu = Menu $ M.empty -- fromList $ map suggestionToCostTree $ getSuggestions sourceContext  sourceTTree 
@@ -97,14 +97,14 @@ handleClientRequest conn grammars prec body =
           b = ServerTree targetLang targetTree targetLin targetMenu
       in
         (a,b)
-    emptyMenus :: String -> (String,String) -> (String,String) -> (ServerTree,ServerTree)
-    emptyMenus lesson (sourceLang,sourceTree) (targetLang,targetTree) =
+    emptyMenus :: Map String (Map String Context) -> String -> (String,String) -> (String,String) -> (ServerTree,ServerTree)
+    emptyMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree) =
       let
-        grammar = (grammars ! lesson)
+        grammar = (\(g,_,_) -> g) (contexts ! lesson ! sourceLang)
         sourceTTree = gfAbsTreeToTTree grammar (read sourceTree :: Tree)
         targetTTree = gfAbsTreeToTTree grammar (read targetTree :: Tree)
-        tempSourceLin = linearizeTree (grammar,read sourceLang :: Language) sourceTTree
-        tempTargetLin = linearizeTree (grammar,read targetLang :: Language) targetTTree
+        tempSourceLin = linearizeTree (contexts ! lesson ! sourceLang) sourceTTree
+        tempTargetLin = linearizeTree (contexts ! lesson ! targetLang) targetTTree
         sourceLin = map (\(LinToken path lin _) -> LinToken path lin (matched path sourceTTree targetTTree)) tempSourceLin
         targetLin = map (\(LinToken path lin _) -> LinToken path lin (matched path sourceTTree targetTTree)) tempTargetLin
         a = ServerTree sourceLang sourceTree sourceLin (Menu M.empty)
