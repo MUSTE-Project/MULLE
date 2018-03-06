@@ -14,7 +14,6 @@ lin
   useCNindefsg cn = lin NP (mkNP aSg_Det (lin CN cn)) ;
   useCNindefpl cn = lin NP (mkNP aPl_Det (lin CN cn));
   complexNP det cn = lin NP (mkNP (lin Det det) (lin CN cn)) ;
---  conjNP np1 np2 = lin NP (mkNP and_Conj (lin NP np1) (lin NP np2)) ;
   conjNP np1 np2 = lin ListNP (mkListNP (lin NP np1) (lin NP np2)) ;
   extConjNP lnp np = lin ListNP (mkListNP (lin NP np) (lin ListNP lnp) );
   useConjNP conj lnp = lin NP (mkNP (lin Conj conj) (lin ListNP lnp));
