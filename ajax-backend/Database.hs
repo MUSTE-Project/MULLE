@@ -12,7 +12,7 @@ import Database.SQLite.Simple
 import Crypto.Random.API
 
 import Crypto.KDF.PBKDF2 hiding (generate)
-import Crypto.Hash
+import Crypto.Hash (Digest(..),SHA3_512(..),hash)
 
 import qualified Data.ByteString.Base64 as B64
 import qualified Data.ByteString.Char8 as B
