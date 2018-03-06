@@ -1,5 +1,5 @@
 --# -path=latin-rgl/api:latin-rgl:.
-concrete SecundaLexLat of SecundaLex = CatLat ** SecundaLexI with (Cat=CatLat), (Structural=StructuralLat), (Lexicon=LexiconLat), (PrimaLex=PrimaLexLat) ** open ParadigmsLat, ExtraLat, (I=IrregLat), Prelude, ParamX, (R=ResLat) in {
+concrete SecundaLexLat of SecundaLex = CatLat ** SecundaLexI with (Cat=CatLat), (Structural=StructuralLat), (Lexicon=LexiconLat), (PrimaLex=PrimaLexLat) ** open ParadigmsLat, ExtraLat, (I=IrregLat), Prelude, ParamX, (R=ResLat),(M=MorphoLat) in {
   lin
     tectum_N = Lexicon.roof_N ;
     mons_N = Lexicon.mountain_N ;
@@ -26,7 +26,8 @@ concrete SecundaLexLat of SecundaLex = CatLat ** SecundaLexI with (Cat=CatLat), 
     observare_V2 = mkV2 (mkV "observare" );
 
     igitur_Adv = mkAdv "igitur" ;
-    liber_N = pluralN (mkN "liber" "liberi" masculine); -- TOFIX
+    liber_N = liber ;
+
     autem_Adv = mkAdv "autem" ;
     nolle_VV = mkVV I.not8want_V False ;
     facere_V = I.make_V ;
@@ -61,4 +62,9 @@ concrete SecundaLexLat of SecundaLex = CatLat ** SecundaLexI with (Cat=CatLat), 
 --    colon_Conj = mkConj "" ":" Pl R.Colon ;
     on_Prep = ExtraLat.Gen_Prep ;
     dicere_V2 = mkV2 Lexicon.say_VS ExtraLat.Dat_Prep ;
+  oper
+    liber : N =
+      let sg = M.noun "filius" ; pl = M.noun_ngg "liber" "libri" masculine in
+      -- let sg = ParadigmsLat.mkN "filius" ; pl = mkN "liber" "liberi" masculine in
+      lin N { s = table { Sg => sg.s ! Sg ; Pl => pl.s ! Pl } ; g = sg.g } ;
 }

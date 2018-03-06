@@ -5,7 +5,7 @@ concrete SecundaRulesLat of SecundaRules = CatLat ** SecundaRulesI with (Cat=Cat
   lin
     impS pron vp =
   lin S {
-	s = \\_ => pron.pers.s ! PronDrop ! PronNonRefl ! Nom ++ vp.imp ! (VImp1 pron.pers.n) ;
+	s = \\_ => pron.pers.s ! PronDrop ! PronNonRefl ! Nom ++ vp.imp ! (VImp1 pron.pers.n) ++ vp.obj ++ vp.compl ! Ag pron.pers.g pron.pers.n Acc ++ vp.adv.s ;
 	neg =  \\_ => [] ; o = \\_ => [] ; v = \\_ => [] ;
 	p = lin Pol { s = [] ; p = Pos } ;
 	t = lin Tense { s = [] ; t = Pres } ;
