@@ -181,9 +181,9 @@ initDB conn =
     -- let insertFinishedExerciseQuery = "INSERT INTO FinishedExercise (User,SourceTree,TargetTree,Lesson,Time,ClickCount,Round) VALUES ('herbert','useS (useCl (simpleCl (useCNindefsg (useN vinum_N)) (complA sapiens_A)))','useS (useCl (simpleCl (usePron he_PP) (complA sapiens_A)))','Prima Pars',15,5,1);" :: Query
     -- execute_ conn insertFinishedExerciseQuery
 
--- Lesson -> Grammar
-initPrecomputed :: Connection -> IO (M.Map String Grammar, LessonsPrecomputed)
-initPrecomputed conn =
+--- Lesson -> Language -> Grammar
+initContexts :: Connection -> IO (M.Map String (M.Map String Context))
+initContexts conn =
   do
     let selectLessonsGrammarsQuery = "SELECT Name, Grammar FROM Lesson;" :: Query
     let selectStartTreesQuery = "SELECT SourceTree FROM Exercise WHERE Lesson = ?;" :: Query
@@ -198,13 +198,12 @@ initPrecomputed conn =
             -- get all langs
             let langs = languages (pgf grammar)
             -- get all start trees
-            trees <- (map (gfAbsTreeToTTree grammar . read . fromOnly)) <$> (query conn selectStartTreesQuery [lesson] :: IO [(Only String)]) :: IO [TTree]
-            let contexts = [(grammar,lang) | lang <- langs]
+            let contexts = [(showCId lang,buildContext grammar lang) | lang <- langs]
              -- precompute for every lang and start tree
-            return $ (lesson, M.fromList [(l,precomputeTrees c t) | c@(_,l) <- contexts, t <- trees])
+            return $ (lesson, M.fromList contexts)
         ) grammarList
-    return (M.fromList grammarList,M.fromList preTuples)
-    
+    return (M.fromList preTuples)
+
 addUser :: Connection -> String -> String -> Int -> IO ()
 addUser conn user pass enabled =
   do
@@ -401,7 +400,7 @@ main =
     putStrLn "Starting"
     con <- open "muste.db"
 --     initDB con
-    (grammars,precs) <- initPrecomputed con
-    writeFile "/dev/null" (show precs)
+--    (grammars,precs) <- initPrecomputed con
+--    writeFile "/dev/null" (show precs)
     putStrLn "Finished, shutting down"
     close con

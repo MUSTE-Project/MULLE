@@ -47,15 +47,15 @@ getType fn
   | isSuffixOf "ico" fn = "image/x-icon"
   | otherwise = "text/plain"
 
--- Lesson -> Grammar
-handleRequest :: Connection -> Map String Grammar -> LessonsPrecomputed -> Application
-handleRequest conn grammars prec request response    
+-- Lesson -> (Language -> Context)
+handleRequest :: Connection -> Map String (Map String Context) -> Application
+handleRequest conn contexts request response
   | isInfixOf ("/cgi") (B.unpack $ rawPathInfo request) =
       do
         putStrLn $ "CGI-Request" ++ (show request)        
         body <- fmap (B.unpack . LB.toStrict) $ strictRequestBody request
         when logging (do { timestamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime ; appendFile logFile $ timestamp ++ "\tCGI-Request\t" ++ show body ++ "\n"})
-        result <- handleClientRequest conn grammars prec body
+        result <- handleClientRequest conn contexts body
         when logging (do { timestamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime ; appendFile logFile $ timestamp ++ "\tCGI-Response\t" ++ show result ++ "\n"}) 
         response (responseLBS status200 [("Content-type","application/json")] $ LB.fromStrict $ B.pack result)
   | otherwise = 
@@ -77,7 +77,7 @@ main =
   do
     args <- getArgs
     dbConn <- open "muste.db"
-    (grammars,precs) <- initPrecomputed dbConn
+    contexts <- initContexts dbConn
     let isHelp = elem "--help" args
     if isHelp then printHelp
-    else runSettings (setPort 8080 defaultSettings) (handleRequest dbConn grammars precs)
+    else runSettings (setPort 8080 defaultSettings) (handleRequest dbConn contexts)
