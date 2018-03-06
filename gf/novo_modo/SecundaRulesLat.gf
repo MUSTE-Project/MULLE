@@ -1,5 +1,5 @@
 --# -path=latin-rgl/api:latin-rgl:.
-concrete SecundaRulesLat of SecundaRules = CatLat ** SecundaRulesI with (Cat=CatLat),(Syntax=SyntaxLat),(PrimaRules=PrimaRulesLat)  ** open ExtraLat,ResLat,Prelude in {
+concrete SecundaRulesLat of SecundaRules = CatLat ** SecundaRulesI-[useCNdefpl] with (Cat=CatLat),(Syntax=SyntaxLat),(PrimaRules=PrimaRulesLat)  ** open ExtraLat,ResLat,Prelude in {
   lincat
     CS = Str ;
   lin
@@ -21,5 +21,5 @@ concrete SecundaRulesLat of SecundaRules = CatLat ** SecundaRulesI with (Cat=Cat
     --    locNP np1 np2 = lin NP (mkNP (lin NP np1) (lin Adv { s = np2.preap.s ! Ag np2.g np2.n Gen ++ np2.adv.s ++ np2.s ! Gen ++ np2.postap.s ! Ag np2.g np2.n Gen } ));
     useNPCS np = np.preap.s ! Ag np.g np.n Nom ++ np.adv.s ++ np.s ! Nom ++ np.postap.s ! Ag np.g np.n Nom ;
     conjCS conj cs1 cs2 = conj.s1 ++ cs1 ++ conj.s2 ++ cs2 ;
-
+    useCNdefpl cn = let q : Det = lin Det {s = \\_,_ => "" ; sp = \\_,_ => "(definite)" ; n = Pl } in lin NP (mkNP (q | thePl_Det) (lin CN cn));
 };
