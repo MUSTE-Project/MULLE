@@ -282,7 +282,7 @@ listLessons conn token =
     let listUserQuery = "SELECT User FROM Session WHERE Token = ?;" :: Query
     let listLessonsQuery =
           Query $ T.pack $ "WITH userName AS (SELECT ?), " ++
-                           "maxRounds AS (SELECT Lesson,IFNULL(MAX(Round),0) AS Round FROM (SELECT * FROM StartedLesson UNION SELECT Lesson,User,Round FROM FinishedLesson)) " ++
+                           "maxRounds AS (SELECT Lesson,IFNULL(MAX(Round),0) AS Round FROM (SELECT * FROM StartedLesson UNION SELECT Lesson,User,Round FROM FinishedLesson) WHERE User = (SELECT * FROM userName)) " ++
                            "SELECT Name, Description, ExerciseCount," ++
                            "(SELECT COUNT(*) AS Passed FROM FinishedExercise WHERE " ++
                            "User = (SELECT * FROM userName) AND Lesson = Name AND Round = (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)) AS Passed, " ++
