@@ -1,5 +1,5 @@
 --# -path=latin-rgl/api:latin-rgl:.
-concrete SecundaLexLat of SecundaLex = CatLat ** SecundaLexI with (Cat=CatLat), (Structural=StructuralLat), (Lexicon=LexiconLat), (PrimaLex=PrimaLexLat) ** open ParadigmsLat, ExtraLat, (I=IrregLat), Prelude, ParamX, (R=ResLat),(M=MorphoLat) in {
+concrete SecundaLexLat of SecundaLex = CatLat ** SecundaLexI-[they_PP,nos_PP] with (Cat=CatLat), (Structural=StructuralLat), (Lexicon=LexiconLat), (PrimaLex=PrimaLexLat) ** open ParadigmsLat, ExtraLat, (I=IrregLat), Prelude, ParamX, (R=ResLat),(M=MorphoLat) in {
   lin
     tectum_N = Lexicon.roof_N ;
     mons_N = Lexicon.mountain_N ;
@@ -62,6 +62,8 @@ concrete SecundaLexLat of SecundaLex = CatLat ** SecundaLexI with (Cat=CatLat), 
 --    colon_Conj = mkConj "" ":" Pl R.Colon ;
     on_Prep = ExtraLat.Gen_Prep ;
     dicere_V2 = mkV2 Lexicon.say_VS ExtraLat.Dat_Prep ;
+    they_PP = let pron = Structural.they_Pron in ({p = P3 ; pers = { s =  table { R.PronDrop => \\_,_ => "(Pers.pron 3rd pers. Pl.)" ; R.PronNonDrop => pron.pers.s ! R.PronNonDrop } ; g = masculine ; n = Pl } ; poss = pron.poss } | pron );
+    nos_PP = let pron = Structural.we_Pron in ({p = P1 ; pers = { s =  table { R.PronDrop => \\_,_ => "(Pers.pron 1rd pers. Pl.)" ; R.PronNonDrop => pron.pers.s ! R.PronNonDrop } ; g = masculine ; n = Pl } ; poss = pron.poss } | pron );
   oper
     liber : N =
       let sg = M.noun "filius" ; pl = M.noun_ngg "liber" "libri" masculine in

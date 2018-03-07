@@ -36,5 +36,5 @@ incomplete concrete SecundaLexI of SecundaLex = Cat ** open Structural, Lexicon,
     they_PP = Structural.they_Pron ;
     habere_V2 = Structural.have_V2 ;
     magnus_A = Lexicon.big_A ;
-    nos_Pron = Structural.we_Pron ;
+    nos_PP = Structural.we_Pron ;
 }

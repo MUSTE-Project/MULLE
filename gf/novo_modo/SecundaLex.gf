@@ -98,5 +98,5 @@ abstract SecundaLex = Cat ** {
     on_Prep : Prep;
     magnus_A : A ;
     dicere_V2 : V2 ;
-    nos_Pron : Pron ;
+    nos_PP : Pron ;
 }
