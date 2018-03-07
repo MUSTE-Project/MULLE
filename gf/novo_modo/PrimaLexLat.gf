@@ -1,7 +1,7 @@
 --# -path=latin-rgl/api:latin-rgl:.
-concrete PrimaLexLat of PrimaLex = CatLat ** PrimaLexI
+concrete PrimaLexLat of PrimaLex = CatLat ** PrimaLexI-[he_PP]
   with (Cat=CatLat), (Structural=StructuralLat), (Lexicon=LexiconLat) **
-  open ParadigmsLat, ExtraLat, (I=IrregLat), Prelude in {
+  open ParadigmsLat, ExtraLat, (I=IrregLat), Prelude, ParamX in {
 
 lin
   copula_VA = mkVA I.be_V ;
@@ -33,5 +33,5 @@ lin
   sapiens_A = mkA "sapiens" "sapientis" ;
   numen_N = mkN "numen" "numinis" neuter ;
   ingens_A = mkA "ingens" "ingentis" ;
-
+  he_PP = let pron = Structural.he_Pron in ({p = P3 ; pers = { s = table { PronDrop => \\_,_ => "(Pers.pron 3rd pers. Sg.)" ; PronNonDrop => pron.pers.s ! PronNonDrop } ; g = masculine ; n = Sg } ; poss = pron.poss } | pron );
 }
