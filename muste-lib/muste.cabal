@@ -61,7 +61,7 @@ library
   if flag(hastePGF)
     build-depends:       QuickCheck >= 2.8, base >=4.8, containers >= 0.5, haste-pgf >=3.7
   else
-    build-depends:       base >=4.8, gf >=3.7, QuickCheck >= 2.8, containers >= 0.5
+    build-depends:       base >=4.8, pgf >=3.7, QuickCheck >= 2.8, containers >= 0.5
 
   -- Directories containing source files.
   -- hs-source-dirs:      
@@ -86,7 +86,7 @@ executable Muste
   if flag(hastePGF)
      Buildable: False
   else
-    build-depends:       QuickCheck >= 2.8, base >=4.8, containers >= 0.5, gf >=3.7
+    build-depends:       QuickCheck >= 2.8, base >=4.8, containers >= 0.5, pgf >=3.7
   
   -- Directories containing source files.
   -- hs-source-dirs:      
