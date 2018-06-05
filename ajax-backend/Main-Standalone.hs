@@ -80,4 +80,6 @@ main =
     contexts <- initContexts dbConn
     let isHelp = elem "--help" args
     if isHelp then printHelp
-    else runSettings (setPort 8080 defaultSettings) (handleRequest dbConn contexts)
+      else do
+      putStrLn "Running server on port 8080"
+      runSettings (setPort 8080 defaultSettings) (handleRequest dbConn contexts)
