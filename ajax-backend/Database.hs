@@ -228,7 +228,7 @@ authUser conn user pass =
       let (dbPass,dbSalt,enabled) = head userList
           pwHash = hashPasswd (B.pack pass) dbSalt
       in return $ enabled && pwHash == dbPass
-    else
+      else
       return False
 changePassword :: Connection -> String -> String -> String -> IO ()
 changePassword conn user oldPass newPass =
@@ -273,7 +273,7 @@ verifySession conn token =
     let error = if length sessions == 0 then "Not current session" else if newTimeStamp - oldTimeStamp > 60 * 30 then "Session timeout" else "More than one session"
     -- ... until here. check if a session exists and it is has been active in the last 30 minutes
     if length sessions == 1 && newTimeStamp - oldTimeStamp <= 60*30 then return (True,"")
-    else do { execute conn deleteSessionQuery [token] ; return (False,error) }
+      else do { execute conn deleteSessionQuery [token] ; return (False,error) }
 
 -- | List all the lessons i.e. lesson name, description and exercise count
 listLessons :: Connection -> String -> IO [(String,String,Int,Int,Int,Int,Bool,Bool)]
@@ -297,7 +297,7 @@ listLessons conn token =
     users <- query conn listUserQuery [token] :: IO [Only String]
     if length users == 1 then
       let user = fromOnly . head $ users in query conn listLessonsQuery [user] :: IO [(String,String,Int,Int,Int,Int,Bool,Bool)]
-    else
+      else
       throw $ DatabaseException "More or less than expected numbers of users"
     
     
@@ -312,7 +312,7 @@ startLesson conn token lesson =
     isRunning <- (0 /=) . fromOnly . head <$> (query conn checkLessonStartedQuery [user,lesson] :: IO [Only Int])
     if isRunning then
       continueLesson conn user lesson
-    else
+      else
       newLesson conn user lesson
      
 newLesson :: Connection -> String -> String -> IO (String,String,String,String)
@@ -340,7 +340,7 @@ newLesson conn user lesson =
     langs <- query conn languagesQuery [lesson] :: IO [(String,String)]
     if length langs == 1 then 
       let (sourceLang,targetLang) = head langs in return (sourceLang,sourceTree,targetLang,targetTree)
-    else
+      else
       throw $ DatabaseException "Couldn't find the languages"
 
 continueLesson :: Connection -> String -> String -> IO (String,String,String,String)
@@ -387,7 +387,7 @@ finishExercise conn token lesson time clicks =
     if finishedCount >= exerciseCount then do
       execute conn insertFinishedLessonQuery [user,lesson]
       execute conn deleteStartedLessonQuery [user,lesson]
-    else return ()
+      else return ()
 
 endSession :: Connection -> String -> IO ()
 endSession conn token =
