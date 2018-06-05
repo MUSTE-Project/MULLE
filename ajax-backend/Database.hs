@@ -395,12 +395,3 @@ endSession conn token =
     let deleteSessionQuery = "DELETE FROM Session WHERE Token = ?;" :: Query
     execute conn deleteSessionQuery [token]
     
-main =
-  do
-    putStrLn "Starting"
-    con <- open "muste.db"
---     initDB con
---    (grammars,precs) <- initPrecomputed con
---    writeFile "/dev/null" (show precs)
-    putStrLn "Finished, shutting down"
-    close con

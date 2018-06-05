@@ -73,3 +73,9 @@ executable ajax-backend
   -- Base language which the package is written in.
   default-language:    Haskell2010
   
+executable db-init
+  -- .hs or .lhs file containing the Main module.
+  main-is:             DB-Init.hs
+--  build-depends:       base >=4.9 && <4.10,containers,muste,pgf,vector,sqlite-simple,time,cryptonite,crypto-random-api,QuickCheck,base64-bytestring, wai, warp, http-types
+  build-depends:       base >=4.9 && <4.10,containers,QuickCheck,time,cryptonite,crypto-random-api,muste,pgf,sqlite-simple,text,bytestring,base64-bytestring
+  default-language:    Haskell2010
