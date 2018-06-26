@@ -46,7 +46,6 @@ extra-source-files:  ChangeLog.md
 cabal-version:       >=1.10
 
 Flag CGI
-
   description: Build as a CGI program
   default:     False
 
