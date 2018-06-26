@@ -13,7 +13,7 @@ To run a standalone instance follow these steps:
 
 1. Build and install the MUSTE library by typing `cd muste-lib && cabal install && cd ..`
 1. Build the standalone server by typing `cd ajax-backend && cabal configure && cabal build && cd ..`
-1. Initialize the database by typing ''cd ajax-backend && cabal run db-init && cd ..''
+1. Initialize the database by typing `cd ajax-backend && cabal run db-init && cd ..`
 1. Run the server by typing `cd ajax-backend && cabal run ajax-backend`
 1. Access http://localhost:8080 in your webbrowser. 
 
