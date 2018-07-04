@@ -34,29 +34,27 @@ executable ajax-backend
   Else
     main-is:             Main-Standalone.hs
 
-  -- other-modules:       
+  other-modules:
+      Ajax
+    , Database
+    , Protocol
   
   -- other-extensions:    
   
-  If flag(CGI)
-    build-depends:       base >=4.8 && <4.10
+  build-depends:         base >=4.8 && <4.10
                        , aeson >=1.0
                        , text
                        , bytestring
-                       , cgi >= 3001.3.0.2
                        , containers
                        , muste
                        , pgf
-  Else
-    build-depends:       base >=4.8 && <4.10
-                       , aeson >=1.0
-                       , text
-                       , bytestring
+                       , mtl
                        , network-uri
-                       , containers
-                       , muste
-                       , pgf
-                       , vector
+
+  if flag(CGI)
+    build-depends:       cgi >= 3001.3.0.2
+  else
+    build-depends:       vector
                        , sqlite-simple
                        , time
                        , cryptonite
@@ -73,6 +71,9 @@ executable ajax-backend
   
 executable db-init
   main-is:             DB-Init.hs
+
+  other-modules:
+      Database
 
   build-depends:       base >=4.8 && <4.10
                      , containers
