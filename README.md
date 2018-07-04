@@ -17,4 +17,9 @@ To run a standalone instance follow these steps:
 1. Run the server by typing `cd ajax-backend && cabal run ajax-backend`
 1. Access http://localhost:8080 in your webbrowser. 
 
-
+### Setup with stack
+You can alternatively set up the project with git submodules and
+stack. First initialize the submodule `git submodule init`. Then for
+each package you want to build, select the stack configuration you
+want to use. Since the Haste compiler requires ghc-7.10.* we use
+newest lts with this compiler (6.35).
