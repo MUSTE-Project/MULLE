@@ -48,10 +48,10 @@ linearizeTree (grammar, language, _) ttree =
         deep _     (Bracket _ _   _ _ _ []) = []
         -- Ordinary leaf
         deep ltree (Bracket _ fid _ _ _ [Leaf token]) =
-          [(LinToken (getPath ltree fid) token [])]
+          [LinToken (getPath ltree fid) token []]
         -- Meta leaf
         deep ltree (Bracket _ fid _ _ [EMeta id] _) =
-          [(LinToken (getPath ltree fid) ("?" ++ show id) [])]
+          [LinToken (getPath ltree fid) ("?" ++ show id) []]
         -- In the middle of the tree
         deep ltree (Bracket _ fid _ _ _ bs) =
           broad ltree fid bs []
@@ -64,7 +64,7 @@ linearizeTree (grammar, language, _) ttree =
           let
             b = broad ltree fid bss ts
           in
-            (LinToken (getPath ltree fid) token []):b
+            LinToken (getPath ltree fid) token [] : b
         -- In the middle of the nodes
         broad ltree fid (bs:bss)           ts =
           let
@@ -80,7 +80,11 @@ linearizeTree (grammar, language, _) ttree =
     pgfGrammar = pgf grammar
     brackets = bracketedLinearize pgfGrammar language abstree :: [BracketedString]
   in
-    if (not $ isEmptyGrammar grammar) && elem language (languages $ pgf grammar) && (not $ null brackets) then bracketsToTuples ltree $ head brackets else [(LinToken [] "?0" [])]
+    if not (isEmptyGrammar grammar)
+      && language `elem` languages (pgf grammar)
+      && not (null brackets)
+    then bracketsToTuples ltree $ head brackets
+    else [LinToken [] "?0" []]
 
 getPrunedSuggestions :: Context -> TTree -> [(Path, [[CostTree]])]
 getPrunedSuggestions context@(grammar, _, precomputed) tree =
