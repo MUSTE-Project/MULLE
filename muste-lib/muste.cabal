@@ -78,6 +78,7 @@ library
 
   other-modules:  Muste.Tree.Internal
                   Muste.Grammar.Internal
+                  Common
 
 executable Muste
 -- LANGUAGE extensions used by modules in this package.
@@ -102,6 +103,7 @@ executable Muste
                        Muste.Prune
                        Muste.Tree
                        Muste.Tree.Internal
+                       Common
 
 --Test-Suite Test
 --    type:       exitcode-stdio-1.0

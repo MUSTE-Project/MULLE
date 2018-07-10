@@ -1,17 +1,32 @@
-module Main (main) where
+-- | I think this is some kind of command line interface for the
+-- business logic of the semantic text editor.
+module Main (main, loop) where
 
 import Muste
+  ( LinToken(LinToken, ltpath, ltlin)
+  , Context
+  , CostTree(CostTree)
+  , buildContext
+  -- ^ Menus
+  , getCleanMenu
+  -- ^ Linearizations
+  , Linearization(Linearization, llin, lpath)
+  , linearizeTree
+  )
+
+import Common
+
 import Muste.Tree
 import Muste.Grammar
 import PGF
 import Data.Maybe
 import System.Exit
 import Control.Monad
+import Data.List (sort, (\\))
 
 import qualified Data.List as List
 import qualified Data.Map.Lazy as M
 import qualified Muste.Feat as F
-import qualified Muste.Prune as P
 
 sourceTree = "useS (useCl (simpleCl (useCNdefsg (useN civitas_N)) (transV habere_V2 (usePron he_PP))))"
 targetTree = "useS (useCl (simpleCl (complexNP multus_Det (useN amicus_N)) (transV habere_V2 (useCNindefsg (useN hostis_N)))))"
@@ -55,7 +70,7 @@ linearizeList debug positions list =
 defaultDebug = True
 
 handleSelection :: Bool -> TTree -> Path -> [(String,TTree)] -> Int -> IO (Maybe Click, TTree,Bool)
-handleSelection debug tree path suggestions selection =
+handleSelection debug _tree _path suggestions selection =
   do
 --    when debug $ putStrLn $ show suggestions
     return (Nothing,snd $ suggestions !! ( selection - 1),debug)
@@ -70,13 +85,12 @@ handleClick debug context@(grammar, _, _) tree wordList click clickPos =
     putStrLn $ "You clicked on position " ++ show ( pos newClick ) ++ " for the " ++ show ( count newClick ) ++ " time."
     when debug $ putStrLn $ "That gives token no. " ++ show tokenPos
     when debug $ putStrLn $ "The current path is " ++ show path
-    let extend = pos newClick `mod` 2 == 0 -- click between words
     -- Get suggestions
     when debug $ putStrLn "Get new suggestions"
     let menu = getCleanMenu context tree
     when debug $ writeFile "menu.txt" $ showCleanMenu context menu
     let suggestions = [(unwords $ map llin lins, gfAbsTreeToTTree grammar (read tree :: Tree)) |
-                       costTrees <- getFromMenu menu path, (CostTree cost lins tree) <- costTrees] :: [(String, TTree)]
+                       costTrees <- getFromMenu menu path, (CostTree _cost lins tree) <- costTrees] :: [(String, TTree)]
     when debug $ forM_ (zip [1..] suggestions) $ \(pos,(lin,tree)) ->
         do putStrLn $ show pos ++ ". " ++ lin ++ " - " ++ showTTree tree
     when debug $ putStrLn "Linearize new suggestions"
@@ -166,7 +180,7 @@ main =
 
 
 printMenu :: Context -> CId -> TTree -> IO ()
-printMenu context@(grammar, _, _) targetLang tree =
+printMenu context@(grammar, _, _) _targetLang tree =
     do let menustructure = getCleanMenu context tree
        forM_ (M.toList menustructure) $ \(path, menus) ->
            do let Just subtree = selectNode tree path
@@ -205,4 +219,20 @@ showFocusLin path lin = unwords [wrap (lpath tok) (llin tok) | tok <- lin]
 convLinTokens :: [LinToken] -> [Linearization]
 convLinTokens toks = [Linearization path word | LinToken path word _ <- toks]
 
+-- | Removes menu items further up in the tree if they already show up further down
+-- | Attention: Assumes that [[CostTree] actually contains only one menu
+thoroughlyClean :: [(Path,[[CostTree]])] -> [(Path,[[CostTree]])]
+thoroughlyClean [] = []
+thoroughlyClean ((p,[ts]):pts) = (p, [ts]) : thoroughlyClean [(pp, [tt \\ ts]) | (pp, [tt]) <- pts]
+thoroughlyClean _ = error "Main: Assumption that cost trees only contain one menu was broken."
 
+showCleanMenu :: Context -> M.Map Path [[CostTree]] -> String
+showCleanMenu context menu =
+    unlines [show path ++ " :\n" ++ unlines [showCostTree context path t | ts <- trees, t <- ts] |
+             path <- sort (M.keys menu), let trees = menu M.! path]
+
+showCostTree :: Context -> Path -> CostTree -> String
+showCostTree (grammar, _, _) path (CostTree cost lin tree) =
+    ("\t" ++ show cost ++ " - " ++
+     unwords [w | Linearization _ w <- lin] ++ " - " ++
+     (showTTree $ fromJust $ selectNode (gfAbsTreeToTTree grammar (read tree)) path))
