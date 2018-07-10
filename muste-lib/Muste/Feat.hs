@@ -4,12 +4,20 @@
   Original URL: https://github.com/koengit/grammarfeat
   Adopted by Herbert Lange for Muste
 -}
-module Muste.Feat(Grammar(..),Rule(..),FunType(..),TTree(..),mkFEAT,featCard,featIth,emptyFeat,getRuleType,getAllRules) where
+module Muste.Feat
+  ( Grammar(..)
+  , Rule(..)
+  , FunType(..)
+  , TTree(..)
+  , mkFEAT
+  , featCard
+  , featIth
+  , emptyFeat
+  , getRuleType
+  , getAllRules
+  ) where
 
 import Data.List
-import Data.Maybe
-import Data.Char
-import qualified Data.Set as S
 
 import PGF
 
@@ -30,6 +38,15 @@ data Grammar = Grammar {
   pgf :: PGF,
   feat :: FEAT
   }
+
+-- FIXME: Do not use `Show` for this sort of thing.
+-- | A 'Grammar' is in the Show class
+instance Show Grammar where
+  show (Grammar sCat srules lrules _ _) =
+    "Startcat: " ++ show sCat ++ "\nSyntactic Rules: \n" ++
+    unwords (map (\r -> "\t" ++ show r ++ "\n") srules)
+    ++ "\nLexical Rules: \n" ++
+    unwords (map (\r -> "\t" ++ show r ++ "\n") lrules)
 
 -- | The function 'getRules' returns the union of syntactic and lexical rules of a grammar
 getAllRules :: Grammar -> [Rule]
@@ -75,11 +92,11 @@ mkFEAT gr =
      else (0, error "empty")
 
    catList' [c] s =
-     parts ( [(1, \i -> [TMeta c]) | s == 1 ]
+     parts ( [(1, \_ -> [TMeta c]) | s == 1 ]
              ++
            [ (n, \i -> [TNode f t (h i)])
            | s > 0 
-           , r@(Function f t) <- getAllRules gr
+           , (Function f t) <- getAllRules gr
            , let (Fun y xs) = t
            , y == c
            , let (n,h) = catList xs (s-1)

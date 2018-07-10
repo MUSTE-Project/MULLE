@@ -1,5 +1,24 @@
 {- | This Module is the internal implementation behind the module 'Muste.Tree' -}
-module Muste.Tree.Internal where
+module Muste.Tree.Internal
+  ( Path
+  , getPath
+  , getPathes
+  , Pos
+  , maxDepth
+  , getTreeCat
+  , generateTrees
+  , replaceNode
+  , ttreeToLTree
+  , ttreeToGFAbsTree
+  , selectNode
+  , gfAbsTreeToTTree
+  , isValid
+  , showTree
+  , countNodes
+  , countMatchedNodes
+  , LTree
+  , showTTree
+  ) where
 
 import PGF hiding (showType,checkType,parse)
 import PGF.Internal hiding (showType)
@@ -66,14 +85,15 @@ instance TreeC LTree where
     | otherwise = Just (trees !! i)
       
 -- List-related functions
--- | The function 'listReplace' replaces an element in a 'List' if the position exists
+-- | The function 'listReplace' replaces an element in a 'List' if the
+-- position exists
 listReplace :: [a] -> Pos -> a -> [a]
-listReplace list pos elem
+listReplace list pos a
   | 0 <= pos && pos < length list = -- pos in list -> replace it
       let
         (pre,_:post) = splitAt pos list
       in
-        pre ++ (elem:post)
+        pre ++ (a:post)
   | otherwise = list -- Element not in the list -> return the same list instead
 
 -- | The function 'isValid' "type-checks a 'TTree'

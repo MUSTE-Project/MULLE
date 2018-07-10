@@ -72,11 +72,12 @@ library
   exposed-modules:
                   Muste
                   Muste.Tree
-                  Muste.Tree.Internal
                   Muste.Grammar
-                  Muste.Grammar.Internal
                   Muste.Feat
                   Muste.Prune
+
+  other-modules:  Muste.Tree.Internal
+                  Muste.Grammar.Internal
 
 executable Muste
 -- LANGUAGE extensions used by modules in this package.
@@ -94,6 +95,13 @@ executable Muste
   -- Base language which the package is written in.
   default-language:    Haskell2010
   main-is:             Main.hs
+  other-modules:       Muste
+                       Muste.Feat
+                       Muste.Grammar
+                       Muste.Grammar.Internal
+                       Muste.Prune
+                       Muste.Tree
+                       Muste.Tree.Internal
 
 --Test-Suite Test
 --    type:       exitcode-stdio-1.0

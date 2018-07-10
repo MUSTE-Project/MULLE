@@ -1,38 +1,47 @@
 {- | This Module is the internal implementation behind the module 'Muste.Grammar' -}
-module Muste.Grammar.Internal where
+module Muste.Grammar.Internal
+  -- ( wildCard
+  -- , emptyGrammar
+  -- , isEmptyPGF
+  -- , isEmptyGrammar
+  -- , getFunType
+  -- , getRuleName
+  -- , pgfToGrammar
+  where
 
+import Prelude hiding (id)
 import PGF
-import PGF.Internal hiding (nub)
+import PGF.Internal hiding (funs, cats)
 import Data.List
-import Muste.Feat
+import Muste.Feat (Grammar(Grammar), FunType(Fun,NoType), Rule(Function), mkFEAT)
+-- import Muste.Feat hiding (startcat, pgf)
+import qualified Muste.Feat as Feat
 
+wildCard :: String
 wildCard = "*empty*"
-    
--- | A 'Grammar' is in the Show class
-instance Show Grammar where
-  show (Grammar startcat srules lrules _ _) =
-    "Startcat: " ++ show startcat ++ "\nSyntactic Rules: \n" ++
-    unwords (map (\r -> "\t" ++ show r ++ "\n") srules)
-    ++ "\nLexical Rules: \n" ++
-    unwords (map (\r -> "\t" ++ show r ++ "\n") lrules)
 
 -- | Constant for an empty 'Grammar' in line with 'emptyPGF'
-emptyGrammar = Grammar wildCard [] [] emptyPGF emptyFeat
+emptyGrammar :: Grammar
+emptyGrammar = Grammar wildCard [] [] emptyPGF Feat.emptyFeat
 
--- | Predicate to check if a PGF is empty, i.e. when the absname is wildCId
+-- | Predicate to check if a PGF is empty, i.e. when the absname is
+-- wildCId
+isEmptyPGF :: PGF -> Bool
 isEmptyPGF pgf = absname pgf == wildCId
 
--- | Predicate to check if a Grammar is empty, i.e. when the startcat is wildCId and pgf is empty
-isEmptyGrammar grammar = startcat grammar == wildCard && isEmptyPGF (pgf grammar)
+-- | Predicate to check if a Grammar is empty, i.e. when the startcat
+-- is wildCId and pgf is empty
+isEmptyGrammar :: Grammar -> Bool
+isEmptyGrammar grammar = Feat.startcat grammar == wildCard && isEmptyPGF (Feat.pgf grammar)
   
 
 -- | The function 'getFunTypeWithGrammar' extracts the function type from a Grammar given a function name
 getFunType :: Grammar -> String -> FunType
 getFunType g id =
   let
-    rules = filter (\r -> getRuleName r == id) $ getAllRules g
+    rules = filter (\r -> getRuleName r == id) $ Feat.getAllRules g
   in
-    if not $ null rules then getRuleType $ head rules else NoType
+    if not $ null rules then Feat.getRuleType $ head rules else NoType
 
 -- | The function 'getRuleName' extracts the name of a rule
 getRuleName :: Rule -> String
@@ -55,7 +64,7 @@ pgfToGrammar pgf
       -- Get the startcat from the PGF
       (_, startcat, _) = unType (startCat pgf)
     in
-      Grammar (showCId startcat) synrules lexrules pgf (mkFEAT (Grammar (showCId startcat) synrules lexrules pgf emptyFeat))
+      Grammar (showCId startcat) synrules lexrules pgf (mkFEAT (Grammar (showCId startcat) synrules lexrules pgf Feat.emptyFeat))
   where
     getFunTypeWithPGF :: PGF -> CId -> FunType
     getFunTypeWithPGF grammar id
@@ -68,7 +77,7 @@ pgfToGrammar pgf
             Nothing -> NoType ; -- No type found in grammar
             Just t ->
             let
-              (hypos,typeid,exprs) = unType t
+              (hypos,typeid,_exprs) = unType t
               cats = map (\(_,_,DTyp _ cat _) -> cat) hypos
             in
               Fun (showCId typeid) (map showCId cats)

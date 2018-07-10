@@ -1,3 +1,5 @@
+module Main (main) where
+
 import Muste
 import Muste.Tree
 import Muste.Grammar
