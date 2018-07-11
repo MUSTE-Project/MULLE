@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 -- | I think this is some kind of command line interface for the
 -- business logic of the semantic text editor.
 module Main (main, loop) where
@@ -44,14 +45,17 @@ grammarFile = "../gf/novo_modo/Prima.pgf"
 -- | Type for a click that has both a position and a count
 data Click = Click { pos :: Int, count :: Int } deriving (Show,Eq)
 
--- | The function 'updateClick' either increases the counter when the position is the same as the previous one or sets the new position and sets the counter to 1
+-- | The function 'updateClick' either increases the counter when the
+-- position is the same as the previous one or sets the new position
+-- and sets the counter to 1
 updateClick :: Maybe Click -> Pos -> Maybe Click
 updateClick Nothing pos = Just $ Click pos 1
 updateClick (Just (Click pos count)) newPos
   | pos == newPos = Just $ Click pos (count + 1)
   | otherwise = Just $ Click newPos 1
 
--- | The 'linearizeList' functions concatenates a token list to a string, can contain the pathes for debugging and the positions
+-- | The 'linearizeList' functions concatenates a token list to a
+-- string, can contain the pathes for debugging and the positions
 linearizeList :: Bool -> Bool -> [LinToken] -> String
 linearizeList debug positions list =
   let
@@ -174,8 +178,10 @@ main =
     let (v,p) = isValid tree
     if not v then
         error $ "Invalid starting tree. Problem in Node " ++ show p
-    else
+    else do
+#ifdef INTERACTIVE
         -- loop context defaultDebug tree Nothing
+#endif
         printMenu context targetLang tree
 
 
