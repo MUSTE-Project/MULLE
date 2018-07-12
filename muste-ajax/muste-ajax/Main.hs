@@ -25,7 +25,7 @@ import Protocol
 import Data.Time
 import Control.Monad
 
-import Paths_ajax_backend
+import qualified Config
 
 -- Switch loggin on/off
 logging = True
@@ -78,7 +78,7 @@ main :: IO ()
 main =
   do
     args <- getArgs
-    dbConn <- getDB >>= open
+    dbConn <- Config.getDB >>= open
     contexts <- initContexts dbConn
     let isHelp = elem "--help" args
     if isHelp then printHelp

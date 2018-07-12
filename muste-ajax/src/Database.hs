@@ -27,8 +27,6 @@ import Data.Time.Format
 
 import Control.Exception
 
-import qualified Database.Data as Data
-
 data DatabaseException = DatabaseException String deriving (Show)
 instance Exception DatabaseException
 -- | hashPasswd returns a SHA512 hash of a PBKDF2 encoded password (SHA512,10000 iterations,1024 bytes output)

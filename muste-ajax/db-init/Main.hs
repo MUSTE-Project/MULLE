@@ -4,14 +4,15 @@ module Main (main) where
 import Data.String
 import Database.SQLite.Simple
 
-import qualified Paths_ajax_backend as Paths
+import qualified Config
 import qualified Database
-import qualified Database.Data as Data
+
+import qualified Data
 
 main :: IO ()
 main = do
   putStrLn "Initializing database..."
-  db <- Paths.getDB
+  db <- Config.getDB
   withConnection db initDB
   putStrLn "Initializing database... done"
 

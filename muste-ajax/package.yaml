@@ -1,0 +1,102 @@
+name:                muste-ajax
+version:             0.0.0.0
+license-file:        LICENSE
+author:              Herbert Lange
+maintainer:          herbert.lange@cse.gu.se
+
+extra-source-files:
+
+category:            Web
+
+flags:
+  CGI:
+    description: Build as a CGI program
+    manual: true
+    default: false
+data-files:
+  - data/gf/compiled/novo_modo/*.pgf
+
+
+dependencies:
+  - base >= 4.8 && < 4.12
+  - aeson >=1.0
+  - text
+  - bytestring
+  - containers
+  - muste
+  - pgf
+  - mtl
+  - network-uri
+  - filepath
+  - vector
+  - time
+  - base64-bytestring
+  - cryptonite
+  - crypto-random-api
+  - wai
+  - warp
+  - http-types
+  - sqlite-simple
+  - QuickCheck
+
+library:
+
+  source-dirs:
+    - src
+
+  exposed-modules:
+    - Ajax
+    - Database
+    - Config
+    - Protocol
+
+  other-modules:
+    - Paths_muste_ajax
+
+executables:
+  muste-ajax:
+    source-dirs:
+      - muste-ajax
+
+    main: Main.hs
+
+    # when:
+    #   - condtion: flag(CGI)
+    #     then:
+    #       main:             Main-CGI.hs
+    #     else:
+    #       main:             Main-Standalone.hs
+
+    # when:
+    #   - condition: flag(CGI)
+    #     then:
+    #       dependencies:       cgi >= 3001.3.0.2
+    #     else:
+
+    dependencies:
+      - muste-ajax
+
+  # Commented out because cgi is currently incompatible with lts-12.0
+
+  # muste-cgi:
+  #   source-dirs:
+  #     - muste-cgi
+
+  #   main: Main.hs
+
+  #   dependencies:
+  #     - muste-ajax
+  #     - cgi >= 3001.3.0.2
+
+  db-init:
+    source-dirs:
+      - db-init
+
+    main: Main.hs
+
+    other-modules:
+      - Data
+      - Paths_muste_ajax
+
+    dependencies:
+      - muste-ajax

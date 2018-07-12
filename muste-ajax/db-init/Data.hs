@@ -1,10 +1,10 @@
 -- | Data used for inititializing the database
 
-module Database.Data (exercises, getLessons) where
+module Data (exercises, getLessons) where
 
 import Muste.Tree
 import Muste.Grammar
-import Paths_ajax_backend
+import qualified Config
 
 exercises :: [(TTree, TTree, String)]
 exercises =
@@ -54,7 +54,7 @@ type Lesson = (String,String,String,String,String,Int,Int,Int)
 
 mkLesson :: Lesson -> IO Lesson
 mkLesson (f,u,n,k,y,e,a,h) = do
-  n' <- getGrammar n
+  n' <- Config.getGrammar n
   pure (f,u,n',k,y,e,a,h)
 
 getLessons :: IO [Lesson]
