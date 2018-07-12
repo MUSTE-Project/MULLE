@@ -1,72 +1,25 @@
-{-
+{- |
   Original Author: Koen Claesson
   Original License: BSD (2-clause)
   Original URL: https://github.com/koengit/grammarfeat
   Adopted by Herbert Lange for Muste
 -}
 module Muste.Feat
-  ( Grammar(..)
-  , Rule(..)
-  , FunType(..)
-  , TTree(..)
-  , mkFEAT
+  ( mkFEAT
   , featCard
   , featIth
   , emptyFeat
   , getRuleType
   , getAllRules
+  , generateTrees
   ) where
 
 import Data.List
 
 import PGF
 
---------------------------------------------------------------------------------
--- grammar types
-
--- | Type 'FunType' consists of a String that is the the result category and [String] are the parameter categories
-data FunType = Fun String [String] | NoType deriving (Ord,Eq,Show,Read)
-
--- | Type 'Rule' consists of a String as the function name and a 'FunType' as the Type
-data Rule = Function String FunType deriving (Ord,Eq,Show,Read)
-
--- | Type 'Grammar' consists of a start categorie and a list of rules
-data Grammar = Grammar {
-  startcat :: String,
-  synrules :: [Rule],
-  lexrules :: [Rule],
-  pgf :: PGF,
-  feat :: FEAT
-  }
-
--- FIXME: Do not use `Show` for this sort of thing.
--- | A 'Grammar' is in the Show class
-instance Show Grammar where
-  show (Grammar sCat srules lrules _ _) =
-    "Startcat: " ++ show sCat ++ "\nSyntactic Rules: \n" ++
-    unwords (map (\r -> "\t" ++ show r ++ "\n") srules)
-    ++ "\nLexical Rules: \n" ++
-    unwords (map (\r -> "\t" ++ show r ++ "\n") lrules)
-
--- | The function 'getRules' returns the union of syntactic and lexical rules of a grammar
-getAllRules :: Grammar -> [Rule]
-getAllRules g = union (synrules g) (lexrules g)
-
--- | The function 'getRuleType' extracts the full type of a rule
-getRuleType :: Rule -> FunType
-getRuleType (Function _ funType) = funType
-
---------------------------------------------------------------------------------
-
--- tree
-
--- | A generic tree with types
-data TTree = TNode String FunType [TTree] -- Regular node consisting of a function name, function type and possible subtrees
-           | TMeta String -- A meta tree consisting just of a category type
-           deriving (Ord,Eq,Show,Read) -- read is broken at the moment, most likely because of the CId
-
-
--- FEAT-style generator magic
+import Muste.Grammar
+import Muste.Tree
 
 type FEAT = String -> Int -> (Integer, Integer -> TTree)
 
@@ -127,5 +80,12 @@ mkFEAT gr =
      where
        (n',h') = parts nhs
 
---------------------------------------------------------------------------------
+-- | The function 'generateTrees' generates a list of 'TTree's up to a certain depth given a grammar. Powered by the magic of feat
+generateTrees :: FEAT -> String -> [[TTree]]
+generateTrees f cat =
+  let
+    feats = map (\d -> (featCard f cat d,featIth f cat d)) [0..]
+  in
+    map (\(max,fs) -> map fs [0..max-1]) feats
+
 

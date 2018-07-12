@@ -61,7 +61,11 @@ library
   if flag(hastePGF)
     build-depends:       QuickCheck >= 2.8, base >=4.8, containers >= 0.5, haste-pgf >=3.7
   else
-    build-depends:       base >=4.8, pgf >=3.7, QuickCheck >= 2.8, containers >= 0.5
+    build-depends:       base >=4.8
+                       , pgf >=3.7
+                       , QuickCheck >= 2.8
+                       , containers >= 0.5
+                       , aeson
 
   -- Directories containing source files.
   -- hs-source-dirs:      
@@ -79,31 +83,6 @@ library
   other-modules:  Muste.Tree.Internal
                   Muste.Grammar.Internal
                   Common
-
-executable Muste
--- LANGUAGE extensions used by modules in this package.
-  other-extensions:    FlexibleInstances
-  
-  -- Other library packages from which modules are imported.
-  if flag(hastePGF)
-     Buildable: False
-  else
-    build-depends:       QuickCheck >= 2.8, base >=4.8, containers >= 0.5, pgf >=3.7
-  
-  -- Directories containing source files.
-  -- hs-source-dirs:      
-
-  -- Base language which the package is written in.
-  default-language:    Haskell2010
-  main-is:             Main.hs
-  other-modules:       Muste
-                       Muste.Feat
-                       Muste.Grammar
-                       Muste.Grammar.Internal
-                       Muste.Prune
-                       Muste.Tree
-                       Muste.Tree.Internal
-                       Common
 
 --Test-Suite Test
 --    type:       exitcode-stdio-1.0

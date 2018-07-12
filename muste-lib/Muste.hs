@@ -2,6 +2,7 @@
   High level api to the muste backend
 -}
 module Muste
+  -- Maybe put this in a seperate module.
   ( LinToken(LinToken, ltlin, ltpath) -- NB ltlin and ltpath should not be exposed
   , Context
   , CostTree(CostTree)
@@ -15,6 +16,7 @@ module Muste
 
 import Muste.Tree
 import Muste.Grammar
+import Muste.Grammar.Internal (ttreeToGFAbsTree)
 import PGF
 import PGF.Internal (Expr(..))
 import qualified Data.Map.Lazy as M
@@ -26,9 +28,23 @@ type PrecomputedTrees = AdjunctionTrees
 type Context = (Grammar, Language, PrecomputedTrees)
 
 
-data LinToken = LinToken { ltpath :: Path, ltlin :: String, _ltmatched :: Path } deriving (Show)
-data Linearization = Linearization { lpath :: Path, llin :: String } deriving (Show,Eq)
-data CostTree = CostTree { _cost :: Int , _lin :: [Linearization] , _tree :: String } deriving (Show,Eq)
+data LinToken = LinToken
+  { ltpath :: Path
+  , ltlin :: String
+  , _ltmatched :: Path
+  } deriving (Show)
+
+data Linearization = Linearization
+  { lpath :: Path
+  , llin :: String
+  } deriving (Show,Eq)
+
+-- FIXME Change the projection `_tree` to be a `TTree`
+data CostTree = CostTree
+  { _cost :: Int
+  , _lin :: [Linearization]
+  , _tree :: String
+  } deriving (Show,Eq)
 
 
 buildContext :: Grammar -> CId -> Context
@@ -36,6 +52,7 @@ buildContext grammar lang = (grammar, lang, getAdjunctionTrees grammar)
 
 
 -- lin is the full linearization
+-- Maybe fits better in the grammar.
 -- | The 'linearizeTree' function linearizes a TTree to a list of tokens and pathes to the nodes that create it
 linearizeTree :: Context -> TTree ->  [LinToken]
 linearizeTree (grammar, language, _) ttree = 
@@ -112,3 +129,7 @@ filterCostTrees trees =
 
 getCleanMenu :: Context -> TTree -> M.Map Path [[CostTree]]
 getCleanMenu context tree = M.fromList $ filterCostTrees $ getPrunedSuggestions context tree
+
+-- TODO Use from/to json in stead.
+showTTree :: TTree -> String
+showTTree = show

@@ -1,5 +1,5 @@
-module Muste.Prune where
-import qualified Muste.Feat as F
+module Muste.Prune (AdjunctionTrees, collectSimilarTrees, getAdjunctionTrees) where
+
 import Muste.Tree
 import Muste.Grammar
 import Control.Monad
@@ -27,7 +27,7 @@ collectSimilarTrees grammar adjTrees basetree =
        return (path, tree, simtrees')
     where
       similarTreesForSubtree :: TTree -> [(Int, TTree, TTree, TTree)]
-      similarTreesForSubtree tree@(TNode _ (F.Fun cat _) _) = 
+      similarTreesForSubtree tree@(TNode _ (Fun cat _) _) = 
           do let Just adjTreesForCat = lookup cat adjTrees
              (pruned, branches) <- pruneTree tree
              let funs = getFunctions pruned
@@ -53,9 +53,9 @@ collectSimilarTrees grammar adjTrees basetree =
              return (treeDiff tree tree', tree', pruned, pruned')
 
 -- Returns an ordered list with all functions in a tree
-getFunctions :: TTree -> [F.Rule]
+getFunctions :: TTree -> [Rule]
 getFunctions tree = sort (getF tree)
-    where getF (TNode fun typ children) = F.Function fun typ : concatMap getF children
+    where getF (TNode fun typ children) = Function fun typ : concatMap getF children
           getF _ = []
 
 -- True if the (ordered) list contains no duplicates (i.e., is a set)
@@ -103,7 +103,7 @@ insertBranches branches tree = map fst (ins branches tree)
                                       (t', branches') <- ins branches t,
                                       (ts', branches'') <- inslist branches' ts ]
           selectBranch _ [] = []
-          selectBranch cat (tree@(TNode _ (F.Fun cat' _) _) : trees)
+          selectBranch cat (tree@(TNode _ (Fun cat' _) _) : trees)
               = [ (tree, trees) | cat == cat' ] ++
                 [ (tree', tree:trees') | (tree', trees') <- selectBranch cat trees ]
 
@@ -129,15 +129,15 @@ isSubList csub@(c:sub) (d:super) | c == d    = isSubList sub super
 --  * and a list of all the pruned branches (subtrees)
 -- pruneTree :: Int -> TTree -> [(TTree, [TTree])]
 -- pruneTree 0 tree@(TNode _ _ []) = [(tree, [])]
--- pruneTree 0 tree@(TNode _ (F.Fun cat _) _) = [(TMeta cat, [tree])]
--- pruneTree n tree@(TNode fun typ@(F.Fun cat _) children) =
+-- pruneTree 0 tree@(TNode _ (Fun cat _) _) = [(TMeta cat, [tree])]
+-- pruneTree n tree@(TNode fun typ@(Fun cat _) children) =
 --     (TMeta cat, [tree]) : [ (TNode fun typ children', branches) | (children', branches) <- pruneChildren children ]
 --     where pruneChildren [] = [([], [])]
 --           pruneChildren (c:cs) = [ (c':cs', bs0 ++ bs1) | (c', bs0) <- pruneTree (n-1) c, (cs', bs1) <- pruneChildren cs ]
 
 pruneTree tree = [(t, bs) | (t, bs, _) <- pt [] tree]
     where pt visited tree@(TNode _ _ []) = [(tree, [], visited)]
-          pt visited tree@(TNode fun typ@(F.Fun cat _) children)
+          pt visited tree@(TNode fun typ@(Fun cat _) children)
               = (TMeta cat, [tree], visited) :
                 [ (tree', branches', visited') |
                   cat `notElem` visited,
@@ -182,17 +182,17 @@ editDistance a b = last (if lab == 0 then mainDiag
 
 getAdjunctionTrees :: Grammar -> AdjunctionTrees
 getAdjunctionTrees grammar = [(cat, map fst (adjTrees cat [])) | cat <- allCats]
-    where allRules :: [F.Rule]
-          allRules = F.getAllRules grammar
+    where allRules :: [Rule]
+          allRules = getAllRules grammar
           allCats :: [String]
-          allCats = nub [cat | (F.Function _ (F.Fun cat _)) <- allRules]
-          getRulesFor :: String -> [F.Rule]
-          getRulesFor cat = [rule | rule@(F.Function _ (F.Fun cat' _)) <- allRules, cat == cat']
+          allCats = nub [cat | (Function _ (Fun cat _)) <- allRules]
+          getRulesFor :: String -> [Rule]
+          getRulesFor cat = [rule | rule@(Function _ (Fun cat' _)) <- allRules, cat == cat']
           adjTrees :: String -> [String] -> [(TTree, [String])]
           adjTrees cat visited = (TMeta cat, visited) :
                                  [ (TNode fun typ children, visited') |
                                    cat `notElem` visited,
-                                   (F.Function fun typ@(F.Fun _ childcats)) <- getRulesFor cat,
+                                   (Function fun typ@(Fun _ childcats)) <- getRulesFor cat,
                                    (children, visited') <- adjChildren childcats (cat:visited)
                                  ]
           adjChildren :: [String] -> [String] -> [([TTree], [String])]
@@ -203,9 +203,9 @@ getAdjunctionTrees grammar = [(cat, map fst (adjTrees cat [])) | cat <- allCats]
                                              (trees, visited'') <- adjChildren cats visited' ]
 
 treeIsRecursive :: TTree -> Bool
-treeIsRecursive tree@(TNode _ (F.Fun cat _) children) =
+treeIsRecursive tree@(TNode _ (Fun cat _) children) =
     case getMetas tree of
-      [] -> cat `elem` [cat' | F.Function _ (F.Fun cat' _) <- concatMap getFunctions children]
+      [] -> cat `elem` [cat' | Function _ (Fun cat' _) <- concatMap getFunctions children]
       [cat'] -> cat == cat'
       _ -> False
 treeIsRecursive _ = False

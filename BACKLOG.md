@@ -9,6 +9,22 @@ Remove `LTree`. `LTree` is currently not exported from `muste-lib`, it
 is however used internally. E.g. in `linearizeTree` which is used in
 the ajax-backend.
 
+Use framework for (de-) serializing values when storing in database.
+---
+
+Make `FromROW` instances for data types.
+
+Use framework for web requests
+---
+
+E.g. `snap`
+
+Use Haskell data files for e.g. the grammar files.
+---
+
+Split database init script into seperate module
+---
+
 Style improvements / dead code removal
 -----------------
 

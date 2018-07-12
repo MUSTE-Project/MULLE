@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Database where
 
-import PGF
+import qualified PGF
 
 import Muste hiding (linearizeTree)
 import Muste.Grammar
@@ -26,6 +26,8 @@ import Data.Time.Clock
 import Data.Time.Format
 
 import Control.Exception
+
+import qualified Database.Data as Data
 
 data DatabaseException = DatabaseException String deriving (Show)
 instance Exception DatabaseException
@@ -140,44 +142,13 @@ initDB conn =
     mapM_ (\(u,p,e) -> addUser conn u p e) users
     let insertLessonQuery = "INSERT INTO Lesson (Name,Description,Grammar,SourceLanguage,TargetLanguage,ExerciseCount,Enabled,Repeatable) VALUES (?,?,?,?,?,?,?,?);" :: Query
     let lessonData = [("Prima Pars","Den första Lektionen fran boken \"Novo modo\"","Prima.pgf","PrimaLat","PrimaSwe",5,1,1),
-                      ("Secunda Pars","Den andra Lektionen fran boken \"Novo modo\"","Secunda.pgf","SecundaLat","SecundaSwe",8,0,1),
+                      ("Secunda Pars","Den andra Lektionen fran boken \"Novo modo\"","Secunda.pgf","SecundaLat","SecundaSwe",8,1,1),
                       ("Tertia Pars","Den tredje Lektionen fran boken \"Novo modo\"","Tertia.pgf","TertiaLat","TertiaSwe",12,0,1),
                       ("Quarta Pars","Den fjärde Lektionen fran boken \"Novo modo\"","Quarta.pgf","QuartaLat","QuartaSwe",15,0,1)
                      ] :: [(String,String,String,String,String,Int,Int,Int)]
     mapM_ (execute conn insertLessonQuery) lessonData
     let insertExerciseQuery = "INSERT INTO Exercise (SourceTree,TargetTree,Lesson) VALUES (?,?,?);" :: Query
-    let exercises = [
-          ("useS (useCl (simpleCl (useCNdefsg (useN vinum_N)) (complVA copula_VA (useA sapiens_A))))",
-           "useS (useCl (simpleCl (usePron he_PP) (complVA copula_VA (useA sapiens_A))))",
-           "Prima Pars"),
-          ("useS (useCl (simpleCl (usePN Augustus_PN) (transV tenere_V2 (useCNdefsg (useN imperium_N)))))",
-           "useS (useCl (simpleCl (useCNdefsg (useN imperator_N)) (transV tenere_V2 (useCNdefsg (useN imperium_N)))))",
-           "Prima Pars"),
-          ("useS (useCl (simpleCl (usePN Augustus_PN) (complVA copula_VA (useA felix_A))))",
-           "useS (useCl (simpleCl (useCNdefsg (useN amicus_N)) (complVA copula_VA (useA felix_A))))",
-           "Prima Pars"),
-          ("useS (useCl (simpleCl (usePN Augustus_PN) (complVA copula_VA (useA felix_A))))",
-           "useS (useCl (simpleCl (useCNdefsg (useN pater_N)) (complVA copula_VA (useA felix_A))))",
-           "Prima Pars"),
-          ("useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN imperator_N)))))",
-           "useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN amicus_N)))))",
-           "Prima Pars"),
-          ("useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN amicus_N)))))",
-           "useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN imperator_N)))))",
-           "Prima Pars"),
-          ("useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN imperator_N)))))",
-           "useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN pater_N)))))",
-           "Prima Pars"),
-          ("useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN pater_N)))))",
-           "useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN imperator_N)))))",
-           "Prima Pars"),
-          ("useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) Augustus_PN) (transV vincere_V2 (usePN Gallia_PN))))",
-           "useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) Augustus_PN) (transV vincere_V2 (usePN Africa_PN))))",
-           "Prima Pars"),
-          ("useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) Augustus_PN) (transV vincere_V2 (usePN Africa_PN))))",
-           "useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) Augustus_PN) (transV vincere_V2 (usePN Gallia_PN))))",
-           "Prima Pars")] :: [(String,String,String)]
-    mapM_ (execute conn insertExerciseQuery) exercises
+    mapM_ (execute conn insertExerciseQuery) $ (\(a, b, c) -> (show a, show b, c)) <$> Data.exercises
     -- let insertFinishedExerciseQuery = "INSERT INTO FinishedExercise (User,SourceTree,TargetTree,Lesson,Time,ClickCount,Round) VALUES ('herbert','useS (useCl (simpleCl (useCNindefsg (useN vinum_N)) (complA sapiens_A)))','useS (useCl (simpleCl (usePron he_PP) (complA sapiens_A)))','Prima Pars',15,5,1);" :: Query
     -- execute_ conn insertFinishedExerciseQuery
 
@@ -190,15 +161,15 @@ initContexts conn =
     lessonGrammarList <- query_ conn selectLessonsGrammarsQuery :: IO [(String,String)]
     grammarList <- sequence $ map (\(lesson,grammarName) -> do
                            -- get all langs
-                           pgf <-readPGF grammarName
+                           pgf <-PGF.readPGF grammarName
                            let grammar = pgfToGrammar pgf
                            return (lesson,grammar)
                            ) lessonGrammarList :: IO [(String,Grammar)]
     preTuples <- sequence $ map (\(lesson,grammar) -> do
             -- get all langs
-            let langs = languages (pgf grammar)
+            let langs = PGF.languages (pgf grammar)
             -- get all start trees
-            let contexts = [(showCId lang,buildContext grammar lang) | lang <- langs]
+            let contexts = [(PGF.showCId lang,buildContext grammar lang) | lang <- langs]
              -- precompute for every lang and start tree
             return $ (lesson, M.fromList contexts)
         ) grammarList

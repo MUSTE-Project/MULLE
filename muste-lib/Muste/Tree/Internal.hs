@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {- | This Module is the internal implementation behind the module 'Muste.Tree' -}
 module Muste.Tree.Internal
   ( Path
@@ -6,25 +7,47 @@ module Muste.Tree.Internal
   , Pos
   , maxDepth
   , getTreeCat
-  , generateTrees
   , replaceNode
   , ttreeToLTree
-  , ttreeToGFAbsTree
   , selectNode
-  , gfAbsTreeToTTree
   , isValid
   , showTree
   , countNodes
   , countMatchedNodes
   , LTree
-  , showTTree
+  , TTree(TNode,TMeta)
+  , FunType(Fun, NoType)
   ) where
 
-import PGF hiding (showType,checkType,parse)
-import PGF.Internal hiding (showType)
+-- TODO Do not depend on PGF
+import PGF (CId, mkCId)
+
 import Data.Maybe
-import Muste.Grammar
-import Muste.Feat
+import Data.Aeson
+import GHC.Generics
+
+import Common
+
+-- tree
+
+-- | A generic tree with types
+data TTree = TNode String FunType [TTree] -- Regular node consisting of a function name, function type and possible subtrees
+           | TMeta String -- A meta tree consisting just of a category type
+           deriving (Ord,Eq,Show,Read,Generic) -- read is broken at the moment, most likely because of the CId
+
+instance ToJSON TTree where
+    toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON TTree
+
+-- | Type 'FunType' consists of a String that is the the result category and [String] are the parameter categories
+data FunType = Fun String [String] | NoType
+  deriving (Ord,Eq,Show,Read,Generic)
+
+instance ToJSON FunType where
+    toEncoding = genericToEncoding defaultOptions
+
+instance FromJSON FunType
 
 -- | Generic class for trees
 class TreeC t where
@@ -39,9 +62,6 @@ type Pos = Int
 
 -- | Path in a tree
 type Path = [Pos]
-
--- | Rename GF abstract syntax tree (from PGF)
-type GFAbsTree = Tree
 
 -- | A labeled tree - just a template to match labels to paths
 data LTree = LNode CId Int [LTree] | LLeaf deriving (Show,Eq)
@@ -123,43 +143,6 @@ getTreeCat (TNode id typ _) =
     NoType -> wildCard
     }
 getTreeCat (TMeta cat) = cat
-
--- | The function 'gfAbsTreeToTTree' creates a 'TTree' from an GFabstract syntax 'Tree' and a Grammar. Othewise  similar to gfAbsTreeToTTreeWithPGF
-gfAbsTreeToTTree :: Grammar -> GFAbsTree -> TTree
-gfAbsTreeToTTree g (EFun f) =
-  let
-    typ = getFunType g (showCId f)
-  in
-    TNode (showCId f) typ []
-gfAbsTreeToTTree g (EApp e1 e2) =
-  let
-    (TNode name typ sts) = gfAbsTreeToTTree g e1
-    st2 = gfAbsTreeToTTree g e2
-  in
-    TNode name typ (sts ++ [st2])
-gfAbsTreeToTTree _ _ = TMeta wildCard
-
--- | Creates a GF abstract syntax Tree from a generic tree
-ttreeToGFAbsTree :: TTree -> GFAbsTree
-ttreeToGFAbsTree tree =
-  let
-    loop :: [TTree] -> Int -> (Int,[GFAbsTree])
-    loop [] id = (id,[])
-    loop (t:ts) id =
-      let
-        (nid,nt) = convert t id
-        (fid,nts) = loop ts nid
-      in
-        (fid,nt:nts)
-    convert :: TTree -> Int -> (Int,GFAbsTree)
-    convert (TMeta _) id = (id + 1, mkMeta id)
-    convert (TNode name _ ns) id =
-      let
-        (nid,nts) = loop ns id
-      in
-        if name == wildCard then (nid,mkApp wildCId nts) else (nid,mkApp (mkCId name) nts)
-  in
-    snd $ convert tree 0
 
 -- | Creates a labeled LTree from a TTree
 ttreeToLTree :: TTree -> LTree
@@ -251,17 +234,6 @@ replaceNode oldTree [] newTree =
   newTree -- at the end of the path just give the new tree to be inserted
 replaceNode oldTree _ _ =
   oldTree -- No more subtrees, cancel search
-
--- | The function 'generateTrees' generates a list of 'TTree's up to a certain depth given a grammar. Powered by the magic of feat
-generateTrees :: Grammar -> String -> [[TTree]]
-generateTrees grammar cat =
-  let
-    feats = map (\d -> let f = feat grammar in (featCard f cat d,featIth f cat d)) [0..]
-  in
-    map (\(max,fs) -> map fs [0..max-1]) feats
-
--- | Show the tree in a simpler form
-showTTree = showExpr [] . ttreeToGFAbsTree
 
 countNodes :: TTree -> Int
 countNodes (TMeta _) = 1

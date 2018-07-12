@@ -4,8 +4,8 @@ import Ajax
 import Database
 import Muste
 import Muste.Tree
-import Muste.Grammar
-import PGF
+import Muste.Grammar (parseTTree)
+
 import Data.Map ((!),Map(..),fromList)
 import qualified Data.Map.Lazy as M
 import Control.Monad
@@ -122,13 +122,14 @@ assembleMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree) =
   let grammar = (\(g,_,_) -> g) (contexts ! lesson ! sourceLang)
       sourceContext = contexts ! lesson ! sourceLang
       targetContext = contexts ! lesson ! targetLang
-      sourceTTree = gfAbsTreeToTTree grammar (read sourceTree :: Tree)
-      targetTTree = gfAbsTreeToTTree grammar (read targetTree :: Tree)
+      sourceTTree = parseTTree grammar sourceTree
+      targetTTree = parseTTree grammar targetTree
       tempSourceLin = linearizeTree sourceContext sourceTTree
       tempTargetLin = linearizeTree targetContext targetTTree
       sourceLin = map (\(LinToken path lin _) -> LinToken path lin (matched path sourceTTree targetTTree)) tempSourceLin
 --          sourceMenu = Menu $ fromList $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read sourceLang :: Language)) sourceTTree
-      sourceMenu = Menu $ M.empty -- fromList $ map suggestionToCostTree $ getSuggestions sourceContext  sourceTTree 
+      -- sourceMenu = Menu $ M.empty -- fromList $ map suggestionToCostTree $ getSuggestions sourceContext  sourceTTree
+      sourceMenu = Menu $ getCleanMenu sourceContext sourceTTree
       targetLin = map (\(LinToken path lin _) -> LinToken path lin (matched path sourceTTree targetTTree)) tempTargetLin
 --          targetMenu = Menu $ fromList $ filterCostTrees $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read targetLang :: Language)) targetTTree
       targetMenu = Menu $ getCleanMenu targetContext targetTTree
@@ -142,8 +143,8 @@ emptyMenus :: Map String (Map String Context) -> String -> (String,String) -> (S
 emptyMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree) =
   let
     grammar = (\(g,_,_) -> g) (contexts ! lesson ! sourceLang)
-    sourceTTree = gfAbsTreeToTTree grammar (read sourceTree :: Tree)
-    targetTTree = gfAbsTreeToTTree grammar (read targetTree :: Tree)
+    sourceTTree = parseTTree grammar sourceTree
+    targetTTree = parseTTree grammar targetTree
     tempSourceLin = linearizeTree (contexts ! lesson ! sourceLang) sourceTTree
     tempTargetLin = linearizeTree (contexts ! lesson ! targetLang) targetTTree
     sourceLin = map (\(LinToken path lin _) -> LinToken path lin (matched path sourceTTree targetTTree)) tempSourceLin

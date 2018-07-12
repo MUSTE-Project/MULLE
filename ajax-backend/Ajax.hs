@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Ajax where
 
 import Data.Aeson hiding (Null,String)
@@ -86,7 +87,7 @@ instance FromJSON ClientMessage where
     do
       msg <- v .: T.pack "message" :: Parser Text
       params <- v .: T.pack "parameters" :: Parser Object
-      case T.unpack $ msg of {
+      case msg of {
         "CMLoginRequest" ->
             CMLoginRequest
             <$> params .: T.pack "username"

@@ -1,4 +1,4 @@
-module Common (preAndSuffix) where
+module Common (preAndSuffix, wildCard) where
 
 -- Computes the longest common prefix and suffix for linearized trees
 preAndSuffix :: Eq a => [a] -> [a] -> ([a],[a])
@@ -19,3 +19,6 @@ preAndSuffix a b =
         | otherwise = []
   in
     prefix a b
+
+wildCard :: String
+wildCard = "*empty*"

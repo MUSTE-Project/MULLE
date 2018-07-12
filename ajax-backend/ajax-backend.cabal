@@ -37,6 +37,7 @@ executable ajax-backend
   other-modules:
       Ajax
     , Database
+    , Database.Data
     , Protocol
   
   -- other-extensions:    
@@ -74,6 +75,7 @@ executable db-init
 
   other-modules:
       Database
+    , Database.Data
 
   build-depends:       base >=4.8 && <4.10
                      , containers
