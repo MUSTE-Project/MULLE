@@ -1,0 +1,59 @@
+name:                muste
+version:             0.0.3
+license:             BSD3
+author:              Herbert Lange
+maintainer:          herbert.lange@cse.gu.se
+
+extra-source-files:
+
+synopsis:            Multimodal semantics in Text editing
+category:            Text
+
+flags:
+  hastePGF:
+    description: Build test suite
+    manual: true
+    default: false
+
+library:
+  other-extensions:    FlexibleInstances
+
+  dependencies:
+    - base >=4.8
+    - pgf >=3.7
+    - QuickCheck >= 2.8
+    - containers >= 0.5
+    - aeson
+    - mtl
+    - aeson
+  
+  when:
+    - condition: flag(hastePGF)
+      then:
+        dependencies:
+          - haste-pgf >=3.7
+      else:
+        dependencies:
+          - pgf >=3.7
+
+  exposed-modules:
+    - Muste
+    - Muste.Tree
+    - Muste.Grammar
+    - Muste.Feat
+    - Muste.Prune
+
+  other-modules:
+    - Muste.Tree.Internal
+    - Muste.Grammar.Internal 
+    - Common
+
+tests:
+  foo-test:
+    main:                Test.hs
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - muste

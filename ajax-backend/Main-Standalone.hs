@@ -25,6 +25,8 @@ import Protocol
 import Data.Time
 import Control.Monad
 
+import Paths_ajax_backend
+
 -- Switch loggin on/off
 logging = True
 logFile = "messagelog.txt"
@@ -36,7 +38,7 @@ getFileName :: String -> String
 -- getFileName ('/':fn) = fn
 getFileName name
   | name == webPrefix = "index.html"
-  | isPrefixOf webPrefix name = drop (length webPrefix) name
+  | isPrefixOf webPrefix name = Prelude.drop (length webPrefix) name
   | otherwise = error $ "bad name " ++ name
     
 getType :: String -> String
@@ -76,7 +78,7 @@ main :: IO ()
 main =
   do
     args <- getArgs
-    dbConn <- open "muste.db"
+    dbConn <- getDB >>= open
     contexts <- initContexts dbConn
     let isHelp = elem "--help" args
     if isHelp then printHelp

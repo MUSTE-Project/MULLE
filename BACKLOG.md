@@ -39,6 +39,9 @@ We need a way for users to insert new nodes into adjunction trees.
 This may be achieved by simply having the back alternate between
 suggesting replacements for syntactically close nodes.
 
+Automatically generate .pgf files
+---
+
 Change representation from single tree to sets of trees.
 ---
 

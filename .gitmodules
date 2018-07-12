@@ -1,5 +1,5 @@
-[submodule "gf/novo_modo/latin-rgl"]
-	path = gf/novo_modo/latin-rgl
+[submodule "libs/latin-rgl"]
+	path = libs/latin-rgl
 	url = https://github.com/daherb/GF-latin.git
 [submodule "libs/GF"]
 	path = libs/GF

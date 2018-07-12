@@ -1,0 +1,88 @@
+name:                ajax-backend
+version:             0.0.0.0
+license-file:        LICENSE
+author:              Herbert Lange
+maintainer:          herbert.lange@cse.gu.se
+
+extra-source-files:
+
+category:            Web
+
+flags:
+  CGI:
+    description: Build as a CGI program
+    manual: true
+    default: false
+data-files:
+  - data/gf/compiled/novo_modo/*.pgf
+
+executables:
+  ajax-backend:
+    
+    main: Main-Standalone.hs
+    
+    when:
+      - condtion: flag(CGI)
+        then:
+          main:             Main-CGI.hs
+        else:
+          main:             Main-Standalone.hs
+
+    other-modules:
+      - Ajax
+      - Database
+      - Database.Data
+      - Protocol
+      - Paths_ajax_backend
+
+    dependencies:
+      - base >= 4.8 && < 4.12
+      - aeson >=1.0
+      - text
+      - bytestring
+      - containers
+      - muste
+      - pgf
+      - mtl
+      - network-uri
+      - filepath
+
+    when:
+      - condition: flag(CGI)
+        then:
+          dependencies:       cgi >= 3001.3.0.2
+        else:
+          dependencies:
+            - vector
+            - sqlite-simple
+            - time
+            - cryptonite
+            - crypto-random-api
+            - QuickCheck
+            - base64-bytestring
+            - wai
+            - warp
+            - http-types
+
+  db-init:
+    main:             DB-Init.hs
+
+    other-modules:
+      - Database
+      - Database.Data
+      - Paths_ajax_backend
+
+    dependencies:
+      - base >=4.8 && <4.12
+      - containers
+      - QuickCheck
+      - time
+      - cryptonite == 0.25.*
+      - crypto-random-api
+      - muste
+      - pgf
+      - sqlite-simple
+      - text
+      - bytestring
+      - base64-bytestring
+      - filepath
