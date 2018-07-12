@@ -6,6 +6,7 @@ import Ajax
 import Muste
 import Muste.Grammar
 import PGF
+import qualified Protocol
 
 cgi:: Grammar -> CGI CGIResult
 cgi grammar =
@@ -13,7 +14,7 @@ cgi grammar =
     setHeader "Content-type" "text/json"
     b <- getBody
     liftIO $ putStrLn $ "CGI" ++ b
-    result <- liftIO $ handleClientRequest grammar b
+    result <- error "Main.cgi: Not yet implemented"
     output result
     
 main :: IO ()

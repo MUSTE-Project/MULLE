@@ -78,15 +78,15 @@ executables:
 
   # Commented out because cgi is currently incompatible with lts-12.0
 
-  # muste-cgi:
-  #   source-dirs:
-  #     - muste-cgi
+  muste-cgi:
+    source-dirs:
+      - muste-cgi
 
-  #   main: Main.hs
+    main: Main.hs
 
-  #   dependencies:
-  #     - muste-ajax
-  #     - cgi >= 3001.3.0.2
+    dependencies:
+      - muste-ajax
+      - cgi >= 3001.3.0.2
 
   db-init:
     source-dirs:

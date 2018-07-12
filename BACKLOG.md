@@ -55,3 +55,6 @@ Support for automatically generating 'wide' grammars from 'narrow' ones.
 
 The interface must also be extended to add support for "fixing
 mistakes".
+
+Do we want to keep supporting `muste-cgi`?
+---
