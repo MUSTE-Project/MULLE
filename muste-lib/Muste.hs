@@ -7,22 +7,23 @@ module Muste
   , Context
   , CostTree(CostTree)
   , buildContext
-  -- ^ Menus
+  -- * Menus
   , getCleanMenu
-  -- ^ Linearizations
-  , Linearization(Linearization, lpath, llin) -- NB lpath and llin should not be exposed
+  -- * Linearizations
+  , Linearization(Linearization) -- NB lpath and llin should not be exposed
   , linearizeTree
   ) where
+
+import Data.List
+import qualified Data.Map.Lazy as M
+
+import PGF
+import PGF.Internal (Expr(..))
 
 import Muste.Tree
 import Muste.Grammar
 import Muste.Grammar.Internal (ttreeToGFAbsTree)
-import PGF
-import PGF.Internal (Expr(..))
-import qualified Data.Map.Lazy as M
-
 import Muste.Prune
-import Data.List
 
 type PrecomputedTrees = AdjunctionTrees
 type Context = (Grammar, Language, PrecomputedTrees)
