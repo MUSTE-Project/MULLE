@@ -1,9 +1,0 @@
-resolver: lts-6.35
-
-extra-deps:
-- haste-lib-0.6.0.0
-- haste-prim-0.6.0.0
-
-packages:
-- '.'
-- '../libs/GF/src/runtime/haskell/'
