@@ -8,13 +8,11 @@ module Muste.Tree.Internal
   , maxDepth
   , getTreeCat
   , replaceNode
-  , ttreeToLTree
   , selectNode
   , isValid
   , showTree
   , countNodes
   , countMatchedNodes
-  , LTree
   , TTree(TNode,TMeta)
   , FunType(Fun, NoType)
   ) where
@@ -28,21 +26,64 @@ import GHC.Generics
 
 import Common
 
--- tree
+import Control.Monad.State
+
+-- * Trees
+
+-- Maybe make this a newtype (and instance of @IsString@)
+-- | A semantic category
+type Category = String
 
 -- | A generic tree with types
-data TTree = TNode String FunType [TTree] -- Regular node consisting of a function name, function type and possible subtrees
-           | TMeta String -- A meta tree consisting just of a category type
-           deriving (Ord,Eq,Show,Read,Generic) -- read is broken at the moment, most likely because of the CId
+data TTree
+   -- Regular node consisting of a function name, function type and
+   -- possible subtrees
+  = TNode
+    { _functionName :: String
+    , _functionType :: FunType
+    , _subTrees :: [TTree]
+    }
+  -- A meta tree consisting just of a category type
+  | TMeta { _categoryType :: Category }
+   -- read is broken at the moment, most likely because of the
+   -- read/show instances for @CId@
+  deriving (Ord, Eq, Show, Read, Generic)
 
-instance ToJSON TTree where
-    toEncoding = genericToEncoding defaultOptions
+-- TODO Make generalized container for @TTree@ (i.e. kind @* -> *@,
+-- that way we can make suitable instances for @Foldable@,
+-- @Traversable@...
+
+-- The challenge is that these are not regular rose trees since
+-- @TTree@ has the guarantee that the leafs only contain a string and
+-- the internal nodes contain a @Sring@ and a `FunType`.
+
+foldlTTree :: (b -> Either (String, FunType) Category -> b) -> b -> TTree -> b
+foldlTTree f x t = case t of
+  TNode nm tp xs -> f (foldl (foldlTTree f) x xs) (Left (nm, tp))
+  TMeta cat      -> f x (Right cat)
+
+-- traverseTTree
+--   :: Applicative f
+--   => (  Either (String, FunType) Category
+--     -> f (Either (String, FunType) Category)
+--     )
+--   -> TTree
+--   -> f TTree
+-- traverseTTree f t = case t of
+--   TNode nm tp xs -> (\xss -> _) <$> traverse (traverseTTree f) xs
+--   TMeta cat      -> t <$ f (Right cat)
+
+-- instance ToJSON TTree where
+--     toEncoding = genericToEncoding defaultOptions
 
 instance FromJSON TTree
 
--- | Type 'FunType' consists of a String that is the the result category and [String] are the parameter categories
-data FunType = Fun String [String] | NoType
-  deriving (Ord,Eq,Show,Read,Generic)
+-- | Type @FunType@ consists of a @String@ that is the the result
+-- category and @[String]@ are the categories of the paramaters.
+data FunType
+  = Fun { _category :: Category, _params :: [String] }
+  | NoType
+  deriving (Ord, Eq, Show, Read, Generic)
 
 instance ToJSON FunType where
     toEncoding = genericToEncoding defaultOptions
@@ -50,12 +91,15 @@ instance ToJSON FunType where
 instance FromJSON FunType
 
 -- | Generic class for trees
-class TreeC t where
-  showTree :: t -> String
+class Show t => TreeC t where
   -- | The function 'selectNode' returns a subtree at given 'Path' if it exists
   selectNode :: t -> Path -> Maybe t
   -- | The function 'selectNode' returns a subtree at given node if it exists
   selectBranch :: t -> Int -> Maybe t
+
+{-# DEPRECATED showTree "Just use @show@" #-}
+showTree :: TreeC t => t -> String
+showTree = show
 
 -- | Position in a path
 type Pos = Int
@@ -63,12 +107,8 @@ type Pos = Int
 -- | Path in a tree
 type Path = [Pos]
 
--- | A labeled tree - just a template to match labels to paths
-data LTree = LNode CId Int [LTree] | LLeaf deriving (Show,Eq)
-
 -- | A generic tree with types is in TreeC class
 instance TreeC TTree where
-  showTree = show
   selectNode t [] = Just t
   selectNode t [b] = selectBranch t b
   selectNode t (hd:tl) =
@@ -85,25 +125,6 @@ instance TreeC TTree where
     | i < 0 || i >= length trees = Nothing
     | otherwise = Just (trees !! i)
 
--- | A generic tree with types is in TreeC class
-instance TreeC LTree where
-  showTree = show
-  selectNode t [] = Just t
-  selectNode t [b] = selectBranch t b
-  selectNode t (hd:tl) =
-    let
-        branch = selectBranch t hd
-    in
-      case branch of {
-        Just b -> selectNode b tl ;
-        Nothing -> Nothing
-      }
-  selectBranch (LLeaf) _ = Nothing
-  selectBranch (LNode _ _ [] ) _ = Nothing
-  selectBranch (LNode _ _ trees) i
-    | i < 0 || i >= length trees = Nothing
-    | otherwise = Just (trees !! i)
-      
 -- List-related functions
 -- | The function 'listReplace' replaces an element in a 'List' if the
 -- position exists
@@ -135,7 +156,8 @@ isValid t =
   in
     check t []
     
--- | The function 'getTreeCat' gives the root category of a 'TTree', returns 'wildCId' on missing type
+-- | The function 'getTreeCat' gives the root category of a 'TTree',
+-- returns 'wildCId' on missing type
 getTreeCat :: TTree -> String
 getTreeCat (TNode id typ _) =
   case typ of {
@@ -143,6 +165,26 @@ getTreeCat (TNode id typ _) =
     NoType -> wildCard
     }
 getTreeCat (TMeta cat) = cat
+
+data LTree = LNode CId Int [LTree] | LLeaf deriving (Show,Eq)
+
+-- | A generic tree with types is in TreeC class
+instance TreeC LTree where
+  selectNode t [] = Just t
+  selectNode t [b] = selectBranch t b
+  selectNode t (hd:tl) =
+    let
+        branch = selectBranch t hd
+    in
+      case branch of {
+        Just b -> selectNode b tl ;
+        Nothing -> Nothing
+      }
+  selectBranch (LLeaf) _ = Nothing
+  selectBranch (LNode _ _ [] ) _ = Nothing
+  selectBranch (LNode _ _ trees) i
+    | i < 0 || i >= length trees = Nothing
+    | otherwise = Just (trees !! i)
 
 -- | Creates a labeled LTree from a TTree
 ttreeToLTree :: TTree -> LTree
@@ -153,6 +195,7 @@ ttreeToLTree tree =
     convert (TNode _ (Fun cat _) []) = LNode (mkCId cat) (-1) []
     convert (TNode _ (Fun cat _) ts) = LNode (mkCId cat) (-1) (map convert ts)
     convert rest = error $ "Could not convert tree due to lack of types" ++ show rest
+
     -- Update the labels in a tree
     update :: Int -> LTree -> (Int, LTree)
     update pos LLeaf = (pos, LLeaf)
@@ -175,8 +218,11 @@ ttreeToLTree tree =
   in
     snd $ update 0 $ convert tree
 
--- | The function 'getPath' finds a path to a node with a given label in a labeled tree
-getPath :: LTree -> Int -> Path
+-- | Calculates the @Path@ to a node given an index. The index refers
+-- to the the numbering nodes in breadth first search order.  The empty
+-- list is used as an out of bounds value.
+--- | The function 'getPath' finds a path to a node with a given label in a labeled tree
+getPath :: TTree -> Int -> Path
 getPath ltree id = 
   let
     deep :: LTree -> Int -> Path -> Path
@@ -191,7 +237,25 @@ getPath ltree id =
       in
         if not $ null d then d else b
   in
-    reverse $ deep ltree id []
+    reverse $ deep (ttreeToLTree ltree) id []
+
+-- My attempt at replacing the above function with something that does
+-- not need to know about @LTree@'s. I misunderstood @getPath@ and
+-- wrote a depth first algorithm in stead.
+getPathDF :: TTree -> Int -> Path      
+getPathDF t n = maybe mempty reverse $ evalState (aux t) n
+  where
+  aux :: TTree -> State Int (Maybe Path)
+  aux t = do
+    n <- get
+    modify pred
+    if n <= 0
+    then pure $ pure $ [0]
+    else case t of
+      TMeta{}      -> pure Nothing
+      TNode _ _ xs -> fmap (listToMaybe . catMaybes) <$> mapM step $ zip [0..] xs
+  step :: (Int, TTree) -> State Int (Maybe Path)
+  step (childNo, t) = fmap (childNo :) <$> aux t
 
 -- | The function 'maxDepth' gets the length of the maximum path between root and a leaf (incl. meta nodes) of a 'TTree'
 maxDepth :: TTree -> Int

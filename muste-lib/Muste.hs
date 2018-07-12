@@ -58,10 +58,10 @@ linearizeTree :: Context -> TTree ->  [LinToken]
 linearizeTree (grammar, language, _) ttree = 
   let
     -- Convert the BracketedString to the list of string/path tuples
-    bracketsToTuples :: LTree -> BracketedString -> [LinToken]
+    bracketsToTuples :: TTree -> BracketedString -> [LinToken]
     bracketsToTuples tree bs =
       let
-        deep :: LTree -> BracketedString -> [LinToken]
+        deep :: TTree -> BracketedString -> [LinToken]
         deep _     (Bracket _ _   _ _ _ []) = []
         -- Ordinary leaf
         deep ltree (Bracket _ fid _ _ _ [Leaf token]) =
@@ -73,7 +73,7 @@ linearizeTree (grammar, language, _) ttree =
         deep ltree (Bracket _ fid _ _ _ bs) =
           broad ltree fid bs []
         deep _ _ = error "Muste.linearizeTree: Non-exhaustive pattern match"
-        broad :: LTree -> Int -> [BracketedString] -> [LinToken] -> [LinToken]
+        broad :: TTree -> Int -> [BracketedString] -> [LinToken] -> [LinToken]
         -- End of node siblings
         broad _     _   []                 ts = ts
         -- Syncategorial word
@@ -92,7 +92,7 @@ linearizeTree (grammar, language, _) ttree =
       in
         deep tree bs
 
-    ltree = ttreeToLTree ttree
+    ltree = ttree
     abstree = ttreeToGFAbsTree ttree
     pgfGrammar = pgf grammar
     brackets = bracketedLinearize pgfGrammar language abstree :: [BracketedString]

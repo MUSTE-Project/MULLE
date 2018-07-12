@@ -3,11 +3,9 @@
 module Muste.Tree
   ( TTree(TNode,TMeta)
   , FunType(Fun, NoType)
-  , LTree(..)
   , Path
   , Pos
   , getPath
-  , ttreeToLTree
   , getPathes
   -- , maxDepth
   , getTreeCat
