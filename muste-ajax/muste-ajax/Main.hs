@@ -59,7 +59,7 @@ handleRequest conn contexts request response
         when logging (do { timestamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime ; appendFile logFile $ timestamp ++ "\tCGI-Request\t" ++ show body ++ "\n"})
         result <- handleClientRequest conn contexts body
         when logging (do { timestamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime ; appendFile logFile $ timestamp ++ "\tCGI-Response\t" ++ show result ++ "\n"}) 
-        response (responseLBS status200 [("Content-type","application/json")] $ LB.fromStrict $ B.pack result)
+        response (responseLBS status200 [("Content-type","application/json")] $ result)
   | otherwise = 
       do
         putStrLn $ "HTTP" ++ (show request)

@@ -5,7 +5,6 @@ module Ajax
   , ClientTree(..)
   , ClientMessage(..)
   , Menu(..)
-  , encodeServerMessage
   , Lesson(..)
   , decodeClientMessage
   ) where
@@ -172,8 +171,6 @@ instance ToJSON ClientMessage where
     "token" .= token
     ]
 
-
---data Menu = M (Map.Map (Int,Int) [[CostTree]]) deriving (Show)
 data Menu = Menu (Map.Map Path [[CostTree]]) deriving (Show)
 
 data ServerTree = ServerTree {
@@ -337,7 +334,3 @@ decodeClientMessage s =
   let rcm = eitherDecode (B.pack s) :: Either String ClientMessage
   in
     either (throw . CME) id rcm
-
-encodeServerMessage :: ServerMessage -> String
-encodeServerMessage sm =
-  B.unpack $ encode sm

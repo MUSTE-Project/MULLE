@@ -1,19 +1,22 @@
-{-# language LambdaCase #-}
+{-# language LambdaCase, OverloadedStrings #-}
 module Protocol (handleClientRequest) where
 
-import Ajax
-import Database
-import Muste
-import Muste.Tree
-import Muste.Grammar (parseTTree)
-import Muste.Linearization
-
+import Data.Aeson
 import Data.Map ((!),Map)
 import qualified Data.Map.Lazy as M
 import Control.Monad
 import Control.Exception
 import Database.SQLite.Simple
 import Control.Monad.Reader
+import Data.ByteString.Lazy (ByteString)
+
+import Muste
+import Muste.Tree
+import Muste.Grammar (parseTTree)
+import Muste.Linearization
+
+import Ajax
+import Database
 
 type Contexts = Map String (Map String Context)
 
@@ -32,18 +35,18 @@ handleClientRequest
   :: Connection
   -> Map String (Map String Context)
   -> String -- ^ `multipart/form-data` containing the request.
-  -> IO String
+  -> IO ByteString
 handleClientRequest conn contexts body = handler `catch` errHandler
   where
-    handler :: IO String
+    handler :: IO ByteString
     handler = requestHandler (decodeClientMessage body) `runReaderT` Env conn contexts
-    errHandler :: DatabaseException -> IO String
+    errHandler :: DatabaseException -> IO ByteString
     errHandler (DatabaseException msg) = do
       putStrLn $ "Exception: " ++ msg
-      pure $ encodeServerMessage SMLogoutResponse
+      pure $ encode SMLogoutResponse
 
 -- | Returns the appropriate handler given a @ClientMessage@.
-requestHandler :: ClientMessage -> App String
+requestHandler :: ClientMessage -> App ByteString
 requestHandler = \case
   CMLoginRequest user pass                  -> handleLoginRequest user pass
   -- CMMOTDRequest token                    -> handleMOTDRequest token
@@ -57,12 +60,12 @@ requestHandler = \case
 handleLoginRequest
   :: String -- ^ Username
   -> String -- ^ Password
-  -> App String
+  -> App ByteString
 handleLoginRequest user pass = do
   c <- askConnection
   authed <- lift $ authUser c user pass
   token  <- lift $ startSession c user
-  pure $ encodeServerMessage
+  pure $ encode
     $ if authed then SMLoginSuccess token else SMLoginFail
 
 askConnection :: App Connection
@@ -71,7 +74,7 @@ askConnection = asks connection
 askContexts :: App Contexts
 askContexts = asks contexts
 
-handleLessonsRequest :: String -> App String
+handleLessonsRequest :: String -> App ByteString
 handleLessonsRequest token =
   do
     conn <- askConnection
@@ -83,7 +86,7 @@ handleLessonsRequest token =
 handleLessonInit
   :: String
   -> String
-  -> App String
+  -> App ByteString
 handleLessonInit token lesson =
   do
     contexts <- askContexts
@@ -100,7 +103,7 @@ handleMenuRequest
   -> Int
   -> ClientTree
   -> ClientTree
-  -> App String
+  -> App ByteString
 handleMenuRequest token lesson clicks time ctreea@(ClientTree langa treea) ctreeb@(ClientTree langb treeb) = do
   contexts <- askContexts
   conn <- askConnection
@@ -119,12 +122,12 @@ handleMenuRequest token lesson clicks time ctreea@(ClientTree langa treea) ctree
     finished :: Bool
     finished = treea == treeb
 
-handleLogoutRequest :: String -> App String
+handleLogoutRequest :: String -> App ByteString
 handleLogoutRequest token =
     do
       conn <- askConnection
       lift $ endSession conn token
-      return $ encodeServerMessage SMLogoutResponse
+      return $ encode SMLogoutResponse
 
 -- | Either encode a message or create an error message dependent on
 -- the outcome of the verification of the session
@@ -136,8 +139,8 @@ returnVerifiedMessage
   :: Monad m
   => (Bool, String)
   -> ServerMessage
-  -> m String
-returnVerifiedMessage v m = return $ encodeServerMessage $ tryVerified v m
+  -> m ByteString
+returnVerifiedMessage v m = return $ encode $ tryVerified v m
 
 -- | Checks if a linearization token matches in both trees
 matched :: Path -> TTree -> TTree -> Path
