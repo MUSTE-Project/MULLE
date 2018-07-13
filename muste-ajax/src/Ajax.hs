@@ -42,92 +42,97 @@ data ClientTree = ClientTree {
 createMessageObject :: String -> Value -> Value
 createMessageObject msg params =
   object [
-  T.pack "message" .= (A.String $ T.pack msg) ,
-  T.pack "parameters" .= params
+  "message" .= msg ,
+  "parameters" .= params
   ]
-  
-data ClientMessage = CMNull
-                   | CMLoginRequest {
-                       cusername :: String ,
-                       cpassword :: String
-                       }
-                   | CMMOTDRequest { ctoken :: String }
-                   | CMDataResponse {
-                       ctoken :: String,
-                       context :: String,
-                       cdata :: [(String, String)]
-                       }
-                   | CMLessonsRequest { ctoken :: String }
-                   | CMLessonInit {
-                       ctoken :: String,
-                       clesson :: String
-                       }
-                   | CMMenuRequest {
-                       ctoken :: String,
-                       clesson :: String,
-                       cscore :: Int ,
-                       ctime :: Int , 
-                       ca :: ClientTree ,
-                       cb :: ClientTree
-                       }
-                   | CMLogoutRequest {
-                       ctoken :: String
-                       }
-                   deriving (Show) ;
-  
+
+data ClientMessage
+  = CMNull
+  | CMLoginRequest
+    { cusername :: String
+    , cpassword :: String
+    }
+  | CMMOTDRequest
+    { ctoken :: String
+    }
+  | CMDataResponse
+    { ctoken :: String
+    , context :: String
+    , cdata :: [(String, String)]
+    }
+  | CMLessonsRequest
+    { ctoken :: String
+    }
+  | CMLessonInit
+    { ctoken :: String
+    , clesson :: String
+    }
+  | CMMenuRequest
+    { ctoken :: String
+    , clesson :: String
+    , cscore :: Int
+    , ctime :: Int
+    , ca :: ClientTree
+    , cb :: ClientTree
+    }
+  | CMLogoutRequest
+    { ctoken :: String
+    }
+  deriving (Show) ;
+
 instance FromJSON ClientTree where
   parseJSON = withObject "ClientTree" $ \v -> ClientTree
-    <$> v .: T.pack "grammar"
-    <*> v .: T.pack "tree"
-    
+    <$> v .: "grammar"
+    <*> v .: "tree"
+
 instance FromJSON ClientMessage where
   parseJSON =
     withObject "ClientMessage" $ \v ->
     do
-      msg <- v .: T.pack "message" :: Parser Text
-      params <- v .: T.pack "parameters" :: Parser Object
+      msg <- v .: "message" :: Parser Text
+      params <- v .: "parameters" :: Parser Object
       case msg of {
         "CMLoginRequest" ->
             CMLoginRequest
-            <$> params .: T.pack "username"
-            <*> params .: T.pack "password" ;
+            <$> params .: "username"
+            <*> params .: "password" ;
         "CMMOTDRequest" ->
             CMMOTDRequest
-            <$> params .: T.pack "token" ;
+            <$> params .: "token" ;
         "CMDataResponse" ->
             (do
-                ctoken <- params .: T.pack "token"
-                ccontext <- params .: T.pack "context"
-                cdata <- params .: T.pack "data"  :: Parser Value
+                ctoken <- params .: "token"
+                ccontext <- params .: "context"
+                cdata <- params .: "data"  :: Parser Value
                 carray <- case cdata of {
                   Array a -> sequence $ V.toList $ V.map (withObject "Key-Value-Pair" $ \o -> do
-                                                             f <- o .: T.pack "field"
-                                                             v <- o .: T.pack "value"
+                                                             f <- o .: "field"
+                                                             v <- o .: "value"
                                                              return (f,v)
                                                          ) a ;
                     _ -> error "Boo, not an array"
                   }
                 return $ CMDataResponse ctoken ccontext carray
             );
-            -- (o .: T.pack "field", o .: T.pack "value")
-        "CMLessonsRequest" -> 
+            -- (o .: "field", o .: "value")
+        "CMLessonsRequest" ->
             CMLessonsRequest
-            <$> params .: T.pack "token" ;
-        "CMLessonInit" -> 
+            <$> params .: "token" ;
+        "CMLessonInit" ->
             CMLessonInit
-            <$> params .: T.pack "token"
-            <*> params .: T.pack "lesson" ;
-        "CMMenuRequest" -> 
+            <$> params .: "token"
+            <*> params .: "lesson" ;
+        "CMMenuRequest" ->
             CMMenuRequest
-             <$> params .: T.pack "token"
-             <*> params .: T.pack "lesson"
-             <*> params .: T.pack "score"
-             <*> params .: T.pack "time"
-             <*> params .: T.pack "a"
-             <*> params .: T.pack "b" ;
+             <$> params .: "token"
+             <*> params .: "lesson"
+             <*> params .: "score"
+             <*> params .: "time"
+             <*> params .: "a"
+             <*> params .: "b" ;
         "CMLogoutRequest" ->
             CMLogoutRequest
-            <$> params .: T.pack "token" ;
+            <$> params .: "token" ;
         _ -> error ( "Unexpected message " ++ show v)
          }
 
@@ -135,39 +140,39 @@ instance ToJSON ClientTree where
     -- this generates a Value
     toJSON (ClientTree tree language) =
       object [
-      T.pack "tree" .= tree ,
-      T.pack "language" .= language
+      "tree" .= tree ,
+      "language" .= language
       ]
 
 instance ToJSON ClientMessage where
     -- this generates a Value
   toJSON (CMLoginRequest username password) =
     createMessageObject "CMLoginRequest" $ object [
-    T.pack "username" .= username ,
-    T.pack "password" .= password
+    "username" .= username ,
+    "password" .= password
     ]
   toJSON (CMMOTDRequest token) =
     createMessageObject "CMMOTDRequest" $ object [
-    T.pack "token" .= token
+    "token" .= token
     ]
   toJSON (CMDataResponse token context cdata) =
     createMessageObject "CMDataResponse" $ object [
-    T.pack "token" .= token ,
-    T.pack "context" .= context ,
-    T.pack "data" .= map (\(k,v) -> object [ T.pack "field" .= k, T.pack "value" .= v ]) cdata
+    "token" .= token ,
+    "context" .= context ,
+    "data" .= map (\(k,v) -> object [ "field" .= k, "value" .= v ]) cdata
     ]
   toJSON (CMMenuRequest token lesson score time a b) =
     createMessageObject "CMMenuRequest" $ object [
-    T.pack "token" .= token ,
-    T.pack "lesson" .= lesson ,
-    T.pack "score" .= score ,
-    T.pack "time" .= time ,
-    T.pack "a" .= a ,
-    T.pack "b" .= b
+    "token" .= token ,
+    "lesson" .= lesson ,
+    "score" .= score ,
+    "time" .= time ,
+    "a" .= a ,
+    "b" .= b
     ]
   toJSON (CMLogoutRequest token) =
     createMessageObject "CMLogoutRequest" $ object [
-    T.pack "token" .= token
+    "token" .= token
     ]
 
 
@@ -213,54 +218,54 @@ data ServerMessage = SMNull
 
 instance FromJSON Menu where
   parseJSON = withObject "CostTree" $ \v -> Menu
-    <$> v .: T.pack "menu"
-    
+    <$> v .: "menu"
+
 instance FromJSON ServerTree where
   parseJSON = withObject "ServerTree" $ \v -> ServerTree
-    <$> v .: T.pack "grammar"
-    <*> v .: T.pack "tree"
-    <*> v .: T.pack "lin"
-    <*> v .: T.pack "menu"
+    <$> v .: "grammar"
+    <*> v .: "tree"
+    <*> v .: "lin"
+    <*> v .: "menu"
 
 instance FromJSON Lesson where
   parseJSON = withObject "Lesson" $ \v -> Lesson
-    <$> v .: T.pack "name"
-    <*> v .: T.pack "description"
-    <*> v .: T.pack "exercisecount"
-    <*> v .: T.pack "passedcount"
-    <*> v .: T.pack "score"
-    <*> v .: T.pack "time"
-    <*> v .: T.pack "passed"
-    <*> v .: T.pack "enabled"
-    
+    <$> v .: "name"
+    <*> v .: "description"
+    <*> v .: "exercisecount"
+    <*> v .: "passedcount"
+    <*> v .: "score"
+    <*> v .: "time"
+    <*> v .: "passed"
+    <*> v .: "enabled"
+
 instance FromJSON ServerMessage where
   parseJSON = withObject "ServerMessage" $ \v ->
     do
-      msg <- v .: T.pack "message" :: Parser Text
-      params <- v .:? T.pack "parameters" :: Parser (Maybe Object)
-      case T.unpack $ msg of {
+      msg <- v .: "message" :: Parser Text
+      params <- v .:? "parameters" :: Parser (Maybe Object)
+      case T.unpack msg of {
         "SMLoginSuccess" ->
-            SMLoginSuccess <$> fromJust params .: T.pack "token" ;
+            SMLoginSuccess <$> fromJust params .: "token" ;
         "SMLoginFail" -> return SMLoginFail ;
         "SMMOTDResponse" ->
-            SMMOTDResponse <$> fromJust params .: T.pack "filename" ;
+            SMMOTDResponse <$> fromJust params .: "filename" ;
         "SMSessionInvalid" ->
-            SMSessionInvalid <$> fromJust params .: T.pack "error" ;
+            SMSessionInvalid <$> fromJust params .: "error" ;
         "SMLessonsList" ->
             (do
-              clist <- fromJust params .: T.pack "lessons"
+              clist <- fromJust params .: "lessons"
               return $ SMLessonsList clist
             ) ;
         "SMMenuList" -> SMMenuList
-            <$> fromJust params .: T.pack "lesson"
-            <*> fromJust params .: T.pack "passed"
-            <*> fromJust params .: T.pack "clicks"
-            <*> fromJust params .: T.pack "a"
-            <*> fromJust params .: T.pack "b" ;
+            <$> fromJust params .: "lesson"
+            <*> fromJust params .: "passed"
+            <*> fromJust params .: "clicks"
+            <*> fromJust params .: "a"
+            <*> fromJust params .: "b" ;
         "SMLessonInvalid" -> return SMLessonInvalid ;
         "SMDataReceived" -> return SMDataReceived ;
         "SMDataInvalid" ->
-            SMDataInvalid <$> fromJust params .: T.pack "error" ;
+            SMDataInvalid <$> fromJust params .: "error" ;
         "SMLogoutResponse" -> return SMLogoutResponse ;
         }
 
@@ -272,22 +277,22 @@ instance ToJSON ServerTree where
     -- this generates a Value
     toJSON (ServerTree grammar tree lin menu) =
       object [
-      T.pack "grammar" .= grammar ,
-      T.pack "tree" .= tree ,
-      T.pack "lin" .= lin ,
-      T.pack "menu" .= menu]
+      "grammar" .= grammar ,
+      "tree" .= tree ,
+      "lin" .= lin ,
+      "menu" .= menu]
 
 instance ToJSON Lesson where
   toJSON (Lesson name description exercises passedcount score time passed enabled) =
     object [
-    T.pack "name" .= name,
-    T.pack "description" .= description ,
-    T.pack "exercisecount" .= exercises ,
-    T.pack "passedcount" .= passedcount ,
-    T.pack "score" .= score,
-    T.pack "time" .= time,
-    T.pack "passed" .= passed,
-    T.pack "enabled" .= enabled
+    "name" .= name,
+    "description" .= description ,
+    "exercisecount" .= exercises ,
+    "passedcount" .= passedcount ,
+    "score" .= score,
+    "time" .= time,
+    "passed" .= passed,
+    "enabled" .= enabled
     ]
 
 
@@ -295,29 +300,29 @@ instance ToJSON ServerMessage where
     -- this generates a Value
   toJSON (SMLoginSuccess stoken) =
     createMessageObject "SMLoginSuccess" $ object [
-    T.pack "token" .= (String $ T.pack stoken)
+    "token" .= stoken
     ]
   toJSON SMLoginFail =
     createMessageObject "SMLoginFail" A.Null
   toJSON (SMMOTDResponse sfilename) =
     createMessageObject "SMMOTDRequest" $ object [
-    T.pack "filename" .= (String $ T.pack sfilename)
+    "filename" .= sfilename
     ]
   toJSON (SMSessionInvalid error) =
     createMessageObject "SMSessionInvalid" $ object [
-    T.pack "error" .= (String $ T.pack error)
+    "error" .= error
     ]
   toJSON (SMLessonsList slessons) =
     createMessageObject "SMLessonsList" $ object [
-    T.pack "lessons" .= toJSON slessons 
+    "lessons" .= toJSON slessons
     ]
   toJSON (SMMenuList slesson spassed sclicks sa sb) =
     createMessageObject "SMMenuList" $ object [
-    T.pack "lesson" .= slesson,
-    T.pack "success" .= spassed ,
-    T.pack "score" .= sclicks ,
-    T.pack "a" .= sa ,
-    T.pack "b" .= sb
+    "lesson" .= slesson,
+    "success" .= spassed ,
+    "score" .= sclicks ,
+    "a" .= sa ,
+    "b" .= sb
     ]
   toJSON SMLessonInvalid =
     createMessageObject "SMLessonInvalid" A.Null
@@ -325,7 +330,7 @@ instance ToJSON ServerMessage where
     createMessageObject "SMDataReceived" A.Null
   toJSON (SMDataInvalid error) =
     createMessageObject "SMDataInvalid" $ object [
-    T.pack "error" .= (String $ T.pack error)
+    "error" .= error
     ]
   toJSON SMLogoutResponse =
     createMessageObject "SMLogoutResponse" A.Null
