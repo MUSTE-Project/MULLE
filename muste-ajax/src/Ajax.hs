@@ -1,38 +1,35 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Ajax where
+module Ajax
+  ( ServerTree(..)
+  , ServerMessage(..)
+  , ClientTree(..)
+  , ClientMessage(..)
+  , Menu(..)
+  , encodeServerMessage
+  , Lesson(..)
+  , decodeClientMessage
+  ) where
 
 import Data.Aeson hiding (Null,String)
 import qualified Data.Aeson as A
 import Data.Aeson.Types hiding (Null)
-
-import Data.Text (Text(..),pack,unpack)
+import Data.Text (Text(..),pack)
 import qualified Data.Text as T
-
 import qualified Data.ByteString.Lazy.Char8 as B
-
-import Data.Monoid
-
 import qualified Data.Map.Strict as Map
-import Data.Map hiding (map)
-
 import qualified Data.Vector as V
-
-import Data.List
-
 import Data.Maybe
+import Control.Exception
 
 import Muste
 import Muste.Tree
 import Muste.Linearization (LinToken)
-
-import Control.Exception
 
 data ClientMessageException = CME String deriving (Show)
 data ReadTreeException = RTE String deriving (Show)
 
 instance Exception ClientMessageException
 instance Exception ReadTreeException
-
 
 data ClientTree = ClientTree {
   clanguage :: String,
