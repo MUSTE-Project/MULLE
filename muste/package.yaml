@@ -15,6 +15,9 @@ flags:
     manual: true
     default: false
 
+source-dirs:
+  - src/
+
 library:
   other-extensions:    FlexibleInstances
 
@@ -51,6 +54,8 @@ library:
 
 tests:
   foo-test:
+    source-dirs:
+      - test/
     main:                Test.hs
     ghc-options:
     - -threaded
