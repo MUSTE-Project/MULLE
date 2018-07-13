@@ -1,4 +1,5 @@
-module Protocol where
+{-# language LambdaCase #-}
+module Protocol (handleClientRequest) where
 
 import Ajax
 import Database
@@ -16,30 +17,42 @@ import Control.Monad.Reader
 
 type Contexts = Map String (Map String Context)
 
+-- | The data needed for responding to requests.
 data Env = Env
   { connection :: Connection
   , contexts   :: Contexts
   }
 
+-- | A simple monad for handling responding to requests.
 type App a = ReaderT Env IO a
 
-handleClientRequest :: Connection -> Map String (Map String Context) -> String -> IO String
-handleClientRequest conn contexts body =
-  do
-    let cm = decodeClientMessage body
-    catch (
-      (`runReaderT` (Env conn contexts)) $ case cm of {
-        CMLoginRequest user pass -> handleLoginRequest user pass ;
-        -- CMMOTDRequest token -> handleMOTDRequest token
-        -- CMDataRequest token context data -> handleDataRequest token context data
-        CMLessonsRequest token -> handleLessonsRequest token ;
-        CMLessonInit token lesson -> handleLessonInit contexts token lesson ;
-        CMMenuRequest token lesson score time a b -> handleMenuRequest contexts token lesson score time a b ;
-        CMLogoutRequest token -> handleLogoutRequest token ;
-        _ -> error "Protocol.handleClientRequest: Non exhaustive pattern match"
-        }
-      )
-      (\(DatabaseException msg) -> do { putStrLn $ "Exception: " ++ msg ; return $ encodeServerMessage SMLogoutResponse })
+-- | Decodes a html body response, decodes this to a @ClientMessage@
+-- and performs an action according to this result.
+handleClientRequest
+  :: Connection
+  -> Map String (Map String Context)
+  -> String -- ^ `multipart/form-data` containing the request.
+  -> IO String
+handleClientRequest conn contexts body = handler `catch` errHandler
+  where
+    handler :: IO String
+    handler = requestHandler (decodeClientMessage body) `runReaderT` Env conn contexts
+    errHandler :: DatabaseException -> IO String
+    errHandler (DatabaseException msg) = do
+      putStrLn $ "Exception: " ++ msg
+      pure $ encodeServerMessage SMLogoutResponse
+
+-- | Returns the appropriate handler given a @ClientMessage@.
+requestHandler :: ClientMessage -> App String
+requestHandler = \case
+  CMLoginRequest user pass                  -> handleLoginRequest user pass
+  -- CMMOTDRequest token                    -> handleMOTDRequest token
+  -- CMDataRequest token context data       -> handleDataRequest token context data
+  CMLessonsRequest token                    -> handleLessonsRequest token
+  CMLessonInit token lesson                 -> handleLessonInit token lesson
+  CMMenuRequest token lesson score time a b -> handleMenuRequest token lesson score time a b
+  CMLogoutRequest token                     -> handleLogoutRequest token
+  _                                         -> error "Protocol.handleClientRequest: Non exhaustive pattern match"
 
 handleLoginRequest
   :: String -- ^ Username
@@ -55,6 +68,9 @@ handleLoginRequest user pass = do
 askConnection :: App Connection
 askConnection = asks connection
 
+askContexts :: App Contexts
+askContexts = asks contexts
+
 handleLessonsRequest :: String -> App String
 handleLessonsRequest token =
   do
@@ -65,42 +81,43 @@ handleLessonsRequest token =
     returnVerifiedMessage verified (SMLessonsList lessonList)
 
 handleLessonInit
-  :: Map String (Map String Context)
-  -> String
+  :: String
   -> String
   -> App String
-handleLessonInit contexts token lesson =
+handleLessonInit token lesson =
   do
+    contexts <- askContexts
     conn <- askConnection
     verified <- lift $ verifySession conn token
     (sourceLang,sourceTree,targetLang,targetTree) <- lift $ startLesson conn token lesson
     let (a,b) = assembleMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree)
     returnVerifiedMessage verified (SMMenuList lesson False 0 a b )
 
-handleMenuRequest :: Map String (Map String Context)
-  -> String
+handleMenuRequest
+  :: String
   -> String
   -> Int
   -> Int
   -> ClientTree
   -> ClientTree
   -> App String
-handleMenuRequest contexts token lesson clicks time ctreea@(ClientTree langa treea) ctreeb@(ClientTree langb treeb) = do
+handleMenuRequest token lesson clicks time ctreea@(ClientTree langa treea) ctreeb@(ClientTree langb treeb) = do
+  contexts <- askContexts
   conn <- askConnection
   verified <- lift $ verifySession conn token
--- Check if finished here
-  if treea == treeb
-  then
-    do
-      -- verified <- verifySession conn token
-      when (fst verified) (lift $ finishExercise conn token lesson time clicks)
-      let (a,b) = emptyMenus contexts lesson (langa,treea) (langb,treeb)
-      returnVerifiedMessage verified (SMMenuList lesson True (clicks + 1) a b)
-  else
-    do
-      -- verified <- verifySession conn token
-      let (a,b) = assembleMenus contexts lesson (langa,treea) (langb,treeb)
-      returnVerifiedMessage verified (SMMenuList lesson False (clicks + 1) a b )
+  if finished
+  then do
+    -- verified <- verifySession conn token
+    when (fst verified) (lift $ finishExercise conn token lesson time clicks)
+    let (a,b) = emptyMenus contexts lesson (langa,treea) (langb,treeb)
+    returnVerifiedMessage verified (SMMenuList lesson True (clicks + 1) a b)
+  else do
+    -- verified <- verifySession conn token
+    let (a,b) = assembleMenus contexts lesson (langa,treea) (langb,treeb)
+    returnVerifiedMessage verified (SMMenuList lesson False (clicks + 1) a b )
+  where
+    finished :: Bool
+    finished = treea == treeb
 
 handleLogoutRequest :: String -> App String
 handleLogoutRequest token =
@@ -109,12 +126,17 @@ handleLogoutRequest token =
       lift $ endSession conn token
       return $ encodeServerMessage SMLogoutResponse
 
--- | either encode a message or create an error message dependent on the outcome of the verification of the session
+-- | Either encode a message or create an error message dependent on
+-- the outcome of the verification of the session
 tryVerified :: (Bool,String) -> ServerMessage -> ServerMessage
 tryVerified (True,_) m = m
-tryVerified (False,e) _ = (SMSessionInvalid e)
+tryVerified (False,e) _ = SMSessionInvalid e
 
-returnVerifiedMessage :: Monad m => (Bool, String) -> ServerMessage -> m String
+returnVerifiedMessage
+  :: Monad m
+  => (Bool, String)
+  -> ServerMessage
+  -> m String
 returnVerifiedMessage v m = return $ encodeServerMessage $ tryVerified v m
 
 -- | Checks if a linearization token matches in both trees
