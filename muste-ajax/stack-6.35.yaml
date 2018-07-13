@@ -23,4 +23,4 @@ extra-deps:
 packages:
 - .
 - ../libs/GF/src/runtime/haskell/
-- ../muste-lib/
+- ../muste/
