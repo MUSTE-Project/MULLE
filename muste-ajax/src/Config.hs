@@ -1,9 +1,17 @@
-module Config (getGrammar, getDB) where
+module Config
+  ( getGrammar
+  , getDB
+  , loggingEnabled
+  , logFile
+  , demoDir
+  , webPrefix
+  ) where
 
 import System.FilePath
 
 import qualified Paths_muste_ajax as Paths
 
+-- FIXME Use haskell resource files for this.
 dataDir :: FilePath
 dataDir = "data/"
 
@@ -16,3 +24,17 @@ getGrammar f = Paths.getDataFileName $ grammarDir </> f <.> "pgf"
 getDB :: IO FilePath
 getDB = Paths.getDataFileName $ dataDir </> "muste.db"
 
+-- FIXME Handle this with CPP
+-- | Switch loggin on/off
+loggingEnabled :: Bool
+loggingEnabled = True
+
+logFile :: FilePath
+logFile = "messagelog.txt"
+
+-- FIXME Use haskell resource files for this.
+demoDir :: FilePath
+demoDir = "./demo"
+
+webPrefix :: FilePath
+webPrefix = "/"
