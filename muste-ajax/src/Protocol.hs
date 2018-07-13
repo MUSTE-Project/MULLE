@@ -7,13 +7,11 @@ import Muste.Tree
 import Muste.Grammar (parseTTree)
 import Muste.Linearization
 
-import Data.Map ((!),Map(..),fromList)
+import Data.Map ((!),Map)
 import qualified Data.Map.Lazy as M
 import Control.Monad
 import Control.Exception
 import Database.SQLite.Simple
-import Data.List
-import Data.Maybe
 import Control.Monad.Reader
 
 type Contexts = Map String (Map String Context)
@@ -37,17 +35,11 @@ handleClientRequest conn contexts body =
         CMLessonsRequest token -> handleLessonsRequest token ;
         CMLessonInit token lesson -> handleLessonInit contexts token lesson ;
         CMMenuRequest token lesson score time a b -> handleMenuRequest contexts token lesson score time a b ;
-        CMLogoutRequest token -> handleLogoutRequest token
+        CMLogoutRequest token -> handleLogoutRequest token ;
+        _ -> error "Protocol.handleClientRequest: Non exhaustive pattern match"
         }
       )
       (\(DatabaseException msg) -> do { putStrLn $ "Exception: " ++ msg ; return $ encodeServerMessage SMLogoutResponse })
-  where
-    -- handleLoginRequest :: String -> String -> IO String
-    -- handleLoginRequest user pass =
-    --   do
-    --     authed <- authUser conn user pass
-    --     token <- startSession conn user
-    --     return $ encodeServerMessage $ if authed then do SMLoginSuccess token else SMLoginFail
 
 handleLoginRequest
   :: String -- ^ Username
@@ -72,7 +64,11 @@ handleLessonsRequest token =
     let lessonList = map (\(name,description,exercises,passedcount,score,time,passed,enabled) -> Lesson name description exercises passedcount score time passed enabled) lessons
     returnVerifiedMessage verified (SMLessonsList lessonList)
 
-handleLessonInit :: Map String (Map String Context) -> String -> String -> App String
+handleLessonInit
+  :: Map String (Map String Context)
+  -> String
+  -> String
+  -> App String
 handleLessonInit contexts token lesson =
   do
     conn <- askConnection
@@ -81,6 +77,14 @@ handleLessonInit contexts token lesson =
     let (a,b) = assembleMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree)
     returnVerifiedMessage verified (SMMenuList lesson False 0 a b )
 
+handleMenuRequest :: Map String (Map String Context)
+  -> String
+  -> String
+  -> Int
+  -> Int
+  -> ClientTree
+  -> ClientTree
+  -> App String
 handleMenuRequest contexts token lesson clicks time ctreea@(ClientTree langa treea) ctreeb@(ClientTree langb treeb) = do
   conn <- askConnection
   verified <- lift $ verifySession conn token
@@ -98,24 +102,26 @@ handleMenuRequest contexts token lesson clicks time ctreea@(ClientTree langa tre
       let (a,b) = assembleMenus contexts lesson (langa,treea) (langb,treeb)
       returnVerifiedMessage verified (SMMenuList lesson False (clicks + 1) a b )
 
+handleLogoutRequest :: String -> App String
 handleLogoutRequest token =
     do
       conn <- askConnection
       lift $ endSession conn token
       return $ encodeServerMessage SMLogoutResponse
 
--- either encode a message or create an error message dependent on the outcome of the verification of the session
-
+-- | either encode a message or create an error message dependent on the outcome of the verification of the session
 tryVerified :: (Bool,String) -> ServerMessage -> ServerMessage
 tryVerified (True,_) m = m
 tryVerified (False,e) _ = (SMSessionInvalid e)
 
+returnVerifiedMessage :: Monad m => (Bool, String) -> ServerMessage -> m String
 returnVerifiedMessage v m = return $ encodeServerMessage $ tryVerified v m
--- Checks if a linearization token matches in both trees
 
+-- | Checks if a linearization token matches in both trees
+matched :: Path -> TTree -> TTree -> Path
 matched p t1 t2 = if selectNode t1 p == selectNode t2 p then p else []
--- gets the menus for a lesson, two trees and two languages
 
+-- | Gets the menus for a lesson, two trees and two languages
 assembleMenus :: Map String (Map String Context) -> String -> (String,String) -> (String,String) -> (ServerTree,ServerTree)
 assembleMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree) =
   let grammar = (\(g,_,_) -> g) (contexts ! lesson ! sourceLang)
