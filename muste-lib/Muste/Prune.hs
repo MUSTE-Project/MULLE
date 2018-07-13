@@ -209,27 +209,3 @@ treeIsRecursive tree@(TNode _ (Fun cat _) children) =
       [cat'] -> cat == cat'
       _ -> False
 treeIsRecursive _ = False
-
--- -- | Type 'FunType' consists of a String that is the the result category and [String] are the parameter categories
--- data FunType = Fun String [String] | NoType deriving (Ord,Eq,Show,Read)
-
--- -- | Type 'Rule' consists of a String as the function name and a 'FunType' as the Type
--- data Rule = Function String FunType deriving (Ord,Eq,Show,Read)
-
--- -- | Type 'Grammar' consists of a start categorie and a list of rules
--- data Grammar = Grammar {
---   startcat :: String,
---   synrules :: [Rule],
---   lexrules :: [Rule],
---   pgf :: PGF,
---   feat :: FEAT
---   }
-
--- -- | The function 'getRules' returns the union of syntactic and lexical rules of a grammar
--- getAllRules :: Grammar -> [Rule]
--- getAllRules g = union (synrules g) (lexrules g)
-
--- -- | A generic tree with types
--- data TTree = TNode String FunType [TTree] -- Regular node consisting of a function name, function type and possible subtrees
---            | TMeta String -- A meta tree consisting just of a category type
---            deriving (Ord,Eq,Show,Read) -- read is broken at the moment, most likely because of the CId
