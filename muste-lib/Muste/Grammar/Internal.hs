@@ -5,7 +5,7 @@ import Prelude hiding (id)
 
 -- This might be the only place we should know of PGF
 import PGF
-import PGF.Internal hiding (funs, cats)
+import PGF.Internal as PGF hiding (funs, cats)
 import Data.List
 -- import Muste.Feat hiding (startcat, pgf)
 
@@ -38,9 +38,6 @@ type GFAbsTree = Tree
 parseTTree :: Grammar -> String -> TTree
 -- parseTTree g s = gfAbsTreeToTTree g (read s :: GFAbsTree)
 parseTTree _ = read
-
-deprecatedTTreeParseFunction :: Grammar -> String -> TTree
-deprecatedTTreeParseFunction g s = gfAbsTreeToTTree g (read s)
 
 -- | The function 'gfAbsTreeToTTree' creates a 'TTree' from an GFabstract syntax 'Tree' and a Grammar. Othewise  similar to gfAbsTreeToTTreeWithPGF
 gfAbsTreeToTTree :: Grammar -> GFAbsTree -> TTree

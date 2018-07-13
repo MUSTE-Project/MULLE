@@ -42,6 +42,7 @@ library:
     - Muste.Grammar
     - Muste.Feat
     - Muste.Prune
+    - Muste.Linearization
 
   other-modules:
     - Muste.Tree.Internal

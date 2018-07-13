@@ -21,10 +21,9 @@ import Data.List
 
 import Data.Maybe
 
-import Muste.Tree
 import Muste
-
--- import Debug.Trace
+import Muste.Tree
+import Muste.Linearization (LinToken)
 
 import Control.Exception
 
@@ -212,24 +211,6 @@ data ServerMessage = SMNull
                    | SMLogoutResponse
                    deriving (Show) ;
 
-instance FromJSON LinToken where
-  parseJSON = withObject "LinToken" $ \v -> LinToken
-    <$> v .: T.pack "path"
-    <*> v .: T.pack "lin"
-    <*> v .: T.pack "matched"
-
-instance FromJSON Linearization where
-  parseJSON = withObject "Linearization" $ \v -> Linearization
-    <$> v .: T.pack "path"
-    <*> v .: T.pack "lin"
-    
-    
-instance FromJSON CostTree where
-  parseJSON = withObject "CostTree" $ \v -> CostTree
-    <$> v .: T.pack "cost"
-    <*> v .: T.pack "lin"
-    <*> v .: T.pack "tree"
-
 instance FromJSON Menu where
   parseJSON = withObject "CostTree" $ \v -> Menu
     <$> v .: T.pack "menu"
@@ -282,29 +263,6 @@ instance FromJSON ServerMessage where
             SMDataInvalid <$> fromJust params .: T.pack "error" ;
         "SMLogoutResponse" -> return SMLogoutResponse ;
         }
-
-instance ToJSON LinToken where
-  toJSON (LinToken path lin matched) =
-    object [
-    T.pack "path" .= path ,
-    T.pack "lin" .= lin ,
-    T.pack "matched" .= matched
-    ]
-
-instance ToJSON Linearization where
-  toJSON (Linearization path lin) =
-    object [
-    T.pack "path" .= path ,
-    T.pack "lin" .= lin
-    ]
-instance ToJSON CostTree where
-    -- this generates a Value
-    toJSON (CostTree score lin tree) =
-      object [
-      T.pack "score" .= score ,
-      T.pack "lin" .= lin ,
-      T.pack "tree" .= tree
-      ]
 
 instance ToJSON Menu where
     toJSON (Menu map) =

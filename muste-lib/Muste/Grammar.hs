@@ -8,7 +8,6 @@ module Muste.Grammar
   , getAllRules
   , getRuleType
   , parseTTree
-  , deprecatedTTreeParseFunction
   ) where
 
 import Muste.Grammar.Internal

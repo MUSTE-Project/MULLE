@@ -1,44 +1,25 @@
+{-# language OverloadedStrings #-}
 {- |
   High level api to the muste backend
 -}
 module Muste
   -- Maybe put this in a seperate module.
-  ( LinToken(LinToken, ltlin, ltpath) -- NB ltlin and ltpath should not be exposed
-  , Context
+  ( Context
   , CostTree(CostTree)
   , buildContext
   -- * Menus
   , getCleanMenu
-  -- * Linearizations
-  , Linearization(Linearization) -- NB lpath and llin should not be exposed
-  , linearizeTree
   ) where
 
 import Data.List
 import qualified Data.Map.Lazy as M
-
-import PGF
-import PGF.Internal (Expr(..))
+import Data.Aeson
 
 import Muste.Tree
 import Muste.Grammar
 import Muste.Grammar.Internal (ttreeToGFAbsTree)
 import Muste.Prune
-
-type PrecomputedTrees = AdjunctionTrees
-type Context = (Grammar, Language, PrecomputedTrees)
-
-
-data LinToken = LinToken
-  { ltpath :: Path
-  , ltlin :: String
-  , _ltmatched :: Path
-  } deriving (Show)
-
-data Linearization = Linearization
-  { lpath :: Path
-  , llin :: String
-  } deriving (Show,Eq)
+import Muste.Linearization
 
 -- FIXME Change the projection `_tree` to be a `TTree`
 data CostTree = CostTree
@@ -47,62 +28,18 @@ data CostTree = CostTree
   , _tree :: String
   } deriving (Show,Eq)
 
+instance FromJSON CostTree where
+  parseJSON = withObject "CostTree" $ \v -> CostTree
+    <$> v .: "cost"
+    <*> v .: "lin"
+    <*> v .: "tree"
 
-buildContext :: Grammar -> CId -> Context
-buildContext grammar lang = (grammar, lang, getAdjunctionTrees grammar)
-
-
--- lin is the full linearization
--- Maybe fits better in the grammar.
--- | The 'linearizeTree' function linearizes a TTree to a list of tokens and pathes to the nodes that create it
-linearizeTree :: Context -> TTree ->  [LinToken]
-linearizeTree (grammar, language, _) ttree = 
-  let
-    -- Convert the BracketedString to the list of string/path tuples
-    bracketsToTuples :: TTree -> BracketedString -> [LinToken]
-    bracketsToTuples tree bs =
-      let
-        deep :: TTree -> BracketedString -> [LinToken]
-        deep _     (Bracket _ _   _ _ _ []) = []
-        -- Ordinary leaf
-        deep ltree (Bracket _ fid _ _ _ [Leaf token]) =
-          [LinToken (getPath ltree fid) token []]
-        -- Meta leaf
-        deep ltree (Bracket _ fid _ _ [EMeta id] _) =
-          [LinToken (getPath ltree fid) ("?" ++ show id) []]
-        -- In the middle of the tree
-        deep ltree (Bracket _ fid _ _ _ bs) =
-          broad ltree fid bs []
-        deep _ _ = error "Muste.linearizeTree: Non-exhaustive pattern match"
-        broad :: TTree -> Int -> [BracketedString] -> [LinToken] -> [LinToken]
-        -- End of node siblings
-        broad _     _   []                 ts = ts
-        -- Syncategorial word
-        broad ltree fid (Leaf token:bss) ts =
-          let
-            b = broad ltree fid bss ts
-          in
-            LinToken (getPath ltree fid) token [] : b
-        -- In the middle of the nodes
-        broad ltree fid (bs:bss)           ts =
-          let
-            d = deep ltree bs
-            b = broad ltree fid bss ts
-          in
-            d ++ b
-      in
-        deep tree bs
-
-    ltree = ttree
-    abstree = ttreeToGFAbsTree ttree
-    pgfGrammar = pgf grammar
-    brackets = bracketedLinearize pgfGrammar language abstree :: [BracketedString]
-  in
-    if not (isEmptyGrammar grammar)
-      && language `elem` languages (pgf grammar)
-      && not (null brackets)
-    then bracketsToTuples ltree $ head brackets
-    else [LinToken [] "?0" []]
+instance ToJSON CostTree where
+    toJSON (CostTree score lin tree) = object
+      [ "score" .= score
+      , "lin"   .= lin
+      , "tree"  .= tree
+      ]
 
 getPrunedSuggestions :: Context -> TTree -> [(Path, [[CostTree]])]
 getPrunedSuggestions context@(grammar, _, precomputed) tree =
@@ -131,6 +68,6 @@ filterCostTrees trees =
 getCleanMenu :: Context -> TTree -> M.Map Path [[CostTree]]
 getCleanMenu context tree = M.fromList $ filterCostTrees $ getPrunedSuggestions context tree
 
--- TODO Use from/to json in stead.
+{-# deprecated showTTree "use @show@" #-}
 showTTree :: TTree -> String
 showTTree = show

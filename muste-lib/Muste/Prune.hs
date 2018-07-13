@@ -153,7 +153,6 @@ pruneTree tree = [(t, bs) | (t, bs, _) <- pt [] tree]
                                 (t', bs', visited') <- pt visited t,
                                 (ts', bs'', visited'') <- pc visited ts ]
 
-
 -- Edit distance between trees
 --  * we use the Levenshtein distance between the list of function nodes in each of the trees
 treeDiff :: TTree -> TTree -> Int

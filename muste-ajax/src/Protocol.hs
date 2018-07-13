@@ -5,6 +5,7 @@ import Database
 import Muste
 import Muste.Tree
 import Muste.Grammar (parseTTree)
+import Muste.Linearization
 
 import Data.Map ((!),Map(..),fromList)
 import qualified Data.Map.Lazy as M
@@ -13,8 +14,6 @@ import Control.Exception
 import Database.SQLite.Simple
 import Data.List
 import Data.Maybe
-
-
 import Control.Monad.Reader
 
 type Contexts = Map String (Map String Context)
