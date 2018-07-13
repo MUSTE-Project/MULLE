@@ -1,10 +1,14 @@
-module Muste.Prune (AdjunctionTrees, collectSimilarTrees, getAdjunctionTrees) where
+module Muste.Prune
+  ( AdjunctionTrees
+  , collectSimilarTrees
+  , getAdjunctionTrees
+  ) where
 
-import Muste.Tree
-import Muste.Grammar
 import Control.Monad
 import Data.List (sort, nub)
 
+import Muste.Tree
+import Muste.Grammar
 
 type AdjunctionTrees = [(String, [TTree])]
 
@@ -18,7 +22,7 @@ type AdjunctionTrees = [(String, [TTree])]
 --  * <pruned> is the original pruned subtree (at position <path>)
 --  * <pruned'> is the new similar pruned subtree (at position <path>)
 collectSimilarTrees :: Grammar -> AdjunctionTrees -> TTree -> [(Path, TTree, [(Int, TTree, TTree, TTree)])]
-collectSimilarTrees grammar adjTrees basetree =
+collectSimilarTrees _grammar adjTrees basetree =
     do path <- getPathes basetree
        let Just tree = selectNode basetree path
        let simtrees = similarTreesForSubtree tree
@@ -34,7 +38,6 @@ collectSimilarTrees grammar adjTrees basetree =
              -- guard $ noDuplicates funs
              let metas = getMetas pruned
              pruned' <- adjTreesForCat
-
              ---- Alternative 1a: the root must change (==> fewer trees)
              -- guard $ not (sameRoot pruned pruned')
              ---- Alternative 1b: it's ok if two different children change (==> more trees)
@@ -43,14 +46,14 @@ collectSimilarTrees grammar adjTrees basetree =
              let funs' = getFunctions pruned'
              -- guard $ noDuplicates funs'
              guard $ funs `areDisjoint` funs'
-
              ---- Alternative 2a: all branches are put back into the new tree (==> fewer trees)
              guard $ metas == getMetas pruned'
              ---- Alternative 2b: some branches may be removed from the new tree (==> more trees)
              -- guard $ isSubList metas (getMetas pruned')
-
              tree' <- insertBranches branches pruned'
              return (treeDiff tree tree', tree', pruned, pruned')
+      similarTreesForSubtree _
+        = error "Prune.collectSimiliarTrees: Non-exhaustive pattern match"
 
 -- Returns an ordered list with all functions in a tree
 getFunctions :: TTree -> [Rule]
@@ -60,7 +63,9 @@ getFunctions tree = sort (getF tree)
 
 -- True if the (ordered) list contains no duplicates (i.e., is a set)
 noDuplicates :: Eq a => [a] -> Bool
-noDuplicates (x:y:zs) | x == y = False
+noDuplicates (x:y:zs)
+  | x == y = False
+  | otherwise = error "Prune.noDuplicates: Non-exhaustive guard statement"
 noDuplicates (_:zs) = noDuplicates zs
 noDuplicates _ = True
 
@@ -78,7 +83,6 @@ sameRoot (TNode fun _ _) (TNode fun' _ _) | fun == fun' = True
 sameRoot (TMeta cat) (TMeta cat') | cat == cat' = True
 sameRoot _ _ = False
 
-
 -- True if two trees have the same root, and exactly one child differs
 exactlyOneChildDiffers :: TTree -> TTree -> Bool
 exactlyOneChildDiffers (TNode fun _ children) (TNode fun' _ children')
@@ -94,13 +98,13 @@ exactlyOneChildDiffers _ _ = False
 --  * this is nondeterministic, because the tree might contain two metavars with the same type
 insertBranches :: [TTree] -> TTree -> [TTree]
 insertBranches branches tree = map fst (ins branches tree)
-    where ins [] tree = [(tree, [])]
-          ins branches (TMeta cat) = selectBranch cat branches 
-          ins branches (TNode fun typ children) = [ (TNode fun typ children', branches') |
-                                                    (children', branches') <- inslist branches children ]
-          inslist branches [] = [([], branches)]
-          inslist branches (t:ts) = [ (t':ts', branches'') |
-                                      (t', branches') <- ins branches t,
+    where ins [] t = [(t, [])]
+          ins bs (TMeta cat) = selectBranch cat bs
+          ins bs (TNode fun typ children) = [ (TNode fun typ children', branches') |
+                                                    (children', branches') <- inslist bs children ]
+          inslist bs [] = [([], bs)]
+          inslist bs (t:ts) = [ (t':ts', branches'') |
+                                      (t', branches') <- ins bs t,
                                       (ts', branches'') <- inslist branches' ts ]
           selectBranch _ [] = []
           selectBranch cat (tree@(TNode _ (Fun cat' _) _) : trees)
@@ -142,13 +146,13 @@ pruneTree tree = [(t, bs) | (t, bs, _) <- pt [] tree]
                 [ (tree', branches', visited') |
                   cat `notElem` visited,
                   (children', branches', visited') <- pc (cat:visited) children,
-                  let tree' = TNode fun typ children',
-                  True -- not $ treeIsRecursive tree'
+                  let tree' = TNode fun typ children'
                 ]
           pc visited [] = [([], [], visited)]
           pc visited (t:ts) = [ (t':ts', bs' ++ bs'', visited'') |
                                 (t', bs', visited') <- pt visited t,
                                 (ts', bs'', visited'') <- pc visited ts ]
+
 
 -- Edit distance between trees
 --  * we use the Levenshtein distance between the list of function nodes in each of the trees
@@ -172,7 +176,7 @@ editDistance a b = last (if lab == 0 then mainDiag
           oneDiag a b diagAbove diagBelow = thisdiag
               where doDiag [] b nw n w = []
                     doDiag a [] nw n w = []
-                    doDiag (ach:as) (bch:bs) nw n w = me : (doDiag as bs me (tail n) (tail w))
+                    doDiag (ach:as) (bch:bs) nw n w = me : doDiag as bs me (tail n) (tail w)
                         where me = if ach == bch then nw else 1 + min3 (head w) nw (head n)
                     firstelt = 1 + head diagBelow
                     thisdiag = firstelt : doDiag a b firstelt diagAbove (tail diagBelow)
