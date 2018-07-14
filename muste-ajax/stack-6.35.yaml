@@ -1,6 +1,11 @@
 resolver: lts-6.35
 
+packages:
+- .
+
 extra-deps:
+- ../libs/GF/src/runtime/haskell/
+- ../muste/
 - QuickCheck-2.11.3
 - aeson-1.2.4.0
 - basement-0.0.7
@@ -19,8 +24,3 @@ extra-deps:
 - unix-compat-0.5.0.1
 - vector-0.12.0.1
 - warp-3.2.22
-
-packages:
-- .
-- ../libs/GF/src/runtime/haskell/
-- ../muste/

@@ -29,15 +29,7 @@ library:
     - aeson
     - mtl
     - aeson
-  
-  when:
-    - condition: flag(hastePGF)
-      then:
-        dependencies:
-          - haste-pgf >=3.7
-      else:
-        dependencies:
-          - pgf >=3.7
+    - pgf >=3.7
 
   exposed-modules:
     - Muste

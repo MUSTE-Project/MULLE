@@ -4,4 +4,6 @@ extra-deps:
 
 packages:
 - '.'
+
+extra-deps:
 - '../libs/GF/src/runtime/haskell/'

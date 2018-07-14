@@ -2,9 +2,9 @@ resolver: lts-12.0
 
 packages:
 - .
-- ../libs/GF/src/runtime/haskell/
 - ../muste/
 
 extra-deps:
+- ../libs/GF/src/runtime/haskell/
 - git: git@github.com:MUSTE-Project/haskell-cgi.git
   commit: b45aabe6ccfd5aa81c5883b25fef019d60e9d9d0
