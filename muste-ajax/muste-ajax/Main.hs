@@ -14,6 +14,7 @@ import Database hiding (main)
 import Data.Time
 import Control.Monad
 import Text.Printf
+import System.FilePath
 
 import Muste
 
@@ -56,10 +57,10 @@ handleRequest conn contexts request response
       $ result
   handleHttp :: IO ResponseReceived
   handleHttp = do
-    putStrLn $ "HTTP" ++ (show request)
+    printf "HTTP %s" (show request)
     let file = getFileName $ B.unpack $ rawPathInfo request
     let typ = getType file
-    content <- LB.readFile $ Config.demoDir ++ "/" ++ file
+    content <- LB.readFile $ Config.demoDir </> "/" </> file
     response
       $ responseLBS status200 [("Content-type",B.pack typ)]
       $ content
