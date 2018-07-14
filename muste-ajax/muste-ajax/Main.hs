@@ -47,7 +47,7 @@ handleRequest conn contexts request response
   handleCgi :: IO ResponseReceived
   handleCgi = do
     printf "CGI-Request %s" (show request)
-    body <- fmap (B.unpack . LB.toStrict) $ strictRequestBody request
+    body <- strictRequestBody request
     when Config.loggingEnabled $ logTimestamp (show body)
     result <- Protocol.handleClientRequest conn contexts body
     when Config.loggingEnabled $ logTimestamp (show result)

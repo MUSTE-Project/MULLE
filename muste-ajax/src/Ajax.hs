@@ -1,4 +1,7 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# language
+    OverloadedStrings
+  , TypeApplications
+#-}
 module Ajax
   ( ServerTree(..)
   , ServerMessage(..)
@@ -329,8 +332,10 @@ instance ToJSON ServerMessage where
   toJSON SMLogoutResponse =
     createMessageObject "SMLogoutResponse" A.Null
 
-decodeClientMessage :: String -> ClientMessage
+-- FIXME Indicate in type signature that we can fail (e.g. `IO
+-- ClientMessage`)
+decodeClientMessage :: B.ByteString -> ClientMessage
 decodeClientMessage s =
-  let rcm = eitherDecode (B.pack s) :: Either String ClientMessage
+  let rcm = eitherDecode @ClientMessage s
   in
     either (throw . CME) id rcm

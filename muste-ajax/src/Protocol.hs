@@ -34,7 +34,7 @@ type App a = ReaderT Env IO a
 handleClientRequest
   :: Connection
   -> Map String (Map String Context)
-  -> String -- ^ `multipart/form-data` containing the request.
+  -> ByteString -- ^ `multipart/form-data` containing the request.
   -> IO ByteString
 handleClientRequest conn contexts body = handler `catch` errHandler
   where
