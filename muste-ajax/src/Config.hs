@@ -5,6 +5,7 @@ module Config
   , logFile
   , demoDir
   , webPrefix
+  , port
   ) where
 
 import System.FilePath
@@ -38,3 +39,6 @@ demoDir = "./demo"
 
 webPrefix :: FilePath
 webPrefix = "/"
+
+port :: Int
+port = 8080
