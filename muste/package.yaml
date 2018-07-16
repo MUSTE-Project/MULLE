@@ -40,9 +40,9 @@ library:
     - Muste.Linearization
 
   other-modules:
+    - Muste.Common
     - Muste.Tree.Internal
     - Muste.Grammar.Internal 
-    - Common
 
 tests:
   foo-test:

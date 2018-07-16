@@ -9,7 +9,7 @@ import PGF.Internal as PGF hiding (funs, cats)
 import Data.List
 -- import Muste.Feat hiding (startcat, pgf)
 
-import Common
+import Muste.Common
 import Muste.Tree
 
 -- | Type 'Rule' consists of a String as the function name and a 'FunType' as the Type

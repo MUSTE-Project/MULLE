@@ -24,9 +24,7 @@ data LinToken = LinToken
   , _ltmatched :: Path
   } deriving (Show)
 
-type PrecomputedTrees = AdjunctionTrees
-
-type Context = (Grammar, PGF.Language, PrecomputedTrees)
+type Context = (Grammar, PGF.Language, AdjunctionTrees)
 
 data Linearization = Linearization
   { _lpath :: Path

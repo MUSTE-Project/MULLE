@@ -3,14 +3,15 @@
 module Muste.Tree.Internal
   ( Path
   , getPath
-  , getPathes
+  , getAllPaths
   , Pos
+  , Category
   , maxDepth
   , getTreeCat
   , replaceNode
+  -- FIXME Are we sure we should export this?
   , selectNode
   , isValid
-  , showTree
   , countNodes
   , countMatchedNodes
   , TTree(TNode,TMeta)
@@ -23,10 +24,9 @@ import qualified PGF (CId, mkCId)
 import Data.Maybe
 import Data.Aeson
 import GHC.Generics
-
-import Common
-
 import Control.Monad.State
+
+import Muste.Common
 
 -- * Trees
 
@@ -36,6 +36,11 @@ import Control.Monad.State
 -- | A semantic category
 type Category = String
 
+-- | = Typed Trees
+--
+-- This is a representation of gramatically structured natural
+-- languages sentences.  The representation lends ideas from type
+-- theory (hence the name 'TTree' @~@ /Typed Trees/).
 -- | A generic tree with types
 data TTree
    -- Regular node consisting of a function name, function type and
@@ -80,10 +85,12 @@ foldlTTree f x t = case t of
 
 instance FromJSON TTree
 
--- | Type @FunType@ consists of a @String@ that is the the result
--- category and @[String]@ are the categories of the paramaters.
+-- | The basic type of sentences and sentence formers.
 data FunType
-  = Fun { _category :: Category, _params :: [Category] }
+  = Fun
+    { _category :: Category -- ^ The resulting category
+    , _params :: [Category] -- ^ The categories of the parameters.
+    }
   | NoType
   deriving (Ord, Eq, Show, Read, Generic)
 
@@ -94,24 +101,26 @@ instance FromJSON FunType
 
 -- | Generic class for trees
 class Show t => TreeC t where
-  -- | The function 'selectNode' returns a subtree at given 'Path' if it exists
+  -- | The function 'selectNode' returns a subtree at a given 'Path'
+  -- if it exists.
   selectNode :: t -> Path -> Maybe t
-  -- | The function 'selectNode' returns a subtree at given node if it exists
+  -- | The function 'selectNode' returns a subtree at a given node if
+  -- it exists.
   selectBranch :: t -> Int -> Maybe t
-
-{-# DEPRECATED showTree "Just use @show@" #-}
-showTree :: TreeC t => t -> String
-showTree = show
 
 -- FIXME Consider making abstract.
 -- | Position in a path
 type Pos = Int
 
 -- FIXME Consider making abstract.
--- | Path in a tree
+-- FIXME Another idea for indexing into a tree would be to a graph.
+-- | A path in a tree.  Used by e.g. linearization for indexing into
+-- the tree.
 type Path = [Pos]
 
--- | A generic tree with types is in TreeC class
+-- | A generic tree with types is in TreeC class.  The existence of
+-- this class is a legacy from when there existed multiple
+-- representations.
 instance TreeC TTree where
   selectNode t [] = Just t
   selectNode t [b] = selectBranch t b
@@ -141,7 +150,7 @@ listReplace list pos a
         pre ++ (a:post)
   | otherwise = list -- Element not in the list -> return the same list instead
 
--- | The function 'isValid' "type-checks" a 'TTree'
+-- | The function 'isValid' "type checks" a 'TTree'
 isValid :: TTree -> (Bool,Maybe Path)
 isValid t =
   let
@@ -162,7 +171,7 @@ isValid t =
     
 -- | The function 'getTreeCat' gives the root category of a 'TTree',
 -- returns 'wildCId' on missing type
-getTreeCat :: TTree -> String
+getTreeCat :: TTree -> Category
 getTreeCat (TNode id typ _) =
   case typ of {
     (Fun cat _) -> cat ;
@@ -268,17 +277,17 @@ maxDepth (TNode _ _ []) = 1
 maxDepth (TNode _ _ trees) =
   1 + maximum ( map maxDepth trees )
 
--- | The function 'getPathes' returns all pathes in a 'TTree'
-getPathes :: TTree -> [Path]
-getPathes t = 
+-- | The function 'getAllPaths' returns all paths in a 'TTree'
+getAllPaths :: TTree -> [Path]
+getAllPaths t =
   let 
-    pathes (TMeta _) = []
-    pathes (TNode _ _ []) = []
-    pathes (TNode _ _ cs) =
+    paths (TMeta _) = []
+    paths (TNode _ _ []) = []
+    paths (TNode _ _ cs) =
       let zips = zip [0..] cs in
-      [[c]|(c,_) <- zips] ++ (concat $ map (\(p,c) -> map (p:) $ pathes c) $ zips)
+      [[c]|(c,_) <- zips] ++ (concat $ map (\(p,c) -> map (p:) $ paths c) $ zips)
   in
-    []:pathes t
+    []:paths t
          
 -- | The function 'replaceBranch' replaces a branch in a 'TTree' by a new 'TTree' if a subtree at the position exists
 replaceBranch :: TTree -> Pos -> TTree  -> TTree
@@ -303,6 +312,7 @@ replaceNode oldTree [] newTree =
 replaceNode oldTree _ _ =
   oldTree -- No more subtrees, cancel search
 
+-- | Counts the (internal and external) nodes in the tree.
 countNodes :: TTree -> Int
 countNodes (TMeta _) = 1
 countNodes (TNode _ _ []) = 1
@@ -311,6 +321,6 @@ countNodes (TNode _ _ ts) = 1 + (sum $ map countNodes ts)
 countMatchedNodes :: TTree -> TTree -> Int
 countMatchedNodes tree1 tree2 =
   let
-    pathes = getPathes tree1
+    paths = getAllPaths tree1
   in
-    length $ filter (\p -> selectNode tree1 p == selectNode tree2 p) pathes
+    length $ filter (\p -> selectNode tree1 p == selectNode tree2 p) paths

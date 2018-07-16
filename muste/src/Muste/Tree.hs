@@ -8,7 +8,7 @@ module Muste.Tree
   , Path
   , Pos
   , getPath
-  , getPathes
+  , getAllPaths
   -- , maxDepth
   , getTreeCat
   -- , generateTrees
@@ -17,6 +17,7 @@ module Muste.Tree
   , isValid
   , countNodes
   -- , countMatchedNodes
+  , Category
   ) where
 
 import Muste.Tree.Internal
