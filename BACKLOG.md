@@ -54,3 +54,8 @@ Do we want to keep supporting `muste-cgi`?
 
 AFAIK CGI scripts just speak a different protocol from
 `application/json`.  So this should be easy to keep support for.
+
+`LinToken` and `Linearization`
+---
+
+Do we need both representations?

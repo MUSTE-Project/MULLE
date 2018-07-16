@@ -146,7 +146,7 @@ matched p t1 t2 = if selectNode t1 p == selectNode t2 p then p else []
 -- | Gets the menus for a lesson, two trees and two languages
 assembleMenus :: Map String (Map String Context) -> String -> (String,String) -> (String,String) -> (ServerTree,ServerTree)
 assembleMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree) =
-  let grammar = (\(g,_,_) -> g) (contexts ! lesson ! sourceLang)
+  let grammar = ctxtGrammar (contexts ! lesson ! sourceLang)
       sourceContext = contexts ! lesson ! sourceLang
       targetContext = contexts ! lesson ! targetLang
       sourceTTree = parseTTree grammar sourceTree
@@ -169,7 +169,7 @@ assembleMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree) =
 emptyMenus :: Map String (Map String Context) -> String -> (String,String) -> (String,String) -> (ServerTree,ServerTree)
 emptyMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree) =
   let
-    grammar = (\(g,_,_) -> g) (contexts ! lesson ! sourceLang)
+    grammar = ctxtGrammar (contexts ! lesson ! sourceLang)
     sourceTTree = parseTTree grammar sourceTree
     targetTTree = parseTTree grammar targetTree
     tempSourceLin = linearizeTree (contexts ! lesson ! sourceLang) sourceTTree

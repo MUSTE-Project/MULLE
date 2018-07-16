@@ -42,7 +42,8 @@ library:
   other-modules:
     - Muste.Common
     - Muste.Tree.Internal
-    - Muste.Grammar.Internal 
+    - Muste.Grammar.Internal
+    - Muste.Linearization.Internal
 
 tests:
   foo-test:

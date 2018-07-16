@@ -1,19 +1,15 @@
 {-# language OverloadedStrings #-}
-{- |
-  High level api to the muste backend
--}
+-- |
+-- High level api to the muste backend
 module Muste
   ( -- * Trees
     module Muste.Tree
   -- * Grammmar
   , module Muste.Grammar
   -- * Menus
-  -- trololo
-  , CostTree(CostTree)
+  , CostTree
   , getCleanMenu
   -- * Linearization
-  --
-  -- foobar
   , module Muste.Linearization
   ) where
 
@@ -26,6 +22,7 @@ import Muste.Grammar
 import Muste.Grammar.Internal (ttreeToGFAbsTree)
 import Muste.Prune
 import Muste.Linearization
+import Muste.Linearization.Internal (Linearization, mkLinearization)
 
 -- FIXME Change the projection `_tree` to be a `TTree`
 data CostTree = CostTree
@@ -48,14 +45,19 @@ instance ToJSON CostTree where
       ]
 
 getPrunedSuggestions :: Context -> TTree -> [(Path, [[CostTree]])]
-getPrunedSuggestions context@(grammar, _, precomputed) tree =
+getPrunedSuggestions ctxt tree =
     [ (path, [[ CostTree cost lin (showTTree fullTree) |
                 (cost, subtree, _, _) <- trees,
                 let fullTree = replaceNode tree path subtree,
-                let lin = [Linearization p l | (LinToken p l _) <- linearizeTree context fullTree]
+                let lin = mkLinearization
+                      <$> linearizeTree ctxt fullTree
+                -- let lin = [Linearization p l | (LinToken p l _) <- linearizeTree ctxt fullTree]
               ]]) |
       (path, _, trees) <- collectSimilarTrees grammar precomputed tree
     ]
+    where
+    grammar = ctxtGrammar ctxt
+    precomputed = ctxtPrecomputed ctxt
 
 filterCostTrees :: [(Path, [[CostTree]])] -> [(Path, [[CostTree]])]
 filterCostTrees trees =

@@ -36,6 +36,9 @@ getType fn
   | "ico"  `isSuffixOf` fn = "image/x-icon"
   | otherwise              = "text/plain"
 
+-- TODO Logging is currently too lazy. This is my fault because I
+-- changed from packing and unpacking lazy bytestreams to directly
+-- outputting lazy streams with 'printf' a few commits ago.
 -- | Handles both HTTP requests and API requests.
 --
 -- HTTP requests serve up files in @Config.demoDir@.  API requests are
@@ -47,7 +50,7 @@ handleRequest conn contexts request response
   where
   handleCgi :: IO ResponseReceived
   handleCgi = do
-    printf "CGI-Request %s" (show request)
+    printf "CGI-Request %s\n" (show request)
     body <- strictRequestBody request
     when Config.loggingEnabled $ logTimestamp (show body)
     result <- Protocol.handleClientRequest conn contexts body
@@ -57,7 +60,7 @@ handleRequest conn contexts request response
       $ result
   handleHttp :: IO ResponseReceived
   handleHttp = do
-    printf "HTTP %s" (show request)
+    printf "HTTP %s\n" (show request)
     let file = getFileName $ B.unpack $ rawPathInfo request
     let typ = getType file
     content <- LB.readFile $ Config.demoDir </> file
