@@ -59,3 +59,11 @@ AFAIK CGI scripts just speak a different protocol from
 ---
 
 Do we need both representations?
+
+Depend only on GF's Haskell bindings
+---
+
+There is currently discussion in GF about splitting the Haskell
+bindings into a seperate package/repo.  When this is implemented we
+can change the upstream dependency.  Please follow the discussion at
+[GF](https://github.com/GrammaticalFramework/GF/issues/47).
