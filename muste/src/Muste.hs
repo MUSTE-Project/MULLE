@@ -4,7 +4,7 @@
 module Muste
   ( -- * Trees
     module Muste.Tree
-  -- * Grammmar
+  -- * Grammar
   , module Muste.Grammar
   -- * Menus
   , CostTree

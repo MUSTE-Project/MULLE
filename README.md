@@ -17,8 +17,8 @@ this version do
 
     ln -s stack-12.0.yaml stack.yaml
 
-You can now simply build the projects with `stack build` and see
-browse the Haddock documentation with `stack haddock --open`.
+You can now simply build the projects with `stack build` and browse
+the Haddock documentation with `stack haddock --open`.
 
 Running
 -------

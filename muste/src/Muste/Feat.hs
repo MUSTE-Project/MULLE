@@ -26,11 +26,11 @@ type FEAT = String -> Int -> (Integer, Integer -> TTree)
 emptyFeat :: String -> Int -> (Integer, Integer -> TTree)
 emptyFeat = \_ _ -> (-1, \_ -> TMeta "*empty*")
              
--- compute how many trees there are of a given size and type
+-- | Compute how many trees there are of a given size and type.
 featCard :: FEAT -> String -> Int -> Integer
 featCard f c n = fst (f c n)
 
--- generate the i-th tree of a given size and type
+-- | Generate the i-th tree of a given size and type.
 featIth :: FEAT -> String -> Int -> Integer -> TTree
 featIth f c n i = snd (f c n) i
 
@@ -43,7 +43,6 @@ mkFEAT gr =
      if s == 0
      then (1, \0 -> [])
      else (0, error "empty")
-
    catList' [c] s =
      parts ( [(1, \_ -> [TMeta c]) | s == 1 ]
              ++
@@ -54,14 +53,12 @@ mkFEAT gr =
            , y == c
            , let (n,h) = catList xs (s-1)
           ])
-
    catList' (c:cs) s =
      parts [ (nx*nxs, \i -> hx (i `mod` nx) ++ hxs (i `div` nx))
            | k <- [0..s]
            , let (nx,hx)   = catList [c] k
                  (nxs,hxs) = catList cs (s-k)
            ]
-
    catList = memo catList'
      where
        cats :: [String]
@@ -73,7 +70,6 @@ mkFEAT gr =
          where
            nil  = [ f [] s | s <- [0..] ]
            cons = [ (c, memo (f . (c:))) | c <- cats ]
-         
    parts :: [(Integer, Integer -> [TTree])] -> (Integer, Integer -> [TTree])
    parts []          = (0, error "empty parts ")
    parts ((n,h):nhs) = (n+n', \i -> if i < n then h i else h' (i-n))

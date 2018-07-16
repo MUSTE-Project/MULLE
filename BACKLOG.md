@@ -67,3 +67,7 @@ There is currently discussion in GF about splitting the Haskell
 bindings into a seperate package/repo.  When this is implemented we
 can change the upstream dependency.  Please follow the discussion at
 [GF](https://github.com/GrammaticalFramework/GF/issues/47).
+
+Rename stack.yamls
+---
+The name ought to refer to the GHC version.
