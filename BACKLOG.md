@@ -25,13 +25,6 @@ Use Haskell data files for e.g. the grammar files.
 Split database init script into seperate module
 ---
 
-Style improvements / dead code removal
------------------
-
-I consider removing the haste front end and `Main.hs` in `muste-lib`. I
-don't know if this is needed for some special purpose.
-
-
 Improved support for insertion
 ----
 
@@ -58,3 +51,6 @@ mistakes".
 
 Do we want to keep supporting `muste-cgi`?
 ---
+
+AFAIK CGI scripts just speak a different protocol from
+`application/json`.  So this should be easy to keep support for.
