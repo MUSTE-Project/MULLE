@@ -18,7 +18,7 @@ module Muste.Tree.Internal
   ) where
 
 -- TODO Do not depend on PGF
-import PGF (CId, mkCId)
+import qualified PGF (CId, mkCId)
 
 import Data.Maybe
 import Data.Aeson
@@ -30,7 +30,9 @@ import Control.Monad.State
 
 -- * Trees
 
--- Maybe make this a newtype (and instance of @IsString@)
+-- TODO Make this abstract (and instance of @IsString@).  One
+-- challenge here is that we depend on the specific implementation of
+-- 'Read', 'Show' and possibly other things.
 -- | A semantic category
 type Category = String
 
@@ -81,7 +83,7 @@ instance FromJSON TTree
 -- | Type @FunType@ consists of a @String@ that is the the result
 -- category and @[String]@ are the categories of the paramaters.
 data FunType
-  = Fun { _category :: Category, _params :: [String] }
+  = Fun { _category :: Category, _params :: [Category] }
   | NoType
   deriving (Ord, Eq, Show, Read, Generic)
 
@@ -101,9 +103,11 @@ class Show t => TreeC t where
 showTree :: TreeC t => t -> String
 showTree = show
 
+-- FIXME Consider making abstract.
 -- | Position in a path
 type Pos = Int
 
+-- FIXME Consider making abstract.
 -- | Path in a tree
 type Path = [Pos]
 
@@ -137,7 +141,7 @@ listReplace list pos a
         pre ++ (a:post)
   | otherwise = list -- Element not in the list -> return the same list instead
 
--- | The function 'isValid' "type-checks a 'TTree'
+-- | The function 'isValid' "type-checks" a 'TTree'
 isValid :: TTree -> (Bool,Maybe Path)
 isValid t =
   let
@@ -166,7 +170,7 @@ getTreeCat (TNode id typ _) =
     }
 getTreeCat (TMeta cat) = cat
 
-data LTree = LNode CId Int [LTree] | LLeaf deriving (Show,Eq)
+data LTree = LNode PGF.CId Int [LTree] | LLeaf deriving (Show,Eq)
 
 -- | A generic tree with types is in TreeC class
 instance TreeC LTree where
@@ -191,9 +195,9 @@ ttreeToLTree :: TTree -> LTree
 ttreeToLTree tree =
   let
     -- Convert structure without caring about labels
-    convert (TMeta cat) = LNode (mkCId cat) (-1) [LNode (mkCId "_") (-1) [LLeaf]]
-    convert (TNode _ (Fun cat _) []) = LNode (mkCId cat) (-1) []
-    convert (TNode _ (Fun cat _) ts) = LNode (mkCId cat) (-1) (map convert ts)
+    convert (TMeta cat) = LNode (PGF.mkCId cat) (-1) [LNode (PGF.mkCId "_") (-1) [LLeaf]]
+    convert (TNode _ (Fun cat _) []) = LNode (PGF.mkCId cat) (-1) []
+    convert (TNode _ (Fun cat _) ts) = LNode (PGF.mkCId cat) (-1) (map convert ts)
     convert rest = error $ "Could not convert tree due to lack of types" ++ show rest
 
     -- Update the labels in a tree

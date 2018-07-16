@@ -2,9 +2,10 @@
 
 module Data (exercises, getLessons) where
 
+import qualified Config
+
 import Muste.Tree
 import Muste.Grammar
-import qualified Config
 
 exercises :: [(TTree, TTree, String)]
 exercises =

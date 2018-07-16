@@ -3,12 +3,18 @@
   High level api to the muste backend
 -}
 module Muste
-  -- Maybe put this in a seperate module.
-  ( Context
-  , CostTree(CostTree)
-  , buildContext
+  ( -- * Trees
+    module Muste.Tree
+  -- * Grammmar
+  , module Muste.Grammar
   -- * Menus
+  -- trololo
+  , CostTree(CostTree)
   , getCleanMenu
+  -- * Linearization
+  --
+  -- foobar
+  , module Muste.Linearization
   ) where
 
 import Data.List

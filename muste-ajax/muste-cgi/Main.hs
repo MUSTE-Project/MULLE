@@ -2,11 +2,15 @@ module Main where
 
 import Network.CGI
 import Control.Monad
-import Ajax
-import Muste
-import Muste.Grammar
-import PGF
 import qualified Protocol
+
+-- FIXME Do not depend on `PGF` - may need to export functionality
+-- from `muste`.
+import qualified PGF (readPGF)
+
+import Muste
+
+import Ajax
 
 cgi:: Grammar -> CGI CGIResult
 cgi grammar =
@@ -20,6 +24,6 @@ cgi grammar =
 main :: IO ()
 main =
   do
-    pgf <- readPGF "Grammar.pgf"
+    pgf <- PGF.readPGF "Grammar.pgf"
     let grammar = pgfToGrammar pgf
     runCGI (cgi grammar)

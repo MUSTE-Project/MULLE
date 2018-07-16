@@ -24,8 +24,6 @@ import Data.Maybe
 import Control.Exception
 
 import Muste
-import Muste.Tree
-import Muste.Linearization (LinToken)
 
 data ClientMessageException = CME String deriving (Show)
 data ReadTreeException = RTE String deriving (Show)

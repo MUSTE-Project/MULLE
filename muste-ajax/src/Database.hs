@@ -3,9 +3,7 @@ module Database where
 
 import qualified PGF
 
-import Muste hiding (linearizeTree)
-import Muste.Grammar
-import Muste.Tree
+import Muste
 
 import Database.SQLite.Simple
 

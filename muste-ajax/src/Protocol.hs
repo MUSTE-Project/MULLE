@@ -11,9 +11,6 @@ import Control.Monad.Reader
 import Data.ByteString.Lazy (ByteString)
 
 import Muste
-import Muste.Tree
-import Muste.Grammar (parseTTree)
-import Muste.Linearization
 
 import Ajax
 import Database
