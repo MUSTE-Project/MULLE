@@ -1,7 +1,7 @@
 Change log
 ==========
 
-0.1.0.0
+0.2.0.0
 -------
 
 This version has a big diff from the previous one.  Most of the
@@ -26,3 +26,7 @@ discussion at [GF](https://github.com/GrammaticalFramework/GF/issues/47).
 Stackify the whole project.  Use more recent version of GHC.
 
 Use Haskell resource files to manage most hard coded file locations.
+
+0.1.0.0
+-------
+This is the last version before a major refactoring.
