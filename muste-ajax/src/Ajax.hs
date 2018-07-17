@@ -45,8 +45,7 @@ createMessageObject msg params =
   ]
 
 data ClientMessage
-  = CMNull
-  | CMLoginRequest
+  = CMLoginRequest
     { cusername :: String
     , cpassword :: String
     }
@@ -55,7 +54,6 @@ data ClientMessage
     { context :: String
     , cdata :: [(String, String)]
     }
-  | CMLessonsRequest
   | CMLessonInit
     { clesson :: String
     }
@@ -66,7 +64,6 @@ data ClientMessage
     , ca :: ClientTree
     , cb :: ClientTree
     }
-  | CMLogoutRequest
   deriving (Show) ;
 
 instance FromJSON ClientTree where
@@ -95,7 +92,6 @@ instance FromJSON ClientMessage where
             _ -> error "Boo, not an array"
         return $ CMDataResponse ccontext carray
           -- (o .: "field", o .: "value")
-      "lessons" -> pure CMLessonsRequest
       "lesson" -> CMLessonInit <$> params .: "lesson"
       "menu" -> CMMenuRequest
         <$> params .: "lesson"
@@ -103,7 +99,6 @@ instance FromJSON ClientMessage where
         <*> params .: "time"
         <*> params .: "a"
         <*> params .: "b"
-      "logout" -> pure CMLogoutRequest
       _ -> error ( "Unexpected message " ++ show v)
 
 instance ToJSON ClientTree where
@@ -132,7 +127,6 @@ instance ToJSON ClientMessage where
       , "a"      .= a
       , "b"      .= b
       ]
-    CMLogoutRequest -> "CMLogoutRequest" |> object []
     where
       (|>) = createMessageObject
 

@@ -14,8 +14,14 @@ var SERVER = "/api/"
 
 var MESSAGES =
   { LOGOUT: "logout"
+  // Must set authentication header
   , LOGIN: "login"
   , LESSONS: "lessons"
+  // Muste request the *name* of the lesson.  E.g:
+  //
+  //    /lesson/Prima+Pars
+  //
+  // TODO Would be more convenient if it was an id.
   , LESSON: "lesson"
   , MENU: "menu"
   };
@@ -78,8 +84,11 @@ function click_body(event) {
     }
 }
 
-
 function call_server(message, parameters) {
+  call_server_new(message, parameters, message + "/");
+}
+
+function call_server_new(message, parameters, endpoint) {
     if (typeof(SERVER) === "function") {
         handle_server_response(SERVER(message, parameters));
     }
@@ -88,7 +97,7 @@ function call_server(message, parameters) {
             cache: false,
             async: false,
             timeout: AjaxTimeout,
-            url: SERVER + message + "/",
+            url: SERVER + endpoint,
             dataType: "json",
 	        method: "POST",
 	        processData: false,
@@ -152,7 +161,7 @@ function select_lesson(evt) {
 
 function start_lesson(lesson) {
     TIMER_START = new Date().getTime();
-    call_server(MESSAGES.LESSON, {token: LOGIN_TOKEN, lesson: lesson});
+    call_server_new(MESSAGES.LESSON, {token: LOGIN_TOKEN, lesson: lesson}, MESSAGES.LESSON + "/" + lesson);
 }
 
 

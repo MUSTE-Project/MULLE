@@ -104,8 +104,9 @@ lessonsHandler = do
 lessonHandler :: Protocol v w ServerMessage
 lessonHandler = do
   t <- getToken
-  (CMLessonInit l) <- getMessage
-  handleLessonInit t l
+  s <- C8.unpack . fromJust . Snap.urlDecode . Snap.rqPathInfo
+    <$> Snap.getRequest
+  handleLessonInit t s
 
 menuHandler :: Protocol v w ServerMessage
 menuHandler = do
