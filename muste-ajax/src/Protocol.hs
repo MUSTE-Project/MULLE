@@ -12,6 +12,7 @@ import Control.Monad.Reader
 import Data.ByteString.Lazy (ByteString)
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as C8
 import qualified Snap
 import qualified System.IO.Streams as Streams
 import Text.Printf
@@ -79,15 +80,27 @@ getMessage = Snap.runRequestBody act
     errDecode = error . printf "Protocol.getMessage: Error decoding JSON: %s"
 
 -- TODO Token should be set as an HTTP header.
+-- FIXME Use ByteString
 -- | Gets the current session token.
 getToken :: Protocol v w String
-getToken = cheatTakeToken <$> getMessage
+-- getToken = cheatTakeToken <$> getMessage
+getToken = do
+  m <- getTokenCookie
+  case m of
+    Just c -> pure $ C8.unpack $ Snap.cookieValue c
+    Nothing -> do
+      liftIO $ printf "Warning, reverting back to deprecated way of handling sesson cookies\n"
+      cheatTakeToken <$> getMessage
+
+getTokenCookie :: Protocol v w (Maybe Snap.Cookie)
+getTokenCookie = Snap.getCookie "LOGIN_TOKEN"
 
 -- TODO Set token as HTTP header do not transport token in the JSON.
 cheatTakeToken :: ClientMessage -> String
 cheatTakeToken = \case
   CMLessonsRequest t -> t
   CMLessonInit t _ -> t
+  CMLogoutRequest t -> t
   _ -> error $ printf "Protocol.cheatTakeToken: Token not found in request"
 
 
@@ -99,14 +112,16 @@ lessonsHandler = do
 
 lessonHandler :: Protocol v w ServerMessage
 lessonHandler = do
-  (CMLessonInit t l) <- getMessage
+  t <- getToken
+  (CMLessonInit _ l) <- getMessage
   handleLessonInit t l
 
 menuHandler :: Protocol v w ServerMessage
 menuHandler = do
   req <- getMessage
+  token <- getToken
   case req of
-    (CMMenuRequest token lesson score time a b)
+    (CMMenuRequest _ lesson score time a b)
       -> handleMenuRequest token lesson score time a b
     _ -> error "Wrong request"
 
@@ -117,10 +132,8 @@ loginHandler = do
 
 logoutHandler :: Protocol v w ServerMessage
 logoutHandler = do
-  req <- getMessage
-  case req of
-    (CMLogoutRequest usr) -> handleLogoutRequest usr
-    _ -> error "Malformed request"
+  tok <- getToken
+  handleLogoutRequest tok
 
 -- | Returns @(username, password)@.
 getUser :: Protocol v w (String, String)
@@ -129,6 +142,18 @@ getUser = (\(CMLoginRequest usr pwd) -> (usr, pwd)) <$> getMessage
 getConnection :: IO Connection
 getConnection = Config.getDB >>= open
 
+setLoginCookie
+  :: B.ByteString -- ^ The token
+  -> Protocol v w ()
+setLoginCookie tok = Snap.modifyResponse $ Snap.addResponseCookie c
+  where
+    c = Snap.Cookie "LOGIN_TOKEN" tok
+      Nothing Nothing (pure "/") False False
+
+-- TODO I think we shouldn't be using sessions for this.  I think the
+-- way to go is to use the basic http authentication *on every
+-- request*.  That is, the client submits user/password on every
+-- request.  Security is handled by SSl in the transport layer.
 handleLoginRequest
   :: String -- ^ Username
   -> String -- ^ Password
@@ -137,10 +162,9 @@ handleLoginRequest user pass = do
   c <- askConnection
   authed <- liftIO $ Database.authUser c user pass
   token  <- liftIO $ Database.startSession c user
-  pure $
-    if authed
-    then SMLoginSuccess token
-    else SMLoginFail
+  if authed
+  then SMLoginSuccess token <$ setLoginCookie (C8.pack token)
+  else pure $ SMLoginFail
 
 askConnection :: Protocol v w Connection
 askConnection = asks connection
