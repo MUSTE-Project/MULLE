@@ -1,6 +1,24 @@
 Change log
 ==========
 
+0.2.0.1
+-------
+
+Use `snap`
+
+The idea is to use a framework that already provides logging
+functionality, authentication and a "sensible monad for web
+development".
+
+Remove unused `demo/Main.js`.
+
+Some parameters that were put in the json body of the request has now
+been moved to the location part of the request.  This is good REST API
+design.  More parameters might need to be moved here.
+
+We depend on our own version of some package because I had to patch
+them to work with the most recent stackage lts.
+
 0.2.0.0
 -------
 
