@@ -50,31 +50,22 @@ data ClientMessage
     , cpassword :: String
     }
   | CMMOTDRequest
-    { ctoken :: String
-    }
   | CMDataResponse
-    { ctoken :: String
-    , context :: String
+    { context :: String
     , cdata :: [(String, String)]
     }
   | CMLessonsRequest
-    { ctoken :: String
-    }
   | CMLessonInit
-    { ctoken :: String
-    , clesson :: String
+    { clesson :: String
     }
   | CMMenuRequest
-    { ctoken :: String
-    , clesson :: String
+    { clesson :: String
     , cscore :: Int
     , ctime :: Int
     , ca :: ClientTree
     , cb :: ClientTree
     }
   | CMLogoutRequest
-    { ctoken :: String
-    }
   deriving (Show) ;
 
 instance FromJSON ClientTree where
@@ -93,12 +84,9 @@ instance FromJSON ClientMessage where
             CMLoginRequest
             <$> params .: "username"
             <*> params .: "password" ;
-        "CMMOTDRequest" ->
-            CMMOTDRequest
-            <$> params .: "token" ;
+        "CMMOTDRequest" -> pure CMMOTDRequest ;
         "CMDataResponse" ->
             (do
-                ctoken <- params .: "token"
                 ccontext <- params .: "context"
                 cdata <- params .: "data"  :: Parser Value
                 carray <- case cdata of {
@@ -109,27 +97,23 @@ instance FromJSON ClientMessage where
                                                          ) a ;
                     _ -> error "Boo, not an array"
                   }
-                return $ CMDataResponse ctoken ccontext carray
+                return $ CMDataResponse ccontext carray
             );
             -- (o .: "field", o .: "value")
         "lessons" ->
-            CMLessonsRequest
-            <$> params .: "token" ;
+            pure CMLessonsRequest ;
         "lesson" ->
             CMLessonInit
-            <$> params .: "token"
-            <*> params .: "lesson" ;
+            <$> params .: "lesson" ;
         "menu" ->
             CMMenuRequest
-             <$> params .: "token"
-             <*> params .: "lesson"
+             <$> params .: "lesson"
              <*> params .: "score"
              <*> params .: "time"
              <*> params .: "a"
              <*> params .: "b" ;
         "logout" ->
-            CMLogoutRequest
-            <$> params .: "token" ;
+            pure CMLogoutRequest ;
         _ -> error ( "Unexpected message " ++ show v)
          }
 
@@ -142,35 +126,26 @@ instance ToJSON ClientTree where
       ]
 
 instance ToJSON ClientMessage where
-    -- this generates a Value
   toJSON (CMLoginRequest username password) =
     createMessageObject "CMLoginRequest" $ object [
     "username" .= username ,
     "password" .= password
     ]
-  toJSON (CMMOTDRequest token) =
-    createMessageObject "CMMOTDRequest" $ object [
-    "token" .= token
-    ]
-  toJSON (CMDataResponse token context cdata) =
+  toJSON CMMOTDRequest = createMessageObject "CMMOTDRequest" (object [])
+  toJSON (CMDataResponse context cdata) =
     createMessageObject "CMDataResponse" $ object [
-    "token" .= token ,
     "context" .= context ,
     "data" .= map (\(k,v) -> object [ "field" .= k, "value" .= v ]) cdata
     ]
-  toJSON (CMMenuRequest token lesson score time a b) =
+  toJSON (CMMenuRequest lesson score time a b) =
     createMessageObject "CMMenuRequest" $ object [
-    "token" .= token ,
     "lesson" .= lesson ,
     "score" .= score ,
     "time" .= time ,
     "a" .= a ,
     "b" .= b
     ]
-  toJSON (CMLogoutRequest token) =
-    createMessageObject "CMLogoutRequest" $ object [
-    "token" .= token
-    ]
+  toJSON CMLogoutRequest = "CMLogoutRequest"
 
 data Menu = Menu (Map.Map Path [[CostTree]]) deriving (Show)
 

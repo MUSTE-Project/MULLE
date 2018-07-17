@@ -88,20 +88,11 @@ getToken = do
   m <- getTokenCookie
   case m of
     Just c -> pure $ C8.unpack $ Snap.cookieValue c
-    Nothing -> do
-      liftIO $ printf "Warning, reverting back to deprecated way of handling sesson cookies\n"
-      cheatTakeToken <$> getMessage
+    Nothing -> error
+      $ printf "Warning, reverting back to deprecated way of handling sesson cookies\n"
 
 getTokenCookie :: Protocol v w (Maybe Snap.Cookie)
 getTokenCookie = Snap.getCookie "LOGIN_TOKEN"
-
--- TODO Set token as HTTP header do not transport token in the JSON.
-cheatTakeToken :: ClientMessage -> String
-cheatTakeToken = \case
-  CMLessonsRequest t -> t
-  CMLessonInit t _ -> t
-  CMLogoutRequest t -> t
-  _ -> error $ printf "Protocol.cheatTakeToken: Token not found in request"
 
 
 -- * Handlers
@@ -113,7 +104,7 @@ lessonsHandler = do
 lessonHandler :: Protocol v w ServerMessage
 lessonHandler = do
   t <- getToken
-  (CMLessonInit _ l) <- getMessage
+  (CMLessonInit l) <- getMessage
   handleLessonInit t l
 
 menuHandler :: Protocol v w ServerMessage
@@ -121,7 +112,7 @@ menuHandler = do
   req <- getMessage
   token <- getToken
   case req of
-    (CMMenuRequest _ lesson score time a b)
+    (CMMenuRequest lesson score time a b)
       -> handleMenuRequest token lesson score time a b
     _ -> error "Wrong request"
 
