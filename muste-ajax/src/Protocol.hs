@@ -34,7 +34,18 @@ data Env = Env
   }
 
 -- | A simple monad for handling responding to requests.
-type App a = ReaderT Env IO a
+type Protocol v w a = ReaderT Env (Snap.Handler v w) a
+
+runProtocol :: Protocol v w a -> Snap.Handler v w a
+runProtocol app = do
+  env <- getEnv
+  app `runReaderT` env
+
+getEnv :: MonadIO m => m Env
+getEnv = liftIO $ do
+  conn <- getConnection
+  ctxts <- Database.initContexts conn
+  pure $ Env conn ctxts
 
 -- | Map requests to various handlers.
 apiRoutes :: [(B.ByteString, Snap.Handler v w ())]
@@ -49,14 +60,14 @@ apiRoutes =
   , "DataResponse" |> err "DataResponse"
   ]
   where
-    wrap :: ToJSON a => Snap.Handler v w a -> Snap.Handler v w ()
-    wrap act = act >>= Snap.writeLBS . encode
+    wrap :: ToJSON a => Protocol v w a -> Snap.Handler v w ()
+    wrap act = runProtocol $ act >>= Snap.writeLBS . encode
     (|>) = (,)
     err :: String -> a
     err = error . printf "missing api route for `%s`"
 
 -- | Reads the data from the request and deserializes from JSON.
-getMessage :: FromJSON json => Snap.Handler v w json
+getMessage :: FromJSON json => Protocol v w json
 getMessage = Snap.runRequestBody act
   where
     act stream = do
@@ -69,7 +80,7 @@ getMessage = Snap.runRequestBody act
 
 -- TODO Token should be set as an HTTP header.
 -- | Gets the current session token.
-getToken :: Snap.Handler v w String
+getToken :: Protocol v w String
 getToken = cheatTakeToken <$> getMessage
 
 -- TODO Set token as HTTP header do not transport token in the JSON.
@@ -81,94 +92,79 @@ cheatTakeToken = \case
 
 
 -- * Handlers
-lessonsHandler :: Snap.Handler b w ServerMessage
+lessonsHandler :: Protocol v w ServerMessage
 lessonsHandler = do
   token <- getToken
-  appToHandler $ handleLessonsRequest token
+  handleLessonsRequest token
 
-lessonHandler :: Snap.Handler b w ServerMessage
+lessonHandler :: Protocol v w ServerMessage
 lessonHandler = do
-  -- token <- getToken
-  -- lesson <- getLesson
   (CMLessonInit t l) <- getMessage
-  appToHandler $ handleLessonInit t l
+  handleLessonInit t l
 
-menuHandler :: Snap.Handler v w ServerMessage
+menuHandler :: Protocol v w ServerMessage
 menuHandler = do
-  -- liftIO $ printf "Menu handler\n"
-  -- traceShowId <$> Snap.readRequestBody 0
   req <- getMessage
   case req of
     (CMMenuRequest token lesson score time a b)
-      -> appToHandler $ handleMenuRequest token lesson score time a b
+      -> handleMenuRequest token lesson score time a b
     _ -> error "Wrong request"
 
-loginHandler :: Snap.Handler v w ServerMessage
+loginHandler :: Protocol v w ServerMessage
 loginHandler = do
   (usr, pwd) <- getUser
-  appToHandler $ handleLoginRequest usr pwd
+  handleLoginRequest usr pwd
 
-logoutHandler :: Snap.Handler v w ServerMessage
+logoutHandler :: Protocol v w ServerMessage
 logoutHandler = do
   req <- getMessage
   case req of
-    (CMLogoutRequest usr) -> appToHandler $ handleLogoutRequest usr
+    (CMLogoutRequest usr) -> handleLogoutRequest usr
     _ -> error "Malformed request"
 
 -- | Returns @(username, password)@.
-getUser :: Snap.Handler v w (String, String)
+getUser :: Protocol v w (String, String)
 getUser = (\(CMLoginRequest usr pwd) -> (usr, pwd)) <$> getMessage
 
 getConnection :: IO Connection
 getConnection = Config.getDB >>= open
 
-getEnv :: Snap.Handler v w Env
-getEnv = liftIO $ do
-  conn <- getConnection
-  ctxts <- Database.initContexts conn
-  pure $ Env conn ctxts
-
-appToHandler :: App a -> Snap.Handler v w a
-appToHandler app = do
-  env <- getEnv
-  liftIO $ app `runReaderT` env
-
 handleLoginRequest
   :: String -- ^ Username
   -> String -- ^ Password
-  -> App ServerMessage
+  -> Protocol v w ServerMessage
 handleLoginRequest user pass = do
   c <- askConnection
-  authed <- lift $ Database.authUser c user pass
-  token  <- lift $ Database.startSession c user
+  authed <- liftIO $ Database.authUser c user pass
+  token  <- liftIO $ Database.startSession c user
   pure $
     if authed
     then SMLoginSuccess token
     else SMLoginFail
 
-askConnection :: App Connection
+askConnection :: Protocol v w Connection
 askConnection = asks connection
 
-askContexts :: App Contexts
+askContexts :: Protocol v w Contexts
 askContexts = asks contexts
 
-handleLessonsRequest :: String -> App ServerMessage
+handleLessonsRequest :: String -> Protocol v w ServerMessage
 handleLessonsRequest token =
   do
     conn <- askConnection
-    lessons <- lift $ Database.listLessons conn token
+    lessons <- liftIO $ Database.listLessons conn token
     let lessonList = map (\(name,description,exercises,passedcount,score,time,passed,enabled) -> Lesson name description exercises passedcount score time passed enabled) lessons
     verifyMessage token (SMLessonsList lessonList)
 
 handleLessonInit
   :: String
   -> String
-  -> App ServerMessage
+  -> Protocol v w ServerMessage
 handleLessonInit token lesson =
   do
     contexts <- askContexts
     conn <- askConnection
-    (sourceLang,sourceTree,targetLang,targetTree) <- lift $ Database.startLesson conn token lesson
+    (sourceLang,sourceTree,targetLang,targetTree) <- liftIO $ Database.startLesson conn token lesson
     let (a,b) = assembleMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree)
     verifyMessage token (SMMenuList lesson False 0 a b )
 
@@ -179,7 +175,7 @@ handleMenuRequest
   -> Int
   -> ClientTree
   -> ClientTree
-  -> App ServerMessage
+  -> Protocol v w ServerMessage
 handleMenuRequest token lesson clicks time ctreea@(ClientTree langa treea) ctreeb@(ClientTree langb treeb) = do
   contexts <- askContexts
   conn <- askConnection
@@ -187,7 +183,7 @@ handleMenuRequest token lesson clicks time ctreea@(ClientTree langa treea) ctree
   let authd = not $ isJust mErr
   act <- if finished
   then do
-    when authd (lift $ Database.finishExercise conn token lesson time clicks)
+    when authd (liftIO $ Database.finishExercise conn token lesson time clicks)
     pure emptyMenus
   else pure assembleMenus
   let (a , b) = act contexts lesson (langa , treea) (langb , treeb)
@@ -196,10 +192,10 @@ handleMenuRequest token lesson clicks time ctreea@(ClientTree langa treea) ctree
     finished :: Bool
     finished = treea == treeb
 
-handleLogoutRequest :: String -> App ServerMessage
+handleLogoutRequest :: String -> Protocol v w ServerMessage
 handleLogoutRequest token = do
   conn <- askConnection
-  lift $ Database.endSession conn token
+  liftIO $ Database.endSession conn token
   pure $ SMLogoutResponse
 
 -- | @'verifySession' tok@ verifies the user identified by
@@ -207,7 +203,7 @@ handleLogoutRequest token = do
 -- err@ if not. @err@ is a message describing what went wrong.
 verifySession
   :: String -- ^ The token of the logged in user
-  -> App (Maybe String)
+  -> Protocol v w (Maybe String)
 verifySession tok = do
   conn <- askConnection
   (authd , err) <- liftIO $ Database.verifySession conn tok
@@ -220,7 +216,7 @@ verifySession tok = do
 verifyMessage
   :: String -- ^ The logged in users session id.
   -> ServerMessage     -- ^ The message to verify
-  -> App ServerMessage
+  -> Protocol v w ServerMessage
 verifyMessage tok msg = do
   conn <- askConnection
   m <- verifySession tok
