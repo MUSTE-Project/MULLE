@@ -1,8 +1,17 @@
 BACKLOG
 =======
 
+Move more parameters into location or query params
+---
+
+Move demo-dir to "static"
+---
+
+And manage with cabal resource paths.
+
 General refactoring
 -------------------
+
 Remove `LTree`. `LTree` is currently not exported from `muste-lib`, it
 is however used internally. E.g. in `linearizeTree` which is used in
 the ajax-backend.
@@ -12,15 +21,7 @@ Use framework for (de-) serializing values when storing in database.
 
 Make `FromROW` instances for data types.
 
-Use framework for web requests
----
-
-E.g. `snap`
-
 Use Haskell data files for e.g. the grammar files.
----
-
-Split database init script into seperate module
 ---
 
 Improved support for insertion
@@ -33,6 +34,11 @@ suggesting replacements for syntactically close nodes.
 Automatically generate .pgf files
 ---
 
+The project depends on the `.pgf` files existing.  They are
+automatically generated and should not be source controlled.  There
+should be a make target that generates these files from
+`muste-ajax/data/gf/grammars/**/*.gf`.
+
 Change representation from single tree to sets of trees.
 ---
 
@@ -42,6 +48,7 @@ one or more abstract representations.
 
 Wide / narrow grammar
 ---
+
 Support for automatically generating 'wide' grammars from 'narrow' ones.
 
 The interface must also be extended to add support for "fixing
@@ -68,4 +75,7 @@ can change the upstream dependency.  Please follow the discussion at
 
 Rename stack.yamls
 ---
-The name ought to refer to the GHC version.
+
+The name ought to refer to the GHC version.  Also, there should just
+be one stack.yaml in the root of the project that manages both
+packages -- see e.g. the `stack.yaml` in `digestive-functors`.
