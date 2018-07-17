@@ -11,8 +11,8 @@ dist
 *.prof
 .gitstats
 stuff
-gf/novo_modo/*.gfs
-gf/novo_modo/*.txt
+data/**/*.gfs
+data/**/*.txt
 #latex files
 *.fls
 *.aux

@@ -1,0 +1,50 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MUSTE</title>
+  <link rel="stylesheet" href="muste.css" type="text/css"></link>
+  <script type="text/javascript" src="jquery-1.11.1.min.js"></script>
+  <script type="text/javascript" src="muste-gui.js"></script>
+</head>
+
+<body>
+  <div id="body">
+    <div class="page" id="loginpage">
+      <h1>MUSTE: Latinträning</h1>
+      <form id="loginform">
+        <table>
+          <tr><td><strong>Användare:</strong></td> <td><input type="text" name="name"></td></tr>
+          <tr><td><strong>Lösenord:</strong></td> <td><input type="password" name="pwd"></td>
+            <td><input type="submit" value="Login"></td></tr>
+        </table>
+      </form>      
+    </div>
+
+    <div class="page" id="lessonspage">
+      <a href="" id="logoutbutton">Logga ut</a>
+      <h1>MUSTE: Latinträning</h1>
+      <table id="lessonslist"></table>
+      <a href="instructions.html" target="_blank">Instructions</a>
+    </div>
+
+    <div class="page" id="exercisepage">
+      <span id="lessoncounter"></span>
+      <span id="score"></span>
+      <span id="timer"></span>
+      <span id="busy-indicator" class="idle"></span>
+      <!-- Unicode Character 'BLACK CIRCLE' (U+25CF) -->
+      <a href="" id="abortlesson">Avbryt lektion</a>
+
+      <div id="container">
+        <div id="a" class="sentence prevent-body-click"></div>
+        <div class="vertical-separator"></div>
+        <div id="b"class="sentence prevent-body-click"></div>
+      </div>
+
+      <div id="menus" class="prevent-body-click"></div>
+    </div>
+  </div>
+</body>
+</html>
