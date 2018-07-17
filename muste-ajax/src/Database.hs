@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, TypeApplications #-}
 module Database where
 
 import qualified PGF
@@ -137,28 +137,36 @@ verifySession conn token =
 
 -- | List all the lessons i.e. lesson name, description and exercise count
 listLessons :: Connection -> String -> IO [(String,String,Int,Int,Int,Int,Bool,Bool)]
-listLessons conn token =
-  do
-    let listUserQuery = "SELECT User FROM Session WHERE Token = ?;" :: Query
-    let listLessonsQuery =
-          Query $ T.pack $ "WITH userName AS (SELECT ?), " ++
-                           "maxRounds AS (SELECT Lesson,IFNULL(MAX(Round),0) AS Round FROM (SELECT * FROM StartedLesson UNION SELECT Lesson,User,Round FROM FinishedLesson) WHERE User = (SELECT * FROM userName) GROUP BY Lesson) " ++
-                           "SELECT Name, Description, ExerciseCount," ++
-                           "(SELECT COUNT(*) AS Passed FROM FinishedExercise WHERE " ++
-                           "User = (SELECT * FROM userName) AND Lesson = Name AND Round = (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)) AS Passed, " ++
-                           "(SELECT IFNULL(SUM(ClickCount),0) FROM FinishedExercise F WHERE " ++
-                           "User = (SELECT * from UserName) AND Lesson = Name  AND Round = (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)) AS Score, " ++
-                           "(SELECT IFNULL(SUM(Time),0) FROM FinishedExercise F WHERE " ++
-                           "User = (SELECT * from UserName) AND Lesson = Name  AND Round = (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)) AS Time, " ++
-                           "(SELECT MIN(IFNULL(COUNT(*),0),1) FROM FinishedLesson WHERE " ++
-                           "User = (SELECT * from UserName) AND Lesson = Name) AS Passed, " ++
-                           "Enabled " ++
-                           "FROM Lesson;" :: Query -- TODO probably more test data?
-    users <- query conn listUserQuery [token] :: IO [Only String]
-    if length users == 1 then
-      let user = fromOnly . head $ users in query conn listLessonsQuery [user] :: IO [(String,String,Int,Int,Int,Int,Bool,Bool)]
-      else
-      throw $ DatabaseException "More or less than expected numbers of users"
+listLessons conn token = do
+  let qry :: (ToRow q, FromRow r) => Query -> q -> IO [r]
+      qry = query conn
+  users <- qry @[String] @(Only String) "SELECT User FROM Session WHERE Token = ?;" [token]
+  let listLessonsQuery = mconcat
+       [ "WITH userName AS (SELECT ?), "
+       , "maxRounds AS (SELECT Lesson,IFNULL(MAX(Round),0) AS Round FROM (SELECT * FROM StartedLesson UNION SELECT Lesson,User,Round FROM FinishedLesson) WHERE User = (SELECT * FROM userName) GROUP BY Lesson) "
+       , "SELECT Name, Description, ExerciseCount,"
+       , "(SELECT COUNT(*) AS Passed FROM FinishedExercise WHERE "
+       , "User = (SELECT * FROM userName) AND Lesson = Name AND Round = (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)) AS Passed, "
+       , "(SELECT IFNULL(SUM(ClickCount),0) FROM FinishedExercise F WHERE "
+       , "User = (SELECT * from UserName) AND Lesson = Name  AND Round = (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)) AS Score, "
+       , "(SELECT IFNULL(SUM(Time),0) FROM FinishedExercise F WHERE "
+       , "User = (SELECT * from UserName) AND Lesson = Name  AND Round = (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)) AS Time, "
+       , "(SELECT MIN(IFNULL(COUNT(*),0),1) FROM FinishedLesson WHERE "
+       , "User = (SELECT * from UserName) AND Lesson = Name) AS Passed, "
+       , "Enabled "
+       , "FROM Lesson;"
+       ]
+  -- users <- query conn listUserQuery [token] :: IO [Only String]
+  -- FIXME O(n) check for something that can be accomplished in O(1)!
+  case users of
+    [user] -> query conn listLessonsQuery [fromOnly user]
+    -- :: IO [(String,String,Int,Int,Int,Int,Bool,Bool)]
+    usrs      -> throw $ DatabaseException "Non unique user associated with token"
+  -- if length users == 1
+  -- then do
+  --   let user = fromOnly . head $ users
+  -- else
+  --   throw $ DatabaseException "More or less than expected numbers of users"
     
     
 -- | start a new lesson by randomly choosing the right number of exercises and adding them to the users exercise list

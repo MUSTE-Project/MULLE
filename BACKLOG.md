@@ -3,8 +3,6 @@ BACKLOG
 
 General refactoring
 -------------------
-There are 3 representation of a tree.
-
 Remove `LTree`. `LTree` is currently not exported from `muste-lib`, it
 is however used internally. E.g. in `linearizeTree` which is used in
 the ajax-backend.

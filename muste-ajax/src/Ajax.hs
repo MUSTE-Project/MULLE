@@ -89,7 +89,7 @@ instance FromJSON ClientMessage where
       msg <- v .: "message" :: Parser Text
       params <- v .: "parameters" :: Parser Object
       case msg of {
-        "CMLoginRequest" ->
+        "login" ->
             CMLoginRequest
             <$> params .: "username"
             <*> params .: "password" ;
@@ -112,14 +112,14 @@ instance FromJSON ClientMessage where
                 return $ CMDataResponse ctoken ccontext carray
             );
             -- (o .: "field", o .: "value")
-        "CMLessonsRequest" ->
+        "lessons" ->
             CMLessonsRequest
             <$> params .: "token" ;
-        "CMLessonInit" ->
+        "lesson" ->
             CMLessonInit
             <$> params .: "token"
             <*> params .: "lesson" ;
-        "CMMenuRequest" ->
+        "menu" ->
             CMMenuRequest
              <$> params .: "token"
              <*> params .: "lesson"
@@ -127,7 +127,7 @@ instance FromJSON ClientMessage where
              <*> params .: "time"
              <*> params .: "a"
              <*> params .: "b" ;
-        "CMLogoutRequest" ->
+        "logout" ->
             CMLogoutRequest
             <$> params .: "token" ;
         _ -> error ( "Unexpected message " ++ show v)

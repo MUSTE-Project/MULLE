@@ -1,8 +1,6 @@
 module Main where
 
 import Network.CGI
-import Control.Monad
-import qualified Protocol
 
 -- FIXME Do not depend on `PGF` - may need to export functionality
 -- from `muste`.
@@ -10,9 +8,10 @@ import qualified PGF (readPGF)
 
 import Muste
 
-import Ajax
-
-cgi:: Grammar -> CGI CGIResult
+-- TODO Now that we no longer have @Protocol.handleClientRequest@ we
+-- should make this a sub componennf of the main snap (in the
+-- @muste-ajax@ component).
+cgi :: Grammar -> CGI CGIResult
 cgi grammar =
   do
     setHeader "Content-type" "text/json"

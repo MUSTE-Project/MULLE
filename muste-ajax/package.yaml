@@ -13,6 +13,9 @@ flags:
     description: Build as a CGI program
     manual: true
     default: false
+
+ghc-options: -fmax-valid-substitutions=0
+
 data-files:
   - data/gf/compiled/novo_modo/*.pgf
 
@@ -38,6 +41,12 @@ dependencies:
   - http-types
   - sqlite-simple
   - QuickCheck
+  - snap
+  - snap-core
+  - snap-server
+  - snap-extras
+  - lens
+  - io-streams
 
 library:
 

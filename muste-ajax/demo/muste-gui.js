@@ -10,6 +10,15 @@ var LOGIN_TOKEN = null;
 var TIMER_START = null;
 
 var EXERCISES = [];
+var SERVER = "/api/"
+
+var MESSAGES =
+  { LOGOUT: "logout"
+  , LOGIN: "login"
+  , LESSONS: "lessons"
+  , LESSON: "lesson"
+  , MENU: "menu"
+  };
 
 $(function() {
     $('#loginform').submit(submit_login);
@@ -17,7 +26,6 @@ $(function() {
     $('#logoutbutton').click(restart_everything);
     $('#body').click(click_body);
     window.setInterval(update_timer, 100);
-    console.log(window.sessionStorage);
     if (window.sessionStorage.getItem("LOGIN_TOKEN") == null)
     {
 	show_page("loginpage");
@@ -50,7 +58,7 @@ function show_page(page) {
 
 
 function restart_everything() {
-    call_server("CMLogoutRequest", {token: LOGIN_TOKEN});
+    call_server(MESSAGES.LOGOUT, {token: LOGIN_TOKEN});
     location.reload();
 }
 
@@ -59,7 +67,7 @@ function submit_login(evt) {
     if (evt && evt.preventDefault) {
         evt.preventDefault();
     }
-    call_server("CMLoginRequest", {username: loginform.name.value, password: loginform.pwd.value});
+    call_server(MESSAGES.LOGIN, {username: loginform.name.value, password: loginform.pwd.value});
 }
 
 
@@ -72,7 +80,6 @@ function click_body(event) {
 
 
 function call_server(message, parameters) {
-    console.log("Calling server", message, parameters);
     if (typeof(SERVER) === "function") {
         handle_server_response(SERVER(message, parameters));
     }
@@ -81,13 +88,12 @@ function call_server(message, parameters) {
             cache: false,
             async: false,
             timeout: AjaxTimeout,
-            url: SERVER, 
+            url: SERVER + message + "/",
             dataType: "json",
 	        method: "POST",
 	        processData: false,
             data: JSON.stringify({message: message, parameters: parameters})
         }).fail(function(jqxhr, status, error) {
-            console.log("...failed");
             alert_error(status, error);
         }).done(handle_server_response);
     }
@@ -98,9 +104,8 @@ function retrieve_lessons(evt) {
     if (evt && evt.preventDefault) {
         evt.preventDefault();
     }
-    call_server("CMLessonsRequest", {token: LOGIN_TOKEN});
+    call_server(MESSAGES.LESSONS, {token: LOGIN_TOKEN});
 }
-
 
 function show_lessons(lessons) {
     show_page("lessonspage");
@@ -147,7 +152,7 @@ function select_lesson(evt) {
 
 function start_lesson(lesson) {
     TIMER_START = new Date().getTime();
-    call_server("CMLessonInit", {token: LOGIN_TOKEN, lesson: lesson});
+    call_server(MESSAGES.LESSON, {token: LOGIN_TOKEN, lesson: lesson});
 }
 
 
@@ -157,7 +162,6 @@ function show_exercise(parameters) {
     clean_server_data(DATA.a);
     clean_server_data(DATA.b);
     build_matching_classes(DATA);
-    console.log('DATA', DATA);
     show_lin('a', DATA.a.lin);
     show_lin('b', DATA.b.lin);
     $('#score').text(DATA.score);
@@ -181,14 +185,13 @@ function show_exercise(parameters) {
 function handle_server_response(response) {
     var message = response.message;
     var parameters = response.parameters;
-    console.log("Response from server", message, parameters);
 
     switch (message) {
     case "SMLogoutResponse":
 	window.sessionStorage.removeItem("LOGIN_TOKEN");
         location.reload();
         break;
-        
+
     case "SMLoginSuccess":
         LOGIN_TOKEN = parameters.token;
 	window.sessionStorage.setItem("LOGIN_TOKEN",LOGIN_TOKEN);
@@ -226,7 +229,6 @@ function clean_server_data(data) {
             pword.path = convert_path(pword.path)
         });
     }
-    console.log(data.lin);
     clean_lin(data.lin);
     var oldmenu = data.menu;
     data.menu = {};
@@ -300,7 +302,6 @@ function click_word(event) {
     var clicked = $(event.target).closest('.clickable');
     var lang = clicked.data().lang;
     var path = clicked.data().path;
-    console.log("Clicked " + lang + ": " + path);
 
     if (clicked.hasClass('striked') && $('#menus ul').length > 1) {
         $('#menus ul').first().remove();
@@ -316,12 +317,10 @@ function click_word(event) {
             );
         clear_selection();
         var menus = DATA[lang].menu[selection];
-        console.log("MENU["+selection+"]", menus);
         while (!(menus && menus.length)) {
             selection = next_selection(selection);
             if (selection == null) return;
             var menus = DATA[lang].menu[selection];
-            console.log("MENU["+selection+"]", menus);
         }
 
         clicked.addClass('striked');
@@ -352,9 +351,6 @@ function click_word(event) {
                 } else {
                     item.lin.forEach(function(pword){
 			var marked = pword.path.startsWith(selection);
-			//var marked = pword.path.replace(/[\[\]]/g,"").startsWith(selection.replace(/[\[\]]/g,""));
-			//var marked = selection.replace(/[\[\]]/g,"").startsWith(pword.path.replace(/[\[\]]/g,""));
-			//console.log(marked, pword.lin, pword.path.replace(/[\[\]]/g,""), selection.replace(/[\[\]]/g,""));
                         $('<span>').text(pword.lin)
 			    .addClass(marked ? 'marked' : 'greyed')
                             .appendTo(menuitem);
@@ -386,7 +382,7 @@ function select_menuitem(item) {
     DATA[item.lang].tree = item.tree;
     DATA.token = LOGIN_TOKEN;
     DATA.time = elapsed_time();
-    call_server("CMMenuRequest", DATA);
+    call_server(MESSAGES.MENU, DATA);
 }
 
 
@@ -420,7 +416,7 @@ function pop_busy() {
         ind.className = ind.className.slice(0, -BUSY_STR.length);
         ind.textContent = ind.textContent.slice(0, -BUSY_STR.length);
     } else {
-        console.log("POP ERROR", ind.className, ind.textContent);
+        console.error("POP ERROR", ind.className, ind.textContent);
     }
 }
 
@@ -429,6 +425,5 @@ function pop_busy() {
 // Error handling
 
 function alert_error(title, description) {
-    alert("*** " + title + "***\n" + description);
+    console.trace("*** " + title + "***\n" + description);
 }
-
