@@ -55,11 +55,11 @@ data ClientMessage
     , cdata :: [(String, String)]
     }
   | CMLessonInit
-    { clesson :: String
+    { clesson :: T.Text
     }
   | CMMenuRequest
-    { clesson :: String
-    , cscore :: Int
+    { clesson :: T.Text
+    , cscore :: Integer
     , ctime :: Int
     , ca :: ClientTree
     , cb :: ClientTree
@@ -157,9 +157,9 @@ data ServerMessage = SMNull
                    | SMSessionInvalid { serror :: String }
                    | SMLessonsList { slessions :: [Lesson] }
                    | SMMenuList {
-                       slesson :: String ,
+                       slesson :: T.Text ,
                        spassed :: Bool ,
-                       sclicks :: Int ,
+                       sclicks :: Integer ,
                        sa :: ServerTree ,
                        sb :: ServerTree
                        }

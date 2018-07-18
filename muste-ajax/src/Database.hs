@@ -47,27 +47,27 @@ createSalt = do
   rng <- getSystemRandomGen
   return $ fst $ genRandomBytes 512 rng
 
-initContexts :: Connection -> IO (M.Map String (M.Map String Context))
-initContexts conn =
-  do
-    let selectLessonsGrammarsQuery = "SELECT Name, Grammar FROM Lesson;" :: Query
-    let selectStartTreesQuery = "SELECT SourceTree FROM Exercise WHERE Lesson = ?;" :: Query
-    lessonGrammarList <- query_ conn selectLessonsGrammarsQuery :: IO [(String,String)]
-    grammarList <- sequence $ map (\(lesson,grammarName) -> do
-                           -- get all langs
-                           pgf <-PGF.readPGF grammarName
-                           let grammar = pgfToGrammar pgf
-                           return (lesson,grammar)
-                           ) lessonGrammarList :: IO [(String,Grammar)]
-    preTuples <- sequence $ map (\(lesson,grammar) -> do
-            -- get all langs
-            let langs = PGF.languages (pgf grammar)
-            -- get all start trees
-            let contexts = [(PGF.showCId lang,buildContext grammar lang) | lang <- langs]
-             -- precompute for every lang and start tree
-            return $ (lesson, M.fromList contexts)
-        ) grammarList
-    return (M.fromList preTuples)
+initContexts :: Connection -> IO (M.Map T.Text (M.Map String Context))
+initContexts conn = do
+  lessonGrammarList <- query_ conn selectLessonsGrammarsQuery :: IO [(T.Text,String)]
+  grammarList <- sequence $ map (\(lesson,grammarName) -> do
+                                    -- get all langs
+                                    pgf <-PGF.readPGF grammarName
+                                    let grammar = pgfToGrammar pgf
+                                    return (lesson,grammar)
+                                ) lessonGrammarList :: IO [(T.Text,Grammar)]
+  preTuples <- sequence $ map act1 grammarList
+  return (M.fromList preTuples)
+  where
+  selectLessonsGrammarsQuery = "SELECT Name, Grammar FROM Lesson;" :: Query
+  selectStartTreesQuery = "SELECT SourceTree FROM Exercise WHERE Lesson = ?;" :: Query
+  act1 (lesson, grammar) = do
+    -- get all langs
+    let langs = PGF.languages (pgf grammar)
+    -- get all start trees
+    let contexts = [(PGF.showCId lang,buildContext grammar lang) | lang <- langs]
+    -- precompute for every lang and start tree
+    return $ (lesson, M.fromList contexts)
 
 
 createUser
@@ -167,7 +167,10 @@ updateActivity conn token =
     execute conn updateSessionLastActiveQuery (timeStamp,token)
 
 -- | Returns @Just err@ if there is an error.
-verifySession :: Connection -> String -> IO (Maybe String)
+verifySession
+  :: Connection
+  -> String -- ^ Token
+  -> IO (Maybe String)
 verifySession conn token = do
   -- Get potential user session(s)
   let selectSessionQuery = "SELECT LastActive FROM Session WHERE Token = ?;" :: Query
@@ -223,32 +226,27 @@ listLessons conn token = do
        , "Enabled "
        , "FROM Lesson;"
        ]
-  -- users <- query conn listUserQuery [token] :: IO [Only String]
-  -- FIXME O(n) check for something that can be accomplished in O(1)!
   case users of
     [] -> throw $ DatabaseException "No user found"
     [Only user] -> query conn listLessonsQuery [user]
-    -- :: IO [(String,String,Int,Int,Int,Int,Bool,Bool)]
     usrs      -> throw $ DatabaseException "Non unique user associated with token"
-  -- if length users == 1
-  -- then do
-  --   let user = fromOnly . head $ users
-  -- else
-  --   throw $ DatabaseException "More or less than expected numbers of users"
-
 
 -- | Start a new lesson by randomly choosing the right number of
 -- exercises and adding them to the users exercise list
-startLesson :: Connection -> String -> String -> IO (String,String,String,String)
+startLesson
+  :: Connection
+  -> String -- ^ Token
+  -> T.Text -- ^ Lesson name
+  -> IO (String,String,String,String)
 startLesson conn token lesson = do
   -- get user name
   Only user <- fromMaybe errUsr . listToMaybe
-    <$> query @[String] @(Only String) conn userQuery [token]
+    <$> query conn userQuery (Only token)
   isRunning <- (0 /=) . fromOnly . head
     <$> (query conn checkLessonStartedQuery [user,lesson] :: IO [Only Int])
   if isRunning
   then continueLesson conn user lesson
-  else newLesson conn user lesson
+  else newLesson      conn user lesson
   where
   userQuery
     = "SELECT User FROM Session WHERE Token = ?;"
@@ -256,20 +254,27 @@ startLesson conn token lesson = do
     = "SELECT COUNT(*) FROM StartedLesson WHERE User = ? AND Lesson = ?"
   errUsr = error "No active session for user"
 
-newLesson :: Connection -> String -> String -> IO (String,String,String,String)
+newLesson
+  :: Connection
+  -> T.Text -- ^ Username
+  -> T.Text -- ^ Lesson name
+  -> IO (String,String,String,String)
 newLesson conn user lesson = do
   -- get exercise count
-  count <- (\case { [Only count] -> count ; _ -> error "Database.newLesson: Non unique lesson"})
-    <$> query @(Only String) conn exerciseCountQuery (Only lesson) :: IO Int
+  Only count <- fromMaybe errNonUniqueLesson . listToMaybe
+    -- (\case { [Only count] -> count ; _ -> error "Database.newLesson: Non unique lesson"})
+    <$> query conn exerciseCountQuery (Only lesson)
   -- get lesson round
-  [[round]] <- query conn lessonRoundQuery [user,lesson] :: IO [[Int]]
+  [[round]] <- query conn lessonRoundQuery [user,lesson]
   -- get all exercises for lesson
   trees <- query conn exerciseQuery [lesson] :: IO [(String,String)]
   -- randomly select
   selectedTrees <- fmap (take count) $ generate $ shuffle trees
   let (sourceTree,targetTree) = fromMaybe errNoExercises $ listToMaybe $ selectedTrees
   -- save in database
-  execute conn insertStartedLesson (lesson,user,round + 1)
+  let startedLesson :: Types.StartedLesson
+      startedLesson = (lesson, user, succ round)
+  execute conn insertStartedLesson startedLesson
   mapM_ (\(sTree,tTree) -> execute conn insertExerciseList (lesson,user,sTree,tTree,round)) selectedTrees
   -- get languages
   let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;" :: Query
@@ -287,11 +292,16 @@ newLesson conn user lesson = do
   insertStartedLesson = "INSERT INTO StartedLesson (Lesson, User, Round) VALUES (?,?,?);"
   insertExerciseList = "INSERT INTO ExerciseList (Lesson,User,SourceTree,TargetTree,Round) VALUES (?,?,?,?,?);"
   errNoExercises = error "Database.newLesson: Invariant violated: No exercises for lesson"
+  errNonUniqueLesson = error "Database.newLesson: Non unique lesson"
 
-continueLesson :: Connection -> String -> String -> IO (String,String,String,String)
+continueLesson
+  :: Connection
+  -> T.Text -- ^ Username
+  -> T.Text -- ^ Lesson name
+  -> IO (String,String,String,String)
 continueLesson conn user lesson = do
-  [Only round] <- query @[String] @(Only Int)
-    conn lessonRoundQuery [user,lesson]
+  [Only round] <- query @_ @(Only Integer)
+    conn lessonRoundQuery (user,lesson)
   (sourceTree,targetTree) <- fromMaybe errNoExercises . listToMaybe
     <$> query conn selectExerciseListQuery (lesson,user,round)
   [(sourceLang,targetLang)] <- query conn languagesQuery (Only lesson)
@@ -309,42 +319,50 @@ continueLesson conn user lesson = do
     = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;"
   errNoExercises = error "Database.continueLesson: Invariant violated: No exercises for lesson"
 
-finishExercise :: Connection -> String -> String -> Int -> Int -> IO ()
-finishExercise conn token lesson time clicks =
-  do
-    -- get user name
-    let userQuery = "SELECT User FROM Session WHERE Token = ?;" :: Query
-    [[user]] <- query conn userQuery [token] :: IO [[String]]
-    -- get lesson round
-    let lessonRoundQuery = "SELECT ifnull(MAX(Round),1) FROM StartedLesson WHERE User = ? AND Lesson = ?;" :: Query
-    [[round]] <- query conn lessonRoundQuery [user,lesson] :: IO [[Int]]
-    let selectExerciseListQuery = "SELECT SourceTree,TargetTree FROM ExerciseList WHERE Lesson = ? AND User = ? AND (User,SourceTree,TargetTree,Lesson) NOT IN (SELECT User,SourceTree,TargetTree,Lesson FROM FinishedExercise WHERE Round = ?);" :: Query
-    ((sourceTree,targetTree):_) <- query conn selectExerciseListQuery (lesson,user,round) :: IO [(String,String)]
-    let insertFinishedExerciseQuery = "INSERT INTO FinishedExercise (User,Lesson,SourceTree,TargetTree,Time,ClickCount,Round) VALUES (?,?,?,?,?,?,?);" :: Query
-    execute conn insertFinishedExerciseQuery (user, lesson, sourceTree, targetTree, time, clicks + 1, round)
-    -- check if all exercises finished
-    let countFinishesExercisesQuery = "SELECT COUNT(*) FROM FinishedExercise F WHERE User = ? AND Lesson = ? AND Round = (SELECT MAX(Round) FROM StartedLesson WHERE User = F.User AND Lesson = F.Lesson);" :: Query
-    let countExercisesInLesson = "SELECT ExerciseCount FROM Lesson WHERE Name = ?;" :: Query
-    let deleteStartedLessonQuery = "DELETE FROM StartedLesson WHERE User = ? AND Lesson = ? ;" :: Query
-    let insertFinishedLessonQuery =
-          Query $ T.pack $ "WITH userName AS (SELECT ?)," ++
-                           "lessonName AS (SELECT ?)," ++
-                           "roundCount as (SELECT MAX(Round) FROM StartedLesson WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName)) " ++
-                           "INSERT INTO FinishedLesson (User,Lesson,Time,ClickCount,Round) VALUES " ++
-                           "((SELECT * FROM userName)," ++
-                           "(SELECT * FROM lessonName)," ++
-                           "(SELECT SUM(Time) FROM FinishedExercise WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName) AND Round = (SELECT * FROM roundCount))," ++
-                           "(SELECT SUM(clickcount) FROM FinishedExercise WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName) AND Round = (SELECT * FROM roundCount))," ++
-                           "(SELECT * FROM roundCount));"
-    [[finishedCount]] <- query conn countFinishesExercisesQuery [user,lesson] :: IO [[Int]]
-    [[exerciseCount]] <- query conn countExercisesInLesson [lesson] :: IO [[Int]]
-    if finishedCount >= exerciseCount then do
-      execute conn insertFinishedLessonQuery [user,lesson]
-      execute conn deleteStartedLessonQuery [user,lesson]
-      else return ()
+finishExercise
+  :: Connection
+  -> String -- ^ Token
+  -> T.Text -- ^ Lesson
+  -> Int -- ^ Time
+  -> Integer -- ^ Clicks
+  -> IO ()
+finishExercise conn token lesson time clicks = do
+  -- get user name
+  [[user]] <- query conn userQuery [token] :: IO [[String]]
+  -- get lesson round
+  [Only round] <- query @_ @(Only Integer) conn lessonRoundQuery (user,lesson)
+  ((sourceTree,targetTree):_) <- query conn selectExerciseListQuery (lesson,user,round) :: IO [(String,String)]
+  execute conn insertFinishedExerciseQuery (user, lesson, sourceTree, targetTree, time, clicks + 1, round)
+  -- check if all exercises finished
+  [Only finishedCount] <- query @_ @(Only Integer) conn countFinishesExercisesQuery (user,lesson)
+  [Only exerciseCount] <- query @_ @(Only Integer) conn countExercisesInLesson (Only lesson)
+  if finishedCount >= exerciseCount
+  then do
+    execute conn insertFinishedLessonQuery (user,lesson)
+    execute conn deleteStartedLessonQuery (user,lesson)
+  else return ()
+  where
+    userQuery = "SELECT User FROM Session WHERE Token = ?;"
+    lessonRoundQuery = "SELECT ifnull(MAX(Round),1) FROM StartedLesson WHERE User = ? AND Lesson = ?;"
+    selectExerciseListQuery = "SELECT SourceTree,TargetTree FROM ExerciseList WHERE Lesson = ? AND User = ? AND (User,SourceTree,TargetTree,Lesson) NOT IN (SELECT User,SourceTree,TargetTree,Lesson FROM FinishedExercise WHERE Round = ?);"
+    insertFinishedExerciseQuery = "INSERT INTO FinishedExercise (User,Lesson,SourceTree,TargetTree,Time,ClickCount,Round) VALUES (?,?,?,?,?,?,?);"
+    countFinishesExercisesQuery = "SELECT COUNT(*) FROM FinishedExercise F WHERE User = ? AND Lesson = ? AND Round = (SELECT MAX(Round) FROM StartedLesson WHERE User = F.User AND Lesson = F.Lesson);"
+    countExercisesInLesson = "SELECT ExerciseCount FROM Lesson WHERE Name = ?;"
+    deleteStartedLessonQuery = "DELETE FROM StartedLesson WHERE User = ? AND Lesson = ? ;"
+    insertFinishedLessonQuery = mconcat
+      [ "WITH userName AS (SELECT ?),"
+      , "lessonName AS (SELECT ?),"
+      , "roundCount as (SELECT MAX(Round) FROM StartedLesson WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName)) "
+      , "INSERT INTO FinishedLesson (User,Lesson,Time,ClickCount,Round) VALUES "
+      , "((SELECT * FROM userName),"
+      , "(SELECT * FROM lessonName),"
+      , "(SELECT SUM(Time) FROM FinishedExercise WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName) AND Round = (SELECT * FROM roundCount)),"
+      , "(SELECT SUM(clickcount) FROM FinishedExercise WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName) AND Round = (SELECT * FROM roundCount)),"
+      , "(SELECT * FROM roundCount));"
+      ]
 
 endSession :: Connection -> String -> IO ()
 endSession conn token =
   do
-    let deleteSessionQuery = "DELETE FROM Session WHERE Token = ?;" :: Query
+    let deleteSessionQuery = "DELETE FROM Session WHERE Token = ?;"
     execute conn deleteSessionQuery [token]

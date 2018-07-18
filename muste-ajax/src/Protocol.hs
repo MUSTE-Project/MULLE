@@ -1,4 +1,9 @@
-{-# language LambdaCase, OverloadedStrings, TypeApplications #-}
+{-# language
+    LambdaCase
+  , OverloadedStrings
+  , TypeApplications
+  , ViewPatterns
+#-}
 module Protocol
   ( apiRoutes
   ) where
@@ -27,7 +32,7 @@ import qualified Database
 -- FIXME Do not import this
 import qualified Config
 
-type Contexts = Map String (Map String Context)
+type Contexts = Map T.Text (Map String Context)
 
 -- | The data needed for responding to requests.
 data Env = Env
@@ -177,7 +182,7 @@ handleLessonInit
   :: String
   -> String
   -> Protocol v w ServerMessage
-handleLessonInit token lesson =
+handleLessonInit token (T.pack -> lesson) =
   do
     contexts <- askContexts
     conn <- askConnection
@@ -186,25 +191,26 @@ handleLessonInit token lesson =
     verifyMessage token (SMMenuList lesson False 0 a b )
 
 handleMenuRequest
-  :: String
-  -> String
-  -> Int
-  -> Int
-  -> ClientTree
-  -> ClientTree
+  :: String -- ^ Token
+  -> T.Text -- ^ Lesson
+  -> Integer -- ^ Clicks
+  -> Int -- ^ Time
+  -> ClientTree -- ^ Source tree
+  -> ClientTree -- ^ Target tree
   -> Protocol v w ServerMessage
 handleMenuRequest token lesson clicks time ctreea@(ClientTree langa treea) ctreeb@(ClientTree langb treeb) = do
   contexts <- askContexts
   conn <- askConnection
   mErr <- verifySession token
   let authd = not $ isJust mErr
-  act <- if finished
-  then do
-    when authd (liftIO $ Database.finishExercise conn token lesson time clicks)
-    pure emptyMenus
-  else pure assembleMenus
+  act <-
+    if finished
+    then do
+      when authd (liftIO $ Database.finishExercise conn token lesson time clicks)
+      pure emptyMenus
+    else pure assembleMenus
   let (a , b) = act contexts lesson (langa , treea) (langb , treeb)
-  verifyMessage token (SMMenuList lesson finished (clicks + 1) a b)
+  verifyMessage token (SMMenuList lesson finished (succ clicks) a b)
   where
     finished :: Bool
     finished = treea == treeb
@@ -243,29 +249,38 @@ matched :: Path -> TTree -> TTree -> Path
 matched p t1 t2 = if selectNode t1 p == selectNode t2 p then p else []
 
 -- | Gets the menus for a lesson, two trees and two languages
-assembleMenus :: Map String (Map String Context) -> String -> (String,String) -> (String,String) -> (ServerTree,ServerTree)
-assembleMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree) =
-  let grammar = ctxtGrammar (contexts ! lesson ! sourceLang)
-      sourceContext = contexts ! lesson ! sourceLang
-      targetContext = contexts ! lesson ! targetLang
-      sourceTTree = parseTTree grammar sourceTree
-      targetTTree = parseTTree grammar targetTree
-      tempSourceLin = linearizeTree sourceContext sourceTTree
-      tempTargetLin = linearizeTree targetContext targetTTree
-      sourceLin = map (\(LinToken path lin _) -> LinToken path lin (matched path sourceTTree targetTTree)) tempSourceLin
+assembleMenus
+  :: Contexts
+  -> T.Text -- ^ Lesson
+  -> (String,String)
+  -> (String,String)
+  -> (ServerTree,ServerTree)
+assembleMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree) = (a, b)
+  where
+  grammar = ctxtGrammar (contexts ! lesson ! sourceLang)
+  sourceContext = contexts ! lesson ! sourceLang
+  targetContext = contexts ! lesson ! targetLang
+  sourceTTree = parseTTree grammar sourceTree
+  targetTTree = parseTTree grammar targetTree
+  tempSourceLin = linearizeTree sourceContext sourceTTree
+  tempTargetLin = linearizeTree targetContext targetTTree
+  sourceLin = map (\(LinToken path lin _) -> LinToken path lin (matched path sourceTTree targetTTree)) tempSourceLin
 --          sourceMenu = Menu $ fromList $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read sourceLang :: Language)) sourceTTree
-      -- sourceMenu = Menu $ M.empty -- fromList $ map suggestionToCostTree $ getSuggestions sourceContext  sourceTTree
-      sourceMenu = Menu $ getCleanMenu sourceContext sourceTTree
-      targetLin = map (\(LinToken path lin _) -> LinToken path lin (matched path sourceTTree targetTTree)) tempTargetLin
+  -- sourceMenu = Menu $ M.empty -- fromList $ map suggestionToCostTree $ getSuggestions sourceContext  sourceTTree
+  sourceMenu = Menu $ getCleanMenu sourceContext sourceTTree
+  targetLin = map (\(LinToken path lin _) -> LinToken path lin (matched path sourceTTree targetTTree)) tempTargetLin
 --          targetMenu = Menu $ fromList $ filterCostTrees $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read targetLang :: Language)) targetTTree
-      targetMenu = Menu $ getCleanMenu targetContext targetTTree
-    -- At the moment the menu is not really a list of menus but instead a list with only one menu as the only element
-      a = ServerTree sourceLang sourceTree sourceLin sourceMenu
-      b = ServerTree targetLang targetTree targetLin targetMenu
-  in
-    (a,b)
+  targetMenu = Menu $ getCleanMenu targetContext targetTTree
+-- At the moment the menu is not really a list of menus but instead a list with only one menu as the only element
+  a = ServerTree sourceLang sourceTree sourceLin sourceMenu
+  b = ServerTree targetLang targetTree targetLin targetMenu
 
-emptyMenus :: Map String (Map String Context) -> String -> (String,String) -> (String,String) -> (ServerTree,ServerTree)
+emptyMenus
+  :: Contexts
+  -> T.Text
+  -> (String,String)
+  -> (String,String)
+  -> (ServerTree,ServerTree)
 emptyMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree) =
   let
     grammar = ctxtGrammar (contexts ! lesson ! sourceLang)
