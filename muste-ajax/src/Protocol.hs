@@ -9,7 +9,6 @@ import qualified Data.Map.Lazy as M
 import Control.Monad
 import Database.SQLite.Simple
 import Control.Monad.Reader
-import Data.ByteString.Lazy (ByteString)
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C8
@@ -17,9 +16,6 @@ import qualified Snap
 import qualified System.IO.Streams as Streams
 import Text.Printf
 import Data.Maybe
-import Network.HTTP.Types
-import Data.Text.Encoding
-import qualified Data.Text as T
 
 import Muste
 
@@ -57,7 +53,7 @@ apiRoutes =
   [ "login"        |> wrap (Snap.method Snap.POST loginHandler)
   , "logout"       |> wrap (Snap.method Snap.POST logoutHandler)
   , "lessons"      |> wrap lessonsHandler
-  , "lesson"       |> wrap lessonHandler
+  , "lesson"       |> wrap (Snap.pathArg lessonHandler)
   , "menu"         |> wrap menuHandler
   -- TODO What are these requests?
   , "MOTDRequest"  |> err "MOTDRequest"
@@ -104,14 +100,10 @@ lessonsHandler = do
   token <- getToken
   handleLessonsRequest token
 
-lessonHandler :: Protocol v w ServerMessage
-lessonHandler = do
+lessonHandler :: B.ByteString -> Protocol v w ServerMessage
+lessonHandler p = do
   t <- getToken
-  pths <- Snap.rqPathInfo <$> Snap.getRequest
-  let s = decodePathSegments $ pths
-  case s of
-    (lesson:_) -> handleLessonInit t (T.unpack lesson)
-    _        -> error "Protocol.lessonHandler: Malformed request"
+  handleLessonInit t (C8.unpack p)
 
 menuHandler :: Protocol v w ServerMessage
 menuHandler = do
