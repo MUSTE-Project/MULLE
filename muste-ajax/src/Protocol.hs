@@ -26,6 +26,7 @@ import qualified Data.Text.Encoding as T
 import Data.Time
 
 import Muste
+import qualified PGF
 
 import Ajax
 import qualified Database
@@ -52,7 +53,7 @@ runProtocol app = do
 getEnv :: MonadIO m => m Env
 getEnv = liftIO $ do
   conn <- getConnection
-  ctxts <- Database.initContexts conn
+  ctxts <- initContexts conn
   pure $ Env conn ctxts
 
 -- | Map requests to various handlers.
@@ -294,3 +295,26 @@ emptyMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree) =
     b = ServerTree targetLang targetTree targetLin (Menu M.empty)
   in
     (a,b)
+
+-- TODO Wrap `PGF.*` methods in `Muste`.
+initContexts
+  :: MonadIO io
+  => Connection
+  -> io Contexts
+initContexts conn = liftIO $ do
+  lessonGrammarList <- Database.getLessons conn
+  grammarList <- mapM readPGF lessonGrammarList
+  preTuples <- mapM readLangs grammarList
+  pure (M.fromList preTuples)
+  where
+  readPGF (lesson, _, grammarName, _srcLang, _trgLang, _, _, _) = do
+    -- get all langs
+    pgf <- PGF.readPGF (T.unpack grammarName)
+    pure (lesson,Muste.pgfToGrammar pgf)
+  readLangs (lesson, grammar) = do
+    -- get all langs
+    let langs = PGF.languages (Muste.pgf grammar)
+    -- get all start trees
+    let contexts = [(PGF.showCId lang, Muste.buildContext grammar lang) | lang <- langs]
+    -- precompute for every lang and start tree
+    pure (lesson, M.fromList contexts)

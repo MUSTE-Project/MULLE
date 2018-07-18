@@ -1,34 +1,37 @@
 {-# LANGUAGE OverloadedStrings, TypeApplications, LambdaCase #-}
-module Database where
-
-import qualified PGF
-
-import qualified Muste
+module Database
+  ( getLessons
+  , authUser
+  , startSession
+  , listLessons
+  , startLesson
+  , finishExercise
+  , endSession
+  , verifySession
+  ) where
 
 import Database.SQLite.Simple
 
 import Crypto.Random.API
-
 import Crypto.KDF.PBKDF2 hiding (generate)
 import Crypto.Hash (Digest(..),SHA3_512(..),hash)
 
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Base64 as B64
 import qualified Data.ByteString.Char8 as B
-import qualified Data.ByteString.Lazy.Char8 as LB
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Map.Lazy as M
 import Data.Maybe
-
-import Test.QuickCheck
-
 import Data.Time.Clock
 import Data.Time.Format
 
+import Test.QuickCheck
+
 import Control.Exception
+import Control.Monad.IO.Class
 
 import qualified Database.Types as Types
+
 
 -- TODO User transactions for most of these methods.
 
@@ -48,26 +51,11 @@ createSalt = do
   rng <- getSystemRandomGen
   return $ fst $ genRandomBytes 512 rng
 
-initContexts :: Connection -> IO (M.Map T.Text (M.Map String Muste.Context))
-initContexts conn = do
-  lessonGrammarList <- query_ conn selectLessonsGrammarsQuery
-  grammarList <- mapM readPGF lessonGrammarList
-  preTuples <- mapM readLangs grammarList
-  pure (M.fromList preTuples)
-  where
-  selectLessonsGrammarsQuery = "SELECT Name, Grammar FROM Lesson;" :: Query
-  selectStartTreesQuery = "SELECT SourceTree FROM Exercise WHERE Lesson = ?;" :: Query
-  readPGF (lesson,grammarName) = do
-    -- get all langs
-    pgf <- PGF.readPGF (T.unpack grammarName)
-    pure (lesson,Muste.pgfToGrammar pgf)
-  readLangs (lesson, grammar) = do
-    -- get all langs
-    let langs = PGF.languages (Muste.pgf grammar)
-    -- get all start trees
-    let contexts = [(PGF.showCId lang, Muste.buildContext grammar lang) | lang <- langs]
-    -- precompute for every lang and start tree
-    pure (lesson, M.fromList contexts)
+getLessons
+  :: MonadIO io
+  => Connection
+  -> io [Types.Lesson]
+getLessons conn = liftIO $ query_ conn "select * from lesson;"
 
 createUser
   :: Connection
@@ -97,11 +85,12 @@ addUser conn user pass enabled = do
   execute conn insertQuery u
 
 authUser
-  :: Connection
+  :: MonadIO io
+  => Connection
   -> T.Text -- ^ Username
   -> T.Text -- ^ Password
-  -> IO Bool
-authUser conn user pass = do
+  -> io Bool
+authUser conn user pass = liftIO $ do
   -- Get password and salt from database
   userList <- (query conn selectPasswordSaltQuery [user]) :: IO [(B.ByteString,B.ByteString,Bool)]
   -- Generate new password hash and compare to the stored one
@@ -149,10 +138,11 @@ createSession conn user = do
 -- | Creates a new session and returns the session token.  At the
 -- moment overly simplified.
 startSession
-  :: Connection
+  :: MonadIO io
+  => Connection
   -> T.Text -- ^ Username
-  -> IO T.Text
-startSession conn user = do
+  -> io T.Text
+startSession conn user = liftIO $ do
   session@(_, token, _, _) <- createSession conn user
   let insertSessionQuery = "INSERT INTO Session VALUES (?,?,?,?);" :: Query
   execute conn insertSessionQuery session
@@ -193,12 +183,14 @@ verifySession conn token = do
     execute conn deleteSessionQuery [token]
     pure $ pure error
 
--- | List all the lessons i.e. lesson name, description and exercise count
+-- | List all the lessons i.e. lesson name, description and exercise
+-- count
 listLessons
-  :: Connection
+  :: MonadIO io
+  => Connection
   -> T.Text -- Token
-  -> IO [(String,String,Int,Int,Int,Int,Bool,Bool)]
-listLessons conn token = do
+  -> io [(String,String,Int,Int,Int,Int,Bool,Bool)]
+listLessons conn token = liftIO $ do
   let qry :: (ToRow q, FromRow r) => Query -> q -> IO [r]
       qry = query conn
   users <- qry @(Only T.Text) @(Only T.Text) "SELECT User FROM Session WHERE Token = ?;" (Only token)
@@ -233,11 +225,12 @@ listLessons conn token = do
 -- | Start a new lesson by randomly choosing the right number of
 -- exercises and adding them to the users exercise list
 startLesson
-  :: Connection
+  :: MonadIO io
+  => Connection
   -> String -- ^ Token
   -> T.Text -- ^ Lesson name
-  -> IO (String,String,String,String)
-startLesson conn token lesson = do
+  -> io (String,String,String,String)
+startLesson conn token lesson = liftIO $ do
   -- get user name
   Only user <- fromMaybe errUsr . listToMaybe
     <$> query conn userQuery (Only token)
