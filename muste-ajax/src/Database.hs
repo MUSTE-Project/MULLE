@@ -18,6 +18,7 @@ import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.Char8 as LB
 import qualified Data.Text as T
 import qualified Data.Map.Lazy as M
+import Data.Maybe
 
 import Test.QuickCheck
 
@@ -236,63 +237,77 @@ listLessons conn token = do
   --   throw $ DatabaseException "More or less than expected numbers of users"
 
 
--- | start a new lesson by randomly choosing the right number of exercises and adding them to the users exercise list
+-- | Start a new lesson by randomly choosing the right number of
+-- exercises and adding them to the users exercise list
 startLesson :: Connection -> String -> String -> IO (String,String,String,String)
-startLesson conn token lesson =
-  do
-    -- get user name
-    let userQuery = "SELECT User FROM Session WHERE Token = ?;" :: Query
-    [Only user] <- query @[String] @(Only String) conn userQuery [token]
-    let checkLessonStartedQuery = "SELECT COUNT(*) FROM StartedLesson WHERE User = ? AND Lesson = ?" :: Query
-    isRunning <- (0 /=) . fromOnly . head <$> (query conn checkLessonStartedQuery [user,lesson] :: IO [Only Int])
-    if isRunning then
-      continueLesson conn user lesson
-      else
-      newLesson conn user lesson
+startLesson conn token lesson = do
+  -- get user name
+  Only user <- fromMaybe errUsr . listToMaybe
+    <$> query @[String] @(Only String) conn userQuery [token]
+  isRunning <- (0 /=) . fromOnly . head
+    <$> (query conn checkLessonStartedQuery [user,lesson] :: IO [Only Int])
+  if isRunning
+  then continueLesson conn user lesson
+  else newLesson conn user lesson
+  where
+  userQuery
+    = "SELECT User FROM Session WHERE Token = ?;"
+  checkLessonStartedQuery
+    = "SELECT COUNT(*) FROM StartedLesson WHERE User = ? AND Lesson = ?"
+  errUsr = error "No active session for user"
 
 newLesson :: Connection -> String -> String -> IO (String,String,String,String)
-newLesson conn user lesson =
-  do
-    -- get exercise count
-    let exerciseCountQuery = "SELECT ExerciseCount FROM Lesson WHERE Name = ?;" :: Query
-    count <- (\case { [[count]] -> count ; _ -> error "Database.newLesson: Non unique lesson"})
-      <$> query conn exerciseCountQuery [lesson] :: IO Int
-    -- get lesson round
-    let lessonRoundQuery = "SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;" :: Query
-    [[round]] <- query conn lessonRoundQuery [user,lesson] :: IO [[Int]]
-    -- get all exercises for lesson
-    let exerciseQuery = "SELECT SourceTree,TargetTree FROM Exercise WHERE Lesson = ?;" :: Query
-    trees <- query conn exerciseQuery [lesson] :: IO [(String,String)]
-    -- randomly select
-    selectedTrees <- fmap (take count) $ generate $ shuffle trees
-    -- save in database
-    let insertStartedLesson = "INSERT INTO StartedLesson (Lesson, User, Round) VALUES (?,?,?);" :: Query
-    execute conn insertStartedLesson (lesson,user,round + 1)
-    let insertExerciseList = "INSERT INTO ExerciseList (Lesson,User,SourceTree,TargetTree,Round) VALUES (?,?,?,?,?);" :: Query
-    let ((sourceTree,targetTree):_) = selectedTrees
-    mapM_ (\(sTree,tTree) -> execute conn insertExerciseList (lesson,user,sTree,tTree,round)) selectedTrees
-    -- get languages
-    let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;" :: Query
-    langs <- query conn languagesQuery [lesson] :: IO [(String,String)]
-    if length langs == 1
-    then
-      let (sourceLang,targetLang) = head langs
-      in return (sourceLang,sourceTree,targetLang,targetTree)
-    else
+newLesson conn user lesson = do
+  -- get exercise count
+  count <- (\case { [Only count] -> count ; _ -> error "Database.newLesson: Non unique lesson"})
+    <$> query @(Only String) conn exerciseCountQuery (Only lesson) :: IO Int
+  -- get lesson round
+  [[round]] <- query conn lessonRoundQuery [user,lesson] :: IO [[Int]]
+  -- get all exercises for lesson
+  trees <- query conn exerciseQuery [lesson] :: IO [(String,String)]
+  -- randomly select
+  selectedTrees <- fmap (take count) $ generate $ shuffle trees
+  let (sourceTree,targetTree) = fromMaybe errNoExercises $ listToMaybe $ selectedTrees
+  -- save in database
+  execute conn insertStartedLesson (lesson,user,round + 1)
+  mapM_ (\(sTree,tTree) -> execute conn insertExerciseList (lesson,user,sTree,tTree,round)) selectedTrees
+  -- get languages
+  let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;" :: Query
+  langs <- query conn languagesQuery [lesson] :: IO [(String,String)]
+  if length langs == 1
+  then
+    let (sourceLang,targetLang) = head langs
+    in return (sourceLang,sourceTree,targetLang,targetTree)
+  else
       throw $ DatabaseException "Couldn't find the languages"
+  where
+  exerciseCountQuery = "SELECT ExerciseCount FROM Lesson WHERE Name = ?;"
+  lessonRoundQuery = "SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;"
+  exerciseQuery = "SELECT SourceTree,TargetTree FROM Exercise WHERE Lesson = ?;"
+  insertStartedLesson = "INSERT INTO StartedLesson (Lesson, User, Round) VALUES (?,?,?);"
+  insertExerciseList = "INSERT INTO ExerciseList (Lesson,User,SourceTree,TargetTree,Round) VALUES (?,?,?,?,?);"
+  errNoExercises = error "Database.newLesson: Invariant violated: No exercises for lesson"
 
 continueLesson :: Connection -> String -> String -> IO (String,String,String,String)
-continueLesson conn user lesson =
-  do
-    -- get lesson round
-    let lessonRoundQuery = "SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;" :: Query
-    [Only round] <- query @[String] @(Only Int)
-      conn lessonRoundQuery [user,lesson]
-    let selectExerciseListQuery = "SELECT SourceTree,TargetTree FROM ExerciseList WHERE Lesson = ? AND User = ? AND (User,SourceTree,TargetTree,Lesson) NOT IN (SELECT User,SourceTree,TargetTree,Lesson FROM FinishedExercise WHERE Round = ?);" :: Query
-    ((sourceTree,targetTree):_) <- query conn selectExerciseListQuery (lesson,user,round) :: IO [(String,String)]
-    let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;" :: Query
-    [(sourceLang,targetLang)] <- query conn languagesQuery [lesson] :: IO [(String,String)]
-    return (sourceLang,sourceTree,targetLang,targetTree)
+continueLesson conn user lesson = do
+  [Only round] <- query @[String] @(Only Int)
+    conn lessonRoundQuery [user,lesson]
+  (sourceTree,targetTree) <- fromMaybe errNoExercises . listToMaybe
+    <$> query conn selectExerciseListQuery (lesson,user,round)
+  [(sourceLang,targetLang)] <- query conn languagesQuery (Only lesson)
+  return (sourceLang,sourceTree,targetLang,targetTree)
+  where
+  lessonRoundQuery
+    = "SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;"
+  selectExerciseListQuery
+    =  "SELECT SourceTree,TargetTree FROM ExerciseList "
+    <> "WHERE Lesson = ? AND User = ? "
+    <> "AND (User,SourceTree,TargetTree,Lesson) NOT IN "
+    <> "(SELECT User,SourceTree,TargetTree,Lesson "
+    <> "FROM FinishedExercise WHERE Round = ?);"
+  languagesQuery
+    = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;"
+  errNoExercises = error "Database.continueLesson: Invariant violated: No exercises for lesson"
 
 finishExercise :: Connection -> String -> String -> Int -> Int -> IO ()
 finishExercise conn token lesson time clicks =
