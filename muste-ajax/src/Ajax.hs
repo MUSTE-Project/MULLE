@@ -47,7 +47,7 @@ createMessageObject msg params =
 data ClientMessage
   = CMLoginRequest
     { cusername :: T.Text
-    , cpassword :: String
+    , cpassword :: T.Text
     }
   | CMMOTDRequest
   | CMDataResponse

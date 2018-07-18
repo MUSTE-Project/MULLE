@@ -17,6 +17,7 @@ import qualified Data.ByteString.Base64 as B64
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.Char8 as LB
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 import qualified Data.Map.Lazy as M
 import Data.Maybe
 
@@ -71,20 +72,19 @@ initContexts conn = do
 createUser
   :: Connection
   -> T.Text -- ^ Username
-  -> String -- ^ Password
+  -> T.Text -- ^ Password
   -> Bool -- ^ User enabled
   -> IO Types.User
-createUser conn user pass enabled =
-  do
-    -- Create a salted password
-    salt <- createSalt
-    let safePw = hashPasswd (B.pack pass) salt
-    pure (user, safePw, salt, enabled)
+createUser conn user pass enabled = do
+  -- Create a salted password
+  salt <- createSalt
+  let safePw = hashPasswd (T.encodeUtf8 pass) salt
+  pure (user, safePw, salt, enabled)
 
 addUser
   :: Connection
   -> T.Text -- ^ Username
-  -> String -- ^ Password
+  -> T.Text -- ^ Password
   -> Bool -- ^ User enabled
   -> IO ()
 addUser conn user pass enabled = do
@@ -99,26 +99,27 @@ addUser conn user pass enabled = do
 authUser
   :: Connection
   -> T.Text -- ^ Username
-  -> String -- ^ Password
+  -> T.Text -- ^ Password
   -> IO Bool
-authUser conn user pass =
-  do
-    -- Get password and salt from database
-    let selectPasswordSaltQuery = "SELECT Password,Salt,Enabled FROM User WHERE (Username = ?);" :: Query
-    userList <- (query conn selectPasswordSaltQuery [user]) :: IO [(B.ByteString,B.ByteString,Bool)]
-    -- Generate new password hash and compare to the stored one
-    if length userList == 1 then
-      let (dbPass,dbSalt,enabled) = head userList
-          pwHash = hashPasswd (B.pack pass) dbSalt
-      in return $ enabled && pwHash == dbPass
-      else
-      return False
+authUser conn user pass = do
+  -- Get password and salt from database
+  userList <- (query conn selectPasswordSaltQuery [user]) :: IO [(B.ByteString,B.ByteString,Bool)]
+  -- Generate new password hash and compare to the stored one
+  if length userList == 1
+  then
+    let (dbPass,dbSalt,enabled) = head userList
+        pwHash = hashPasswd (T.encodeUtf8 pass) dbSalt
+    in pure $ enabled && pwHash == dbPass
+  else pure False
+  where
+  selectPasswordSaltQuery
+    = "SELECT Password,Salt,Enabled FROM User WHERE (Username = ?);"
 
 changePassword
   :: Connection
   -> T.Text -- ^ Username
-  -> String -- ^ Old password
-  -> String -- ^ New password
+  -> T.Text -- ^ Old password
+  -> T.Text -- ^ New password
   -> IO ()
 changePassword conn user oldPass newPass =
   do

@@ -133,7 +133,7 @@ logoutHandler = do
 
 -- TODO Now how this info should be retreived
 -- | Returns @(username, password)@.
-getUser :: Protocol v w (T.Text, String)
+getUser :: Protocol v w (T.Text, T.Text)
 getUser = (\(CMLoginRequest usr pwd) -> (usr, pwd)) <$> getMessage
 
 getConnection :: IO Connection
@@ -153,7 +153,7 @@ setLoginCookie tok = Snap.modifyResponse $ Snap.addResponseCookie c
 -- request.  Security is handled by SSl in the transport layer.
 handleLoginRequest
   :: T.Text -- ^ Username
-  -> String -- ^ Password
+  -> T.Text -- ^ Password
   -> Protocol v w ServerMessage
 handleLoginRequest user pass = do
   c <- askConnection
