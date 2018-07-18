@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, TypeApplications #-}
+{-# LANGUAGE OverloadedStrings, TypeApplications, LambdaCase #-}
 module Database where
 
 import qualified PGF
@@ -188,7 +188,8 @@ newLesson conn user lesson =
   do
     -- get exercise count
     let exerciseCountQuery = "SELECT ExerciseCount FROM Lesson WHERE Name = ?;" :: Query
-    [[count]] <- query conn exerciseCountQuery [lesson] :: IO [[Int]]
+    count <- (\case { [[count]] -> count ; _ -> error "Database.newLesson: Non unique lesson"})
+      <$> query conn exerciseCountQuery [lesson] :: IO Int
     -- get lesson round
     let lessonRoundQuery = "SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;" :: Query
     [[round]] <- query conn lessonRoundQuery [user,lesson] :: IO [[Int]]

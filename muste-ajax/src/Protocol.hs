@@ -17,6 +17,9 @@ import qualified Snap
 import qualified System.IO.Streams as Streams
 import Text.Printf
 import Data.Maybe
+import Network.HTTP.Types
+import Data.Text.Encoding
+import qualified Data.Text as T
 
 import Muste
 
@@ -104,9 +107,11 @@ lessonsHandler = do
 lessonHandler :: Protocol v w ServerMessage
 lessonHandler = do
   t <- getToken
-  s <- C8.unpack . fromJust . Snap.urlDecode . Snap.rqPathInfo
-    <$> Snap.getRequest
-  handleLessonInit t s
+  pths <- Snap.rqPathInfo <$> Snap.getRequest
+  let s = decodePathSegments $ pths
+  case s of
+    (lesson:_) -> handleLessonInit t (T.unpack lesson)
+    _        -> error "Protocol.lessonHandler: Malformed request"
 
 menuHandler :: Protocol v w ServerMessage
 menuHandler = do
