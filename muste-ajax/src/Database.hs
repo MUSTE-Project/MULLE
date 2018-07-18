@@ -49,26 +49,24 @@ createSalt = do
 
 initContexts :: Connection -> IO (M.Map T.Text (M.Map String Context))
 initContexts conn = do
-  lessonGrammarList <- query_ conn selectLessonsGrammarsQuery :: IO [(T.Text,String)]
-  grammarList <- sequence $ map (\(lesson,grammarName) -> do
-                                    -- get all langs
-                                    pgf <-PGF.readPGF grammarName
-                                    let grammar = pgfToGrammar pgf
-                                    return (lesson,grammar)
-                                ) lessonGrammarList :: IO [(T.Text,Grammar)]
-  preTuples <- sequence $ map act1 grammarList
-  return (M.fromList preTuples)
+  lessonGrammarList <- query_ conn selectLessonsGrammarsQuery
+  grammarList <- mapM readPGF lessonGrammarList
+  preTuples <- mapM readLangs grammarList
+  pure (M.fromList preTuples)
   where
   selectLessonsGrammarsQuery = "SELECT Name, Grammar FROM Lesson;" :: Query
   selectStartTreesQuery = "SELECT SourceTree FROM Exercise WHERE Lesson = ?;" :: Query
-  act1 (lesson, grammar) = do
+  readPGF (lesson,grammarName) = do
+    -- get all langs
+    pgf <- PGF.readPGF (T.unpack grammarName)
+    pure (lesson,pgfToGrammar pgf)
+  readLangs (lesson, grammar) = do
     -- get all langs
     let langs = PGF.languages (pgf grammar)
     -- get all start trees
     let contexts = [(PGF.showCId lang,buildContext grammar lang) | lang <- langs]
     -- precompute for every lang and start tree
-    return $ (lesson, M.fromList contexts)
-
+    pure (lesson, M.fromList contexts)
 
 createUser
   :: Connection

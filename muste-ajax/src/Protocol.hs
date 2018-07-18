@@ -107,10 +107,10 @@ lessonsHandler = do
   token <- getToken
   handleLessonsRequest token
 
-lessonHandler :: B.ByteString -> Protocol v w ServerMessage
+lessonHandler :: T.Text -> Protocol v w ServerMessage
 lessonHandler p = do
   t <- getToken
-  handleLessonInit t (C8.unpack p)
+  handleLessonInit t p
 
 menuHandler :: Protocol v w ServerMessage
 menuHandler = do
@@ -130,7 +130,6 @@ logoutHandler :: Protocol v w ServerMessage
 logoutHandler = do
   tok <- getToken
   handleLogoutRequest tok
-
 
 -- TODO Now how this info should be retreived
 -- | Returns @(username, password)@.
@@ -179,10 +178,10 @@ handleLessonsRequest token = do
   verifyMessage token (SMLessonsList lessonList)
 
 handleLessonInit
-  :: String
-  -> String
+  :: String -- ^ Token
+  -> T.Text -- ^ Lesson
   -> Protocol v w ServerMessage
-handleLessonInit token (T.pack -> lesson) =
+handleLessonInit token lesson =
   do
     contexts <- askContexts
     conn <- askConnection
