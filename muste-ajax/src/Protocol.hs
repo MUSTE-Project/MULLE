@@ -23,6 +23,7 @@ import Text.Printf
 import Data.Maybe
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
+import Data.Time
 
 import Muste
 
@@ -193,7 +194,7 @@ handleMenuRequest
   :: String -- ^ Token
   -> T.Text -- ^ Lesson
   -> Integer -- ^ Clicks
-  -> Int -- ^ Time
+  -> UTCTime -- ^ Time
   -> ClientTree -- ^ Source tree
   -> ClientTree -- ^ Target tree
   -> Protocol v w ServerMessage

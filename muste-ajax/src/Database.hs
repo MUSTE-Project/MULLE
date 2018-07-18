@@ -3,7 +3,7 @@ module Database where
 
 import qualified PGF
 
-import Muste
+import qualified Muste
 
 import Database.SQLite.Simple
 
@@ -48,7 +48,7 @@ createSalt = do
   rng <- getSystemRandomGen
   return $ fst $ genRandomBytes 512 rng
 
-initContexts :: Connection -> IO (M.Map T.Text (M.Map String Context))
+initContexts :: Connection -> IO (M.Map T.Text (M.Map String Muste.Context))
 initContexts conn = do
   lessonGrammarList <- query_ conn selectLessonsGrammarsQuery
   grammarList <- mapM readPGF lessonGrammarList
@@ -60,12 +60,12 @@ initContexts conn = do
   readPGF (lesson,grammarName) = do
     -- get all langs
     pgf <- PGF.readPGF (T.unpack grammarName)
-    pure (lesson,pgfToGrammar pgf)
+    pure (lesson,Muste.pgfToGrammar pgf)
   readLangs (lesson, grammar) = do
     -- get all langs
-    let langs = PGF.languages (pgf grammar)
+    let langs = PGF.languages (Muste.pgf grammar)
     -- get all start trees
-    let contexts = [(PGF.showCId lang,buildContext grammar lang) | lang <- langs]
+    let contexts = [(PGF.showCId lang, Muste.buildContext grammar lang) | lang <- langs]
     -- precompute for every lang and start tree
     pure (lesson, M.fromList contexts)
 
@@ -322,7 +322,7 @@ finishExercise
   :: Connection
   -> String -- ^ Token
   -> T.Text -- ^ Lesson
-  -> Int -- ^ Time
+  -> UTCTime -- ^ Time
   -> Integer -- ^ Clicks
   -> IO ()
 finishExercise conn token lesson time clicks = do

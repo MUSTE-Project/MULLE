@@ -23,6 +23,7 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Vector as V
 import Data.Maybe
 import Control.Exception
+import Data.Time
 
 import Muste
 
@@ -60,11 +61,11 @@ data ClientMessage
   | CMMenuRequest
     { clesson :: T.Text
     , cscore :: Integer
-    , ctime :: Int
+    , ctime :: UTCTime
     , ca :: ClientTree
     , cb :: ClientTree
     }
-  deriving (Show) ;
+  deriving (Show)
 
 instance FromJSON ClientTree where
   parseJSON = withObject "ClientTree" $ \v -> ClientTree
