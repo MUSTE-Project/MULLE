@@ -12,6 +12,7 @@ import Crypto.Random.API
 import Crypto.KDF.PBKDF2 hiding (generate)
 import Crypto.Hash (Digest(..),SHA3_512(..),hash)
 
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Base64 as B64
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.Char8 as LB
@@ -25,23 +26,26 @@ import Data.Time.Format
 
 import Control.Exception
 
+import qualified Database.Types as Types
+
+-- TODO User transactions for most of these methods.
+
 data DatabaseException = DatabaseException String deriving (Show)
 instance Exception DatabaseException
--- | hashPasswd returns a SHA512 hash of a PBKDF2 encoded password (SHA512,10000 iterations,1024 bytes output)
-hashPasswd :: B.ByteString -> B.ByteString -> B.ByteString
-hashPasswd pass salt =
---  B64.encode $ fastPBKDF2_SHA512 (Parameters 10000 1024) pass salt
-  fastPBKDF2_SHA512 (Parameters 10000 1024) pass salt
 
--- | createSalt returns a SHA512 hash of 512 bytes of random data as a bytestring 
-createSalt :: IO (B.ByteString)
-createSalt =
-  do
-    rng <- getSystemRandomGen
-    -- return $ B64.encode $ fst $ genRandomBytes 512 rng
-    return $ fst $ genRandomBytes 512 rng
+-- | hashPasswd returns a SHA512 hash of a PBKDF2 encoded password
+-- (SHA512,10000 iterations,1024 bytes output)
+hashPasswd :: B.ByteString -> B.ByteString -> BS.ByteString
+hashPasswd = fastPBKDF2_SHA512
+  (Parameters 10000 1024)
 
---- Lesson -> Language -> Grammar
+-- | createSalt returns a SHA512 hash of 512 bytes of random data as a
+-- bytestring
+createSalt :: IO B.ByteString
+createSalt = do
+  rng <- getSystemRandomGen
+  return $ fst $ genRandomBytes 512 rng
+
 initContexts :: Connection -> IO (M.Map String (M.Map String Context))
 initContexts conn =
   do
@@ -64,20 +68,40 @@ initContexts conn =
         ) grammarList
     return (M.fromList preTuples)
 
-addUser :: Connection -> String -> String -> Int -> IO ()
-addUser conn user pass enabled =
+
+createUser
+  :: Connection
+  -> T.Text -- ^ Username
+  -> String -- ^ Password
+  -> Bool -- ^ User enabled
+  -> IO Types.User
+createUser conn user pass enabled =
   do
     -- Create a salted password
     salt <- createSalt
     let safePw = hashPasswd (B.pack pass) salt
-    -- Remove user if they already exists
-    let deleteQuery = "DELETE FROM User WHERE Username = ?;" :: Query
-    execute conn deleteQuery [user]
-    -- Add new user
-    let insertQuery = "INSERT INTO User (Username, Password, Salt, Enabled) VALUES (?,?,?,?);" :: Query
-    execute conn insertQuery (user,safePw,salt,enabled)
+    pure (user, safePw, salt, enabled)
 
-authUser :: Connection -> String -> String -> IO (Bool)
+addUser
+  :: Connection
+  -> T.Text -- ^ Username
+  -> String -- ^ Password
+  -> Bool -- ^ User enabled
+  -> IO ()
+addUser conn user pass enabled = do
+  u <- createUser conn user pass enabled
+  -- Remove user if they already exists
+  let deleteQuery = "DELETE FROM User WHERE Username = ?;" :: Query
+  execute conn deleteQuery [user]
+  -- Add new user
+  let insertQuery = "INSERT INTO User VALUES (?,?,?,?);" :: Query
+  execute conn insertQuery u
+
+authUser
+  :: Connection
+  -> T.Text -- ^ Username
+  -> String -- ^ Password
+  -> IO Bool
 authUser conn user pass =
   do
     -- Get password and salt from database
@@ -90,57 +114,91 @@ authUser conn user pass =
       in return $ enabled && pwHash == dbPass
       else
       return False
-changePassword :: Connection -> String -> String -> String -> IO ()
+
+changePassword
+  :: Connection
+  -> T.Text -- ^ Username
+  -> String -- ^ Old password
+  -> String -- ^ New password
+  -> IO ()
 changePassword conn user oldPass newPass =
   do
     authed <- authUser conn user oldPass
-    if authed then addUser conn user newPass 1 else return ()
-                                                          
--- | Creates a new session. at the moment overly simplified
-startSession :: Connection -> String -> IO String
-startSession conn user =
-  do
+    if authed
+    then addUser conn user newPass True
+    else return ()
+
+createSession
+  :: Connection
+  -> T.Text -- ^ Username
+  -> IO Types.Session
+createSession conn user = do
     -- maybe check for old sessions and clean up?
     let deleteSessionQuery = "DELETE FROM Session WHERE User = ? ;" :: Query
     execute conn deleteSessionQuery [user]
     -- create new session
-    timeStamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime 
-    let sessionData = user ++ timeStamp
-    let token = show (hash (B.pack sessionData) :: Digest SHA3_512) :: String
-    let insertSessionQuery = "INSERT INTO Session (Token,User,Starttime,LastActive) VALUES (?,?,?,?);" :: Query
-    execute conn insertSessionQuery (token,user,timeStamp,timeStamp)
-    return token
+    timeStamp <- getCurrentTime
+    let sessionData
+         = T.unpack user
+         <> formatTime defaultTimeLocale "%s" timeStamp
 
-updateActivity :: Connection -> String -> IO()
+    let token :: T.Text
+        token = T.pack (show (hash (B.pack sessionData) :: Digest SHA3_512) :: String)
+    pure (user, token, timeStamp, timeStamp)
+
+-- | Creates a new session and returns the session token.  At the
+-- moment overly simplified.
+startSession
+  :: Connection
+  -> T.Text -- ^ Username
+  -> IO T.Text
+startSession conn user = do
+  session@(_, token, _, _) <- createSession conn user
+  let insertSessionQuery = "INSERT INTO Session VALUES (?,?,?,?);" :: Query
+  execute conn insertSessionQuery session
+  return token
+
+updateActivity :: Connection -> String -> IO ()
 updateActivity conn token =
   do
-    timeStamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime 
+    timeStamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime
     let updateSessionLastActiveQuery = "UPDATE Session SET LastActive = ? WHERE Token = ?;" :: Query
     execute conn updateSessionLastActiveQuery (timeStamp,token)
 
-verifySession :: Connection -> String -> IO (Bool,String)
-verifySession conn token =
-  do
-    -- Get potential user session(s)
-    let selectSessionQuery = "SELECT LastActive FROM Session WHERE Token = ?;" :: Query
-    sessions <- query conn selectSessionQuery [token] :: IO [Only Int]
-    -- from here might not be executed due to lazy evaluation...
-    -- Compute the difference in time stamps
-    let oldTimeStamp = fromOnly . head $ sessions
-    timeStamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime 
-    let newTimeStamp = read timeStamp :: Int
-    let deleteSessionQuery = "DELETE FROM Session WHERE Token = ? ;"
-    let error = if length sessions == 0 then "Not current session" else if newTimeStamp - oldTimeStamp > 60 * 30 then "Session timeout" else "More than one session"
-    -- ... until here. check if a session exists and it is has been active in the last 30 minutes
-    if length sessions == 1 && newTimeStamp - oldTimeStamp <= 60*30 then return (True,"")
-      else do { execute conn deleteSessionQuery [token] ; return (False,error) }
+-- | Returns @Just err@ if there is an error.
+verifySession :: Connection -> String -> IO (Maybe String)
+verifySession conn token = do
+  -- Get potential user session(s)
+  let selectSessionQuery = "SELECT LastActive FROM Session WHERE Token = ?;" :: Query
+  sessions <- query conn selectSessionQuery [token] :: IO [Only UTCTime]
+  -- from here might not be executed due to lazy evaluation...
+  -- Compute the difference in time stamps
+  newTimeStamp <- getCurrentTime
+  let oldTimeStamp = fromOnly . head $ sessions
+      deleteSessionQuery = "DELETE FROM Session WHERE Token = ? ;"
+      diff = diffUTCTime newTimeStamp oldTimeStamp
+      hour = fromInteger 60
+      threshold = fromInteger (30 * hour)
+      error
+        | length sessions  == 0 = "Not current session"
+        | diff > threshold      = "Session timeout"
+        | otherwise             = "More than one session"
+  -- ... until here. check if a session exists and it is has been active in the last 30 minutes
+  if length sessions == 1 && diff <= threshold
+  then pure Nothing
+  else do
+    execute conn deleteSessionQuery [token]
+    pure $ pure error
 
 -- | List all the lessons i.e. lesson name, description and exercise count
-listLessons :: Connection -> String -> IO [(String,String,Int,Int,Int,Int,Bool,Bool)]
+listLessons
+  :: Connection
+  -> T.Text -- Token
+  -> IO [(String,String,Int,Int,Int,Int,Bool,Bool)]
 listLessons conn token = do
   let qry :: (ToRow q, FromRow r) => Query -> q -> IO [r]
       qry = query conn
-  users <- qry @[String] @(Only String) "SELECT User FROM Session WHERE Token = ?;" [token]
+  users <- qry @(Only T.Text) @(Only T.Text) "SELECT User FROM Session WHERE Token = ?;" (Only token)
   let listLessonsQuery = mconcat
        [ "WITH userName AS (SELECT ?), "
        , "maxRounds AS (SELECT Lesson,IFNULL(MAX(Round),0) AS Round FROM "
@@ -167,7 +225,8 @@ listLessons conn token = do
   -- users <- query conn listUserQuery [token] :: IO [Only String]
   -- FIXME O(n) check for something that can be accomplished in O(1)!
   case users of
-    [user] -> query conn listLessonsQuery [fromOnly user]
+    [] -> throw $ DatabaseException "No user found"
+    [Only user] -> query conn listLessonsQuery [user]
     -- :: IO [(String,String,Int,Int,Int,Int,Bool,Bool)]
     usrs      -> throw $ DatabaseException "Non unique user associated with token"
   -- if length users == 1
@@ -175,22 +234,22 @@ listLessons conn token = do
   --   let user = fromOnly . head $ users
   -- else
   --   throw $ DatabaseException "More or less than expected numbers of users"
-    
-    
+
+
 -- | start a new lesson by randomly choosing the right number of exercises and adding them to the users exercise list
 startLesson :: Connection -> String -> String -> IO (String,String,String,String)
 startLesson conn token lesson =
   do
     -- get user name
     let userQuery = "SELECT User FROM Session WHERE Token = ?;" :: Query
-    [[user]] <- query conn userQuery [token] :: IO [[String]]
+    [Only user] <- query @[String] @(Only String) conn userQuery [token]
     let checkLessonStartedQuery = "SELECT COUNT(*) FROM StartedLesson WHERE User = ? AND Lesson = ?" :: Query
     isRunning <- (0 /=) . fromOnly . head <$> (query conn checkLessonStartedQuery [user,lesson] :: IO [Only Int])
     if isRunning then
       continueLesson conn user lesson
       else
       newLesson conn user lesson
-     
+
 newLesson :: Connection -> String -> String -> IO (String,String,String,String)
 newLesson conn user lesson =
   do
@@ -215,9 +274,11 @@ newLesson conn user lesson =
     -- get languages
     let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;" :: Query
     langs <- query conn languagesQuery [lesson] :: IO [(String,String)]
-    if length langs == 1 then 
-      let (sourceLang,targetLang) = head langs in return (sourceLang,sourceTree,targetLang,targetTree)
-      else
+    if length langs == 1
+    then
+      let (sourceLang,targetLang) = head langs
+      in return (sourceLang,sourceTree,targetLang,targetTree)
+    else
       throw $ DatabaseException "Couldn't find the languages"
 
 continueLesson :: Connection -> String -> String -> IO (String,String,String,String)
@@ -225,7 +286,8 @@ continueLesson conn user lesson =
   do
     -- get lesson round
     let lessonRoundQuery = "SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;" :: Query
-    [[round]] <- query conn lessonRoundQuery [user,lesson] :: IO [[Int]]
+    [Only round] <- query @[String] @(Only Int)
+      conn lessonRoundQuery [user,lesson]
     let selectExerciseListQuery = "SELECT SourceTree,TargetTree FROM ExerciseList WHERE Lesson = ? AND User = ? AND (User,SourceTree,TargetTree,Lesson) NOT IN (SELECT User,SourceTree,TargetTree,Lesson FROM FinishedExercise WHERE Round = ?);" :: Query
     ((sourceTree,targetTree):_) <- query conn selectExerciseListQuery (lesson,user,round) :: IO [(String,String)]
     let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;" :: Query
@@ -271,4 +333,3 @@ endSession conn token =
   do
     let deleteSessionQuery = "DELETE FROM Session WHERE Token = ?;" :: Query
     execute conn deleteSessionQuery [token]
-    

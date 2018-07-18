@@ -100,8 +100,8 @@ initDB conn = do
     "FOREIGN KEY(User) REFERENCES User(Username)," <>
     "FOREIGN KEY(SourceTree,TargetTree, Lesson) REFERENCES Exercise (SourceTree, TargetTree, Lesson));"
   let addUser = Database.addUser conn
-  addUser "herbert" "HERBERT" 1
-  addUser "peter" "PETER" 1
+  addUser "herbert" "HERBERT" True
+  addUser "peter" "PETER" True
   let insertLessonQuery = "INSERT INTO Lesson (Name,Description,Grammar,SourceLanguage,TargetLanguage,ExerciseCount,Enabled,Repeatable) VALUES (?,?,?,?,?,?,?,?);" :: Query
   lessonData <- Data.getLessons
   mapM_ (execute conn insertLessonQuery) lessonData

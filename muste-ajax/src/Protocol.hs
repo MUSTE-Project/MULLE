@@ -16,6 +16,8 @@ import qualified Snap
 import qualified System.IO.Streams as Streams
 import Text.Printf
 import Data.Maybe
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 
 import Muste
 
@@ -124,19 +126,21 @@ logoutHandler = do
   tok <- getToken
   handleLogoutRequest tok
 
+
+-- TODO Now how this info should be retreived
 -- | Returns @(username, password)@.
-getUser :: Protocol v w (String, String)
+getUser :: Protocol v w (T.Text, String)
 getUser = (\(CMLoginRequest usr pwd) -> (usr, pwd)) <$> getMessage
 
 getConnection :: IO Connection
 getConnection = Config.getDB >>= open
 
 setLoginCookie
-  :: B.ByteString -- ^ The token
+  :: T.Text -- ^ The token
   -> Protocol v w ()
 setLoginCookie tok = Snap.modifyResponse $ Snap.addResponseCookie c
   where
-    c = Snap.Cookie "LOGIN_TOKEN" tok
+    c = Snap.Cookie "LOGIN_TOKEN" (T.encodeUtf8 tok)
       Nothing Nothing (pure "/") False False
 
 -- TODO I think we shouldn't be using sessions for this.  I think the
@@ -144,7 +148,7 @@ setLoginCookie tok = Snap.modifyResponse $ Snap.addResponseCookie c
 -- request*.  That is, the client submits user/password on every
 -- request.  Security is handled by SSl in the transport layer.
 handleLoginRequest
-  :: String -- ^ Username
+  :: T.Text -- ^ Username
   -> String -- ^ Password
   -> Protocol v w ServerMessage
 handleLoginRequest user pass = do
@@ -152,7 +156,8 @@ handleLoginRequest user pass = do
   authed <- liftIO $ Database.authUser c user pass
   token  <- liftIO $ Database.startSession c user
   if authed
-  then SMLoginSuccess token <$ setLoginCookie (C8.pack token)
+  then SMLoginSuccess token
+    <$ setLoginCookie token
   else pure $ SMLoginFail
 
 askConnection :: Protocol v w Connection
@@ -162,12 +167,11 @@ askContexts :: Protocol v w Contexts
 askContexts = asks contexts
 
 handleLessonsRequest :: String -> Protocol v w ServerMessage
-handleLessonsRequest token =
-  do
-    conn <- askConnection
-    lessons <- liftIO $ Database.listLessons conn token
-    let lessonList = map (\(name,description,exercises,passedcount,score,time,passed,enabled) -> Lesson name description exercises passedcount score time passed enabled) lessons
-    verifyMessage token (SMLessonsList lessonList)
+handleLessonsRequest token = do
+  conn <- askConnection
+  lessons <- liftIO $ Database.listLessons conn (T.pack token)
+  let lessonList = map (\(name,description,exercises,passedcount,score,time,passed,enabled) -> Lesson name description exercises passedcount score time passed enabled) lessons
+  verifyMessage token (SMLessonsList lessonList)
 
 handleLessonInit
   :: String
@@ -219,10 +223,7 @@ verifySession
   -> Protocol v w (Maybe String)
 verifySession tok = do
   conn <- askConnection
-  (authd , err) <- liftIO $ Database.verifySession conn tok
-  pure $ if authd
-    then Nothing
-    else Just err
+  liftIO $ Database.verifySession conn tok
 
 -- | Returns the same message unmodified if the user is authenticated,
 -- otherwise return 'SMSessionInvalid'.

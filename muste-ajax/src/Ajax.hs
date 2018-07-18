@@ -46,7 +46,7 @@ createMessageObject msg params =
 
 data ClientMessage
   = CMLoginRequest
-    { cusername :: String
+    { cusername :: T.Text
     , cpassword :: String
     }
   | CMMOTDRequest
@@ -151,7 +151,7 @@ data Lesson = Lesson {
   } deriving Show;
 
 data ServerMessage = SMNull
-                   | SMLoginSuccess { stoken :: String }
+                   | SMLoginSuccess { stoken :: T.Text }
                    | SMLoginFail
                    | SMMOTDResponse { sfilename :: String }
                    | SMSessionInvalid { serror :: String }
