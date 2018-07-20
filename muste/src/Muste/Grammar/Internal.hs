@@ -51,21 +51,6 @@ parseTTree :: Grammar -> String -> TTree
 -- parseTTree g s = gfAbsTreeToTTree g (read s :: GFAbsTree)
 parseTTree _ = read
 
--- | The function 'gfAbsTreeToTTree' creates a 'TTree' from an GFabstract syntax 'Tree' and a Grammar. Othewise  similar to gfAbsTreeToTTreeWithPGF
-gfAbsTreeToTTree :: Grammar -> GFAbsTree -> TTree
-gfAbsTreeToTTree g (EFun f) =
-  let
-    typ = getFunType g (showCId f)
-  in
-    TNode (showCId f) typ []
-gfAbsTreeToTTree g (EApp e1 e2) =
-  let
-    (TNode name typ sts) = gfAbsTreeToTTree g e1
-    st2 = gfAbsTreeToTTree g e2
-  in
-    TNode name typ (sts ++ [st2])
-gfAbsTreeToTTree _ _ = TMeta wildCard
-
 -- | Creates a GF abstract syntax Tree from a generic tree
 ttreeToGFAbsTree :: TTree -> GFAbsTree
 ttreeToGFAbsTree tree =
