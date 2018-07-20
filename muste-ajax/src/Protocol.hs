@@ -255,17 +255,19 @@ assembleMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree) =
   in
     (a,b)
 
-emptyMenus :: Map String (Map String Context) -> String -> (String,String) -> (String,String) -> (ServerTree,ServerTree)
+emptyMenus
+  :: Map String (Map String Context)
+  -> String
+  -> (String, String)
+  -> (String, String)
+  -> (ServerTree, ServerTree)
 emptyMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree) =
-  let
-    grammar = ctxtGrammar (contexts ! lesson ! sourceLang)
-    sourceTTree = parseTTree grammar sourceTree
-    targetTTree = parseTTree grammar targetTree
-    tempSourceLin = linearizeTree (contexts ! lesson ! sourceLang) sourceTTree
-    tempTargetLin = linearizeTree (contexts ! lesson ! targetLang) targetTTree
-    sourceLin = map (\(LinToken path lin _) -> LinToken path lin (matched path sourceTTree targetTTree)) tempSourceLin
-    targetLin = map (\(LinToken path lin _) -> LinToken path lin (matched path sourceTTree targetTTree)) tempTargetLin
-    a = ServerTree sourceLang sourceTree sourceLin (Menu M.empty)
-    b = ServerTree targetLang targetTree targetLin (Menu M.empty)
-  in
-    (a,b)
+  ( ServerTree sourceLang sourceTree (lin sourceTree) mempty
+  , ServerTree targetLang targetTree (lin targetTree) mempty
+  )
+  where
+  grammar = ctxtGrammar (contexts ! lesson ! sourceLang)
+  parse = parseTTree grammar
+  linTree = linearizeTree (contexts ! lesson ! sourceLang)
+  match (LinToken path lin _) = LinToken path lin (matched path (parse sourceTree) (parse targetTree))
+  lin t = match <$> linTree (parse t)

@@ -43,14 +43,17 @@ library:
     - Muste.Grammar.Internal
     - Muste.Linearization.Internal
 
-tests:
-  foo-test:
-    source-dirs:
-      - test/
-    main:                Test.hs
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - muste
+# Retired for now.
+# fredefox [2018-07-20]
+#
+# tests:
+#   foo-test:
+#     source-dirs:
+#       - test/
+#     main:                Test.hs
+#     ghc-options:
+#     - -threaded
+#     - -rtsopts
+#     - -with-rtsopts=-N
+#     dependencies:
+#     - muste
