@@ -232,28 +232,23 @@ verifyMessage tok msg = do
 matched :: Path -> TTree -> TTree -> Path
 matched p t1 t2 = if selectNode t1 p == selectNode t2 p then p else []
 
+-- FIXME At the moment the menu is not really a list of menus but
+-- instead a list with only one menu as the only element
 -- | Gets the menus for a lesson, two trees and two languages
 assembleMenus :: Map String (Map String Context) -> String -> (String,String) -> (String,String) -> (ServerTree,ServerTree)
-assembleMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree) =
-  let grammar = ctxtGrammar (contexts ! lesson ! sourceLang)
-      sourceContext = contexts ! lesson ! sourceLang
-      targetContext = contexts ! lesson ! targetLang
-      sourceTTree = parseTTree grammar sourceTree
-      targetTTree = parseTTree grammar targetTree
-      tempSourceLin = linearizeTree sourceContext sourceTTree
-      tempTargetLin = linearizeTree targetContext targetTTree
-      sourceLin = map (\(LinToken path lin _) -> LinToken path lin (matched path sourceTTree targetTTree)) tempSourceLin
---          sourceMenu = Menu $ fromList $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read sourceLang :: Language)) sourceTTree
-      -- sourceMenu = Menu $ M.empty -- fromList $ map suggestionToCostTree $ getSuggestions sourceContext  sourceTTree
-      sourceMenu = Menu $ getCleanMenu sourceContext sourceTTree
-      targetLin = map (\(LinToken path lin _) -> LinToken path lin (matched path sourceTTree targetTTree)) tempTargetLin
---          targetMenu = Menu $ fromList $ filterCostTrees $ map suggestionToCostTree $ suggestionFromPrecomputed (prec ! lesson ! (read targetLang :: Language)) targetTTree
-      targetMenu = Menu $ getCleanMenu targetContext targetTTree
-    -- At the moment the menu is not really a list of menus but instead a list with only one menu as the only element
-      a = ServerTree sourceLang sourceTree sourceLin sourceMenu
-      b = ServerTree targetLang targetTree targetLin targetMenu
-  in
-    (a,b)
+assembleMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
+  ( mkTree src
+  , mkTree trg
+  )
+  where
+  grammar = ctxtGrammar (contexts ! lesson ! srcLang)
+  parse = parseTTree grammar
+  getContext lang = contexts ! lesson ! lang
+  match (LinToken path lin _) = LinToken path lin (matched path (parse srcTree) (parse trgTree))
+  mkTree (lang, tree) = ServerTree lang tree lin (Menu $ getCleanMenu ctxt (parse tree))
+    where
+    ctxt = getContext lang
+    lin = match <$> linearizeTree ctxt (parseTTree grammar tree)
 
 emptyMenus
   :: Map String (Map String Context)
@@ -261,13 +256,18 @@ emptyMenus
   -> (String, String)
   -> (String, String)
   -> (ServerTree, ServerTree)
-emptyMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree) =
-  ( ServerTree sourceLang sourceTree (lin sourceTree) mempty
-  , ServerTree targetLang targetTree (lin targetTree) mempty
+emptyMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
+  ( mkTree src
+  , mkTree trg
   )
   where
-  grammar = ctxtGrammar (contexts ! lesson ! sourceLang)
+  -- FIXME In 'assembleMenus' we actually use the language of the tree
+  -- we're building.  Investigate if this may be a bug.  Similiarly
+  -- for 'lin'.
+  ctxt = contexts ! lesson ! srcLang
+  grammar = ctxtGrammar ctxt
   parse = parseTTree grammar
-  linTree = linearizeTree (contexts ! lesson ! sourceLang)
-  match (LinToken path lin _) = LinToken path lin (matched path (parse sourceTree) (parse targetTree))
+  linTree = linearizeTree ctxt
+  match (LinToken path lin _) = LinToken path lin (matched path (parse srcTree) (parse trgTree))
   lin t = match <$> linTree (parse t)
+  mkTree (lang, tree) = ServerTree lang tree (lin tree) mempty
