@@ -1,6 +1,13 @@
 BACKLOG
 =======
 
+Set expiry on session cookie
+---
+
+We have core logic for handling rejecting expired cookie.  HTTP also
+supports this notion, so why not let user agents know when we expire
+their session?
+
 Move more parameters into location or query params
 ---
 
