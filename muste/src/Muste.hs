@@ -19,7 +19,6 @@ import Data.Aeson
 
 import Muste.Tree
 import Muste.Grammar
-import Muste.Grammar.Internal (ttreeToGFAbsTree)
 import Muste.Prune
 import Muste.Linearization
 import Muste.Linearization.Internal (Linearization, mkLinearization)

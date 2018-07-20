@@ -9,7 +9,7 @@ module Muste.Grammar.Internal
   , getRuleType
   , parseTTree
   , readPGF
-  , ttreeToGFAbsTree
+  , brackets
   )  where
 
 import Prelude hiding (id)
@@ -164,3 +164,7 @@ readPGF
   :: FilePath -- ^ Path to the grammar.
   -> IO Grammar
 readPGF grammarName = pgfToGrammar <$> PGF.readPGF grammarName
+
+brackets :: Grammar -> PGF.Language -> TTree -> [PGF.BracketedString]
+brackets grammar language ttree
+  = PGF.bracketedLinearize (pgf grammar) language (ttreeToGFAbsTree ttree) :: [PGF.BracketedString]

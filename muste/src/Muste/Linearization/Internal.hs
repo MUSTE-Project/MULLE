@@ -16,10 +16,11 @@ import qualified PGF.Internal as PGF hiding (funs, cats)
 
 import Muste.Tree
 import Muste.Grammar
-import Muste.Grammar.Internal
-  ( ttreeToGFAbsTree
+import qualified Muste.Grammar.Internal as Grammar
+  ( brackets
   , readPGF
   )
+
 import Muste.Prune
 
 data LinToken = LinToken
@@ -120,21 +121,18 @@ linearizeTree (Context grammar language _) ttree =
             d ++ b
       in
         deep tree bs
-    ltree = ttree
-    abstree = ttreeToGFAbsTree ttree
-    pgfGrammar = pgf grammar
-    brackets = PGF.bracketedLinearize pgfGrammar language abstree :: [PGF.BracketedString]
+    brackets = Grammar.brackets grammar language ttree
   in
     if not (isEmptyGrammar grammar)
       && language `elem` PGF.languages (pgf grammar)
       && not (null brackets)
-    then bracketsToTuples ltree $ head brackets
+    then bracketsToTuples ttree $ head brackets
     else [LinToken [] "?0" []]
 
 -- | Given a file path creates a mapping from the an identifier of the
 -- language to the 'Context' of that language.
 langAndContext :: FilePath -> IO [(String, Context)]
-langAndContext nm = readLangs <$> readPGF nm
+langAndContext nm = readLangs <$> Grammar.readPGF nm
 
 readLangs :: Grammar -> [(String, Context)]
 readLangs grammar = mkCtxt <$> PGF.languages (pgf grammar)
