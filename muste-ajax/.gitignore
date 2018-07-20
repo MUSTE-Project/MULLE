@@ -1,4 +1,4 @@
-messagelog.txt
-.stack-work/
-stack.yaml
-muste-ajax.cabal
+*.cabal
+
+# FIXME Handle this with Haskell resource files
+log/

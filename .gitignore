@@ -1,23 +1,13 @@
-ajax-backend/dist
-dist
-*~
-#gf files
+# GF files
 *.gfo
 *.dot
 *.png
-#haskell files
+
+# Haskell files
 *.o
 *.hi
 *.prof
-.gitstats
-stuff
-data/**/*.gfs
-data/**/*.txt
-#latex files
-*.fls
-*.aux
-*.dvi
-*.fdb_latexmk
-*.log
-doc/
-gf/*.pgf
+
+# Stack
+stack.yaml
+.stack-work/
