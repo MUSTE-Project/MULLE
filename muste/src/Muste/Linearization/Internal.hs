@@ -87,40 +87,6 @@ buildContext grammar lang =
 linearizeTree :: Context -> TTree ->  [LinToken]
 linearizeTree (Context grammar language _) ttree =
   let
-    -- Convert the PGF.BracketedString to the list of string/path tuples
-    bracketsToTuples :: TTree -> PGF.BracketedString -> [LinToken]
-    bracketsToTuples tree bs =
-      let
-        deep :: TTree -> PGF.BracketedString -> [LinToken]
-        deep _     (PGF.Bracket _ _   _ _ _ []) = []
-        -- Ordinary leaf
-        deep ltree (PGF.Bracket _ fid _ _ _ [PGF.Leaf token]) =
-          [LinToken (getPath ltree fid) token []]
-        -- Meta leaf
-        deep ltree (PGF.Bracket _ fid _ _ [PGF.EMeta id] _) =
-          [LinToken (getPath ltree fid) ("?" ++ show id) []]
-        -- In the middle of the tree
-        deep ltree (PGF.Bracket _ fid _ _ _ bs) =
-          broad ltree fid bs []
-        deep _ _ = error "Muste.linearizeTree: Non-exhaustive pattern match"
-        broad :: TTree -> Int -> [PGF.BracketedString] -> [LinToken] -> [LinToken]
-        -- End of node siblings
-        broad _     _   []                 ts = ts
-        -- Syncategorial word
-        broad ltree fid (PGF.Leaf token:bss) ts =
-          let
-            b = broad ltree fid bss ts
-          in
-            LinToken (getPath ltree fid) token [] : b
-        -- In the middle of the nodes
-        broad ltree fid (bs:bss)           ts =
-          let
-            d = deep ltree bs
-            b = broad ltree fid bss ts
-          in
-            d ++ b
-      in
-        deep tree bs
     brackets = Grammar.brackets grammar language ttree
   in
     if not (isEmptyGrammar grammar)
@@ -138,3 +104,35 @@ readLangs :: Grammar -> [(String, Context)]
 readLangs grammar = mkCtxt <$> PGF.languages (pgf grammar)
   where
   mkCtxt lang = (PGF.showCId lang, buildContext grammar lang)
+
+
+-- This part of the module knows about 'PGF' and maybe shouldn't.  The
+-- problem is that 'LinToken' is introduced here and so cannot be
+-- placed in 'Muste.Grammar.Internal' without having to move that as
+-- well.
+
+-- | Convert a 'PGF.BracketedString' to a list of string/path tuples.
+bracketsToTuples :: TTree -> PGF.BracketedString -> [LinToken]
+bracketsToTuples tree bs = deep tree bs
+  where
+  deep :: TTree -> PGF.BracketedString -> [LinToken]
+  deep _     (PGF.Bracket _ _   _ _ _ []) = []
+  -- Ordinary leaf
+  deep ltree (PGF.Bracket _ fid _ _ _ [PGF.Leaf token]) =
+    [LinToken (getPath ltree fid) token []]
+  -- Meta leaf
+  deep ltree (PGF.Bracket _ fid _ _ [PGF.EMeta id] _) =
+    [LinToken (getPath ltree fid) ("?" ++ show id) []]
+  -- In the middle of the tree
+  deep ltree (PGF.Bracket _ fid _ _ _ bs) =
+    broad ltree fid bs []
+  deep _ _ = error "Muste.linearizeTree: Non-exhaustive pattern match"
+  broad :: TTree -> Int -> [PGF.BracketedString] -> [LinToken] -> [LinToken]
+  -- End of node siblings
+  broad _     _   []                 ts = ts
+  -- Syncategorial word
+  broad ltree fid (PGF.Leaf token:bss) ts
+    = LinToken (getPath ltree fid) token [] : broad ltree fid bss ts
+  -- In the middle of the nodes
+  broad ltree fid (bs:bss)
+    ts = deep ltree bs <> broad ltree fid bss ts
