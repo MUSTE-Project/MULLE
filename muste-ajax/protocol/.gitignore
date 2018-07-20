@@ -1,0 +1,6 @@
+# LaTeX files
+*.fls
+*.aux
+*.dvi
+*.fdb_latexmk
+*.log

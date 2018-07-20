@@ -2,6 +2,8 @@
     OverloadedStrings
   , TypeApplications
   , LambdaCase
+  , StandaloneDeriving
+  , GeneralizedNewtypeDeriving
 #-}
 module Ajax
   ( ServerTree(..)
@@ -131,7 +133,11 @@ instance ToJSON ClientMessage where
     where
       (|>) = createMessageObject
 
-data Menu = Menu (Map.Map Path [[CostTree]]) deriving (Show)
+newtype Menu = Menu (Map.Map Path [[CostTree]]) deriving (Show)
+
+deriving instance Semigroup Menu
+
+deriving instance Monoid Menu
 
 data ServerTree = ServerTree {
   slanguage :: String ,

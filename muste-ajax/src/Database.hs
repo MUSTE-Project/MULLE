@@ -8,6 +8,7 @@ module Database
   , finishExercise
   , endSession
   , verifySession
+  , addUser
   ) where
 
 import Database.SQLite.Simple

@@ -4,8 +4,6 @@ license-file:        LICENSE
 author:              Herbert Lange
 maintainer:          herbert.lange@cse.gu.se
 
-extra-source-files:
-
 category:            Web
 
 flags:

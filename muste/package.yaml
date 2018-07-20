@@ -4,8 +4,6 @@ license:             BSD3
 author:              Herbert Lange
 maintainer:          herbert.lange@cse.gu.se
 
-extra-source-files:
-
 synopsis:            Multimodal semantics in Text editing
 category:            Text
 
@@ -45,6 +43,9 @@ library:
     - Muste.Grammar.Internal
     - Muste.Linearization.Internal
 
+# Retired for now.
+# fredefox [2018-07-20]
+#
 # tests:
 #   foo-test:
 #     source-dirs:

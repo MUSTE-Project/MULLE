@@ -102,8 +102,8 @@ function call_server_new(message, parameters, endpoint) {
 	        method: "POST",
 	        processData: false,
             data: JSON.stringify({message: message, parameters: parameters})
-        }).fail(function(jqxhr, status, error) {
-            alert_error(status, error);
+        }).fail(function(resp, status, error) {
+            console.error(resp.responseText);
         }).done(handle_server_response);
     }
 }
