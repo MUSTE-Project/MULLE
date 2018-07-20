@@ -1,8 +1,8 @@
-resolver: lts-12.0
+resolver: lts-12.0 # => ghc-8.4.3
 
 packages:
-- .
-- ../muste/
+- ./muste/
+- ./muste-ajax/
 
 extra-deps:
 # - ../libs/GF/src/runtime/haskell/

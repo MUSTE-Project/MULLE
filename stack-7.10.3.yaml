@@ -1,7 +1,8 @@
-resolver: lts-6.35
+resolver: lts-6.35 # => ghc-7.10.3
 
 packages:
-- .
+- ./muste/
+- ./muste-ajax/
 
 extra-deps:
 - ../libs/GF/src/runtime/haskell/
