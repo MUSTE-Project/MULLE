@@ -73,6 +73,10 @@ bindings into a seperate package/repo.  When this is implemented we
 can change the upstream dependency.  Please follow the discussion at
 [GF](https://github.com/GrammaticalFramework/GF/issues/47).
 
+Currently we depend on a fork of GF with only the Haskell runtime.
+The reason for this is that the above mentioned repo is absolutely
+*huge*.
+
 Rename stack.yamls
 ---
 

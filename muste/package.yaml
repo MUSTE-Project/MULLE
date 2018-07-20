@@ -4,8 +4,6 @@ license:             BSD3
 author:              Herbert Lange
 maintainer:          herbert.lange@cse.gu.se
 
-extra-source-files:
-
 synopsis:            Multimodal semantics in Text editing
 category:            Text
 

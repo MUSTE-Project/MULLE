@@ -5,7 +5,9 @@ packages:
 - ../muste/
 
 extra-deps:
-- ../libs/GF/src/runtime/haskell/
+# - ../libs/GF/src/runtime/haskell/
+- git: git@github.com:MUSTE-Project/pgf.git
+  commit: c052f8245c8bf4846cf26f1748736d6af871a7d7
 - git: git@github.com:MUSTE-Project/haskell-cgi.git
   commit: b45aabe6ccfd5aa81c5883b25fef019d60e9d9d0
 # Needed to satisfy `snap`
