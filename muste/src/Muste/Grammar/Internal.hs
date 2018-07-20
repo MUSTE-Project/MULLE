@@ -1,10 +1,22 @@
 {- | This Module is the internal implementation behind the module 'Muste.Grammar' -}
-module Muste.Grammar.Internal where
+module Muste.Grammar.Internal
+  ( Grammar(..)
+  , Rule(..)
+  , pgfToGrammar
+  , isEmptyGrammar
+  , getFunType
+  , getAllRules
+  , getRuleType
+  , parseTTree
+  , readPGF
+  , ttreeToGFAbsTree
+  )  where
 
 import Prelude hiding (id)
 
 -- This might be the only place we should know of PGF
-import PGF
+import PGF hiding (readPGF)
+import qualified PGF
 import PGF.Internal as PGF hiding (funs, cats)
 import Data.List
 -- import Muste.Feat hiding (startcat, pgf)
@@ -146,3 +158,9 @@ pgfToGrammar pgf
             in
               Fun (showCId typeid) (map showCId cats)
             }
+
+-- | Converts a @.pgf@ file to a 'Grammar'.
+readPGF
+  :: FilePath -- ^ Path to the grammar.
+  -> IO Grammar
+readPGF grammarName = pgfToGrammar <$> PGF.readPGF grammarName

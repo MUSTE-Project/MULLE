@@ -6,17 +6,20 @@ module Muste.Linearization.Internal
   , Linearization
   , mkLinearization
   , linearizeTree
+  , langAndContext
   ) where
 
 import Data.Aeson
 -- This might be the only place we should know of PGF
 import qualified PGF
 import qualified PGF.Internal as PGF hiding (funs, cats)
-import Data.List
 
 import Muste.Tree
 import Muste.Grammar
-import Muste.Grammar.Internal (ttreeToGFAbsTree)
+import Muste.Grammar.Internal
+  ( ttreeToGFAbsTree
+  , readPGF
+  )
 import Muste.Prune
 
 data LinToken = LinToken
@@ -128,3 +131,12 @@ linearizeTree (Context grammar language _) ttree =
     then bracketsToTuples ltree $ head brackets
     else [LinToken [] "?0" []]
 
+-- | Given a file path creates a mapping from the an identifier of the
+-- language to the 'Context' of that language.
+langAndContext :: FilePath -> IO [(String, Context)]
+langAndContext nm = readLangs <$> readPGF nm
+
+readLangs :: Grammar -> [(String, Context)]
+readLangs grammar = mkCtxt <$> PGF.languages (pgf grammar)
+  where
+  mkCtxt lang = (PGF.showCId lang, buildContext grammar lang)

@@ -25,11 +25,12 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Data.Time
 
-import Muste
-import qualified PGF
+import Muste (Context, Path, TTree, LinToken(..))
+import qualified Muste
 
 import Ajax
 import qualified Database
+import qualified Database.Types as Database
 
 -- FIXME Do not import this
 import qualified Config
@@ -247,30 +248,22 @@ verifyMessage tok msg = do
 
 -- | Checks if a linearization token matches in both trees
 matched :: Path -> TTree -> TTree -> Path
-matched p t1 t2 = if selectNode t1 p == selectNode t2 p then p else []
+matched p t1 t2 = if Muste.selectNode t1 p == Muste.selectNode t2 p then p else []
 
--- TODO Wrap `PGF.*` methods in `Muste`.
 initContexts
   :: MonadIO io
   => Connection
   -> io Contexts
 initContexts conn = liftIO $ do
   lessonGrammarList <- Database.getLessons conn
-  grammarList <- mapM readPGF lessonGrammarList
-  preTuples <- mapM readLangs grammarList
-  pure (M.fromList preTuples)
-  where
-  readPGF (lesson, _, grammarName, _srcLang, _trgLang, _, _, _) = do
-    -- get all langs
-    pgf <- PGF.readPGF (T.unpack grammarName)
-    pure (lesson,Muste.pgfToGrammar pgf)
-  readLangs (lesson, grammar) = do
-    -- get all langs
-    let langs = PGF.languages (Muste.pgf grammar)
-    -- get all start trees
-    let contexts = [(PGF.showCId lang, Muste.buildContext grammar lang) | lang <- langs]
-    -- precompute for every lang and start tree
-    pure (lesson, M.fromList contexts)
+  M.fromList <$> (mapM mkContext lessonGrammarList)
+
+-- [Lesson] -> IO [(T.Text, Grammar
+
+mkContext :: Database.Lesson -> IO (T.Text, M.Map String Context)
+mkContext (ls, _, nm, _, _, _, _, _) = do
+  langs <- Muste.langAndContext (T.unpack nm)
+  pure (ls, M.fromList langs)
 
 -- FIXME At the moment the menu is not really a list of menus but
 -- instead a list with only one menu as the only element
@@ -286,14 +279,14 @@ assembleMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
   , mkTree trg
   )
   where
-  grammar = ctxtGrammar (contexts ! lesson ! srcLang)
-  parse = parseTTree grammar
+  grammar = Muste.ctxtGrammar (contexts ! lesson ! srcLang)
+  parse = Muste.parseTTree grammar
   getContext lang = contexts ! lesson ! lang
   match (LinToken path lin _) = LinToken path lin (matched path (parse srcTree) (parse trgTree))
-  mkTree (lang, tree) = ServerTree lang tree lin (Menu $ getCleanMenu ctxt (parse tree))
+  mkTree (lang, tree) = ServerTree lang tree lin (Menu $ Muste.getCleanMenu ctxt (parse tree))
     where
     ctxt = getContext lang
-    lin = match <$> linearizeTree ctxt (parseTTree grammar tree)
+    lin = match <$> Muste.linearizeTree ctxt (parse tree)
 
 emptyMenus
   :: Contexts
@@ -310,9 +303,9 @@ emptyMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
   -- we're building.  Investigate if this may be a bug.  Similiarly
   -- for 'lin'.
   ctxt = contexts ! lesson ! srcLang
-  grammar = ctxtGrammar ctxt
-  parse = parseTTree grammar
-  linTree = linearizeTree ctxt
+  grammar = Muste.ctxtGrammar ctxt
+  parse = Muste.parseTTree grammar
+  linTree = Muste.linearizeTree ctxt
   match (LinToken path lin _) = LinToken path lin (matched path (parse srcTree) (parse trgTree))
   lin t = match <$> linTree (parse t)
   mkTree (lang, tree) = ServerTree lang tree (lin tree) mempty
