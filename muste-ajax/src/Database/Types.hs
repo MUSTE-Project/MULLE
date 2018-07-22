@@ -16,11 +16,14 @@ module Database.Types
   , StartedLesson
   , FinishedLesson
   , ExerciseList
+  , TTree
   ) where
 
 import Data.ByteString (ByteString)
 import Data.Text (Text)
 import Data.Time
+
+import Muste (TTree)
 
 type Blob = ByteString
 type Numeric = Integer

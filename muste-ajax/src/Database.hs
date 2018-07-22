@@ -230,7 +230,8 @@ startLesson
   => Connection
   -> String -- ^ Token
   -> T.Text -- ^ Lesson name
-  -> io (String,String,String,String)
+  -- * Source- language and tree, target- langauge and tree.
+  -> io (String,Types.TTree,String,Types.TTree)
 startLesson conn token lesson = liftIO $ do
   -- get user name
   Only user <- fromMaybe errUsr . listToMaybe
@@ -251,7 +252,7 @@ newLesson
   :: Connection
   -> T.Text -- ^ Username
   -> T.Text -- ^ Lesson name
-  -> IO (String,String,String,String)
+  -> IO (String,Types.TTree,String,Types.TTree)
 newLesson conn user lesson = do
   -- get exercise count
   Only count <- fromMaybe errNonUniqueLesson . listToMaybe
@@ -260,10 +261,11 @@ newLesson conn user lesson = do
   -- get lesson round
   [[round]] <- query conn lessonRoundQuery [user,lesson]
   -- get all exercises for lesson
-  trees <- query conn exerciseQuery [lesson] :: IO [(String,String)]
+  trees <- query conn exerciseQuery [lesson] :: IO [(Types.TTree,Types.TTree)]
   -- randomly select
   selectedTrees <- fmap (take count) $ generate $ shuffle trees
-  let (sourceTree,targetTree) = fromMaybe errNoExercises $ listToMaybe $ selectedTrees
+  let (sourceTree,targetTree)
+        = fromMaybe errNoExercises $ listToMaybe $ selectedTrees
   -- save in database
   let startedLesson :: Types.StartedLesson
       startedLesson = (lesson, user, succ round)
@@ -291,7 +293,7 @@ continueLesson
   :: Connection
   -> T.Text -- ^ Username
   -> T.Text -- ^ Lesson name
-  -> IO (String,String,String,String)
+  -> IO (String,Types.TTree,String,Types.TTree)
 continueLesson conn user lesson = do
   [Only round] <- query @_ @(Only Integer)
     conn lessonRoundQuery (user,lesson)

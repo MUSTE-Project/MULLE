@@ -27,7 +27,7 @@ import Muste.Linearization.Internal (Linearization, mkLinearization)
 data CostTree = CostTree
   { _cost :: Int
   , _lin :: [Linearization]
-  , _tree :: String
+  , _tree :: TTree
   } deriving (Show,Eq)
 
 instance FromJSON CostTree where
@@ -37,15 +37,15 @@ instance FromJSON CostTree where
     <*> v .: "tree"
 
 instance ToJSON CostTree where
-    toJSON (CostTree score lin tree) = object
-      [ "score" .= score
-      , "lin"   .= lin
-      , "tree"  .= tree
-      ]
+  toJSON (CostTree score lin tree) = object
+    [ "score" .= score
+    , "lin"   .= lin
+    , "tree"  .= tree
+    ]
 
 getPrunedSuggestions :: Context -> TTree -> [(Path, [[CostTree]])]
 getPrunedSuggestions ctxt tree =
-    [ (path, [[ CostTree cost lin (showTTree fullTree) |
+    [ (path, [[ CostTree cost lin fullTree |
                 (cost, subtree, _, _) <- trees,
                 let fullTree = replaceNode tree path subtree,
                 let lin = mkLinearization

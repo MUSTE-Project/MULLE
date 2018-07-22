@@ -28,6 +28,12 @@ library:
     - mtl
     - aeson
     - pgf >=3.7
+    - binary
+    - text
+    - bytestring
+    - base64-bytestring
+    - sqlite-simple
+    - tostring
 
   exposed-modules:
     - Muste

@@ -37,7 +37,7 @@ instance Exception ReadTreeException
 
 data ClientTree = ClientTree {
   clanguage :: String,
-  ctree :: String
+  ctree :: TTree
   } deriving (Show) ;
 
 createMessageObject :: String -> Value -> Value
@@ -105,11 +105,9 @@ instance FromJSON ClientMessage where
       _ -> error ( "Unexpected message " ++ show v)
 
 instance ToJSON ClientTree where
-    -- this generates a Value
-    toJSON (ClientTree tree language) =
-      object [
-      "tree" .= tree ,
-      "language" .= language
+    toJSON (ClientTree tree language) = object
+      [ "tree"     .= tree
+      , "language" .= language
       ]
 
 instance ToJSON ClientMessage where
@@ -141,7 +139,7 @@ deriving instance Monoid Menu
 
 data ServerTree = ServerTree {
   slanguage :: String ,
-  stree :: String,
+  stree :: TTree,
   slin :: [LinToken] ,
   smenu :: Menu
   } deriving (Show) ;

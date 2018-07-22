@@ -258,8 +258,6 @@ initContexts conn = liftIO $ do
   lessonGrammarList <- Database.getLessons conn
   M.fromList <$> (mapM mkContext lessonGrammarList)
 
--- [Lesson] -> IO [(T.Text, Grammar
-
 mkContext :: Database.Lesson -> IO (T.Text, M.Map String Context)
 mkContext (ls, _, nm, _, _, _, _, _) = do
   langs <- Muste.langAndContext (T.unpack nm)
@@ -271,8 +269,8 @@ mkContext (ls, _, nm, _, _, _, _, _) = do
 assembleMenus
   :: Contexts
   -> T.Text
-  -> (String,String)
-  -> (String,String)
+  -> (String,TTree) -- ^ Source language and tree
+  -> (String,TTree) -- ^ Target language and tree
   -> (ServerTree,ServerTree)
 assembleMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
   ( mkTree src
@@ -280,19 +278,19 @@ assembleMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
   )
   where
   grammar = Muste.ctxtGrammar (contexts ! lesson ! srcLang)
-  parse = Muste.parseTTree grammar
   getContext lang = contexts ! lesson ! lang
-  match (LinToken path lin _) = LinToken path lin (matched path (parse srcTree) (parse trgTree))
-  mkTree (lang, tree) = ServerTree lang tree lin (Menu $ Muste.getCleanMenu ctxt (parse tree))
+  match (LinToken path lin _)
+    = LinToken path lin (matched path srcTree trgTree)
+  mkTree (lang, tree) = ServerTree lang tree lin (Menu $ Muste.getCleanMenu ctxt tree)
     where
     ctxt = getContext lang
-    lin = match <$> Muste.linearizeTree ctxt (parse tree)
+    lin = match <$> Muste.linearizeTree ctxt tree
 
 emptyMenus
   :: Contexts
   -> T.Text
-  -> (String, String)
-  -> (String, String)
+  -> (String, TTree) -- ^ Source language and tree
+  -> (String, TTree) -- ^ Target language and tree
   -> (ServerTree, ServerTree)
 emptyMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
   ( mkTree src
@@ -304,9 +302,9 @@ emptyMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
   -- for 'lin'.
   ctxt = contexts ! lesson ! srcLang
   grammar = Muste.ctxtGrammar ctxt
-  parse = Muste.parseTTree grammar
   linTree = Muste.linearizeTree ctxt
-  match (LinToken path lin _) = LinToken path lin (matched path (parse srcTree) (parse trgTree))
-  lin t = match <$> linTree (parse t)
+  match (LinToken path lin _)
+    = LinToken path lin (matched path srcTree trgTree)
+  lin t = match <$> linTree t
   mkTree (lang, tree) = ServerTree lang tree (lin tree) mempty
 
