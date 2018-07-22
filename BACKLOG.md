@@ -1,6 +1,14 @@
 BACKLOG
 =======
 
+
+Pretty- print/parse for `TTree`?
+---
+
+It might make sense to have an instance of `Pretty` for `TTree` based
+on PGF parser/printer.  This will require us to make the grammar a
+field of `TTree`.  Perhaps we can do something similar for parsing?
+
 Set expiry on session cookie
 ---
 
