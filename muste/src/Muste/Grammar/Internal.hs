@@ -15,7 +15,6 @@ module Muste.Grammar.Internal
 import Prelude hiding (id)
 
 -- This might be the only place we should know of PGF
-import PGF hiding (readPGF)
 import qualified PGF
 import PGF.Internal as PGF hiding (funs, cats)
 import Data.List
@@ -45,7 +44,7 @@ instance Show Grammar where
     unwords (map (\r -> "\t" ++ show r ++ "\n") lrules)
 
 -- | Rename GF abstract syntax tree (from PGF)
-type GFAbsTree = Tree
+type GFAbsTree = PGF.Tree
 
 parseTTree :: Grammar -> String -> TTree
 -- parseTTree g s = gfAbsTreeToTTree g (read s :: GFAbsTree)
@@ -69,7 +68,7 @@ ttreeToGFAbsTree tree =
       let
         (nid,nts) = loop ns id
       in
-        if name == wildCard then (nid,mkApp wildCId nts) else (nid,mkApp (mkCId name) nts)
+        if name == wildCard then (nid,mkApp PGF.wildCId nts) else (nid,mkApp (PGF.mkCId name) nts)
   in
     snd $ convert tree 0
 
@@ -86,12 +85,12 @@ emptyGrammar :: Grammar
 emptyGrammar = Grammar wildCard [] [] emptyPGF
 
 -- | Predicate to check if a PGF is empty, i.e. when the absname is
--- wildCId
+-- PGF.wildCId
 isEmptyPGF :: PGF -> Bool
-isEmptyPGF pgf = absname pgf == wildCId
+isEmptyPGF pgf = absname pgf == PGF.wildCId
 
 -- | Predicate to check if a Grammar is empty, i.e. when the startcat
--- is wildCId and pgf is empty
+-- is PGF.wildCId and pgf is empty
 isEmptyGrammar :: Grammar -> Bool
 isEmptyGrammar grammar = startcat grammar == wildCard && isEmptyPGF (pgf grammar)
   
@@ -115,24 +114,24 @@ pgfToGrammar pgf
   | otherwise =
     let
       -- Get function names
-      funs = functions pgf
+      funs = PGF.functions pgf
       -- Get their types
       funtypes = map (getFunTypeWithPGF pgf) funs
       -- Combine to a rule
-      rules = zipWith Function (map showCId funs) funtypes
+      rules = zipWith Function (map PGF.showCId funs) funtypes
       -- Split in lexical and syntactical rules
       (lexrules,synrules) = partition (\r -> case r of { Function _ (Fun _ []) -> True ; _ -> False } ) rules
       -- Get the startcat from the PGF
-      (_, startcat, _) = unType (startCat pgf)
+      (_, startcat, _) = unType (PGF.startCat pgf)
     in
-      Grammar (showCId startcat) synrules lexrules pgf
+      Grammar (PGF.showCId startcat) synrules lexrules pgf
   where
     getFunTypeWithPGF :: PGF -> CId -> FunType
     getFunTypeWithPGF grammar id
       | isEmptyPGF grammar = NoType -- Empty grammar
       | otherwise =
         let
-          typ = functionType grammar id
+          typ = PGF.functionType grammar id
         in
           case typ of {
             Nothing -> NoType ; -- No type found in grammar
@@ -141,7 +140,7 @@ pgfToGrammar pgf
               (hypos,typeid,_exprs) = unType t
               cats = map (\(_,_,DTyp _ cat _) -> cat) hypos
             in
-              Fun (showCId typeid) (map showCId cats)
+              Fun (PGF.showCId typeid) (map PGF.showCId cats)
             }
 
 -- | Converts a @.pgf@ file to a 'Grammar'.
