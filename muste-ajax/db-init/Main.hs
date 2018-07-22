@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main (main) where
 
-import Data.String
 import Database.SQLite.Simple
 
 import qualified Config

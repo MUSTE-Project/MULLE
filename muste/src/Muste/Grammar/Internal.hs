@@ -153,3 +153,21 @@ readPGF grammarName = pgfToGrammar <$> PGF.readPGF grammarName
 brackets :: Grammar -> PGF.Language -> TTree -> [PGF.BracketedString]
 brackets grammar language ttree
   = PGF.bracketedLinearize (pgf grammar) language (ttreeToGFAbsTree ttree) :: [PGF.BracketedString]
+
+parseTTree :: Grammar -> String -> TTree
+parseTTree g = gfAbsTreeToTTree g . read
+
+-- | The function 'gfAbsTreeToTTree' creates a 'TTree' from an GFabstract syntax 'Tree' and a Grammar. Othewise  similar to gfAbsTreeToTTreeWithPGF
+gfAbsTreeToTTree :: Grammar -> GFAbsTree -> TTree
+gfAbsTreeToTTree g (EFun f) =
+  let
+    typ = getFunType g (PGF.showCId f)
+  in
+    TNode (PGF.showCId f) typ []
+gfAbsTreeToTTree g (EApp e1 e2) =
+  let
+    (TNode name typ sts) = gfAbsTreeToTTree g e1
+    st2 = gfAbsTreeToTTree g e2
+  in
+    TNode name typ (sts ++ [st2])
+gfAbsTreeToTTree _ _ = TMeta wildCard

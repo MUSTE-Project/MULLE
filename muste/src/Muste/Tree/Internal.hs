@@ -102,7 +102,7 @@ parseString f = \case
 -- commit 824245b5062e0b989ac70782be1ed4527b2ec903
 -- Author: Frederik Hanghøj Iversen <fhi.1990@gmail.com>
 -- Date:   Sun Jul 22 14:25:46 2018 +0200
-
+--
 --     [WIP] Experiment with different encodings
 instance FromJSON TTree where
   parseJSON = parseString (pure . read . toString)
