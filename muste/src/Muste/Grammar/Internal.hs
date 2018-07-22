@@ -1,3 +1,4 @@
+{-# language OverloadedStrings, TypeApplications #-}
 {- | This Module is the internal implementation behind the module 'Muste.Grammar' -}
 module Muste.Grammar.Internal
   ( Grammar(..)
@@ -7,7 +8,6 @@ module Muste.Grammar.Internal
   , getFunType
   , getAllRules
   , getRuleType
-  , parseTTree
   , readPGF
   , brackets
   )  where
@@ -18,15 +18,18 @@ import Prelude hiding (id)
 import qualified PGF
 import PGF.Internal as PGF hiding (funs, cats)
 import Data.List
--- import Muste.Feat hiding (startcat, pgf)
+import Data.Text.Prettyprint.Doc (Pretty(..))
+import qualified Data.Text.Prettyprint.Doc as Doc
+import Text.Printf
 
 import Muste.Common
 import Muste.Tree
 
--- | Type 'Rule' consists of a String as the function name and a 'FunType' as the Type
+-- | Type 'Rule' consists of a 'String' representing the function name
+-- and a 'FunType' representing its type.
 data Rule = Function String FunType deriving (Ord,Eq,Show,Read)
 
--- | Type 'Grammar' consists of a start categorie and a list of rules
+-- | Type 'Grammar' consists of a start category and a list of rules.
 data Grammar = Grammar {
   startcat :: String,
   synrules :: [Rule],
@@ -34,21 +37,19 @@ data Grammar = Grammar {
   pgf :: PGF
   }
 
--- FIXME: Do not use `Show` for this sort of thing.
--- | A 'Grammar' is in the Show class
-instance Show Grammar where
-  show (Grammar sCat srules lrules _) =
-    "Startcat: " ++ show sCat ++ "\nSyntactic Rules: \n" ++
-    unwords (map (\r -> "\t" ++ show r ++ "\n") srules)
-    ++ "\nLexical Rules: \n" ++
-    unwords (map (\r -> "\t" ++ show r ++ "\n") lrules)
+instance Pretty Grammar where
+  pretty (Grammar sCat srules lrules _) = Doc.sep
+    [ p "Startcat: %s" (show sCat)
+    , p "Syntactic Rules: %s" (s srules)
+    , p "Lexical Rules: %s" (s lrules)
+    ]
+    where
+    s = unwords . (map (\r -> "\t" ++ show r ++ "\n"))
+    p :: String -> String -> Doc.Doc ann
+    p frmt s = Doc.pretty @String $ printf frmt s
 
 -- | Rename GF abstract syntax tree (from PGF)
 type GFAbsTree = PGF.Tree
-
-parseTTree :: Grammar -> String -> TTree
--- parseTTree g s = gfAbsTreeToTTree g (read s :: GFAbsTree)
-parseTTree _ = read
 
 -- | Creates a GF abstract syntax Tree from a generic tree
 ttreeToGFAbsTree :: TTree -> GFAbsTree
