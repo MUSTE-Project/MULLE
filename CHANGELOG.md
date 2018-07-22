@@ -1,6 +1,11 @@
 Change log
 ==========
 
+HEAD
+----
+
+Add exercises for 'Secunda Pars'.
+
 0.2.0.1
 -------
 
