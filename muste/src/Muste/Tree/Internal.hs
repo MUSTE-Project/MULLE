@@ -23,7 +23,6 @@ import qualified PGF (CId, mkCId)
 
 import Data.Maybe
 import Data.Aeson
-import qualified Data.Aeson.Types as Aeson (Parser)
 import Data.Binary (Binary)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
@@ -31,17 +30,13 @@ import qualified Data.Text.Lazy as LText
 import qualified Data.Text.Lazy.Encoding as LText
 import qualified Data.Binary as Binary
 import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Base64.Lazy as B64
-import qualified Data.ByteString.Char8 as C8
 import GHC.Generics
 import Control.Monad.State
-import Control.Monad.Fail (MonadFail)
-import qualified Control.Monad.Fail as Fail
 import Data.String
 import Data.String.ToString
 
 import qualified Database.SQLite.Simple as SQL
-import Database.SQLite.Simple.ToField (ToField(toField))
+import Database.SQLite.Simple.ToField (ToField)
 import qualified Database.SQLite.Simple.ToField as SQL
 import Database.SQLite.Simple.FromField (FromField(fromField))
 import qualified Database.SQLite.Simple.FromField as SQL
@@ -91,58 +86,26 @@ foldlTTree f x t = case t of
   TNode nm tp xs -> f (foldl (foldlTTree f) x xs) (Left (nm, tp))
   TMeta cat      -> f x (Right cat)
 
--- traverseTTree
---   :: Applicative f
---   => (  Either (String, FunType) Category
---     -> f (Either (String, FunType) Category)
---     )
---   -> TTree
---   -> f TTree
--- traverseTTree f t = case t of
---   TNode nm tp xs -> (\xss -> _) <$> traverse (traverseTTree f) xs
---   TMeta cat      -> t <$ f (Right cat)
-
-eitherToFail :: MonadFail m => Either String a -> m a
-eitherToFail = \case
-  Left s -> Fail.fail s
-  Right a -> pure a
-
--- | Converts a piece of base 64 encoded 'Text' to a 'Binary'.
-base64FromText :: MonadFail m => Binary b => Text.Text -> m b
-base64FromText
-  = fmap Binary.decode . eitherToFail
-  . B64.decode . LBS.fromStrict . Text.encodeUtf8
-
--- | Converts a piece of base 64 encoded 'Text' to a 'Binary'.
-base64FromTextRead :: MonadFail m => Read b => Text.Text -> m b
-base64FromTextRead
-  = fmap (read . toString) . eitherToFail
-  . B64.decode . LBS.fromStrict . Text.encodeUtf8
-
-base64ParseJSON :: FromJSON a => Binary a => Value -> Aeson.Parser a
-base64ParseJSON = \case
-  (String s) -> base64FromText s
-  _ -> todo
-
 parseString :: (Text.Text -> p) -> Value -> p
 parseString f = \case
   (String s) -> f s
   _ -> todo
 
+-- I've experimented with different ways of serializing this data.
+-- Since the client don't need direct access to 'TTree''s it makes
+-- sense to just serialize this as efficiently as possible.  I though
+-- I was smart and that we could derive @Binary@ for 'TTree' and then
+-- use a base 64 encoding of this data, but this turned out to take up
+-- more space than the naive approach of just using show/read.  For
+-- more information please see this commit:
+--
+-- commit 824245b5062e0b989ac70782be1ed4527b2ec903
+-- Author: Frederik Hanghøj Iversen <fhi.1990@gmail.com>
+-- Date:   Sun Jul 22 14:25:46 2018 +0200
+
+--     [WIP] Experiment with different encodings
 instance FromJSON TTree where
   parseJSON = parseString (pure . read . toString)
-
--- | Converts a 'Binary' to a base 64 encoding piece of 'Text'.
-base64ToText :: Binary b => b -> Text.Text
-base64ToText
-  = LText.toStrict . LText.decodeUtf8
-  . B64.encode . Binary.encode
-
--- | Converts a 'Binary' to a base 64 encoding piece of 'Text'.
-base64ToTextShow :: Show b => b -> Text.Text
-base64ToTextShow
-  = LText.toStrict . LText.decodeUtf8
-  . B64.encode . fromString . show
 
 instance ToJSON TTree where
   toJSON = String . fromString . show
