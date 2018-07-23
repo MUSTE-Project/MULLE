@@ -41,6 +41,10 @@ data-files:
   - ./static/favicon.ico
   - ./static/muste.css
 
+# Relative paths disables Haskell's resource file mechanism. All paths
+# are resolved locally to where the `stack exec` command is executed.
+# See module `Config`.
+cpp-options: -DRELATIVE_PATHS
 
 dependencies:
   - base >= 4.8 && < 4.12

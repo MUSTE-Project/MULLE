@@ -9,7 +9,7 @@ import Snap.Http.Server
 import System.IO.Error
 import Control.Monad.IO.Class (liftIO)
 import Data.String
-
+import Snap.Util.CORS
 import qualified Protocol
 import qualified Config
 
@@ -41,8 +41,9 @@ getCfg = do
 
 -- | The main api.  For the protocol see @Protocol.apiRoutes@.
 apiInit :: SnapletInit a ()
-apiInit = makeSnaplet "api" "MUSTE API" Nothing $ void
-  $ addRoutes Protocol.apiRoutes
+apiInit = makeSnaplet "api" "MUSTE API" Nothing $ do
+  wrapSite (applyCORS defaultOptions)
+  void $ addRoutes Protocol.apiRoutes
 
 -- TODO Move @demo@ dir to @static@.
 -- | Serves static files in the @demo/@ directory.

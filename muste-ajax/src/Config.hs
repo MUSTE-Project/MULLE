@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module Config
   ( getGrammar
   , getDB
@@ -17,7 +18,11 @@ staticDir :: FilePath
 staticDir = "./static/"
 
 getStaticDir :: IO FilePath
+#ifdef RELATIVE_PATHS
+getStaticDir = pure staticDir
+#else
 getStaticDir = Paths.getDataFileName staticDir
+#endif
 
 -- FIXME Use haskell resource files for this.
 dataDir :: FilePath

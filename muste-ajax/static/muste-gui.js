@@ -325,12 +325,28 @@ function click_word(event) {
              : /* clicked.hasClass('space')? */ path
             );
         clear_selection();
-        var menus = DATA[lang].menu[selection];
-        while (!(menus && menus.length)) {
-            selection = next_selection(selection);
-            if (selection == null) return;
-            var menus = DATA[lang].menu[selection];
+
+        // A given `.clickable` have multiple menus associated with
+        // it.  By clicking multiple times on the same `.clickable`
+        // the user is presented with these different menus.  Return
+        // values mean:
+        //
+        //     null      -> Do not make a selection
+        //     string    -> Path to node.
+        //
+        // Also modifies `selection` from closure.
+        function getMenus(data) {
+            var menus = data[lang].menu[selection];
+            while (!(menus && menus.length)) {
+                selection = next_selection(selection);
+                if (selection == null) return null;
+                menus = data[lang].menu[selection];
+            }
+            return menus;
         }
+        var menus = getMenus(DATA);
+        console.info(menus);
+        if (menus === null) return;
 
         clicked.addClass('striked');
         $('#' + lang).find('.word')
