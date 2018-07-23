@@ -1,6 +1,11 @@
 BACKLOG
 =======
 
+Prune suggestions that can be reached in multiple steps
+---
+
+https://github.com/MUSTE-Project/MULLE/issues/5
+
 Better configuration support
 ---
 
@@ -23,14 +28,6 @@ their session?
 Move more parameters into location or query params
 ---
 
-Move demo-dir to "static"
----
-
-And manage with cabal resource paths.
-
-Use Haskell data files for e.g. the grammar files.
----
-
 Improved support for insertion
 ----
 
@@ -47,17 +44,12 @@ should be a make target that generates these files from
 Change representation from single tree to sets of trees.
 ---
 
-Multiple sentences can have the same linearized
-representation. Therefore one linearization must be associated with
-one or more abstract representations.
+https://github.com/MUSTE-Project/MULLE/issues/3
 
 Wide / narrow grammar
 ---
 
-Support for automatically generating 'wide' grammars from 'narrow' ones.
-
-The interface must also be extended to add support for "fixing
-mistakes".
+https://github.com/MUSTE-Project/MULLE/issues/4
 
 Do we want to keep supporting `muste-cgi`?
 ---
