@@ -1,6 +1,11 @@
 BACKLOG
 =======
 
+Better configuration support
+---
+
+E.g. using `optparse-applicative`.
+
 Pretty- print/parse for `TTree`?
 ---
 

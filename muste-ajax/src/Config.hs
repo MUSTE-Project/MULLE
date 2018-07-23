@@ -1,6 +1,7 @@
 module Config
   ( getGrammar
   , getDB
+  , getStaticDir
   , loggingEnabled
   , logFile
   , demoDir
@@ -12,9 +13,15 @@ import System.FilePath
 
 import qualified Paths_muste_ajax as Paths
 
+staticDir :: FilePath
+staticDir = "./static/"
+
+getStaticDir :: IO FilePath
+getStaticDir = Paths.getDataFileName staticDir
+
 -- FIXME Use haskell resource files for this.
 dataDir :: FilePath
-dataDir = "data/"
+dataDir = "./data/"
 
 grammarDir :: FilePath
 grammarDir = dataDir </> "gf/compiled/novo_modo/"

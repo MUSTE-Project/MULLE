@@ -7,6 +7,7 @@ import Snap hiding (setPort)
 import Snap.Util.FileServe (serveDirectory)
 import Snap.Http.Server
 import System.IO.Error
+import Control.Monad.IO.Class (liftIO)
 
 import qualified Protocol
 import qualified Config
@@ -34,8 +35,9 @@ apiInit = makeSnaplet "api" "MUSTE API" Nothing $ void
 -- TODO Move @demo@ dir to @static@.
 -- | Serves static files in the @demo/@ directory.
 staticInit :: SnapletInit a ()
-staticInit = makeSnaplet "static" "Static file server" Nothing
-  $ void $ addRoutes [("", serveDirectory "demo")]
+staticInit = makeSnaplet "static" "Static file server" Nothing $ do
+  dir <- liftIO Config.getStaticDir
+  void $ addRoutes [("", serveDirectory dir)]
 
 -- | Handler for api requests and serving file serving.
 appInit :: SnapletInit b ()
