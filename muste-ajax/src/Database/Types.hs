@@ -68,7 +68,7 @@ type FinishedExercise =
   , Text -- ^ @sourceTree@
   , Text -- ^ @targetTree@
   , Text -- ^ @lesson@
-  , Numeric -- ^ @time@
+  , NominalDiffTime -- ^ @time@
   , Numeric -- ^ @clickCount@
   , Numeric -- ^ @round@
   )
