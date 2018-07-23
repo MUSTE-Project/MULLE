@@ -318,7 +318,7 @@ finishExercise
   :: Connection
   -> String -- ^ Token
   -> T.Text -- ^ Lesson
-  -> UTCTime -- ^ Time
+  -> NominalDiffTime -- ^ Time elapsed
   -> Integer -- ^ Clicks
   -> IO ()
 finishExercise conn token lesson time clicks = do

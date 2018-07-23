@@ -196,7 +196,7 @@ handleMenuRequest
   :: String -- ^ Token
   -> T.Text -- ^ Lesson
   -> Integer -- ^ Clicks
-  -> UTCTime -- ^ Time
+  -> NominalDiffTime -- ^ Time elapsed
   -> ClientTree -- ^ Source tree
   -> ClientTree -- ^ Target tree
   -> Protocol v w ServerMessage

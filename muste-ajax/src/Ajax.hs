@@ -63,7 +63,7 @@ data ClientMessage
   | CMMenuRequest
     { clesson :: T.Text
     , cscore :: Integer
-    , ctime :: UTCTime
+    , ctime :: NominalDiffTime
     , ca :: ClientTree
     , cb :: ClientTree
     }
