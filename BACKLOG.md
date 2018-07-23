@@ -34,9 +34,7 @@ Use Haskell data files for e.g. the grammar files.
 Improved support for insertion
 ----
 
-We need a way for users to insert new nodes into adjunction trees.
-This may be achieved by simply having the back alternate between
-suggesting replacements for syntactically close nodes.
+https://github.com/MUSTE-Project/MULLE/issues/2
 
 Automatically generate .pgf files
 ---
