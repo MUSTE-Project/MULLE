@@ -23,18 +23,6 @@ Move demo-dir to "static"
 
 And manage with cabal resource paths.
 
-General refactoring
--------------------
-
-Remove `LTree`. `LTree` is currently not exported from `muste-lib`, it
-is however used internally. E.g. in `linearizeTree` which is used in
-the ajax-backend.
-
-Use framework for (de-) serializing values when storing in database.
----
-
-Make `FromROW` instances for data types.
-
 Use Haskell data files for e.g. the grammar files.
 ---
 
@@ -90,10 +78,3 @@ can change the upstream dependency.  Please follow the discussion at
 Currently we depend on a fork of GF with only the Haskell runtime.
 The reason for this is that the above mentioned repo is absolutely
 *huge*.
-
-Rename stack.yamls
----
-
-The name ought to refer to the GHC version.  Also, there should just
-be one stack.yaml in the root of the project that manages both
-packages -- see e.g. the `stack.yaml` in `digestive-functors`.
