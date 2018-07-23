@@ -319,11 +319,25 @@ function click_word(event) {
         function next_selection(sel) {
             return sel ? sel.slice(0, sel.length-1) : null;
         }
-        var selection =
-            (clicked.hasClass('striked') ? next_selection($('#menus').data('selection'))
-             : clicked.hasClass('word') ? path
-             : /* clicked.hasClass('space')? */ path
-            );
+        function getSelection() {
+            if (clicked.hasClass('striked')) {
+                return next_selection($('#menus').data('selection'));
+            }
+            else if (clicked.hasClass('word')) {
+                return path;
+            }
+            else if (clicked.hasClass('space')) {
+                // Alternate between clicking `clicked`'s neighbors.
+                // TODO Unimplemented.
+                return path;
+            }
+            else {
+                // Fallback.  Just try to return `path`, maybe it'll
+                // work.
+                return path;
+            }
+        }
+        var selection = getSelection();
         clear_selection();
 
         // A given `.clickable` have multiple menus associated with
