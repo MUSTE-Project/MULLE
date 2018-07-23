@@ -2,6 +2,8 @@ module Config
   ( getGrammar
   , getDB
   , getStaticDir
+  , getErrorLog
+  , getAccessLog
   , loggingEnabled
   , webPrefix
   , port
@@ -29,6 +31,21 @@ getGrammar f = Paths.getDataFileName $ grammarDir </> f <.> "pgf"
 
 getDB :: IO FilePath
 getDB = Paths.getDataFileName $ dataDir </> "muste.db"
+
+-- FIXME Should we maybe log to the current dir (rather than the
+-- shared resource returned by Haskells data-files construct) or to
+-- /var/log/?
+logDir :: FilePath
+logDir = "./log/"
+
+getLogDir :: IO FilePath
+getLogDir = Paths.getDataFileName logDir
+
+getAccessLog :: IO FilePath
+getAccessLog = (</> "access.log") <$> getLogDir
+
+getErrorLog :: IO FilePath
+getErrorLog = (</> "error.log") <$> getLogDir
 
 -- FIXME Handle this with CPP
 -- | Switch loggin on/off
