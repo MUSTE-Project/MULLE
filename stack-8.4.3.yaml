@@ -25,3 +25,6 @@ extra-deps:
     - digestive-functors
     - digestive-functors-heist
     - digestive-functors-snap
+# User goal `sqlite-simple`
+- git: git@github.com:MUSTE-Project/sqlite-simple.git
+  commit: f3fc8c89068b6e34fbe680c000d33ab9999d03cc

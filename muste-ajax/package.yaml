@@ -37,7 +37,7 @@ dependencies:
   - wai
   - warp
   - http-types
-  - sqlite-simple
+  - sqlite-simple >= 0.4.16.1
   - QuickCheck
   - snap
   - snap-core
