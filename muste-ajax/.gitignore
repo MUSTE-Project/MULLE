@@ -1,4 +1,1 @@
 *.cabal
-
-# FIXME Handle this with Haskell resource files
-log/

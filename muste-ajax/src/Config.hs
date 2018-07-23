@@ -3,8 +3,6 @@ module Config
   , getDB
   , getStaticDir
   , loggingEnabled
-  , logFile
-  , demoDir
   , webPrefix
   , port
   ) where
@@ -36,14 +34,6 @@ getDB = Paths.getDataFileName $ dataDir </> "muste.db"
 -- | Switch loggin on/off
 loggingEnabled :: Bool
 loggingEnabled = True
-
-logFile :: FilePath
-logFile = "messagelog.txt"
-
--- FIXME Use haskell resource files for this.
--- FIXME Rename to @static@.
-demoDir :: FilePath
-demoDir = "demo"
 
 webPrefix :: FilePath
 webPrefix = "/"

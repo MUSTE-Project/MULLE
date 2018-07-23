@@ -15,7 +15,31 @@ flags:
 ghc-options: -fmax-valid-substitutions=0
 
 data-files:
-  - data/gf/compiled/novo_modo/*.pgf
+  - ./data/gf/compiled/novo_modo/*.pgf
+  - ./log/*.log
+  - ./static/index.html
+  - ./static/muste.html
+  - ./static/cgi-simulation/muste-backend.js
+  - ./static/cgi-simulation/prima.js
+  - ./static/cgi-simulation/GF.js
+  - ./static/muste-haste.css
+  - ./static/muste-haste.html
+  - ./static/img/menu.jpg
+  - ./static/img/menu2.jpg
+  - ./static/img/menu1.jpg
+  - ./static/img/congrats.jpg
+  - ./static/img/unfinished.jpg
+  - ./static/img/finished.jpg
+  - ./static/img/logout.jpg
+  - ./static/img/statistics.jpg
+  - ./static/img/exercise.jpg
+  - ./static/img/lessonlist.jpg
+  - ./static/img/disabled.jpg
+  - ./static/jquery-1.11.1.min.js
+  - ./static/muste-gui.js
+  - ./static/instructions.html
+  - ./static/favicon.ico
+  - ./static/muste.css
 
 
 dependencies:
