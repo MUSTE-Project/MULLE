@@ -35,6 +35,7 @@ library:
     - sqlite-simple
     - tostring
     - prettyprinter
+    - mono-traversable
 
   exposed-modules:
     - Muste

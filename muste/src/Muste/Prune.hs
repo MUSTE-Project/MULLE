@@ -1,3 +1,7 @@
+{-# Language
+    GeneralizedNewtypeDeriving
+  , TypeFamilies
+#-}
 -- FIXME Should this be an internal module? It's not currently used in
 -- @muste-ajax@.
 module Muste.Prune
@@ -8,15 +12,57 @@ module Muste.Prune
 
 import Control.Monad
 import Data.List (sort, nub)
+import qualified Data.Containers      as Mono
+import Data.MonoTraversable
+import qualified Data.Map.Strict      as M
 
 import Muste.Common
 import Muste.Tree
 import Muste.Grammar
 
--- FIXME Make abstract?
 -- | @AdjunctionTrees@ really is a map from a @Category@ to a set of
 -- trees that have this category.
-type AdjunctionTrees = [(Category, [TTree])]
+newtype AdjunctionTrees
+  = AdjunctionTrees (M.Map Category [TTree])
+  deriving (MonoFunctor)
+
+type instance Element AdjunctionTrees = [TTree]
+
+instance MonoFoldable AdjunctionTrees where
+  ofoldl'    f a (AdjunctionTrees m) = ofoldl' f a m
+  ofoldr     f a (AdjunctionTrees m) = ofoldr f a m
+  ofoldMap   f (AdjunctionTrees m)   = ofoldMap f m
+  ofoldr1Ex  f (AdjunctionTrees m)   = ofoldr1Ex f m
+  ofoldl1Ex' f (AdjunctionTrees m)   = ofoldl1Ex' f m
+
+instance MonoTraversable AdjunctionTrees where
+  otraverse f (AdjunctionTrees m) = AdjunctionTrees <$> otraverse f m
+
+instance Semigroup AdjunctionTrees where
+  AdjunctionTrees a <> AdjunctionTrees b = AdjunctionTrees $ a <> b
+
+instance Monoid AdjunctionTrees where
+  mempty = AdjunctionTrees mempty
+
+instance GrowingAppend AdjunctionTrees where
+
+instance Mono.SetContainer AdjunctionTrees where
+  type ContainerKey AdjunctionTrees = Category
+  member k     (AdjunctionTrees m) = Mono.member k m
+  notMember k  (AdjunctionTrees m) = Mono.notMember k m
+  union        (AdjunctionTrees a) (AdjunctionTrees b) = AdjunctionTrees $ a `Mono.union` b
+  intersection (AdjunctionTrees a) (AdjunctionTrees b) = AdjunctionTrees $ a `Mono.intersection` b
+  difference   (AdjunctionTrees a) (AdjunctionTrees b) = AdjunctionTrees $ a `Mono.difference` b
+  keys         (AdjunctionTrees m) = Mono.keys m
+
+instance Mono.IsMap AdjunctionTrees where
+  type MapValue AdjunctionTrees = [TTree]
+  lookup c       (AdjunctionTrees m) = Mono.lookup c m
+  singletonMap c t                   = AdjunctionTrees $ Mono.singletonMap c t
+  mapFromList as                     = AdjunctionTrees $ Mono.mapFromList as
+  insertMap k vs (AdjunctionTrees m) = AdjunctionTrees $ Mono.insertMap k vs m
+  deleteMap k    (AdjunctionTrees m) = AdjunctionTrees $ Mono.deleteMap k m
+  mapToList      (AdjunctionTrees m) = Mono.mapToList m
 
 -- FIXME We are not using the grammar. Is this a mistake?
 -- | @'collectSimilarTrees' grammar adjTrees baseTree@ collects all
@@ -36,35 +82,50 @@ collectSimilarTrees :: Grammar -> AdjunctionTrees -> TTree -> [(Path, TTree, [(I
 collectSimilarTrees _grammar adjTrees basetree =
     do path <- getAllPaths basetree
        let Just tree = selectNode basetree path
-       let simtrees = similarTreesForSubtree tree
-       let simtrees' = [sim | sim@(cost, t'', _, _) <- simtrees,
-                        not $ or [ cost' < cost && treeDiff t' t'' < cost | (cost', t', _, _) <- simtrees ]]
+       let simtrees = similarTreesForSubtree tree adjTrees
+       let simtrees' =
+             [ sim
+               | sim@(cost, t'', _, _) <- simtrees
+               , not $ or
+                 [ cost' < cost && treeDiff t' t'' < cost
+                 | (cost', t', _, _) <- simtrees
+                 ]
+             ]
        return (path, tree, simtrees')
-    where
-      similarTreesForSubtree :: TTree -> [(Int, TTree, TTree, TTree)]
-      similarTreesForSubtree tree@(TNode _ (Fun cat _) _) = 
-          do let Just adjTreesForCat = lookup cat adjTrees
-             (pruned, branches) <- pruneTree tree
-             let funs = getFunctions pruned
-             -- guard $ noDuplicates funs
-             let metas = getMetas pruned
-             pruned' <- adjTreesForCat
-             ---- Alternative 1a: the root must change (==> fewer trees)
-             -- guard $ not (sameRoot pruned pruned')
-             ---- Alternative 1b: it's ok if two different children change (==> more trees)
-             -- guard $ not (exactlyOneChildDiffers pruned pruned')
-             ---- Alternative 1c: the pruned trees should not share any functions (==> even fewer trees)
-             let funs' = getFunctions pruned'
-             -- guard $ noDuplicates funs'
-             guard $ funs `areDisjoint` funs'
-             ---- Alternative 2a: all branches are put back into the new tree (==> fewer trees)
-             guard $ metas == getMetas pruned'
-             ---- Alternative 2b: some branches may be removed from the new tree (==> more trees)
-             -- guard $ isSubList metas (getMetas pruned')
-             tree' <- insertBranches branches pruned'
-             return (treeDiff tree tree', tree', pruned, pruned')
-      similarTreesForSubtree _
-        = error "Prune.collectSimiliarTrees: Non-exhaustive pattern match"
+
+similarTreesForSubtree
+  :: TTree
+  -> AdjunctionTrees
+  -> [
+    ( Int -- ^ Cost
+    , TTree
+    , TTree
+    , TTree
+    )
+  ]
+similarTreesForSubtree tree@(TNode _ (Fun cat _) _) adjTrees =
+    do let Just adjTreesForCat = Mono.lookup cat adjTrees
+       (pruned, branches) <- pruneTree tree
+       let funs = getFunctions pruned
+       -- guard $ noDuplicates funs
+       let metas = getMetas pruned
+       pruned' <- adjTreesForCat
+       ---- Alternative 1a: the root must change (==> fewer trees)
+       -- guard $ not (sameRoot pruned pruned')
+       ---- Alternative 1b: it's ok if two different children change (==> more trees)
+       -- guard $ not (exactlyOneChildDiffers pruned pruned')
+       ---- Alternative 1c: the pruned trees should not share any functions (==> even fewer trees)
+       let funs' = getFunctions pruned'
+       -- guard $ noDuplicates funs'
+       guard $ funs `areDisjoint` funs'
+       ---- Alternative 2a: all branches are put back into the new tree (==> fewer trees)
+       guard $ metas == getMetas pruned'
+       ---- Alternative 2b: some branches may be removed from the new tree (==> more trees)
+       -- guard $ isSubList metas (getMetas pruned')
+       tree' <- insertBranches branches pruned'
+       return (treeDiff tree tree', tree', pruned, pruned')
+similarTreesForSubtree _ _
+  = error "Prune.collectSimiliarTrees: Non-exhaustive pattern match"
 
 -- | Returns an ordered list with all functions in a tree.
 getFunctions :: TTree -> [Rule]
@@ -143,16 +204,16 @@ pruneTree tree = [(t, bs) | (t, bs, _) <- pt [] tree]
 -- This is calculated by the Levenshtein distance between the list of
 -- function nodes in each of the trees
 treeDiff :: TTree -> TTree -> Int
-treeDiff s t = editDistance (getNodes s) (getNodes t)
-    where getNodes (TMeta cat) = ["?" ++ cat]
-          getNodes (TNode fun _ children) = fun : concatMap getNodes children
-
+treeDiff s t = getNodes s `editDistance` getNodes t
+  where
+  getNodes (TMeta cat) = ["?" ++ cat]
+  getNodes (TNode fun _ children) = fun : concatMap getNodes children
 
 -- | Finds all @AdjunctionTrees@ from a specified 'Grammar'.  That is;
 -- a mapping from a @Category@ to all trees in the specified 'Grammar'
 -- that have this type.
 getAdjunctionTrees :: Grammar -> AdjunctionTrees
-getAdjunctionTrees grammar = [(cat, map fst (adjTrees cat [])) | cat <- allCats]
+getAdjunctionTrees grammar = Mono.mapFromList ((\cat -> (cat, map fst (adjTrees cat []))) <$> allCats)
     where allRules :: [Rule]
           allRules = getAllRules grammar
           allCats :: [String]
