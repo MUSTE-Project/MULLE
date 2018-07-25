@@ -84,10 +84,25 @@ collectSimilarTrees _grammar adjTrees basetree = go <$> getAllPaths basetree
       -- And then additionally filter some out...
 
 -- FIXME Quadratic in the length of 'simtrees'
+--
 -- FIXME Shouldn't the condition that the edge between two nodes is
--- less than or equal to the cost be vacously true?
--- | For each tree ensure that no other tree has a lower cost - or
--- that the edge between them is less than the cost.
+-- less than or equal to the cost be vacously true? -- No! This is the
+-- whole point.  Consider the following graph of costs:
+--
+--     orig: [(a, 2), (b, 4)]
+--     a   : [(b, 1)]
+--
+-- After calculating the shortest path (which I assume is what is
+-- stored in a 'SimTree'.  We get the folloing graph:
+--
+--     orig: [(a, 2), (b, 3)]
+--
+-- And here it can be seen that the shortest path from @orig@ to @b@
+-- is cheaper than the edge cost.  So therefore, we must *exclude* the
+-- edge @(orig, b)@ from the result.
+-- | If the direct edge to another node is more expensive than the
+-- shortest path, then it means we can reach this tree via a series of
+-- other edits, so we exclude this.
 onlyKeepCheapest :: [SimTree] -> [SimTree]
 onlyKeepCheapest simtrees = do
   sim@(cost, t, _, _) <- simtrees
