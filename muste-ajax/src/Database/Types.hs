@@ -31,66 +31,66 @@ type Blob = ByteString
 type Numeric = Integer
 
 type User =
-  ( Text -- ^ @username@
-  , Blob -- ^ @password@
-  , Blob -- ^ @salt@
-  , Bool -- ^ @enabled@
+  ( Text -- @username@
+  , Blob -- @password@
+  , Blob -- @salt@
+  , Bool -- @enabled@
   )
 
 type Session =
-  ( Text -- ^ @user@
-  , Text -- ^ @token@
-  , UTCTime -- ^ @starttime@
-  , UTCTime -- ^ @lastActive@
+  ( Text -- @user@
+  , Text -- @token@
+  , UTCTime -- @starttime@
+  , UTCTime -- @lastActive@
   )
 
 -- Probably should be @(Blob, Blob, Text, Numeric)@
 type Exercise =
-  ( Text -- ^ @sourceTree@
-  , Text -- ^ @targetTree@
-  , Text -- ^ @lesson@
-  , Numeric -- ^ @timeout@
+  ( Text -- @sourceTree@
+  , Text -- @targetTree@
+  , Text -- @lesson@
+  , Numeric -- @timeout@
   )
 
 type Lesson =
-  ( Text -- ^ @name@
-  , Text -- ^ @description@
-  , Text -- ^ @grammar@
-  , Text -- ^ @sourceLanguage@
-  , Text -- ^ @targetLanguage@
-  , Numeric -- ^ @exerciseCount@
-  , Bool -- ^ @enabled@
-  , Bool -- ^ @repeatable@
+  ( Text -- @name@
+  , Text -- @description@
+  , Text -- @grammar@
+  , Text -- @sourceLanguage@
+  , Text -- @targetLanguage@
+  , Numeric -- @exerciseCount@
+  , Bool -- @enabled@
+  , Bool -- @repeatable@
   )
 
 type FinishedExercise =
-  ( Text -- ^ @user@
-  , Text -- ^ @sourceTree@
-  , Text -- ^ @targetTree@
-  , Text -- ^ @lesson@
-  , NominalDiffTime -- ^ @time@
-  , Numeric -- ^ @clickCount@
-  , Numeric -- ^ @round@
+  ( Text -- @user@
+  , Text -- @sourceTree@
+  , Text -- @targetTree@
+  , Text -- @lesson@
+  , NominalDiffTime -- @time@
+  , Numeric -- @clickCount@
+  , Numeric -- @round@
   )
 
 type StartedLesson =
-  ( Text -- ^ @lesson@
-  , Text -- ^ @user@
-  , Numeric -- ^ @round@
+  ( Text -- @lesson@
+  , Text -- @user@
+  , Numeric -- @round@
   )
 
 type FinishedLesson =
-  ( Text -- ^ @lesson@
-  , Text -- ^ @user@
-  , Numeric -- ^ @time@
-  , Numeric -- ^ @clickCount@
-  , Numeric -- ^ @round@
+  ( Text -- @lesson@
+  , Text -- @user@
+  , Numeric -- @time@
+  , Numeric -- @clickCount@
+  , Numeric -- @round@
   )
 
 type ExerciseList =
-  ( Text -- ^ @user@
-  , Text -- ^ @sourceTree@
-  , Text -- ^ @targetTree@
-  , Text -- ^ @lesson@
-  , Numeric -- ^ @round@
+  ( Text -- @user@
+  , Text -- @sourceTree@
+  , Text -- @targetTree@
+  , Text -- @lesson@
+  , Numeric -- @round@
   )

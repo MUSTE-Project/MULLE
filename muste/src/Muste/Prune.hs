@@ -22,8 +22,8 @@ import Muste.AdjunctionTrees
 -- * Replacing trees
 
 -- | @'replaceTrees' grammar adjTs tree@ finds all trees similar to
--- @tree@ in @adjTrees@.  Return a mapping from 'Path''s to the tree
--- you get when you replace one of the valid trees into that given
+-- @tree@ in @adjTs@.  Return a mapping from 'Path''s to the tree you
+-- get when you replace one of the valid trees into that given
 -- position along with the "cost" of doing so.
 replaceTrees :: Grammar -> AdjunctionTrees -> TTree -> Map Path [(Int, TTree)]
 replaceTrees grammar precomputed tree = M.fromList (go <$> collectSimilarTrees grammar precomputed tree)
