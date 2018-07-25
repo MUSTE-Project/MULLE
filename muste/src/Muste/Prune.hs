@@ -6,8 +6,8 @@
 -- @muste-ajax@.
 module Muste.Prune
   ( AdjunctionTrees
-  , collectSimilarTrees
   , getAdjunctionTrees
+  , replaceTrees
   ) where
 
 import Control.Monad
@@ -20,6 +20,12 @@ import Data.Maybe
 import Muste.Common
 import Muste.Tree
 import Muste.Grammar
+
+
+-- * Adjunction trees
+--
+-- Interfacint with 'AdjunctionTrees' is done using the interface for
+-- monomorphic map containers.
 
 -- | @AdjunctionTrees@ really is a map from a @Category@ to a set of
 -- trees that have this category.
@@ -65,16 +71,31 @@ instance Mono.IsMap AdjunctionTrees where
   deleteMap k    (AdjunctionTrees m) = AdjunctionTrees $ Mono.deleteMap k m
   mapToList      (AdjunctionTrees m) = Mono.mapToList m
 
+
+-- * Replacing trees
 
--- Returns a list of @(path, tree, [(cost, tree', pruned, pruned')])@:
+-- | @'replaceTrees' grammar adjTs tree@ finds all trees similar to
+-- @tree@ in @adjTrees@.  Return a mapping from 'Path''s to the tree
+-- you get when you replace one of the valid trees into that given
+-- position along with the "cost" of doing so.
+replaceTrees :: Grammar -> AdjunctionTrees -> TTree -> [(Path, [(Int, TTree)])]
+replaceTrees grammar precomputed tree = do
+  (path, _, trees) <- collectSimilarTrees grammar precomputed tree
+  pure (path, replaceTree tree path <$> trees)
+
+-- | @'replaceTree' trees@ returns a list of @(cost, t)@ where
+-- @t@ is a new tree arising from the 'SimTree'.
+replaceTree :: TTree -> Path -> SimTree -> (Int, TTree)
+replaceTree tree path (cost, subtree, _, _) = (cost, replaceNode tree path subtree)
+
+-- | A simtree is calculated given a pair @(path, origTree)@ of
+-- @('Path', 'TTree')@.  It consists of @(cost, tree, pruned,
+-- pruned')@ where.
 --
---  * @path@ is the @Path@ to the subtree that is replaced
---  * @cost@ is the edit distance between @tree@ and @tree'@
---  * @tree@ is the original subtree (at position @path@)
---  * @tree'@ is the new similar subtree (at position @path@)
+--  * @cost@ is the edit distance between @tree@ and @origTree@
+--  * @tree@ is the new similar subtree.
 --  * @pruned@ is the original pruned subtree (at position @path@)
 --  * @pruned'@ is the new similar pruned subtree (at position @path@)
-
 type SimTree = (Int, TTree, TTree, TTree)
 
 -- | A replacement tree describes possible replacements in a sub tree
@@ -86,19 +107,13 @@ type SimTree = (Int, TTree, TTree, TTree)
 -- possible replacements are given by 'replacements'.
 type ReplacementTree = (Path, TTree, [SimTree])
 
--- | The original sub tree and the path to it in the original tree.
-originalSubTree :: ReplacementTree -> (Path, TTree)
-originalSubTree = undefined
-
-replacements :: ReplacementTree -> [SimTree]
-replacements = undefined
-
 -- FIXME We are not using the grammar. Is this a mistake
 -- | @'collectSimilarTrees' grammar adjTrees baseTree@ grammar
 -- adjTrees baseTree@ collects all similar trees of a given
 -- @baseTree@, according to a 'Grammar' @grammar@, by first pruning
 -- the tree, then generating all similar pruned trees, then putting
--- all pruned branches back in.
+-- all pruned branches back in.  The candidates where we look for
+-- similar trees is in @adjTrees@.
 --
 -- A simliar tree is given by @ReplacementTree@.
 collectSimilarTrees

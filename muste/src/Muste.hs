@@ -19,7 +19,7 @@ import Data.Aeson
 
 import Muste.Tree
 import Muste.Grammar
-import Muste.Prune
+import qualified Muste.Prune as Prune
 import Muste.Linearization
 import Muste.Linearization.Internal (Linearization, mkLinearization)
 
@@ -43,18 +43,29 @@ instance ToJSON CostTree where
     , "tree"  .= tree
     ]
 
+-- | @'getPrunedSuggestions' ctxt tree@ finds all trees similar to
+-- @tree@ in @ctxt@.  Return a mapping from 'Path''s to the
+-- @CostTree@'s you get when you replace one of the valid trees into
+-- that given position along with the "cost" of doing so.
+--
+-- These cost trees are supposed to be grouped somehow, I don't quite
+-- remember what the idea with this is, but currently the outermost
+-- list is always a singleton.
 getPrunedSuggestions :: Context -> TTree -> [(Path, [[CostTree]])]
 getPrunedSuggestions ctxt tree = do
-  (path, _, trees) <- collectSimilarTrees grammar precomputed tree
-  pure $ (path, foo trees path)
+  (path, ts) <- Prune.replaceTrees (ctxtGrammar ctxt) (ctxtPrecomputed ctxt) tree
+  -- pure $ (path, costTrees path trees)
+  pure $ (path, costTrees path ts)
     where
-    grammar = ctxtGrammar ctxt
-    precomputed = ctxtPrecomputed ctxt
-    foo trees path = pure $ do
-      (cost, subtree, _, _) <- trees
-      let fullTree = replaceNode tree path subtree
-          lin = mkLinearization <$> linearizeTree ctxt fullTree
-      pure $ CostTree cost lin fullTree
+    costTrees :: Path -> [(Int, TTree)] -> [[CostTree]]
+    costTrees path trees = pure $ uncurry (costTree ctxt) <$> trees
+
+-- | Creates a 'CostTree' from a tree and it's cost.  Since the cost
+-- is already calculated, it basically just linearizes the tree.
+costTree :: Context -> Int -> TTree -> CostTree
+costTree ctxt cost fullTree = CostTree cost lin fullTree
+  where
+  lin = mkLinearization <$> linearizeTree ctxt fullTree
 
 filterCostTrees :: [(Path, [[CostTree]])] -> [(Path, [[CostTree]])]
 filterCostTrees trees =
