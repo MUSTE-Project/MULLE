@@ -15,6 +15,7 @@ import Data.List (sort, nub)
 import qualified Data.Containers      as Mono
 import Data.MonoTraversable
 import qualified Data.Map.Strict      as M
+import Data.Maybe
 
 import Muste.Common
 import Muste.Tree
@@ -64,12 +65,7 @@ instance Mono.IsMap AdjunctionTrees where
   deleteMap k    (AdjunctionTrees m) = AdjunctionTrees $ Mono.deleteMap k m
   mapToList      (AdjunctionTrees m) = Mono.mapToList m
 
--- FIXME We are not using the grammar. Is this a mistake?
--- | @'collectSimilarTrees' grammar adjTrees baseTree@ collects all
--- similar trees of a given @baseTree@, according to a 'Grammar', by
--- first pruning the tree, then generating all similar pruned trees,
--- then putting all pruned branches back in
---
+
 -- Returns a list of @(path, tree, [(cost, tree', pruned, pruned')])@:
 --
 --  * @path@ is the @Path@ to the subtree that is replaced
@@ -78,52 +74,90 @@ instance Mono.IsMap AdjunctionTrees where
 --  * @tree'@ is the new similar subtree (at position @path@)
 --  * @pruned@ is the original pruned subtree (at position @path@)
 --  * @pruned'@ is the new similar pruned subtree (at position @path@)
-collectSimilarTrees :: Grammar -> AdjunctionTrees -> TTree -> [(Path, TTree, [(Int, TTree, TTree, TTree)])]
-collectSimilarTrees _grammar adjTrees basetree =
-    do path <- getAllPaths basetree
-       let Just tree = selectNode basetree path
-       let simtrees = similarTreesForSubtree tree adjTrees
-       let simtrees' =
-             [ sim
-               | sim@(cost, t'', _, _) <- simtrees
-               , not $ or
-                 [ cost' < cost && treeDiff t' t'' < cost
-                 | (cost', t', _, _) <- simtrees
-                 ]
-             ]
-       return (path, tree, simtrees')
+
+type SimTree = (Int, TTree, TTree, TTree)
+
+-- | A replacement tree describes possible replacements in a sub tree
+-- with respect to some originating tree.  The original tree is not
+-- retrievable from this type, but values of 'ReplacementTree' are
+-- calculated (from 'collectSimilarTrees') given some initial tree.
+--
+-- Replacements are done at the subtree 'originalSubTree', and the
+-- possible replacements are given by 'replacements'.
+type ReplacementTree = (Path, TTree, [SimTree])
+
+-- | The original sub tree and the path to it in the original tree.
+originalSubTree :: ReplacementTree -> (Path, TTree)
+originalSubTree = undefined
+
+replacements :: ReplacementTree -> [SimTree]
+replacements = undefined
+
+-- FIXME We are not using the grammar. Is this a mistake
+-- | @'collectSimilarTrees' grammar adjTrees baseTree@ grammar
+-- adjTrees baseTree@ collects all similar trees of a given
+-- @baseTree@, according to a 'Grammar' @grammar@, by first pruning
+-- the tree, then generating all similar pruned trees, then putting
+-- all pruned branches back in.
+--
+-- A simliar tree is given by @ReplacementTree@.
+collectSimilarTrees
+  :: Grammar
+  -> AdjunctionTrees
+  -> TTree
+  -> [ReplacementTree]
+collectSimilarTrees _grammar adjTrees basetree = go <$> getAllPaths basetree
+  where
+  go :: Path -> ReplacementTree
+  go path = (path, tree, simtrees)
+    where
+      err = error "Muste.Prune.collectSimilarTrees: Incongruence with 'getAllPaths'"
+      tree = fromMaybe err $ selectNode basetree path
+      -- Get similar trees.
+      simtrees = onlyKeepCheapest $ similarTreesForSubtree tree adjTrees
+      -- And then additionally filter some out...
+
+-- FIXME Quadratic in the length of 'simtrees'
+-- FIXME Shouldn't the condition that the edge between two nodes is
+-- less than or equal to the cost be vacously true?
+-- | For each tree ensure that no other tree has a lower cost - or
+-- that the edge between them is less than the cost.
+onlyKeepCheapest :: [SimTree] -> [SimTree]
+onlyKeepCheapest simtrees = do
+  sim@(cost, t, _, _) <- simtrees
+  guard $ not $ or $ do
+    (cost', t', _, _) <- simtrees
+    pure $ cost' < cost && t' `treeDiff` t < cost
+  pure sim
 
 similarTreesForSubtree
   :: TTree
   -> AdjunctionTrees
-  -> [
-    ( Int -- ^ Cost
-    , TTree
-    , TTree
-    , TTree
-    )
-  ]
-similarTreesForSubtree tree@(TNode _ (Fun cat _) _) adjTrees =
-    do let Just adjTreesForCat = Mono.lookup cat adjTrees
-       (pruned, branches) <- pruneTree tree
-       let funs = getFunctions pruned
-       -- guard $ noDuplicates funs
-       let metas = getMetas pruned
-       pruned' <- adjTreesForCat
-       ---- Alternative 1a: the root must change (==> fewer trees)
-       -- guard $ not (sameRoot pruned pruned')
-       ---- Alternative 1b: it's ok if two different children change (==> more trees)
-       -- guard $ not (exactlyOneChildDiffers pruned pruned')
-       ---- Alternative 1c: the pruned trees should not share any functions (==> even fewer trees)
-       let funs' = getFunctions pruned'
-       -- guard $ noDuplicates funs'
-       guard $ funs `areDisjoint` funs'
-       ---- Alternative 2a: all branches are put back into the new tree (==> fewer trees)
-       guard $ metas == getMetas pruned'
-       ---- Alternative 2b: some branches may be removed from the new tree (==> more trees)
-       -- guard $ isSubList metas (getMetas pruned')
-       tree' <- insertBranches branches pruned'
-       return (treeDiff tree tree', tree', pruned, pruned')
+  -> [SimTree]
+similarTreesForSubtree tree@(TNode _ (Fun cat _) _) adjTrees = do
+  let
+    err = error $ "Muste.Prune.similarTreesForSubtree: "
+      <> "The given category does not exist in the adjunction tree"
+    adjTreesForCat = fromMaybe err $ Mono.lookup cat adjTrees
+  (pruned, branches) <- pruneTree tree
+  let funs = getFunctions pruned
+  -- guard $ noDuplicates funs
+  let metas = getMetas pruned
+  pruned' <- adjTreesForCat
+  ---- Alternative 1a: the root must change (==> fewer trees)
+  -- guard $ not (sameRoot pruned pruned')
+  ---- Alternative 1b: it's ok if two different children change (==> more trees)
+  -- guard $ not (exactlyOneChildDiffers pruned pruned')
+  ---- Alternative 1c: the pruned trees should not share any functions (==> even fewer trees)
+  let funs' = getFunctions pruned'
+  -- guard $ noDuplicates funs'
+  guard $ funs `areDisjoint` funs'
+  ---- Alternative 2a: all branches are put back into the new tree (==> fewer trees)
+  guard $ metas == getMetas pruned'
+  ---- Alternative 2b: some branches may be removed from the new tree (==> more trees)
+  -- guard $ isSubList metas (getMetas pruned')
+  tree' <- insertBranches branches pruned'
+  return (tree `treeDiff` tree', tree', pruned, pruned')
 similarTreesForSubtree _ _
   = error "Prune.collectSimiliarTrees: Non-exhaustive pattern match"
 
