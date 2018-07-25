@@ -7,8 +7,11 @@ module Muste.Prune
 
 import Control.Monad
 import Data.List (sort, nub)
-import qualified Data.Containers      as Mono
+import Data.MonoTraversable
+import qualified Data.Containers as Mono
 import Data.Maybe
+import Data.Map (Map)
+import qualified Data.Map as M
 
 import Muste.Common
 import Muste.Tree
@@ -22,10 +25,11 @@ import Muste.AdjunctionTrees
 -- @tree@ in @adjTrees@.  Return a mapping from 'Path''s to the tree
 -- you get when you replace one of the valid trees into that given
 -- position along with the "cost" of doing so.
-replaceTrees :: Grammar -> AdjunctionTrees -> TTree -> [(Path, [(Int, TTree)])]
-replaceTrees grammar precomputed tree = do
-  (path, _, trees) <- collectSimilarTrees grammar precomputed tree
-  pure (path, replaceTree tree path <$> trees)
+replaceTrees :: Grammar -> AdjunctionTrees -> TTree -> Map Path [(Int, TTree)]
+replaceTrees grammar precomputed tree = M.fromList (go <$> collectSimilarTrees grammar precomputed tree)
+  where
+  go :: ReplacementTree -> (Path, [(Int, TTree)])
+  go (path, _, trees) = (path, replaceTree tree path <$> trees)
 
 -- | @'replaceTree' trees@ returns a list of @(cost, t)@ where
 -- @t@ is a new tree arising from the 'SimTree'.

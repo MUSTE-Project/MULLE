@@ -51,14 +51,13 @@ instance ToJSON CostTree where
 -- These cost trees are supposed to be grouped somehow, I don't quite
 -- remember what the idea with this is, but currently the outermost
 -- list is always a singleton.
-getPrunedSuggestions :: Context -> TTree -> [(Path, [[CostTree]])]
-getPrunedSuggestions ctxt tree = do
-  (path, ts) <- Prune.replaceTrees (ctxtGrammar ctxt) (ctxtPrecomputed ctxt) tree
-  -- pure $ (path, costTrees path trees)
-  pure $ (path, costTrees path ts)
-    where
-    costTrees :: Path -> [(Int, TTree)] -> [[CostTree]]
-    costTrees path trees = pure $ uncurry (costTree ctxt) <$> trees
+getPrunedSuggestions :: Context -> TTree -> M.Map Path [[CostTree]]
+getPrunedSuggestions ctxt tree = go `M.mapWithKey` Prune.replaceTrees (ctxtGrammar ctxt) (ctxtPrecomputed ctxt) tree
+  where
+  go :: Path -> [(Int, TTree)] -> [[CostTree]]
+  go path ts = costTrees path ts
+  costTrees :: Path -> [(Int, TTree)] -> [[CostTree]]
+  costTrees path trees = pure $ uncurry (costTree ctxt) <$> trees
 
 -- | Creates a 'CostTree' from a tree and it's cost.  Since the cost
 -- is already calculated, it basically just linearizes the tree.
@@ -67,23 +66,18 @@ costTree ctxt cost fullTree = CostTree cost lin fullTree
   where
   lin = mkLinearization <$> linearizeTree ctxt fullTree
 
-filterCostTrees :: [(Path, [[CostTree]])] -> [(Path, [[CostTree]])]
+filterCostTrees :: M.Map Path [[CostTree]] -> M.Map Path [[CostTree]]
 filterCostTrees trees =
   let
-    filtered1, filtered2 :: [(Path, [[CostTree]])]
+    filtered1, filtered2 :: M.Map Path [[CostTree]]
     -- remove trees of cost 0
-    filtered1 = [(p, [[t | t@(CostTree c _ _) <- ts, c /= 0] | ts <- tss]) | (p, tss) <- trees]
+    filtered1 = (\tss -> [[t | t@(CostTree c _ _) <- ts, c /= 0] | ts <- tss]) <$> trees
     -- remove empty menus
-    filtered2 = [r | r@(_p,tss) <- filtered1, tss /= [] && tss /= [[]]]
+    filtered2 = M.filter (\tss -> not (null tss) && not (null (head tss))) filtered1
     -- sort by cost
     compareCostTrees (CostTree c1 _ _) (CostTree c2 _ _) = compare c1 c2
-    sorted = [(p, [sortBy compareCostTrees ts | ts <- tss]) | (p, tss) <- filtered2]
   in
-    sorted
+    (\tss -> sortBy compareCostTrees <$> tss) <$> filtered2
 
 getCleanMenu :: Context -> TTree -> M.Map Path [[CostTree]]
-getCleanMenu context tree = M.fromList $ filterCostTrees $ getPrunedSuggestions context tree
-
-{-# deprecated showTTree "use @show@" #-}
-showTTree :: TTree -> String
-showTTree = show
+getCleanMenu context tree = filterCostTrees $ getPrunedSuggestions context tree
