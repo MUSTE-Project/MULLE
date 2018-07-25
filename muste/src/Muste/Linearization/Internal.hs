@@ -20,6 +20,7 @@ import qualified Muste.Grammar.Internal as Grammar
   ( brackets
   , readPGF
   )
+import Muste.AdjunctionTrees
 
 import Muste.Prune
 

@@ -50,6 +50,7 @@ library:
     - Muste.Tree.Internal
     - Muste.Grammar.Internal
     - Muste.Linearization.Internal
+    - Muste.AdjunctionTrees
 
 # Retired for now.
 # fredefox [2018-07-20]
