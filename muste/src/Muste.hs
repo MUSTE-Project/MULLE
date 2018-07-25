@@ -44,19 +44,17 @@ instance ToJSON CostTree where
     ]
 
 getPrunedSuggestions :: Context -> TTree -> [(Path, [[CostTree]])]
-getPrunedSuggestions ctxt tree =
-    [ (path, [[ CostTree cost lin fullTree |
-                (cost, subtree, _, _) <- trees,
-                let fullTree = replaceNode tree path subtree,
-                let lin = mkLinearization
-                      <$> linearizeTree ctxt fullTree
-                -- let lin = [Linearization p l | (LinToken p l _) <- linearizeTree ctxt fullTree]
-              ]]) |
-      (path, _, trees) <- collectSimilarTrees grammar precomputed tree
-    ]
+getPrunedSuggestions ctxt tree = do
+  (path, _, trees) <- collectSimilarTrees grammar precomputed tree
+  pure $ (path, foo trees path)
     where
     grammar = ctxtGrammar ctxt
     precomputed = ctxtPrecomputed ctxt
+    foo trees path = pure $ do
+      (cost, subtree, _, _) <- trees
+      let fullTree = replaceNode tree path subtree
+          lin = mkLinearization <$> linearizeTree ctxt fullTree
+      pure $ CostTree cost lin fullTree
 
 filterCostTrees :: [(Path, [[CostTree]])] -> [(Path, [[CostTree]])]
 filterCostTrees trees =
