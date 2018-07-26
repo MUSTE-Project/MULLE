@@ -1,13 +1,29 @@
 Change log
 ==========
 
-HEAD
+0.2.0.2
 ----
 
 Depend on gf straight from the source after they split up the runtime
 from the core application.
 
 Add exercises for 'Secunda Pars'.
+
+Remove bitrotten test cases.
+
+Add single test case for issue #5: Prune suggestions that can be
+reached in multiple steps.
+
+Put authentication token in header.
+
+Use Haskell data files.
+
+Add exercises from "Secunda Pars"
+
+Remove unnecessary un- and re- marshalling of data-types.  Use more
+efficient data-structures, like maps rather than lists of tuples.
+
+Put (some) AJAX params in request path.
 
 0.2.0.1
 -------
