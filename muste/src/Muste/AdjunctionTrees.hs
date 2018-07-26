@@ -18,7 +18,7 @@ import Muste.Tree
 -- trees that have this category.
 newtype AdjunctionTrees
   = AdjunctionTrees (M.Map Category [TTree])
-  deriving (MonoFunctor)
+  deriving (Show, MonoFunctor)
 
 type instance Element AdjunctionTrees = [TTree]
 

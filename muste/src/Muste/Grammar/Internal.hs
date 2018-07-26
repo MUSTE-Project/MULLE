@@ -10,6 +10,9 @@ module Muste.Grammar.Internal
   , getRuleType
   , readPGF
   , brackets
+  -- Used in test module
+  , parseTTree
+  , ttreeToGFAbsTree
   )  where
 
 import Prelude hiding (id)

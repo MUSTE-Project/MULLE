@@ -14,28 +14,31 @@ flags:
     default: false
 
 source-dirs:
-  - src/
+- src/
+
+dependencies:
+- base >= 4.8
+- sqlite-simple
+- containers >= 0.5
+- aeson
+- mtl
+- aeson
+- pgf >=3.7
+- binary
+- text
+- bytestring
+- base64-bytestring
+- tostring
+- prettyprinter
+- mono-traversable
+- base >=4.8
 
 library:
-  other-extensions:    FlexibleInstances
+  other-extensions:
+    FlexibleInstances
 
   dependencies:
-    - base >=4.8
     - pgf >=3.7
-    - QuickCheck >= 2.8
-    - containers >= 0.5
-    - aeson
-    - mtl
-    - aeson
-    - pgf >=3.7
-    - binary
-    - text
-    - bytestring
-    - base64-bytestring
-    - sqlite-simple
-    - tostring
-    - prettyprinter
-    - mono-traversable
 
   exposed-modules:
     - Muste
@@ -52,17 +55,20 @@ library:
     - Muste.Linearization.Internal
     - Muste.AdjunctionTrees
 
-# Retired for now.
-# fredefox [2018-07-20]
-#
-# tests:
-#   foo-test:
-#     source-dirs:
-#       - test/
-#     main:                Test.hs
-#     ghc-options:
-#     - -threaded
-#     - -rtsopts
-#     - -with-rtsopts=-N
-#     dependencies:
-#     - muste
+tests:
+  test:
+    source-dirs:
+      - test/
+    main:
+      Test.hs
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - muste
+    - tasty
+    - QuickCheck
+    - HUnit
+    - tasty-hunit
+    - tasty-quickcheck
