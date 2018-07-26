@@ -131,6 +131,24 @@ instance ToJSON ClientMessage where
     where
       (|>) = createMessageObject
 
+-- TODO Model the relationship between @stree@ as a general
+-- relationship (i.e. not functional).  This is in adressing issue #3:
+-- "Change representation from single tree to sets of trees".  The
+-- challenge of course is that Haskell is a functional language (duh)
+-- and so don't model relational data as easily.  This SO post[1] has
+-- some nice insightful comments.  In particular a library @ixset@ is
+-- mentioned.  Going down that path would requre yanking out the
+-- fields and replacing them with another field @treeToken@ (better
+-- naming suggestions are welcome) this field should act just as a
+-- many-to-many relationship is modelled in a relational database.  Of
+-- course all this complexity can be hidden (at least in the Haskell
+-- source) by making the type of @treeToken@ abstract.  Similarly, if
+-- we at some point transition to another framework for the fron-end
+-- code we could write a wrapper around this functionality.  A risk
+-- here if we use a library (like e.g. @isxset@) is how much work is
+-- needed to replicate similar functionality for the serialized data.
+--
+-- [1]: https://stackoverflow.com/questions/9234205/safe-modelling-of-relational-data-in-haskell
 -- | 'ServerTree's represent the data needed to display a sentence in
 -- the GUI.  The naming is maybe not the best, but the reason it is
 -- called like that is simply because it is the data that the client
