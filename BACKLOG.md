@@ -1,6 +1,26 @@
 BACKLOG
 =======
 
+Restore bitrotten test-cases
+---
+
+As of
+
+    commit c3b02e22a06704322c0bc4fb576182f05b0a0ab2 (HEAD -> fredefox, origin/fredefox)
+    Author: Frederik Hanghøj Iversen <fhi.1990@gmail.com>
+    Date:   Thu Jul 26 09:58:24 2018 +0200
+
+        Remove bitrotten test cases, add test case for issue #5...
+
+        Issue #5: "Prune suggestions that can be reached in multiple
+        steps". https://github.com/MUSTE-Project/MULLE/issues/5
+
+The old bitrotten test cases have been removed. We should put some
+effort into restoring these and make them work after the recent
+refactorings.
+
+Issue #7: https://github.com/MUSTE-Project/MULLE/issues/7
+
 Use front end framework
 ---
 
