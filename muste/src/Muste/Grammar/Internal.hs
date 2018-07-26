@@ -1,21 +1,38 @@
+{-# language OverloadedStrings, TypeApplications #-}
 {- | This Module is the internal implementation behind the module 'Muste.Grammar' -}
-module Muste.Grammar.Internal where
+module Muste.Grammar.Internal
+  ( Grammar(..)
+  , Rule(..)
+  , pgfToGrammar
+  , isEmptyGrammar
+  , getFunType
+  , getAllRules
+  , getRuleType
+  , readPGF
+  , brackets
+  -- Used in test module
+  , parseTTree
+  , ttreeToGFAbsTree
+  )  where
 
 import Prelude hiding (id)
 
 -- This might be the only place we should know of PGF
-import PGF
+import qualified PGF
 import PGF.Internal as PGF hiding (funs, cats)
 import Data.List
--- import Muste.Feat hiding (startcat, pgf)
+import Data.Text.Prettyprint.Doc (Pretty(..))
+import qualified Data.Text.Prettyprint.Doc as Doc
+import Text.Printf
 
 import Muste.Common
 import Muste.Tree
 
--- | Type 'Rule' consists of a String as the function name and a 'FunType' as the Type
+-- | Type 'Rule' consists of a 'String' representing the function name
+-- and a 'FunType' representing its type.
 data Rule = Function String FunType deriving (Ord,Eq,Show,Read)
 
--- | Type 'Grammar' consists of a start categorie and a list of rules
+-- | Type 'Grammar' consists of a start category and a list of rules.
 data Grammar = Grammar {
   startcat :: String,
   synrules :: [Rule],
@@ -23,36 +40,19 @@ data Grammar = Grammar {
   pgf :: PGF
   }
 
--- FIXME: Do not use `Show` for this sort of thing.
--- | A 'Grammar' is in the Show class
-instance Show Grammar where
-  show (Grammar sCat srules lrules _) =
-    "Startcat: " ++ show sCat ++ "\nSyntactic Rules: \n" ++
-    unwords (map (\r -> "\t" ++ show r ++ "\n") srules)
-    ++ "\nLexical Rules: \n" ++
-    unwords (map (\r -> "\t" ++ show r ++ "\n") lrules)
+instance Pretty Grammar where
+  pretty (Grammar sCat srules lrules _) = Doc.sep
+    [ p "Startcat: %s" (show sCat)
+    , p "Syntactic Rules: %s" (s srules)
+    , p "Lexical Rules: %s" (s lrules)
+    ]
+    where
+    s = unwords . (map (\r -> "\t" ++ show r ++ "\n"))
+    p :: String -> String -> Doc.Doc ann
+    p frmt s = Doc.pretty @String $ printf frmt s
 
 -- | Rename GF abstract syntax tree (from PGF)
-type GFAbsTree = Tree
-
-parseTTree :: Grammar -> String -> TTree
--- parseTTree g s = gfAbsTreeToTTree g (read s :: GFAbsTree)
-parseTTree _ = read
-
--- | The function 'gfAbsTreeToTTree' creates a 'TTree' from an GFabstract syntax 'Tree' and a Grammar. Othewise  similar to gfAbsTreeToTTreeWithPGF
-gfAbsTreeToTTree :: Grammar -> GFAbsTree -> TTree
-gfAbsTreeToTTree g (EFun f) =
-  let
-    typ = getFunType g (showCId f)
-  in
-    TNode (showCId f) typ []
-gfAbsTreeToTTree g (EApp e1 e2) =
-  let
-    (TNode name typ sts) = gfAbsTreeToTTree g e1
-    st2 = gfAbsTreeToTTree g e2
-  in
-    TNode name typ (sts ++ [st2])
-gfAbsTreeToTTree _ _ = TMeta wildCard
+type GFAbsTree = PGF.Tree
 
 -- | Creates a GF abstract syntax Tree from a generic tree
 ttreeToGFAbsTree :: TTree -> GFAbsTree
@@ -72,7 +72,7 @@ ttreeToGFAbsTree tree =
       let
         (nid,nts) = loop ns id
       in
-        if name == wildCard then (nid,mkApp wildCId nts) else (nid,mkApp (mkCId name) nts)
+        if name == wildCard then (nid,mkApp PGF.wildCId nts) else (nid,mkApp (PGF.mkCId name) nts)
   in
     snd $ convert tree 0
 
@@ -89,12 +89,12 @@ emptyGrammar :: Grammar
 emptyGrammar = Grammar wildCard [] [] emptyPGF
 
 -- | Predicate to check if a PGF is empty, i.e. when the absname is
--- wildCId
+-- PGF.wildCId
 isEmptyPGF :: PGF -> Bool
-isEmptyPGF pgf = absname pgf == wildCId
+isEmptyPGF pgf = absname pgf == PGF.wildCId
 
 -- | Predicate to check if a Grammar is empty, i.e. when the startcat
--- is wildCId and pgf is empty
+-- is PGF.wildCId and pgf is empty
 isEmptyGrammar :: Grammar -> Bool
 isEmptyGrammar grammar = startcat grammar == wildCard && isEmptyPGF (pgf grammar)
   
@@ -118,24 +118,24 @@ pgfToGrammar pgf
   | otherwise =
     let
       -- Get function names
-      funs = functions pgf
+      funs = PGF.functions pgf
       -- Get their types
       funtypes = map (getFunTypeWithPGF pgf) funs
       -- Combine to a rule
-      rules = zipWith Function (map showCId funs) funtypes
+      rules = zipWith Function (map PGF.showCId funs) funtypes
       -- Split in lexical and syntactical rules
       (lexrules,synrules) = partition (\r -> case r of { Function _ (Fun _ []) -> True ; _ -> False } ) rules
       -- Get the startcat from the PGF
-      (_, startcat, _) = unType (startCat pgf)
+      (_, startcat, _) = unType (PGF.startCat pgf)
     in
-      Grammar (showCId startcat) synrules lexrules pgf
+      Grammar (PGF.showCId startcat) synrules lexrules pgf
   where
     getFunTypeWithPGF :: PGF -> CId -> FunType
     getFunTypeWithPGF grammar id
       | isEmptyPGF grammar = NoType -- Empty grammar
       | otherwise =
         let
-          typ = functionType grammar id
+          typ = PGF.functionType grammar id
         in
           case typ of {
             Nothing -> NoType ; -- No type found in grammar
@@ -144,5 +144,33 @@ pgfToGrammar pgf
               (hypos,typeid,_exprs) = unType t
               cats = map (\(_,_,DTyp _ cat _) -> cat) hypos
             in
-              Fun (showCId typeid) (map showCId cats)
+              Fun (PGF.showCId typeid) (map PGF.showCId cats)
             }
+
+-- | Converts a @.pgf@ file to a 'Grammar'.
+readPGF
+  :: FilePath -- ^ Path to the grammar.
+  -> IO Grammar
+readPGF grammarName = pgfToGrammar <$> PGF.readPGF grammarName
+
+brackets :: Grammar -> PGF.Language -> TTree -> [PGF.BracketedString]
+brackets grammar language ttree
+  = PGF.bracketedLinearize (pgf grammar) language (ttreeToGFAbsTree ttree) :: [PGF.BracketedString]
+
+parseTTree :: Grammar -> String -> TTree
+parseTTree g = gfAbsTreeToTTree g . read
+
+-- | The function 'gfAbsTreeToTTree' creates a 'TTree' from an GFabstract syntax 'Tree' and a Grammar. Othewise  similar to gfAbsTreeToTTreeWithPGF
+gfAbsTreeToTTree :: Grammar -> GFAbsTree -> TTree
+gfAbsTreeToTTree g (EFun f) =
+  let
+    typ = getFunType g (PGF.showCId f)
+  in
+    TNode (PGF.showCId f) typ []
+gfAbsTreeToTTree g (EApp e1 e2) =
+  let
+    (TNode name typ sts) = gfAbsTreeToTTree g e1
+    st2 = gfAbsTreeToTTree g e2
+  in
+    TNode name typ (sts ++ [st2])
+gfAbsTreeToTTree _ _ = TMeta wildCard

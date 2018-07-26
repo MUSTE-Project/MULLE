@@ -7,7 +7,6 @@ module Muste.Grammar
   , getFunType
   , getAllRules
   , getRuleType
-  , parseTTree
   ) where
 
 import Muste.Grammar.Internal

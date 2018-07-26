@@ -1,9 +1,11 @@
+{-# LANGUAGE CPP #-}
 module Config
   ( getGrammar
   , getDB
+  , getStaticDir
+  , getErrorLog
+  , getAccessLog
   , loggingEnabled
-  , logFile
-  , demoDir
   , webPrefix
   , port
   ) where
@@ -12,9 +14,19 @@ import System.FilePath
 
 import qualified Paths_muste_ajax as Paths
 
+staticDir :: FilePath
+staticDir = "./static/"
+
+getStaticDir :: IO FilePath
+#ifdef RELATIVE_PATHS
+getStaticDir = pure staticDir
+#else
+getStaticDir = Paths.getDataFileName staticDir
+#endif
+
 -- FIXME Use haskell resource files for this.
 dataDir :: FilePath
-dataDir = "data/"
+dataDir = "./data/"
 
 grammarDir :: FilePath
 grammarDir = dataDir </> "gf/compiled/novo_modo/"
@@ -25,18 +37,25 @@ getGrammar f = Paths.getDataFileName $ grammarDir </> f <.> "pgf"
 getDB :: IO FilePath
 getDB = Paths.getDataFileName $ dataDir </> "muste.db"
 
+-- FIXME Should we maybe log to the current dir (rather than the
+-- shared resource returned by Haskells data-files construct) or to
+-- /var/log/?
+logDir :: FilePath
+logDir = "./log/"
+
+getLogDir :: IO FilePath
+getLogDir = Paths.getDataFileName logDir
+
+getAccessLog :: IO FilePath
+getAccessLog = (</> "access.log") <$> getLogDir
+
+getErrorLog :: IO FilePath
+getErrorLog = (</> "error.log") <$> getLogDir
+
 -- FIXME Handle this with CPP
 -- | Switch loggin on/off
 loggingEnabled :: Bool
 loggingEnabled = True
-
-logFile :: FilePath
-logFile = "messagelog.txt"
-
--- FIXME Use haskell resource files for this.
--- FIXME Rename to @static@.
-demoDir :: FilePath
-demoDir = "demo"
 
 webPrefix :: FilePath
 webPrefix = "/"

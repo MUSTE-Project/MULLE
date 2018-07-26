@@ -1,6 +1,8 @@
 MULLE
 =====
-The [MUSTE](http://www.cse.chalmers.se/~peb/muste.html) Language Learning Environment is a framework to provide grammar-based language learning exercises.
+The [MUSTE](http://www.cse.chalmers.se/~peb/muste.html) Language
+Learning Environment is a framework to provide grammar-based language
+learning exercises.
 
 ## Dependencies
 
@@ -15,7 +17,7 @@ To setup one of the packages you need to select which GHC version you
 want to use.  Currently I've only tested this with 8.4.3.  To e.g. use
 this version do
 
-    ln -s stack-12.0.yaml stack.yaml
+    ln -s stack-8.4.3.yaml stack.yaml
 
 You can now simply build the projects with `stack build` and browse
 the Haddock documentation with `stack haddock --open`.

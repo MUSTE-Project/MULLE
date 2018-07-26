@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# language DeriveGeneric, LambdaCase #-}
 {- | This Module is the internal implementation behind the module 'Muste.Tree' -}
 module Muste.Tree.Internal
   ( Path
@@ -23,8 +23,23 @@ import qualified PGF (CId, mkCId)
 
 import Data.Maybe
 import Data.Aeson
+import Data.Binary (Binary)
+import qualified Data.Text as Text
+import qualified Data.Text.Encoding as Text
+import qualified Data.Text.Lazy as LText
+import qualified Data.Text.Lazy.Encoding as LText
+import qualified Data.Binary as Binary
+import qualified Data.ByteString.Lazy as LBS
 import GHC.Generics
 import Control.Monad.State
+import Data.String
+import Data.String.ToString
+
+import qualified Database.SQLite.Simple as SQL
+import Database.SQLite.Simple.ToField (ToField)
+import qualified Database.SQLite.Simple.ToField as SQL
+import Database.SQLite.Simple.FromField (FromField(fromField))
+import qualified Database.SQLite.Simple.FromField as SQL
 
 import Muste.Common
 
@@ -56,6 +71,8 @@ data TTree
    -- read/show instances for @CId@
   deriving (Ord, Eq, Show, Read, Generic)
 
+instance Binary TTree
+
 -- TODO Make generalized container for @TTree@ (i.e. kind @* -> *@,
 -- that way we can make suitable instances for @Foldable@,
 -- @Traversable@...
@@ -69,21 +86,50 @@ foldlTTree f x t = case t of
   TNode nm tp xs -> f (foldl (foldlTTree f) x xs) (Left (nm, tp))
   TMeta cat      -> f x (Right cat)
 
--- traverseTTree
---   :: Applicative f
---   => (  Either (String, FunType) Category
---     -> f (Either (String, FunType) Category)
---     )
---   -> TTree
---   -> f TTree
--- traverseTTree f t = case t of
---   TNode nm tp xs -> (\xss -> _) <$> traverse (traverseTTree f) xs
---   TMeta cat      -> t <$ f (Right cat)
+parseString :: (Text.Text -> p) -> Value -> p
+parseString f = \case
+  (String s) -> f s
+  _ -> todo
 
--- instance ToJSON TTree where
---     toEncoding = genericToEncoding defaultOptions
+-- I've experimented with different ways of serializing this data.
+-- Since the client don't need direct access to 'TTree''s it makes
+-- sense to just serialize this as efficiently as possible.  I though
+-- I was smart and that we could derive @Binary@ for 'TTree' and then
+-- use a base 64 encoding of this data, but this turned out to take up
+-- more space than the naive approach of just using show/read.  For
+-- more information please see this commit:
+--
+-- commit 824245b5062e0b989ac70782be1ed4527b2ec903
+-- Author: Frederik Hanghøj Iversen <fhi.1990@gmail.com>
+-- Date:   Sun Jul 22 14:25:46 2018 +0200
+--
+--     [WIP] Experiment with different encodings
+instance FromJSON TTree where
+  parseJSON = parseString (pure . read . toString)
 
-instance FromJSON TTree
+instance ToJSON TTree where
+  toJSON = String . fromString . show
+
+-- FIXME Do I really need to do two three steps of encoding?  Is it
+-- not possible to jump directly from binary to a 'Text.Text' (the
+-- strict variant).
+binaryToText :: Binary a => a -> Text.Text
+binaryToText = LText.toStrict . LText.decodeUtf8 . Binary.encode
+
+-- FIXME Similiar issue as for 'binaryToJSON'.
+binaryFromText :: Binary c => Text.Text -> c
+binaryFromText = Binary.decode . LBS.fromStrict . Text.encodeUtf8
+
+instance FromField TTree where
+  fromField fld = case SQL.fieldData fld of
+    SQL.SQLText t -> pure $ binaryFromText t
+    _ -> todo
+
+todo :: a
+todo = error "Muste.Tree.Internal: TODO More descriptive error message"
+
+instance ToField TTree where
+  toField = SQL.SQLText . binaryToText
 
 -- | The basic type of sentences and sentence formers.
 data FunType
@@ -94,10 +140,7 @@ data FunType
   | NoType
   deriving (Ord, Eq, Show, Read, Generic)
 
-instance ToJSON FunType where
-    toEncoding = genericToEncoding defaultOptions
-
-instance FromJSON FunType
+instance Binary FunType
 
 -- | Generic class for trees
 class Show t => TreeC t where

@@ -1,4 +1,1 @@
-messagelog.txt
-.stack-work/
-stack.yaml
-muste-ajax.cabal
+*.cabal

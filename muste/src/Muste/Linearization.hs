@@ -3,6 +3,7 @@ module Muste.Linearization
   , Context(ctxtGrammar, ctxtPrecomputed)
   , buildContext
   , linearizeTree
+  , langAndContext
   ) where
 
 import Muste.Linearization.Internal

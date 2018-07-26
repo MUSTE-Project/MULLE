@@ -14,8 +14,14 @@ var SERVER = "/api/"
 
 var MESSAGES =
   { LOGOUT: "logout"
+  // Must set authentication header
   , LOGIN: "login"
   , LESSONS: "lessons"
+  // Muste request the *name* of the lesson.  E.g:
+  //
+  //    /lesson/Prima+Pars
+  //
+  // TODO Would be more convenient if it was an id.
   , LESSON: "lesson"
   , MENU: "menu"
   };
@@ -78,8 +84,11 @@ function click_body(event) {
     }
 }
 
-
 function call_server(message, parameters) {
+  call_server_new(message, parameters, message + "/");
+}
+
+function call_server_new(message, parameters, endpoint) {
     if (typeof(SERVER) === "function") {
         handle_server_response(SERVER(message, parameters));
     }
@@ -88,13 +97,13 @@ function call_server(message, parameters) {
             cache: false,
             async: false,
             timeout: AjaxTimeout,
-            url: SERVER + message + "/",
+            url: SERVER + endpoint,
             dataType: "json",
 	        method: "POST",
 	        processData: false,
             data: JSON.stringify({message: message, parameters: parameters})
-        }).fail(function(jqxhr, status, error) {
-            alert_error(status, error);
+        }).fail(function(resp, status, error) {
+            console.error(resp.responseText);
         }).done(handle_server_response);
     }
 }
@@ -152,7 +161,7 @@ function select_lesson(evt) {
 
 function start_lesson(lesson) {
     TIMER_START = new Date().getTime();
-    call_server(MESSAGES.LESSON, {token: LOGIN_TOKEN, lesson: lesson});
+    call_server_new(MESSAGES.LESSON, {token: LOGIN_TOKEN, lesson: lesson}, MESSAGES.LESSON + "/" + lesson);
 }
 
 
@@ -310,18 +319,48 @@ function click_word(event) {
         function next_selection(sel) {
             return sel ? sel.slice(0, sel.length-1) : null;
         }
-        var selection =
-            (clicked.hasClass('striked') ? next_selection($('#menus').data('selection'))
-             : clicked.hasClass('word') ? path
-             : /* clicked.hasClass('space')? */ path
-            );
-        clear_selection();
-        var menus = DATA[lang].menu[selection];
-        while (!(menus && menus.length)) {
-            selection = next_selection(selection);
-            if (selection == null) return;
-            var menus = DATA[lang].menu[selection];
+        function getSelection() {
+            if (clicked.hasClass('striked')) {
+                return next_selection($('#menus').data('selection'));
+            }
+            else if (clicked.hasClass('word')) {
+                return path;
+            }
+            else if (clicked.hasClass('space')) {
+                // Alternate between clicking `clicked`'s neighbors.
+                // TODO Unimplemented.
+                return path;
+            }
+            else {
+                // Fallback.  Just try to return `path`, maybe it'll
+                // work.
+                return path;
+            }
         }
+        var selection = getSelection();
+        clear_selection();
+
+        // A given `.clickable` have multiple menus associated with
+        // it.  By clicking multiple times on the same `.clickable`
+        // the user is presented with these different menus.  Return
+        // values mean:
+        //
+        //     null      -> Do not make a selection
+        //     string    -> Path to node.
+        //
+        // Also modifies `selection` from closure.
+        function getMenus(data) {
+            var menus = data[lang].menu[selection];
+            while (!(menus && menus.length)) {
+                selection = next_selection(selection);
+                if (selection == null) return null;
+                menus = data[lang].menu[selection];
+            }
+            return menus;
+        }
+        var menus = getMenus(DATA);
+        console.info(menus);
+        if (menus === null) return;
 
         clicked.addClass('striked');
         $('#' + lang).find('.word')

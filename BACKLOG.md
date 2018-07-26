@@ -1,35 +1,62 @@
 BACKLOG
 =======
 
+Restore bitrotten test-cases
+---
+
+As of
+
+    commit c3b02e22a06704322c0bc4fb576182f05b0a0ab2 (HEAD -> fredefox, origin/fredefox)
+    Author: Frederik Hanghøj Iversen <fhi.1990@gmail.com>
+    Date:   Thu Jul 26 09:58:24 2018 +0200
+
+        Remove bitrotten test cases, add test case for issue #5...
+
+        Issue #5: "Prune suggestions that can be reached in multiple
+        steps". https://github.com/MUSTE-Project/MULLE/issues/5
+
+The old bitrotten test cases have been removed. We should put some
+effort into restoring these and make them work after the recent
+refactorings.
+
+Issue #7: https://github.com/MUSTE-Project/MULLE/issues/7
+
+Use front end framework
+---
+
+https://github.com/MUSTE-Project/MULLE/issues/6
+
+Prune suggestions that can be reached in multiple steps
+---
+
+https://github.com/MUSTE-Project/MULLE/issues/5
+
+Better configuration support
+---
+
+E.g. using `optparse-applicative`.
+
+Pretty- print/parse for `TTree`?
+---
+
+It might make sense to have an instance of `Pretty` for `TTree` based
+on PGF parser/printer.  This will require us to make the grammar a
+field of `TTree`.  Perhaps we can do something similar for parsing?
+
+Set expiry on session cookie
+---
+
+We have core logic for handling rejecting expired cookie.  HTTP also
+supports this notion, so why not let user agents know when we expire
+their session?
+
 Move more parameters into location or query params
----
-
-Move demo-dir to "static"
----
-
-And manage with cabal resource paths.
-
-General refactoring
--------------------
-
-Remove `LTree`. `LTree` is currently not exported from `muste-lib`, it
-is however used internally. E.g. in `linearizeTree` which is used in
-the ajax-backend.
-
-Use framework for (de-) serializing values when storing in database.
----
-
-Make `FromROW` instances for data types.
-
-Use Haskell data files for e.g. the grammar files.
 ---
 
 Improved support for insertion
 ----
 
-We need a way for users to insert new nodes into adjunction trees.
-This may be achieved by simply having the back alternate between
-suggesting replacements for syntactically close nodes.
+https://github.com/MUSTE-Project/MULLE/issues/2
 
 Automatically generate .pgf files
 ---
@@ -42,17 +69,12 @@ should be a make target that generates these files from
 Change representation from single tree to sets of trees.
 ---
 
-Multiple sentences can have the same linearized
-representation. Therefore one linearization must be associated with
-one or more abstract representations.
+https://github.com/MUSTE-Project/MULLE/issues/3
 
 Wide / narrow grammar
 ---
 
-Support for automatically generating 'wide' grammars from 'narrow' ones.
-
-The interface must also be extended to add support for "fixing
-mistakes".
+https://github.com/MUSTE-Project/MULLE/issues/4
 
 Do we want to keep supporting `muste-cgi`?
 ---
@@ -64,18 +86,3 @@ AFAIK CGI scripts just speak a different protocol from
 ---
 
 Do we need both representations?
-
-Depend only on GF's Haskell bindings
----
-
-There is currently discussion in GF about splitting the Haskell
-bindings into a seperate package/repo.  When this is implemented we
-can change the upstream dependency.  Please follow the discussion at
-[GF](https://github.com/GrammaticalFramework/GF/issues/47).
-
-Rename stack.yamls
----
-
-The name ought to refer to the GHC version.  Also, there should just
-be one stack.yaml in the root of the project that manages both
-packages -- see e.g. the `stack.yaml` in `digestive-functors`.

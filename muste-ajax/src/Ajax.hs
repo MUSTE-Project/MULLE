@@ -1,6 +1,9 @@
 {-# language
     OverloadedStrings
   , TypeApplications
+  , LambdaCase
+  , StandaloneDeriving
+  , GeneralizedNewtypeDeriving
 #-}
 module Ajax
   ( ServerTree(..)
@@ -22,6 +25,7 @@ import qualified Data.Map.Strict as Map
 import qualified Data.Vector as V
 import Data.Maybe
 import Control.Exception
+import Data.Time
 
 import Muste
 
@@ -33,7 +37,7 @@ instance Exception ReadTreeException
 
 data ClientTree = ClientTree {
   clanguage :: String,
-  ctree :: String
+  ctree :: TTree
   } deriving (Show) ;
 
 createMessageObject :: String -> Value -> Value
@@ -44,38 +48,26 @@ createMessageObject msg params =
   ]
 
 data ClientMessage
-  = CMNull
-  | CMLoginRequest
-    { cusername :: String
-    , cpassword :: String
+  = CMLoginRequest
+    { cusername :: T.Text
+    , cpassword :: T.Text
     }
   | CMMOTDRequest
-    { ctoken :: String
-    }
   | CMDataResponse
-    { ctoken :: String
-    , context :: String
+    { context :: String
     , cdata :: [(String, String)]
     }
-  | CMLessonsRequest
-    { ctoken :: String
-    }
   | CMLessonInit
-    { ctoken :: String
-    , clesson :: String
+    { clesson :: T.Text
     }
   | CMMenuRequest
-    { ctoken :: String
-    , clesson :: String
-    , cscore :: Int
-    , ctime :: Int
+    { clesson :: T.Text
+    , cscore :: Integer
+    , ctime :: NominalDiffTime
     , ca :: ClientTree
     , cb :: ClientTree
     }
-  | CMLogoutRequest
-    { ctoken :: String
-    }
-  deriving (Show) ;
+  deriving (Show)
 
 instance FromJSON ClientTree where
   parseJSON = withObject "ClientTree" $ \v -> ClientTree
@@ -83,100 +75,71 @@ instance FromJSON ClientTree where
     <*> v .: "tree"
 
 instance FromJSON ClientMessage where
-  parseJSON =
-    withObject "ClientMessage" $ \v ->
-    do
-      msg <- v .: "message" :: Parser Text
-      params <- v .: "parameters" :: Parser Object
-      case msg of {
-        "login" ->
-            CMLoginRequest
-            <$> params .: "username"
-            <*> params .: "password" ;
-        "CMMOTDRequest" ->
-            CMMOTDRequest
-            <$> params .: "token" ;
-        "CMDataResponse" ->
-            (do
-                ctoken <- params .: "token"
-                ccontext <- params .: "context"
-                cdata <- params .: "data"  :: Parser Value
-                carray <- case cdata of {
-                  Array a -> sequence $ V.toList $ V.map (withObject "Key-Value-Pair" $ \o -> do
-                                                             f <- o .: "field"
-                                                             v <- o .: "value"
-                                                             return (f,v)
-                                                         ) a ;
-                    _ -> error "Boo, not an array"
-                  }
-                return $ CMDataResponse ctoken ccontext carray
-            );
-            -- (o .: "field", o .: "value")
-        "lessons" ->
-            CMLessonsRequest
-            <$> params .: "token" ;
-        "lesson" ->
-            CMLessonInit
-            <$> params .: "token"
-            <*> params .: "lesson" ;
-        "menu" ->
-            CMMenuRequest
-             <$> params .: "token"
-             <*> params .: "lesson"
-             <*> params .: "score"
-             <*> params .: "time"
-             <*> params .: "a"
-             <*> params .: "b" ;
-        "logout" ->
-            CMLogoutRequest
-            <$> params .: "token" ;
-        _ -> error ( "Unexpected message " ++ show v)
-         }
+  parseJSON = withObject "ClientMessage" $ \v -> do
+    msg <- v .: "message" :: Parser Text
+    params <- v .: "parameters" :: Parser Object
+    case msg of
+      "login" -> CMLoginRequest <$> params .: "username" <*> params .: "password"
+      "CMMOTDRequest" -> pure CMMOTDRequest
+      "CMDataResponse" -> do
+        ccontext <- params .: "context"
+        cdata <- params .: "data"  :: Parser Value
+        carray <- case cdata of
+          Array a -> sequence
+            $ V.toList
+            $ V.map (withObject "Key-Value-Pair" $ \o -> do
+                                                     f <- o .: "field"
+                                                     v <- o .: "value"
+                                                     return (f,v)
+                                                 ) a ;
+            _ -> error "Boo, not an array"
+        return $ CMDataResponse ccontext carray
+          -- (o .: "field", o .: "value")
+      "lesson" -> CMLessonInit <$> params .: "lesson"
+      "menu" -> CMMenuRequest
+        <$> params .: "lesson"
+        <*> params .: "score"
+        <*> params .: "time"
+        <*> params .: "a"
+        <*> params .: "b"
+      _ -> error ( "Unexpected message " ++ show v)
 
 instance ToJSON ClientTree where
-    -- this generates a Value
-    toJSON (ClientTree tree language) =
-      object [
-      "tree" .= tree ,
-      "language" .= language
+    toJSON (ClientTree tree language) = object
+      [ "tree"     .= tree
+      , "language" .= language
       ]
 
 instance ToJSON ClientMessage where
-    -- this generates a Value
-  toJSON (CMLoginRequest username password) =
-    createMessageObject "CMLoginRequest" $ object [
-    "username" .= username ,
-    "password" .= password
-    ]
-  toJSON (CMMOTDRequest token) =
-    createMessageObject "CMMOTDRequest" $ object [
-    "token" .= token
-    ]
-  toJSON (CMDataResponse token context cdata) =
-    createMessageObject "CMDataResponse" $ object [
-    "token" .= token ,
-    "context" .= context ,
-    "data" .= map (\(k,v) -> object [ "field" .= k, "value" .= v ]) cdata
-    ]
-  toJSON (CMMenuRequest token lesson score time a b) =
-    createMessageObject "CMMenuRequest" $ object [
-    "token" .= token ,
-    "lesson" .= lesson ,
-    "score" .= score ,
-    "time" .= time ,
-    "a" .= a ,
-    "b" .= b
-    ]
-  toJSON (CMLogoutRequest token) =
-    createMessageObject "CMLogoutRequest" $ object [
-    "token" .= token
-    ]
+  toJSON = \case
+    (CMLoginRequest username password) -> "CMLoginRequest" |> object
+      [ "username" .= username
+      , "password" .= password
+      ]
+    CMMOTDRequest -> "CMMOTDRequest" |> object []
+    (CMDataResponse context cdata) -> "CMDataResponse" |> object
+      [ "context" .= context
+      , "data" .= map (\(k,v) -> object [ "field" .= k, "value" .= v ]) cdata
+      ]
+    (CMMenuRequest lesson score time a b) -> "CMMenuRequest" |> object
+      [ "lesson" .= lesson
+      , "score"  .= score
+      , "time"   .= time
+      , "a"      .= a
+      , "b"      .= b
+      ]
+    where
+      (|>) = createMessageObject
 
-data Menu = Menu (Map.Map Path [[CostTree]]) deriving (Show)
+newtype Menu = Menu (Map.Map Path [[CostTree]]) deriving (Show)
+
+deriving instance Semigroup Menu
+
+deriving instance Monoid Menu
 
 data ServerTree = ServerTree {
   slanguage :: String ,
-  stree :: String,
+  stree :: TTree,
   slin :: [LinToken] ,
   smenu :: Menu
   } deriving (Show) ;
@@ -193,15 +156,15 @@ data Lesson = Lesson {
   } deriving Show;
 
 data ServerMessage = SMNull
-                   | SMLoginSuccess { stoken :: String }
+                   | SMLoginSuccess { stoken :: T.Text }
                    | SMLoginFail
                    | SMMOTDResponse { sfilename :: String }
                    | SMSessionInvalid { serror :: String }
                    | SMLessonsList { slessions :: [Lesson] }
                    | SMMenuList {
-                       slesson :: String ,
+                       slesson :: T.Text ,
                        spassed :: Bool ,
-                       sclicks :: Int ,
+                       sclicks :: Integer ,
                        sa :: ServerTree ,
                        sb :: ServerTree
                        }
