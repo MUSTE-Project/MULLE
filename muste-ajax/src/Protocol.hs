@@ -275,7 +275,7 @@ assembleMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
   where
   grammar = Muste.ctxtGrammar (contexts ! lesson ! srcLang)
   getContext lang = contexts ! lesson ! lang
-  mkTree (lang, tree) = ServerTree lang tree lin (Menu $ Muste.getCleanMenu ctxt tree)
+  mkTree (lang, tree) = ServerTree lang tree lin (Muste.getCleanMenu ctxt tree)
     where
     ctxt = getContext lang
     lin = Muste.matchTk srcTree trgTree <$> Muste.linearizeTree ctxt tree

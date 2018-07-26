@@ -131,16 +131,19 @@ instance ToJSON ClientMessage where
     where
       (|>) = createMessageObject
 
-newtype Menu = Menu (Map.Map Path [[CostTree]]) deriving (Show)
-
-deriving instance Semigroup Menu
-
-deriving instance Monoid Menu
-
+-- | 'ServerTree's represent the data needed to display a sentence in
+-- the GUI.  The naming is maybe not the best, but the reason it is
+-- called like that is simply because it is the data that the client
+-- *receives* from the server (e.g. in the case of
+-- @\/api\/lesson\/:lesson@ or @\/api\/menu@).  When the client
+-- performs requests @ClientTree@ is used in stead.  I'm not entirely
+-- sure if this impedence mismatch is strictly necessary, but one
+-- reason for it of course is that less information is needed by the
+-- server when receiving a request for e.g. @\/api\/menu@.
 data ServerTree = ServerTree {
   slanguage :: String ,
   stree :: TTree,
-  slin :: [LinToken] ,
+  slin :: [LinToken],
   smenu :: Menu
   } deriving (Show) ;
 
@@ -173,10 +176,6 @@ data ServerMessage = SMNull
                    | SMDataInvalid { serror :: String }
                    | SMLogoutResponse
                    deriving (Show) ;
-
-instance FromJSON Menu where
-  parseJSON = withObject "CostTree" $ \v -> Menu
-    <$> v .: "menu"
 
 instance FromJSON ServerTree where
   parseJSON = withObject "ServerTree" $ \v -> ServerTree
@@ -226,10 +225,6 @@ instance FromJSON ServerMessage where
             SMDataInvalid <$> fromJust params .: "error" ;
         "SMLogoutResponse" -> return SMLogoutResponse ;
         }
-
-instance ToJSON Menu where
-    toJSON (Menu map) =
-      object [ (pack $ show k) .= (Map.!) map  k | k <- Map.keys map]
 
 instance ToJSON ServerTree where
     -- this generates a Value
