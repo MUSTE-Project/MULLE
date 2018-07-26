@@ -246,10 +246,6 @@ verifyMessage tok msg = do
     Nothing  -> msg
     Just err -> SMSessionInvalid err
 
--- | Checks if a linearization token matches in both trees
-matched :: Path -> TTree -> TTree -> Path
-matched p t1 t2 = if Muste.selectNode t1 p == Muste.selectNode t2 p then p else []
-
 initContexts
   :: MonadIO io
   => Connection
@@ -279,12 +275,10 @@ assembleMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
   where
   grammar = Muste.ctxtGrammar (contexts ! lesson ! srcLang)
   getContext lang = contexts ! lesson ! lang
-  match (LinToken path lin _)
-    = LinToken path lin (matched path srcTree trgTree)
   mkTree (lang, tree) = ServerTree lang tree lin (Menu $ Muste.getCleanMenu ctxt tree)
     where
     ctxt = getContext lang
-    lin = match <$> Muste.linearizeTree ctxt tree
+    lin = Muste.matchTk srcTree trgTree <$> Muste.linearizeTree ctxt tree
 
 emptyMenus
   :: Contexts
@@ -303,8 +297,6 @@ emptyMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
   ctxt = contexts ! lesson ! srcLang
   grammar = Muste.ctxtGrammar ctxt
   linTree = Muste.linearizeTree ctxt
-  match (LinToken path lin _)
-    = LinToken path lin (matched path srcTree trgTree)
-  lin t = match <$> linTree t
+  lin t = Muste.matchTk srcTree trgTree <$> linTree t
   mkTree (lang, tree) = ServerTree lang tree (lin tree) mempty
 

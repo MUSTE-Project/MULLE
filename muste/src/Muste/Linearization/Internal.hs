@@ -2,11 +2,12 @@
 module Muste.Linearization.Internal
   ( Context(ctxtGrammar, ctxtPrecomputed)
   , buildContext
-  , LinToken(LinToken)
+  , LinToken
   , Linearization
   , mkLinearization
   , linearizeTree
   , langAndContext
+  , matchTk
   ) where
 
 import Data.Aeson
@@ -137,3 +138,14 @@ bracketsToTuples tree bs = deep tree bs
   -- In the middle of the nodes
   broad ltree fid (bs:bss)
     ts = deep ltree bs <> broad ltree fid bss ts
+
+-- | @'matchTk' t0 t1 tk@ checks if a 'LinToken' matches both trees
+-- @t0@ and @t1@ and creates a new 'LinToken' indicating this.
+matchTk :: TTree -> TTree -> LinToken -> LinToken
+matchTk srcTree trgTree (LinToken path lin _)
+    = LinToken path lin (matched path srcTree trgTree)
+
+-- | Checks if a linearization token matches in both trees.  If they
+-- don't match, then the empty path is returned.
+matched :: Path -> TTree -> TTree -> Path
+matched p t1 t2 = if selectNode t1 p == selectNode t2 p then p else []
