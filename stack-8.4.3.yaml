@@ -4,10 +4,20 @@ packages:
 - ./muste/
 - ./muste-ajax/
 
+
 extra-deps:
 # - ../libs/GF/src/runtime/haskell/
-- git: git@github.com:MUSTE-Project/pgf.git
-  commit: c052f8245c8bf4846cf26f1748736d6af871a7d7
+- git: git@github.com:GrammaticalFramework/gf-core.git
+  commit: 636a8142b4ef3950d4d0e04b0be872590a204520
+  subdirs:
+  # Just list all directories with cabal files.
+  - ./
+  - src/example-based/        # gf-exb.cabal
+  - src/pgf-binary/           # pgf-binary.cabal
+  - src/runtime/haskell-bind/ # pgf2.cabal
+  - src/runtime/haskell/      # pgf.cabal
+  - src/server/               # gf-server.cabal
+  - src/tools/                # gf-tools.cabal
 - git: git@github.com:MUSTE-Project/haskell-cgi.git
   commit: b45aabe6ccfd5aa81c5883b25fef019d60e9d9d0
 # Needed to satisfy `snap`

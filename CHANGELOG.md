@@ -4,6 +4,9 @@ Change log
 HEAD
 ----
 
+Depend on gf straight from the source after they split up the runtime
+from the core application.
+
 Add exercises for 'Secunda Pars'.
 
 0.2.0.1
