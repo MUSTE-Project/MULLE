@@ -6,13 +6,14 @@
   , GeneralizedNewtypeDeriving
 #-}
 module Ajax
-  ( ServerTree(..)
+  ( ServerTree
   , ServerMessage(..)
   , ClientTree(..)
   , ClientMessage(..)
   , Menu(..)
   , Lesson(..)
   , decodeClientMessage
+  , mkServerTree
   ) where
 
 import Data.Aeson hiding (Null,String)
@@ -146,9 +147,12 @@ instance ToJSON ClientMessage where
 data ServerTree = ServerTree {
   slanguage :: String ,
   stree :: TTree,
-  slin :: [LinToken],
+  slin :: LinTokens,
   smenu :: Menu
   } deriving (Show) ;
+
+mkServerTree :: String -> TTree -> LinTokens -> Menu -> ServerTree
+mkServerTree = ServerTree
 
 data Lesson = Lesson {
   lname :: String,

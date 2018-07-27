@@ -25,7 +25,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Data.Time
 
-import Muste (Context, Path, TTree, LinToken(..))
+import Muste (Context, Path, TTree, LinTokens)
 import qualified Muste
 
 import Ajax
@@ -275,10 +275,10 @@ assembleMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
   where
   grammar = Muste.ctxtGrammar (contexts ! lesson ! srcLang)
   getContext lang = contexts ! lesson ! lang
-  mkTree (lang, tree) = ServerTree lang tree lin (Muste.getCleanMenu ctxt tree)
+  mkTree (lang, tree) = mkServerTree lang tree lin (Muste.getCleanMenu ctxt tree)
     where
     ctxt = getContext lang
-    lin = Muste.matchTk srcTree trgTree <$> Muste.linearizeTree ctxt tree
+    lin = Muste.mkLin ctxt srcTree trgTree tree
 
 emptyMenus
   :: Contexts
@@ -296,7 +296,6 @@ emptyMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
   -- for 'lin'.
   ctxt = contexts ! lesson ! srcLang
   grammar = Muste.ctxtGrammar ctxt
-  linTree = Muste.linearizeTree ctxt
-  lin t = Muste.matchTk srcTree trgTree <$> linTree t
-  mkTree (lang, tree) = ServerTree lang tree (lin tree) mempty
+  lin = Muste.mkLin ctxt srcTree trgTree
+  mkTree (lang, tree) = mkServerTree lang tree (lin tree) mempty
 
