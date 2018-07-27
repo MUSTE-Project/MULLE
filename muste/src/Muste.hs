@@ -29,16 +29,15 @@ import Muste.Tree
 import Muste.Grammar
 import qualified Muste.Prune as Prune
 import Muste.Linearization
-import Muste.Linearization.Internal
+import qualified Muste.Linearization.Internal as Linearization
   ( Linearization
-  , mkLinearization
   , linearizeTree
   )
 
 -- FIXME Change the projection `_tree` to be a `TTree`
 data CostTree = CostTree
   { _cost :: Int
-  , _lin :: [Linearization]
+  , _lin :: [Linearization.Linearization]
   , _tree :: TTree
   } deriving (Show,Eq)
 
@@ -74,9 +73,8 @@ getPrunedSuggestions ctxt tree = go `Map.mapWithKey` Prune.replaceTrees (ctxtGra
 -- | Creates a 'CostTree' from a tree and it's cost.  Since the cost
 -- is already calculated, it basically just linearizes the tree.
 costTree :: Context -> Int -> TTree -> CostTree
-costTree ctxt cost fullTree = CostTree cost lin fullTree
-  where
-  lin = mkLinearization $ linearizeTree ctxt fullTree
+costTree ctxt cost fullTree
+  = CostTree cost (Linearization.linearizeTree ctxt fullTree) fullTree
 
 filterCostTrees :: Map Path [[CostTree]] -> Menu
 filterCostTrees trees =

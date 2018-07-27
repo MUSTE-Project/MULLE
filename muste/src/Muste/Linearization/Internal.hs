@@ -4,7 +4,6 @@ module Muste.Linearization.Internal
   , buildContext
   , LinTokens
   , Linearization
-  , mkLinearization
   , linearizeTree
   , langAndContext
   , mkLin
@@ -93,8 +92,8 @@ buildContext grammar lang =
 -- Maybe fits better in the grammar.
 -- | The 'linearizeTree' function linearizes a @TTree@ to a list of
 -- tokens and paths to the nodes that create it
-linearizeTree :: Context -> TTree -> LinTokens
-linearizeTree (Context grammar language _) ttree =
+linearizeTreeAux :: Context -> TTree -> LinTokens
+linearizeTreeAux (Context grammar language _) ttree =
   let
     brackets = Grammar.brackets grammar language ttree
   in
@@ -103,6 +102,13 @@ linearizeTree (Context grammar language _) ttree =
       && not (null brackets)
     then bracketsToTuples ttree $ head brackets
     else LinTokens $ [LinToken [] "?0" []]
+
+
+-- @CostTree@'s use @['Linearization']@ and not 'LinTokens' as
+-- returned by 'linearizeTreeAux'.
+linearizeTree :: Context -> TTree -> [Linearization]
+linearizeTree ctxt tree = mkLinearization
+  $ linearizeTreeAux ctxt tree
 
 -- | Given a file path creates a mapping from the an identifier of the
 -- language to the 'Context' of that language.
@@ -168,4 +174,4 @@ mkLin
 mkLin ctxt srcTree trgTree tree
   = LinTokens $ matchTk srcTree trgTree <$> xs
   where
-    (LinTokens xs) = linearizeTree ctxt tree
+    (LinTokens xs) = linearizeTreeAux ctxt tree
