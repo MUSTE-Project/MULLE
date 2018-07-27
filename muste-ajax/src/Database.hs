@@ -19,6 +19,7 @@ import Crypto.Hash (Digest(..),SHA3_512(..),hash)
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as B
+import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Map.Lazy as M
@@ -32,7 +33,6 @@ import Control.Exception
 import Control.Monad.IO.Class
 
 import qualified Database.Types as Types
-
 
 -- TODO User transactions for most of these methods.
 
@@ -60,8 +60,8 @@ getLessons conn = liftIO $ query_ conn "select * from lesson;"
 
 createUser
   :: Connection
-  -> T.Text -- ^ Username
-  -> T.Text -- ^ Password
+  -> Text -- ^ Username
+  -> Text -- ^ Password
   -> Bool -- ^ User enabled
   -> IO Types.User
 createUser conn user pass enabled = do
@@ -72,8 +72,8 @@ createUser conn user pass enabled = do
 
 addUser
   :: Connection
-  -> T.Text -- ^ Username
-  -> T.Text -- ^ Password
+  -> Text -- ^ Username
+  -> Text -- ^ Password
   -> Bool -- ^ User enabled
   -> IO ()
 addUser conn user pass enabled = do
@@ -88,8 +88,8 @@ addUser conn user pass enabled = do
 authUser
   :: MonadIO io
   => Connection
-  -> T.Text -- ^ Username
-  -> T.Text -- ^ Password
+  -> Text -- ^ Username
+  -> Text -- ^ Password
   -> io Bool
 authUser conn user pass = liftIO $ do
   -- Get password and salt from database
@@ -107,9 +107,9 @@ authUser conn user pass = liftIO $ do
 
 changePassword
   :: Connection
-  -> T.Text -- ^ Username
-  -> T.Text -- ^ Old password
-  -> T.Text -- ^ New password
+  -> Text -- ^ Username
+  -> Text -- ^ Old password
+  -> Text -- ^ New password
   -> IO ()
 changePassword conn user oldPass newPass =
   do
@@ -120,7 +120,7 @@ changePassword conn user oldPass newPass =
 
 createSession
   :: Connection
-  -> T.Text -- ^ Username
+  -> Text -- ^ Username
   -> IO Types.Session
 createSession conn user = do
     -- maybe check for old sessions and clean up?
@@ -132,7 +132,7 @@ createSession conn user = do
          = T.unpack user
          <> formatTime defaultTimeLocale "%s" timeStamp
 
-    let token :: T.Text
+    let token :: Text
         token = T.pack (show (hash (B.pack sessionData) :: Digest SHA3_512) :: String)
     pure (user, token, timeStamp, timeStamp)
 
@@ -141,8 +141,8 @@ createSession conn user = do
 startSession
   :: MonadIO io
   => Connection
-  -> T.Text -- ^ Username
-  -> io T.Text
+  -> Text -- ^ Username
+  -> io Text
 startSession conn user = liftIO $ do
   session@(_, token, _, _) <- createSession conn user
   let insertSessionQuery = "INSERT INTO Session VALUES (?,?,?,?);" :: Query
@@ -189,12 +189,12 @@ verifySession conn token = do
 listLessons
   :: MonadIO io
   => Connection
-  -> T.Text -- Token
-  -> io [(String,String,Int,Int,Int,Int,Bool,Bool)]
+  -> Text -- Token
+  -> io [(Text,Text,Int,Int,Int,NominalDiffTime,Bool,Bool)]
 listLessons conn token = liftIO $ do
   let qry :: (ToRow q, FromRow r) => Query -> q -> IO [r]
       qry = query conn
-  users <- qry @(Only T.Text) @(Only T.Text) "SELECT User FROM Session WHERE Token = ?;" (Only token)
+  users <- qry @(Only Text) @(Only Text) "SELECT User FROM Session WHERE Token = ?;" (Only token)
   let listLessonsQuery = mconcat
        [ "WITH userName AS (SELECT ?), "
        , "maxRounds AS (SELECT Lesson,IFNULL(MAX(Round),0) AS Round FROM "
@@ -229,7 +229,7 @@ startLesson
   :: MonadIO io
   => Connection
   -> String -- ^ Token
-  -> T.Text -- ^ Lesson name
+  -> Text -- ^ Lesson name
   -- * Source- language and tree, target- langauge and tree.
   -> io (String,Types.TTree,String,Types.TTree)
 startLesson conn token lesson = liftIO $ do
@@ -250,8 +250,8 @@ startLesson conn token lesson = liftIO $ do
 
 newLesson
   :: Connection
-  -> T.Text -- ^ Username
-  -> T.Text -- ^ Lesson name
+  -> Text -- ^ Username
+  -> Text -- ^ Lesson name
   -> IO (String,Types.TTree,String,Types.TTree)
 newLesson conn user lesson = do
   -- get exercise count
@@ -291,8 +291,8 @@ newLesson conn user lesson = do
 
 continueLesson
   :: Connection
-  -> T.Text -- ^ Username
-  -> T.Text -- ^ Lesson name
+  -> Text -- ^ Username
+  -> Text -- ^ Lesson name
   -> IO (String,Types.TTree,String,Types.TTree)
 continueLesson conn user lesson = do
   [Only round] <- query @_ @(Only Integer)
@@ -317,7 +317,7 @@ continueLesson conn user lesson = do
 finishExercise
   :: Connection
   -> String -- ^ Token
-  -> T.Text -- ^ Lesson
+  -> Text -- ^ Lesson
   -> NominalDiffTime -- ^ Time elapsed
   -> Integer -- ^ Clicks
   -> IO ()

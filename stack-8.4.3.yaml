@@ -4,7 +4,6 @@ packages:
 - ./muste/
 - ./muste-ajax/
 
-
 extra-deps:
 # - ../libs/GF/src/runtime/haskell/
 - git: git@github.com:GrammaticalFramework/gf-core.git
@@ -37,4 +36,4 @@ extra-deps:
     - digestive-functors-snap
 # User goal `sqlite-simple`
 - git: git@github.com:MUSTE-Project/sqlite-simple.git
-  commit: f3fc8c89068b6e34fbe680c000d33ab9999d03cc
+  commit: 403524ac7448bfeaa68c5a54ca067be53e762c73

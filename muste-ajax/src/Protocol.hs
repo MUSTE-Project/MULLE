@@ -177,8 +177,7 @@ handleLessonsRequest :: String -> Protocol v w ServerMessage
 handleLessonsRequest token = do
   conn <- askConnection
   lessons <- liftIO $ Database.listLessons conn (T.pack token)
-  let lessonList = map (\(name,description,exercises,passedcount,score,time,passed,enabled) -> Lesson name description exercises passedcount score time passed enabled) lessons
-  verifyMessage token (SMLessonsList lessonList)
+  verifyMessage token (SMLessonsList $ lessonFromTuple <$> lessons)
 
 handleLessonInit
   :: String -- ^ Token

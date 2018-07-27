@@ -14,6 +14,7 @@ module Ajax
   , Lesson(..)
   , decodeClientMessage
   , mkServerTree
+  , lessonFromTuple
   ) where
 
 import Data.Aeson hiding (Null,String)
@@ -155,15 +156,26 @@ mkServerTree :: String -> TTree -> LinTokens -> Menu -> ServerTree
 mkServerTree = ServerTree
 
 data Lesson = Lesson {
-  lname :: String,
-  ldescription :: String,
+  lname :: Text,
+  ldescription :: Text,
   lexercisecount :: Int,
   lpassedcount :: Int,
   lscore :: Int,
-  ltime :: Int,
+  ltime :: NominalDiffTime,
   lfinished :: Bool,
   lenabled :: Bool
   } deriving Show;
+
+lessonFromTuple
+  :: (Text,Text,Int,Int,Int,NominalDiffTime,Bool,Bool)
+  -> Lesson
+lessonFromTuple
+  ( name, description, exercises
+  , passedcount, score, time
+  , passed, enabled
+  ) = Lesson
+    name description exercises
+    passedcount score time passed enabled
 
 data ServerMessage = SMNull
                    | SMLoginSuccess { stoken :: T.Text }
