@@ -1,7 +1,7 @@
 Change log
 ==========
 
-HEAD
+0.2.0.3
 ----
 
 `ClientTree` and `ServerTree` now no longer just store a single tree
