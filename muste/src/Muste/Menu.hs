@@ -18,6 +18,8 @@ import Data.Aeson
 import qualified Data.Text as Text
 import qualified Data.Containers as Mono
 import Data.MonoTraversable
+import Data.Function (on)
+import Control.Category ((>>>))
 
 import Muste.Tree
 import qualified Muste.Prune as Prune
@@ -34,7 +36,7 @@ import qualified Muste.Linearization.Internal as Linearization
 --
 -- [^1]: Here's to hoping this documentation will be kept up-to-date.
 data CostTree = CostTree
-  { _cost :: Int
+  { cost :: Int
   , _lin :: [Linearization.Linearization]
   , _tree :: TTree
   } deriving (Show,Eq)
@@ -63,10 +65,8 @@ instance ToJSON CostTree where
 getPrunedSuggestions :: Context -> TTree -> Menu
 getPrunedSuggestions ctxt tree = Menu $ go `Map.mapWithKey` Prune.replaceTrees (ctxtGrammar ctxt) (ctxtPrecomputed ctxt) tree
   where
-  go :: Path -> [(Int, TTree)] -> [[CostTree]]
-  go path ts = costTrees path ts
-  costTrees :: Path -> [(Int, TTree)] -> [[CostTree]]
-  costTrees path trees = pure $ uncurry (costTree ctxt) <$> trees
+  go :: Path -> [(Int, TTree)] -> Mono.MapValue Menu
+  go path trees = uncurry (costTree ctxt) <$> trees
 
 -- | Creates a 'CostTree' from a tree and it's cost.  Since the cost
 -- is already calculated, it basically just linearizes the tree.
@@ -75,17 +75,14 @@ costTree ctxt cost fullTree
   = CostTree cost (Linearization.linearizeTree ctxt fullTree) fullTree
 
 filterCostTrees :: Menu -> Menu
-filterCostTrees trees =
-  let
-    filtered1, filtered2 :: Menu
-    -- remove trees of cost 0
-    filtered1 = (\tss -> [[t | t@(CostTree c _ _) <- ts, c /= 0] | ts <- tss]) `omap` trees
-    -- remove empty menus
-    filtered2 = monofilter (\tss -> not (null tss) && not (null (head tss))) filtered1
-    -- sort by cost
-    compareCostTrees (CostTree c1 _ _) (CostTree c2 _ _) = compare c1 c2
-  in
-    (\tss -> sortBy compareCostTrees <$> tss) `omap` filtered2
+filterCostTrees = removeFree >>> sortByCost >>> filterEmpty
+  where
+  removeFree  :: Menu -> Menu
+  removeFree  = omap $ filter $ (/= 0) . cost
+  filterEmpty :: Menu -> Menu
+  filterEmpty = monofilter $ not . null
+  sortByCost  :: Menu -> Menu
+  sortByCost  = omap $ sortBy (compare `on` cost)
 
 getCleanMenu :: Context -> TTree -> Menu
 getCleanMenu context tree
@@ -93,7 +90,7 @@ getCleanMenu context tree
   $ getPrunedSuggestions context tree
 
 -- | A 'Menu' maps paths to 'CostTree's.
-newtype Menu = Menu (Map Path [[CostTree]]) deriving (Show)
+newtype Menu = Menu (Map Path [CostTree]) deriving (Show)
 
 instance FromJSON Menu where
   parseJSON = withObject "CostTree" $ \v -> Menu
@@ -109,7 +106,7 @@ deriving instance Monoid Menu
 
 deriving instance MonoFunctor Menu
 
-type instance Element Menu = [[CostTree]]
+type instance Element Menu = [CostTree]
 
 instance MonoFoldable Menu where
   ofoldl'    f a (Menu m) = ofoldl' f a m
@@ -133,7 +130,7 @@ instance Mono.SetContainer Menu where
   keys         (Menu m) = Mono.keys m
 
 instance Mono.IsMap Menu where
-  type MapValue Menu      = [[CostTree]]
+  type MapValue Menu      = [CostTree]
   lookup c       (Menu m) = Mono.lookup c m
   singletonMap c t        = Menu $ Mono.singletonMap c t
   mapFromList as          = Menu $ Mono.mapFromList as
