@@ -1,9 +1,9 @@
 module Muste.Linearization
-  ( LinToken(LinToken)
+  ( LinTokens
   , Context(ctxtGrammar, ctxtPrecomputed)
   , buildContext
-  , linearizeTree
   , langAndContext
+  , mkLin
   ) where
 
 import Muste.Linearization.Internal

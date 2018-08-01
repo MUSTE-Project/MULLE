@@ -1,18 +1,19 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# Language OverloadedStrings, GeneralizedNewtypeDeriving #-}
 module Muste.Linearization.Internal
   ( Context(ctxtGrammar, ctxtPrecomputed)
   , buildContext
-  , LinToken(LinToken)
+  , LinTokens
   , Linearization
-  , mkLinearization
   , linearizeTree
   , langAndContext
+  , mkLin
   ) where
 
 import Data.Aeson
 -- This might be the only place we should know of PGF
 import qualified PGF
 import qualified PGF.Internal as PGF hiding (funs, cats)
+import Data.Function (on)
 
 import Muste.Tree
 import Muste.Grammar
@@ -29,6 +30,23 @@ data LinToken = LinToken
   , _ltlin :: String
   , _ltmatched :: Path
   } deriving (Show)
+
+instance Eq LinToken where
+  (==) = (==) `on` _ltlin
+
+instance Ord LinToken where
+  compare = compare `on` _ltlin
+
+instance FromJSONKey LinToken
+
+instance ToJSONKey LinToken
+
+-- FIXME Better name
+-- TODO Merge with `Linearization`.
+newtype LinTokens = LinTokens [LinToken] deriving
+  ( Show, FromJSON, ToJSON, Semigroup, Monoid
+  , Ord, Eq, FromJSONKey, ToJSONKey
+  )
 
 -- | Remember all 'AdjunctionTrees' in a certain 'PGF.Language' for a
 -- certain 'Grammar'.
@@ -49,8 +67,10 @@ data Linearization = Linearization
 -- @Muste.getPrunedSuggestions@ So that I could make 'Linearization'
 -- abstract.
 -- | Convert a 'LinToken' to a 'Linearization'.
-mkLinearization :: LinToken -> Linearization
-mkLinearization (LinToken p l _) = Linearization p l
+mkLinearization :: LinTokens -> [Linearization]
+mkLinearization (LinTokens xs) = go <$> xs
+  where
+  go (LinToken p l _) = Linearization p l
 
 instance FromJSON Linearization where
   parseJSON = withObject "Linearization" $ \v -> Linearization
@@ -85,8 +105,8 @@ buildContext grammar lang =
 -- Maybe fits better in the grammar.
 -- | The 'linearizeTree' function linearizes a @TTree@ to a list of
 -- tokens and paths to the nodes that create it
-linearizeTree :: Context -> TTree ->  [LinToken]
-linearizeTree (Context grammar language _) ttree =
+linearizeTreeAux :: Context -> TTree -> LinTokens
+linearizeTreeAux (Context grammar language _) ttree =
   let
     brackets = Grammar.brackets grammar language ttree
   in
@@ -94,7 +114,14 @@ linearizeTree (Context grammar language _) ttree =
       && language `elem` PGF.languages (pgf grammar)
       && not (null brackets)
     then bracketsToTuples ttree $ head brackets
-    else [LinToken [] "?0" []]
+    else LinTokens $ [LinToken [] "?0" []]
+
+
+-- @CostTree@'s use @['Linearization']@ and not 'LinTokens' as
+-- returned by 'linearizeTreeAux'.
+linearizeTree :: Context -> TTree -> [Linearization]
+linearizeTree ctxt tree = mkLinearization
+  $ linearizeTreeAux ctxt tree
 
 -- | Given a file path creates a mapping from the an identifier of the
 -- language to the 'Context' of that language.
@@ -113,27 +140,51 @@ readLangs grammar = mkCtxt <$> PGF.languages (pgf grammar)
 -- well.
 
 -- | Convert a 'PGF.BracketedString' to a list of string/path tuples.
-bracketsToTuples :: TTree -> PGF.BracketedString -> [LinToken]
+bracketsToTuples :: TTree -> PGF.BracketedString -> LinTokens
 bracketsToTuples tree bs = deep tree bs
   where
-  deep :: TTree -> PGF.BracketedString -> [LinToken]
-  deep _     (PGF.Bracket _ _   _ _ _ []) = []
+  deep :: TTree -> PGF.BracketedString -> LinTokens
+  deep _     (PGF.Bracket _ _   _ _ _ []) = mempty
   -- Ordinary leaf
   deep ltree (PGF.Bracket _ fid _ _ _ [PGF.Leaf token]) =
-    [LinToken (getPath ltree fid) token []]
+    LinTokens $ [LinToken (getPath ltree fid) token []]
   -- Meta leaf
   deep ltree (PGF.Bracket _ fid _ _ [PGF.EMeta id] _) =
-    [LinToken (getPath ltree fid) ("?" ++ show id) []]
+    LinTokens $ [LinToken (getPath ltree fid) ("?" ++ show id) []]
   -- In the middle of the tree
   deep ltree (PGF.Bracket _ fid _ _ _ bs) =
-    broad ltree fid bs []
+    broad ltree fid bs mempty
   deep _ _ = error "Muste.linearizeTree: Non-exhaustive pattern match"
-  broad :: TTree -> Int -> [PGF.BracketedString] -> [LinToken] -> [LinToken]
+  broad :: TTree -> Int -> [PGF.BracketedString] -> LinTokens -> LinTokens
   -- End of node siblings
   broad _     _   []                 ts = ts
   -- Syncategorial word
-  broad ltree fid (PGF.Leaf token:bss) ts
-    = LinToken (getPath ltree fid) token [] : broad ltree fid bss ts
+  broad ltree fid (PGF.Leaf token:bss) ts = LinTokens (x:xs)
+    where
+    x = LinToken (getPath ltree fid) token []
+    LinTokens xs = broad ltree fid bss ts
   -- In the middle of the nodes
   broad ltree fid (bs:bss)
     ts = deep ltree bs <> broad ltree fid bss ts
+
+-- | @'matchTk' t0 t1 tk@ checks if a 'LinToken' matches both trees
+-- @t0@ and @t1@ and creates a new 'LinToken' indicating this.
+matchTk :: TTree -> TTree -> LinToken -> LinToken
+matchTk srcTree trgTree (LinToken path lin _)
+    = LinToken path lin (matched path srcTree trgTree)
+
+-- | Checks if a linearization token matches in both trees.  If they
+-- don't match, then the empty path is returned.
+matched :: Path -> TTree -> TTree -> Path
+matched p t1 t2 = if selectNode t1 p == selectNode t2 p then p else []
+
+mkLin
+  :: Context
+  -> TTree
+  -> TTree
+  -> TTree -- ^ The actual tree to linearize
+  -> LinTokens
+mkLin ctxt srcTree trgTree tree
+  = LinTokens $ matchTk srcTree trgTree <$> xs
+  where
+    (LinTokens xs) = linearizeTreeAux ctxt tree

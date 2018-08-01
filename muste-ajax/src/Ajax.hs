@@ -6,13 +6,15 @@
   , GeneralizedNewtypeDeriving
 #-}
 module Ajax
-  ( ServerTree(..)
+  ( ServerTree
   , ServerMessage(..)
   , ClientTree(..)
   , ClientMessage(..)
   , Menu(..)
   , Lesson(..)
   , decodeClientMessage
+  , mkServerTree
+  , lessonFromTuple
   ) where
 
 import Data.Aeson hiding (Null,String)
@@ -21,6 +23,7 @@ import Data.Aeson.Types hiding (Null)
 import Data.Text (Text(..),pack)
 import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as B
+import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import qualified Data.Vector as V
 import Data.Maybe
@@ -37,8 +40,19 @@ instance Exception ReadTreeException
 
 data ClientTree = ClientTree {
   clanguage :: String,
-  ctree :: TTree
+  ctrees :: [TTree]
   } deriving (Show) ;
+
+instance FromJSON ClientTree where
+  parseJSON = withObject "ClientTree" $ \v -> ClientTree
+    <$> v .: "grammar"
+    <*> v .: "trees"
+
+instance ToJSON ClientTree where
+  toJSON (ClientTree tree language) = object
+    [ "trees"     .= tree
+    , "language"  .= language
+    ]
 
 createMessageObject :: String -> Value -> Value
 createMessageObject msg params =
@@ -68,11 +82,6 @@ data ClientMessage
     , cb :: ClientTree
     }
   deriving (Show)
-
-instance FromJSON ClientTree where
-  parseJSON = withObject "ClientTree" $ \v -> ClientTree
-    <$> v .: "grammar"
-    <*> v .: "tree"
 
 instance FromJSON ClientMessage where
   parseJSON = withObject "ClientMessage" $ \v -> do
@@ -104,12 +113,6 @@ instance FromJSON ClientMessage where
         <*> params .: "b"
       _ -> error ( "Unexpected message " ++ show v)
 
-instance ToJSON ClientTree where
-    toJSON (ClientTree tree language) = object
-      [ "tree"     .= tree
-      , "language" .= language
-      ]
-
 instance ToJSON ClientMessage where
   toJSON = \case
     (CMLoginRequest username password) -> "CMLoginRequest" |> object
@@ -131,29 +134,64 @@ instance ToJSON ClientMessage where
     where
       (|>) = createMessageObject
 
-newtype Menu = Menu (Map.Map Path [[CostTree]]) deriving (Show)
-
-deriving instance Semigroup Menu
-
-deriving instance Monoid Menu
-
-data ServerTree = ServerTree {
-  slanguage :: String ,
-  stree :: TTree,
-  slin :: [LinToken] ,
-  smenu :: Menu
+-- TODO One linearization can originate from multiple trees.  We
+-- probably still want the ability to lookup the linearization
+-- belonging to tree efficiently though.
+-- | 'ServerTree's represent the data needed to display a sentence in
+-- the GUI.  The naming is maybe not the best, but the reason it is
+-- called like that is simply because it is the data that the client
+-- *receives* from the server (e.g. in the case of
+-- @\/api\/lesson\/:lesson@ or @\/api\/menu@).  When the client
+-- performs requests @ClientTree@ is used in stead.  I'm not entirely
+-- sure if this impedence mismatch is strictly necessary, but one
+-- reason for it of course is that less information is needed by the
+-- server when receiving a request for e.g. @\/api\/menu@.
+data ServerTree = ServerTree
+  { slanguage :: String
+  , trees :: [TTree]
+  , lin   :: LinTokens
+  , smenu :: Menu
   } deriving (Show) ;
 
+instance FromJSON ServerTree where
+  parseJSON = withObject "ServerTree" $ \v -> ServerTree
+    <$> v .: "grammar"
+    <*> v .: "trees"
+    <*> v .: "lin"
+    <*> v .: "menu"
+
+instance ToJSON ServerTree where
+  toJSON (ServerTree grammar trees lin menu) = object
+    [ "grammar" .= grammar
+    , "trees"   .= trees
+    , "lin"     .= lin
+    , "menu"    .= menu
+    ]
+
+mkServerTree :: String -> [TTree] -> LinTokens -> Menu -> ServerTree
+mkServerTree lang trees lin menu = ServerTree lang trees lin menu
+
 data Lesson = Lesson {
-  lname :: String,
-  ldescription :: String,
+  lname :: Text,
+  ldescription :: Text,
   lexercisecount :: Int,
   lpassedcount :: Int,
   lscore :: Int,
-  ltime :: Int,
+  ltime :: NominalDiffTime,
   lfinished :: Bool,
   lenabled :: Bool
   } deriving Show;
+
+lessonFromTuple
+  :: (Text,Text,Int,Int,Int,NominalDiffTime,Bool,Bool)
+  -> Lesson
+lessonFromTuple
+  ( name, description, exercises
+  , passedcount, score, time
+  , passed, enabled
+  ) = Lesson
+    name description exercises
+    passedcount score time passed enabled
 
 data ServerMessage = SMNull
                    | SMLoginSuccess { stoken :: T.Text }
@@ -173,17 +211,6 @@ data ServerMessage = SMNull
                    | SMDataInvalid { serror :: String }
                    | SMLogoutResponse
                    deriving (Show) ;
-
-instance FromJSON Menu where
-  parseJSON = withObject "CostTree" $ \v -> Menu
-    <$> v .: "menu"
-
-instance FromJSON ServerTree where
-  parseJSON = withObject "ServerTree" $ \v -> ServerTree
-    <$> v .: "grammar"
-    <*> v .: "tree"
-    <*> v .: "lin"
-    <*> v .: "menu"
 
 instance FromJSON Lesson where
   parseJSON = withObject "Lesson" $ \v -> Lesson
@@ -226,19 +253,6 @@ instance FromJSON ServerMessage where
             SMDataInvalid <$> fromJust params .: "error" ;
         "SMLogoutResponse" -> return SMLogoutResponse ;
         }
-
-instance ToJSON Menu where
-    toJSON (Menu map) =
-      object [ (pack $ show k) .= (Map.!) map  k | k <- Map.keys map]
-
-instance ToJSON ServerTree where
-    -- this generates a Value
-    toJSON (ServerTree grammar tree lin menu) =
-      object [
-      "grammar" .= grammar ,
-      "tree" .= tree ,
-      "lin" .= lin ,
-      "menu" .= menu]
 
 instance ToJSON Lesson where
   toJSON (Lesson name description exercises passedcount score time passed enabled) =
