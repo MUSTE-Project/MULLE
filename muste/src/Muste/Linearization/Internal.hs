@@ -13,6 +13,7 @@ import Data.Aeson
 -- This might be the only place we should know of PGF
 import qualified PGF
 import qualified PGF.Internal as PGF hiding (funs, cats)
+import Data.Function (on)
 
 import Muste.Tree
 import Muste.Grammar
@@ -24,16 +25,28 @@ import Muste.AdjunctionTrees
 
 import Muste.Prune
 
--- FIXME Better name
--- TODO Merge with `Linearization`.
-newtype LinTokens = LinTokens [LinToken]
-  deriving (Show, FromJSON, ToJSON, Semigroup, Monoid)
-
 data LinToken = LinToken
   { _ltpath :: Path
   , _ltlin :: String
   , _ltmatched :: Path
   } deriving (Show)
+
+instance Eq LinToken where
+  (==) = (==) `on` _ltlin
+
+instance Ord LinToken where
+  compare = compare `on` _ltlin
+
+instance FromJSONKey LinToken
+
+instance ToJSONKey LinToken
+
+-- FIXME Better name
+-- TODO Merge with `Linearization`.
+newtype LinTokens = LinTokens [LinToken] deriving
+  ( Show, FromJSON, ToJSON, Semigroup, Monoid
+  , Ord, Eq, FromJSONKey, ToJSONKey
+  )
 
 -- | Remember all 'AdjunctionTrees' in a certain 'PGF.Language' for a
 -- certain 'Grammar'.
@@ -169,7 +182,7 @@ mkLin
   :: Context
   -> TTree
   -> TTree
-  -> TTree
+  -> TTree -- ^ The actual tree to linearize
   -> LinTokens
 mkLin ctxt srcTree trgTree tree
   = LinTokens $ matchTk srcTree trgTree <$> xs

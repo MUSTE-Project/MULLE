@@ -31,11 +31,16 @@ import qualified Data.Text.Lazy.Encoding as LText
 import qualified Data.Binary as Binary
 import qualified Data.ByteString.Lazy as LBS
 import GHC.Generics
-import Control.Monad.State
+import Control.Monad.State hiding (fail)
 import Data.String
 import Data.String.ToString
+import Control.Monad.Fail hiding (fail)
+import Text.Read (readEither)
+import Control.Exception
 
 import qualified Database.SQLite.Simple as SQL
+import qualified Database.SQLite.Simple.Ok as SQL
+import qualified Database.SQLite.Simple.FromField as SQL (returnError)
 import Database.SQLite.Simple.ToField (ToField)
 import qualified Database.SQLite.Simple.ToField as SQL
 import Database.SQLite.Simple.FromField (FromField(fromField))
@@ -86,10 +91,13 @@ foldlTTree f x t = case t of
   TNode nm tp xs -> f (foldl (foldlTTree f) x xs) (Left (nm, tp))
   TMeta cat      -> f x (Right cat)
 
-parseString :: (Text.Text -> p) -> Value -> p
-parseString f = \case
+parseString :: MonadFail m => String -> (Text.Text -> m p) -> Value -> m p
+parseString errMsg f = \case
   (String s) -> f s
-  _ -> todo
+  _ -> fail errMsg
+
+liftFail :: MonadFail m => Either String a -> m a
+liftFail = either fail pure
 
 -- I've experimented with different ways of serializing this data.
 -- Since the client don't need direct access to 'TTree''s it makes
@@ -105,7 +113,8 @@ parseString f = \case
 --
 --     [WIP] Experiment with different encodings
 instance FromJSON TTree where
-  parseJSON = parseString (pure . read . toString)
+  parseJSON = parseString "Muste.Tree.parseJSON @TTree"
+    (liftFail . readEither . toString)
 
 instance ToJSON TTree where
   toJSON = String . fromString . show
@@ -120,10 +129,11 @@ binaryToText = LText.toStrict . LText.decodeUtf8 . Binary.encode
 binaryFromText :: Binary c => Text.Text -> c
 binaryFromText = Binary.decode . LBS.fromStrict . Text.encodeUtf8
 
+
 instance FromField TTree where
   fromField fld = case SQL.fieldData fld of
     SQL.SQLText t -> pure $ binaryFromText t
-    _ -> todo
+    _ -> SQL.returnError SQL.ConversionFailed fld mempty
 
 todo :: a
 todo = error "Muste.Tree.Internal: TODO More descriptive error message"

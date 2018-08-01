@@ -3,12 +3,15 @@
   , OverloadedStrings
   , TypeApplications
   , ViewPatterns
+  , FlexibleContexts
 #-}
 module Protocol
   ( apiRoutes
   ) where
 
 import Data.Aeson
+import Data.Set (Set)
+import qualified Data.Set as S
 import Data.Map ((!),Map)
 import qualified Data.Map.Lazy as M
 import Control.Monad
@@ -21,21 +24,27 @@ import qualified Snap
 import qualified System.IO.Streams as Streams
 import Text.Printf
 import Data.Maybe
+import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Data.Time
+import Data.Function (on)
 
 import Muste (Context, Path, TTree, LinTokens)
 import qualified Muste
 
 import Ajax
+  ( ServerMessage(..), ClientMessage(..)
+  , ClientTree(..), ServerTree(..)
+  )
+import qualified Ajax
 import qualified Database
 import qualified Database.Types as Database
 
 -- FIXME Do not import this
 import qualified Config
 
-type Contexts = Map T.Text (Map String Context)
+type Contexts = Map Text (Map String Context)
 
 -- | The data needed for responding to requests.
 data Env = Env
@@ -110,7 +119,7 @@ lessonsHandler = do
   token <- getToken
   handleLessonsRequest token
 
-lessonHandler :: T.Text -> Protocol v w ServerMessage
+lessonHandler :: Text -> Protocol v w ServerMessage
 lessonHandler p = do
   t <- getToken
   handleLessonInit t p
@@ -136,14 +145,14 @@ logoutHandler = do
 
 -- TODO Now how this info should be retreived
 -- | Returns @(username, password)@.
-getUser :: Protocol v w (T.Text, T.Text)
+getUser :: Protocol v w (Text, Text)
 getUser = (\(CMLoginRequest usr pwd) -> (usr, pwd)) <$> getMessage
 
 getConnection :: IO Connection
 getConnection = Config.getDB >>= open
 
 setLoginCookie
-  :: T.Text -- ^ The token
+  :: Text -- ^ The token
   -> Protocol v w ()
 setLoginCookie tok = Snap.modifyResponse $ Snap.addResponseCookie c
   where
@@ -155,8 +164,8 @@ setLoginCookie tok = Snap.modifyResponse $ Snap.addResponseCookie c
 -- request*.  That is, the client submits user/password on every
 -- request.  Security is handled by SSl in the transport layer.
 handleLoginRequest
-  :: T.Text -- ^ Username
-  -> T.Text -- ^ Password
+  :: Text -- ^ Username
+  -> Text -- ^ Password
   -> Protocol v w ServerMessage
 handleLoginRequest user pass = do
   c <- askConnection
@@ -177,29 +186,34 @@ handleLessonsRequest :: String -> Protocol v w ServerMessage
 handleLessonsRequest token = do
   conn <- askConnection
   lessons <- liftIO $ Database.listLessons conn (T.pack token)
-  verifyMessage token (SMLessonsList $ lessonFromTuple <$> lessons)
+  verifyMessage token (SMLessonsList $ Ajax.lessonFromTuple <$> lessons)
 
 handleLessonInit
   :: String -- ^ Token
-  -> T.Text -- ^ Lesson
+  -> Text -- ^ Lesson
   -> Protocol v w ServerMessage
-handleLessonInit token lesson =
-  do
+handleLessonInit token lesson = do
     contexts <- askContexts
     conn <- askConnection
-    (sourceLang,sourceTree,targetLang,targetTree) <- liftIO $ Database.startLesson conn token lesson
-    let (a,b) = assembleMenus contexts lesson (sourceLang,sourceTree) (targetLang,targetTree)
-    verifyMessage token (SMMenuList lesson False 0 a b )
+    (sourceLang,sourceTree,targetLang,targetTree)
+      <- Database.startLesson conn token lesson
+    let (a,b) = assembleMenus contexts lesson
+                (sourceLang,pure sourceTree)
+                (targetLang,pure targetTree)
+    verifyMessage token (SMMenuList lesson False 0 a b)
 
 handleMenuRequest
   :: String -- ^ Token
-  -> T.Text -- ^ Lesson
+  -> Text -- ^ Lesson
   -> Integer -- ^ Clicks
   -> NominalDiffTime -- ^ Time elapsed
   -> ClientTree -- ^ Source tree
   -> ClientTree -- ^ Target tree
   -> Protocol v w ServerMessage
-handleMenuRequest token lesson clicks time ctreea@(ClientTree langa treea) ctreeb@(ClientTree langb treeb) = do
+handleMenuRequest
+  token lesson clicks time
+  ctreea@(ClientTree langa srcTrees)
+  ctreeb@(ClientTree langb trgTrees) = do
   contexts <- askContexts
   conn <- askConnection
   mErr <- verifySession token
@@ -210,11 +224,24 @@ handleMenuRequest token lesson clicks time ctreea@(ClientTree langa treea) ctree
       when authd (liftIO $ Database.finishExercise conn token lesson time clicks)
       pure emptyMenus
     else pure assembleMenus
-  let (a , b) = act contexts lesson (langa , treea) (langb , treeb)
+  let (a , b) = act contexts lesson
+                 (langa, srcTrees)
+                 (langb, trgTrees)
   verifyMessage token (SMMenuList lesson finished (succ clicks) a b)
   where
     finished :: Bool
-    finished = treea == treeb
+    finished = ctreea `same` ctreeb
+
+-- | Two 'ClientTree''s are considered the same if they have just one
+-- 'TTree' in common.  This uses the 'Eq' instance for 'TTree' (so
+-- that better work).
+same :: ClientTree -> ClientTree -> Bool
+same = oneSame `on` thetrees
+  where
+  thetrees :: ClientTree -> Set TTree
+  thetrees (ClientTree _ trees) = S.fromList trees
+  oneSame :: Set TTree -> Set TTree -> Bool
+  oneSame a b = not $ S.null $ S.intersection a b
 
 handleLogoutRequest :: String -> Protocol v w ServerMessage
 handleLogoutRequest token = do
@@ -253,7 +280,7 @@ initContexts conn = liftIO $ do
   lessonGrammarList <- Database.getLessons conn
   M.fromList <$> (mapM mkContext lessonGrammarList)
 
-mkContext :: Database.Lesson -> IO (T.Text, M.Map String Context)
+mkContext :: Database.Lesson -> IO (Text, M.Map String Context)
 mkContext (ls, _, nm, _, _, _, _, _) = do
   langs <- Muste.langAndContext (T.unpack nm)
   pure (ls, M.fromList langs)
@@ -263,38 +290,73 @@ mkContext (ls, _, nm, _, _, _, _, _) = do
 -- | Gets the menus for a lesson, two trees and two languages
 assembleMenus
   :: Contexts
-  -> T.Text
-  -> (String,TTree) -- ^ Source language and tree
-  -> (String,TTree) -- ^ Target language and tree
+  -> Text
+  -> (String, [TTree]) -- ^ Source language and tree
+  -> (String, [TTree]) -- ^ Target language and tree
   -> (ServerTree,ServerTree)
 assembleMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
   ( mkTree src
   , mkTree trg
   )
   where
-  grammar = Muste.ctxtGrammar (contexts ! lesson ! srcLang)
-  getContext lang = contexts ! lesson ! lang
-  mkTree (lang, tree) = mkServerTree lang tree lin (Muste.getCleanMenu ctxt tree)
+  mkTree = makeTree contexts lesson src trg
+
+-- We could make the constraint on `m` more general, but then I get
+-- into some stuff with some functional dependencies that I'm not
+-- entirely sure how works.
+getContext
+  :: Text -- ^ The lesson
+  -> String -- ^ The language
+  -> Protocol v w Context
+getContext lesson lang = do
+  ctxts <- askContexts
+  pure $ ctxts ! lesson ! lang
+
+-- | @'makeTree' ctxt lesson src trg tree@ Creates a 'ServerTree' from
+-- a source trees and a target tree.  The 'Menu' is provided given
+-- @tree@.
+makeTree
+  :: Contexts -> Text
+  -> (String, [TTree])
+  -> (String, [TTree])
+  -> (String, [TTree])
+  -> ServerTree
+makeTree contexts lesson (srcLang, srcTrees) (trgLang, trgTrees) (lang, trees)
+  = Ajax.mkServerTree lang trees lin (Muste.getCleanMenu ctxt tree)
     where
-    ctxt = getContext lang
-    lin = Muste.mkLin ctxt srcTree trgTree tree
+    grammar = Muste.ctxtGrammar (contexts ! lesson ! srcLang)
+    ctxt    = contexts ! lesson ! lang
+    lin     = Muste.mkLin ctxt srcTree trgTree tree
+    srcTree = unsafeTakeTree srcTrees
+    trgTree = unsafeTakeTree trgTrees
+    tree    = unsafeTakeTree trees
 
 emptyMenus
   :: Contexts
-  -> T.Text
-  -> (String, TTree) -- ^ Source language and tree
-  -> (String, TTree) -- ^ Target language and tree
+  -> Text
+  -> (String, [TTree]) -- ^ Source language and tree
+  -> (String, [TTree]) -- ^ Target language and tree
   -> (ServerTree, ServerTree)
-emptyMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
+emptyMenus contexts lesson src@(srcLang, srcTrees) trg@(_, trgTrees) =
   ( mkTree src
   , mkTree trg
   )
   where
   -- FIXME In 'assembleMenus' we actually use the language of the tree
   -- we're building.  Investigate if this may be a bug.  Similiarly
-  -- for 'lin'.
+  -- for 'lin'.  This is the reason we are not using 'makeTree' here.
   ctxt = contexts ! lesson ! srcLang
   grammar = Muste.ctxtGrammar ctxt
+  srcTree = unsafeTakeTree srcTrees
+  trgTree = unsafeTakeTree trgTrees
   lin = Muste.mkLin ctxt srcTree trgTree
-  mkTree (lang, tree) = mkServerTree lang tree (lin tree) mempty
+  mkTree (lang, trees) = Ajax.mkServerTree
+    lang trees (lin tree) mempty
+    where
+    tree = unsafeTakeTree trees
 
+-- TODO Both unsafe and a dirty hack!
+unsafeTakeTree :: [TTree] -> TTree
+unsafeTakeTree = fromMaybe err . listToMaybe
+  where
+  err = error "Protocol.unsafeTakeTree: A hack shows its true colors."

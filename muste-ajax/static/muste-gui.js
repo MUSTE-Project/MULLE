@@ -228,7 +228,9 @@ function handle_server_response(response) {
     }
 }
 
-
+// This method changes the representation of `[Path]`'s to `String`.
+// The side effect of `clean_server_data(data)` occurs at
+// `data.trees[0][0][*].path` and `data.menu`
 function clean_server_data(data) {
     function convert_path(path) {
         return path.toString().replace(/[,\[\]]/g,"");
@@ -418,7 +420,7 @@ function click_word(event) {
 
 
 function select_menuitem(item) {
-    DATA[item.lang].tree = item.tree;
+    DATA[item.lang].trees = [item.tree];
     DATA.token = LOGIN_TOKEN;
     DATA.time = elapsed_time();
     call_server(MESSAGES.MENU, DATA);

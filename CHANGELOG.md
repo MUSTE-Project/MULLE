@@ -1,6 +1,15 @@
 Change log
 ==========
 
+HEAD
+----
+
+`ClientTree` and `ServerTree` now no longer just store a single tree
+and it's linearization, rather it stores a set (list) of `TTree`s
+corresponding to all the possible `TTree`s that have this
+linearization.
+
+
 0.2.0.2
 ----
 

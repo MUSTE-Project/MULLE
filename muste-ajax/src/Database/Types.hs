@@ -17,7 +17,8 @@ module Database.Types
   , StartedLesson
   , FinishedLesson
   , ExerciseList
-  , TTree
+  , Muste.TTree
+  , Muste.LinTokens
   ) where
 
 import Data.ByteString (ByteString)
@@ -25,7 +26,7 @@ import Data.Text (Text)
 
 import Data.Time
 
-import Muste (TTree)
+import qualified Muste (TTree, LinTokens)
 
 type Blob = ByteString
 type Numeric = Integer

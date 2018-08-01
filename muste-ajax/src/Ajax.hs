@@ -23,6 +23,7 @@ import Data.Aeson.Types hiding (Null)
 import Data.Text (Text(..),pack)
 import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as B
+import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import qualified Data.Vector as V
 import Data.Maybe
@@ -39,8 +40,19 @@ instance Exception ReadTreeException
 
 data ClientTree = ClientTree {
   clanguage :: String,
-  ctree :: TTree
+  ctrees :: [TTree]
   } deriving (Show) ;
+
+instance FromJSON ClientTree where
+  parseJSON = withObject "ClientTree" $ \v -> ClientTree
+    <$> v .: "grammar"
+    <*> v .: "trees"
+
+instance ToJSON ClientTree where
+  toJSON (ClientTree tree language) = object
+    [ "trees"     .= tree
+    , "language"  .= language
+    ]
 
 createMessageObject :: String -> Value -> Value
 createMessageObject msg params =
@@ -71,11 +83,6 @@ data ClientMessage
     }
   deriving (Show)
 
-instance FromJSON ClientTree where
-  parseJSON = withObject "ClientTree" $ \v -> ClientTree
-    <$> v .: "grammar"
-    <*> v .: "tree"
-
 instance FromJSON ClientMessage where
   parseJSON = withObject "ClientMessage" $ \v -> do
     msg <- v .: "message" :: Parser Text
@@ -105,12 +112,6 @@ instance FromJSON ClientMessage where
         <*> params .: "a"
         <*> params .: "b"
       _ -> error ( "Unexpected message " ++ show v)
-
-instance ToJSON ClientTree where
-    toJSON (ClientTree tree language) = object
-      [ "tree"     .= tree
-      , "language" .= language
-      ]
 
 instance ToJSON ClientMessage where
   toJSON = \case
@@ -145,15 +146,30 @@ instance ToJSON ClientMessage where
 -- sure if this impedence mismatch is strictly necessary, but one
 -- reason for it of course is that less information is needed by the
 -- server when receiving a request for e.g. @\/api\/menu@.
-data ServerTree = ServerTree {
-  slanguage :: String ,
-  stree :: TTree,
-  slin :: LinTokens,
-  smenu :: Menu
+data ServerTree = ServerTree
+  { slanguage :: String
+  , trees :: [TTree]
+  , lin   :: LinTokens
+  , smenu :: Menu
   } deriving (Show) ;
 
-mkServerTree :: String -> TTree -> LinTokens -> Menu -> ServerTree
-mkServerTree = ServerTree
+instance FromJSON ServerTree where
+  parseJSON = withObject "ServerTree" $ \v -> ServerTree
+    <$> v .: "grammar"
+    <*> v .: "trees"
+    <*> v .: "lin"
+    <*> v .: "menu"
+
+instance ToJSON ServerTree where
+  toJSON (ServerTree grammar trees lin menu) = object
+    [ "grammar" .= grammar
+    , "trees"   .= trees
+    , "lin"     .= lin
+    , "menu"    .= menu
+    ]
+
+mkServerTree :: String -> [TTree] -> LinTokens -> Menu -> ServerTree
+mkServerTree lang trees lin menu = ServerTree lang trees lin menu
 
 data Lesson = Lesson {
   lname :: Text,
@@ -196,13 +212,6 @@ data ServerMessage = SMNull
                    | SMLogoutResponse
                    deriving (Show) ;
 
-instance FromJSON ServerTree where
-  parseJSON = withObject "ServerTree" $ \v -> ServerTree
-    <$> v .: "grammar"
-    <*> v .: "tree"
-    <*> v .: "lin"
-    <*> v .: "menu"
-
 instance FromJSON Lesson where
   parseJSON = withObject "Lesson" $ \v -> Lesson
     <$> v .: "name"
@@ -244,15 +253,6 @@ instance FromJSON ServerMessage where
             SMDataInvalid <$> fromJust params .: "error" ;
         "SMLogoutResponse" -> return SMLogoutResponse ;
         }
-
-instance ToJSON ServerTree where
-    -- this generates a Value
-    toJSON (ServerTree grammar tree lin menu) =
-      object [
-      "grammar" .= grammar ,
-      "tree" .= tree ,
-      "lin" .= lin ,
-      "menu" .= menu]
 
 instance ToJSON Lesson where
   toJSON (Lesson name description exercises passedcount score time passed enabled) =

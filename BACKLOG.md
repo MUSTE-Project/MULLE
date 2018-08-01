@@ -66,10 +66,23 @@ automatically generated and should not be source controlled.  There
 should be a make target that generates these files from
 `muste-ajax/data/gf/grammars/**/*.gf`.
 
-Change representation from single tree to sets of trees.
+Issue #3: Change representation from single tree to sets of trees.
 ---
 
 https://github.com/MUSTE-Project/MULLE/issues/3
+
+UI should handle similiar trees.  It doesn't.  Similarly in
+`Protocol.emptyMenus` and `Protocol.assembleMenus` we make use of
+`unsafeTakeTree`.  We shouldn't.  The challenge is that we need to
+create a single linearization from the trees, and for this we need a
+single tree .  It's an invariant that all the trees we consider should
+have the same linearization, so it probably shouldn't matter which one
+we pick.  It would be nice to encapsulate this somehow.  One
+low-hanging piece of fruit would be to use some representation for a
+non-empty set. Since we at least need one reference tree to linearize.
+Also there is some code-duplication in `Protocol.emptyMenus` and
+`Protocol.assembleMenus` that I haven't been able to get rid of.  This
+is because they differ ever so slightly.
 
 Wide / narrow grammar
 ---

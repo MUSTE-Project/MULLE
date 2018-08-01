@@ -1,4 +1,10 @@
-{-# LANGUAGE OverloadedStrings, TypeApplications, LambdaCase #-}
+{-# Language
+    OverloadedStrings
+  , TypeApplications
+  , LambdaCase
+  , FlexibleContexts
+  , ConstraintKinds
+#-}
 module Database
   ( getLessons
   , authUser
@@ -12,9 +18,13 @@ module Database
   ) where
 
 import Database.SQLite.Simple
+  ( Query, Connection, Only(Only), fromOnly
+  , ToRow, FromRow
+  )
+import qualified Database.SQLite.Simple as SQL (query, query_, execute)
 
-import Crypto.Random.API
-import Crypto.KDF.PBKDF2 hiding (generate)
+import Crypto.Random.API (getSystemRandomGen, genRandomBytes)
+import Crypto.KDF.PBKDF2 (fastPBKDF2_SHA512, Parameters(Parameters))
 import Crypto.Hash (Digest(..),SHA3_512(..),hash)
 
 import qualified Data.ByteString as BS
@@ -22,12 +32,16 @@ import qualified Data.ByteString.Char8 as B
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
+import Data.Map.Lazy (Map)
 import qualified Data.Map.Lazy as M
 import Data.Maybe
 import Data.Time.Clock
 import Data.Time.Format
+import Control.Monad.Reader
 
-import Test.QuickCheck
+-- FIXME QuickCheck seems like a heavy dependency just to get access
+-- to `shuffle`.
+import qualified Test.QuickCheck as QC (shuffle, generate)
 
 import Control.Exception
 import Control.Monad.IO.Class
@@ -56,7 +70,7 @@ getLessons
   :: MonadIO io
   => Connection
   -> io [Types.Lesson]
-getLessons conn = liftIO $ query_ conn "select * from lesson;"
+getLessons conn = liftIO $ SQL.query_ conn "select * from lesson;"
 
 createUser
   :: Connection
@@ -80,10 +94,10 @@ addUser conn user pass enabled = do
   u <- createUser conn user pass enabled
   -- Remove user if they already exists
   let deleteQuery = "DELETE FROM User WHERE Username = ?;" :: Query
-  execute conn deleteQuery [user]
+  SQL.execute conn deleteQuery [user]
   -- Add new user
   let insertQuery = "INSERT INTO User VALUES (?,?,?,?);" :: Query
-  execute conn insertQuery u
+  SQL.execute conn insertQuery u
 
 authUser
   :: MonadIO io
@@ -93,7 +107,7 @@ authUser
   -> io Bool
 authUser conn user pass = liftIO $ do
   -- Get password and salt from database
-  userList <- (query conn selectPasswordSaltQuery [user]) :: IO [(B.ByteString,B.ByteString,Bool)]
+  userList <- (SQL.query conn selectPasswordSaltQuery [user]) :: IO [(B.ByteString,B.ByteString,Bool)]
   -- Generate new password hash and compare to the stored one
   if length userList == 1
   then
@@ -125,7 +139,7 @@ createSession
 createSession conn user = do
     -- maybe check for old sessions and clean up?
     let deleteSessionQuery = "DELETE FROM Session WHERE User = ? ;" :: Query
-    execute conn deleteSessionQuery [user]
+    SQL.execute conn deleteSessionQuery [user]
     -- create new session
     timeStamp <- getCurrentTime
     let sessionData
@@ -146,7 +160,7 @@ startSession
 startSession conn user = liftIO $ do
   session@(_, token, _, _) <- createSession conn user
   let insertSessionQuery = "INSERT INTO Session VALUES (?,?,?,?);" :: Query
-  execute conn insertSessionQuery session
+  SQL.execute conn insertSessionQuery session
   return token
 
 updateActivity :: Connection -> String -> IO ()
@@ -154,7 +168,7 @@ updateActivity conn token =
   do
     timeStamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime
     let updateSessionLastActiveQuery = "UPDATE Session SET LastActive = ? WHERE Token = ?;" :: Query
-    execute conn updateSessionLastActiveQuery (timeStamp,token)
+    SQL.execute conn updateSessionLastActiveQuery (timeStamp,token)
 
 -- | Returns @Just err@ if there is an error.
 verifySession
@@ -164,7 +178,7 @@ verifySession
 verifySession conn token = do
   -- Get potential user session(s)
   let selectSessionQuery = "SELECT LastActive FROM Session WHERE Token = ?;" :: Query
-  sessions <- query conn selectSessionQuery [token] :: IO [Only UTCTime]
+  sessions <- SQL.query conn selectSessionQuery [token] :: IO [Only UTCTime]
   -- from here might not be executed due to lazy evaluation...
   -- Compute the difference in time stamps
   newTimeStamp <- getCurrentTime
@@ -181,7 +195,7 @@ verifySession conn token = do
   if length sessions == 1 && diff <= threshold
   then pure Nothing
   else do
-    execute conn deleteSessionQuery [token]
+    SQL.execute conn deleteSessionQuery [token]
     pure $ pure error
 
 -- | List all the lessons i.e. lesson name, description and exercise
@@ -193,7 +207,7 @@ listLessons
   -> io [(Text,Text,Int,Int,Int,NominalDiffTime,Bool,Bool)]
 listLessons conn token = liftIO $ do
   let qry :: (ToRow q, FromRow r) => Query -> q -> IO [r]
-      qry = query conn
+      qry = SQL.query conn
   users <- qry @(Only Text) @(Only Text) "SELECT User FROM Session WHERE Token = ?;" (Only token)
   let listLessonsQuery = mconcat
        [ "WITH userName AS (SELECT ?), "
@@ -220,7 +234,7 @@ listLessons conn token = liftIO $ do
        ]
   case users of
     [] -> throw $ DatabaseException "No user found"
-    [Only user] -> query conn listLessonsQuery [user]
+    [Only user] -> SQL.query conn listLessonsQuery [user]
     usrs      -> throw $ DatabaseException "Non unique user associated with token"
 
 -- | Start a new lesson by randomly choosing the right number of
@@ -231,13 +245,13 @@ startLesson
   -> String -- ^ Token
   -> Text -- ^ Lesson name
   -- * Source- language and tree, target- langauge and tree.
-  -> io (String,Types.TTree,String,Types.TTree)
+  -> io (String, Types.TTree, String, Types.TTree)
 startLesson conn token lesson = liftIO $ do
   -- get user name
   Only user <- fromMaybe errUsr . listToMaybe
-    <$> query conn userQuery (Only token)
+    <$> SQL.query conn userQuery (Only token)
   isRunning <- (0 /=) . fromOnly . head
-    <$> (query conn checkLessonStartedQuery [user,lesson] :: IO [Only Int])
+    <$> (SQL.query conn checkLessonStartedQuery [user,lesson] :: IO [Only Int])
   if isRunning
   then continueLesson conn user lesson
   else newLesson      conn user lesson
@@ -252,38 +266,85 @@ newLesson
   :: Connection
   -> Text -- ^ Username
   -> Text -- ^ Lesson name
-  -> IO (String,Types.TTree,String,Types.TTree)
-newLesson conn user lesson = do
+  -> IO ( String, Types.TTree
+        , String, Types.TTree
+        )
+newLesson conn usr lsn = newLessonM usr lsn `runDB` conn
+
+type DB a = ReaderT Connection IO a
+
+type MonadDB m =
+  ( MonadReader Connection m
+  , MonadIO m
+  )
+
+runDB :: DB a -> Connection -> IO a
+runDB = runReaderT
+
+liftDB :: MonadDB db => (Connection -> IO a) -> db a
+liftDB act = do
+  c <- ask
+  liftIO (act c)
+
+query
+  :: MonadDB db
+  => (ToRow q, FromRow r)
+  => Query -> q -> db [r]
+query qry q = liftDB (\c -> SQL.query c qry q)
+
+execute
+  :: MonadDB db
+  => ToRow q
+  => Query
+  -> q
+  -> db ()
+execute qry q = liftDB (\c -> SQL.execute c qry q)
+
+shuffle :: MonadIO m => [a] -> m [a]
+shuffle = liftIO . QC.generate . QC.shuffle
+
+getTreePairs
+  :: MonadDB db
+  => Text
+  -> db [(Types.TTree, Types.TTree)]
+getTreePairs lesson = query exerciseQuery (Only lesson)
+  where
+  exerciseQuery
+    =  "SELECT SourceTree, TargetTree "
+    <> "FROM Exercise "
+    <> "WHERE Lesson = ?;"
+
+newLessonM :: Text -> Text -> DB
+  ( String, Types.TTree
+  , String, Types.TTree
+  )
+newLessonM user lesson = do
   -- get exercise count
-  Only count <- fromMaybe errNonUniqueLesson . listToMaybe
+  count <- fromOnly . fromMaybe errNonUniqueLesson . listToMaybe
     -- (\case { [Only count] -> count ; _ -> error "Database.newLesson: Non unique lesson"})
-    <$> query conn exerciseCountQuery (Only lesson)
+    <$> query exerciseCountQuery (Only lesson)
   -- get lesson round
-  [[round]] <- query conn lessonRoundQuery [user,lesson]
-  -- get all exercises for lesson
-  trees <- query conn exerciseQuery [lesson] :: IO [(Types.TTree,Types.TTree)]
+  [[round]] <- query lessonRoundQuery [user,lesson]
+  trees <- getTreePairs lesson
   -- randomly select
-  selectedTrees <- fmap (take count) $ generate $ shuffle trees
+  selectedTrees <- take count <$> shuffle trees
   let (sourceTree,targetTree)
         = fromMaybe errNoExercises $ listToMaybe $ selectedTrees
   -- save in database
   let startedLesson :: Types.StartedLesson
       startedLesson = (lesson, user, succ round)
-  execute conn insertStartedLesson startedLesson
-  mapM_ (\(sTree,tTree) -> execute conn insertExerciseList (lesson,user,sTree,tTree,round)) selectedTrees
+  execute insertStartedLesson startedLesson
+  mapM_ (\(sTree,tTree) -> execute insertExerciseList (lesson,user,sTree,tTree,round)) selectedTrees
   -- get languages
   let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;" :: Query
-  langs <- query conn languagesQuery [lesson] :: IO [(String,String)]
-  if length langs == 1
-  then
-    let (sourceLang,targetLang) = head langs
-    in return (sourceLang,sourceTree,targetLang,targetTree)
-  else
-      throw $ DatabaseException "Couldn't find the languages"
+  langs <- query @_ @_ languagesQuery [lesson] -- :: IO [(String,String)]
+  case langs of
+    [(sourceLang, targetLang)] -> do
+      pure (sourceLang, sourceTree, targetLang, targetTree)
+    _ -> throw $ DatabaseException "Couldn't find the languages"
   where
   exerciseCountQuery = "SELECT ExerciseCount FROM Lesson WHERE Name = ?;"
   lessonRoundQuery = "SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;"
-  exerciseQuery = "SELECT SourceTree,TargetTree FROM Exercise WHERE Lesson = ?;"
   insertStartedLesson = "INSERT INTO StartedLesson (Lesson, User, Round) VALUES (?,?,?);"
   insertExerciseList = "INSERT INTO ExerciseList (Lesson,User,SourceTree,TargetTree,Round) VALUES (?,?,?,?,?);"
   errNoExercises = error "Database.newLesson: Invariant violated: No exercises for lesson"
@@ -293,14 +354,34 @@ continueLesson
   :: Connection
   -> Text -- ^ Username
   -> Text -- ^ Lesson name
-  -> IO (String,Types.TTree,String,Types.TTree)
-continueLesson conn user lesson = do
-  [Only round] <- query @_ @(Only Integer)
-    conn lessonRoundQuery (user,lesson)
+  -> IO
+     ( String
+     , Types.TTree
+     , String
+     , Types.TTree
+     )
+continueLesson conn user lesson = continueLessonM user lesson `runDB` conn
+
+continueLessonM
+  :: MonadDB db
+  => Text -- ^ Username
+  -> Text -- ^ Lesson name
+  -> db
+    ( String
+    , Types.TTree
+    , String
+    , Types.TTree
+    )
+continueLessonM user lesson = do
+  [Only round] <- query @_ @_ @(Only Integer)
+    lessonRoundQuery (user,lesson)
   (sourceTree,targetTree) <- fromMaybe errNoExercises . listToMaybe
-    <$> query conn selectExerciseListQuery (lesson,user,round)
-  [(sourceLang,targetLang)] <- query conn languagesQuery (Only lesson)
-  return (sourceLang,sourceTree,targetLang,targetTree)
+    <$> query @_ @_ @(Types.TTree, Types.TTree)
+        selectExerciseListQuery (lesson,user,round)
+  (sourceLang,targetLang)
+    <- fromMaybe errLangs . listToMaybe
+    <$> query languagesQuery (Only lesson)
+  pure (sourceLang,sourceTree,targetLang,targetTree)
   where
   lessonRoundQuery
     = "SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;"
@@ -313,6 +394,7 @@ continueLesson conn user lesson = do
   languagesQuery
     = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;"
   errNoExercises = error "Database.continueLesson: Invariant violated: No exercises for lesson"
+  errLangs = error "Database.continueLesson: Invariant violated: Multiple results for lesson"
 
 finishExercise
   :: Connection
@@ -323,18 +405,18 @@ finishExercise
   -> IO ()
 finishExercise conn token lesson time clicks = do
   -- get user name
-  [[user]] <- query conn userQuery [token] :: IO [[String]]
+  [[user]] <- SQL.query conn userQuery [token] :: IO [[String]]
   -- get lesson round
-  [Only round] <- query @_ @(Only Integer) conn lessonRoundQuery (user,lesson)
-  ((sourceTree,targetTree):_) <- query conn selectExerciseListQuery (lesson,user,round) :: IO [(String,String)]
-  execute conn insertFinishedExerciseQuery (user, lesson, sourceTree, targetTree, time, clicks + 1, round)
+  [Only round] <- SQL.query @_ @(Only Integer) conn lessonRoundQuery (user,lesson)
+  ((sourceTree,targetTree):_) <- SQL.query conn selectExerciseListQuery (lesson,user,round) :: IO [(String,String)]
+  SQL.execute conn insertFinishedExerciseQuery (user, lesson, sourceTree, targetTree, time, clicks + 1, round)
   -- check if all exercises finished
-  [Only finishedCount] <- query @_ @(Only Integer) conn countFinishesExercisesQuery (user,lesson)
-  [Only exerciseCount] <- query @_ @(Only Integer) conn countExercisesInLesson (Only lesson)
+  [Only finishedCount] <- SQL.query @_ @(Only Integer) conn countFinishesExercisesQuery (user,lesson)
+  [Only exerciseCount] <- SQL.query @_ @(Only Integer) conn countExercisesInLesson (Only lesson)
   if finishedCount >= exerciseCount
   then do
-    execute conn insertFinishedLessonQuery (user,lesson)
-    execute conn deleteStartedLessonQuery (user,lesson)
+    SQL.execute conn insertFinishedLessonQuery (user,lesson)
+    SQL.execute conn deleteStartedLessonQuery (user,lesson)
   else return ()
   where
     userQuery = "SELECT User FROM Session WHERE Token = ?;"
@@ -360,4 +442,4 @@ endSession :: Connection -> String -> IO ()
 endSession conn token =
   do
     let deleteSessionQuery = "DELETE FROM Session WHERE Token = ?;"
-    execute conn deleteSessionQuery [token]
+    SQL.execute conn deleteSessionQuery [token]
