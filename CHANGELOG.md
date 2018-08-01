@@ -4,6 +4,14 @@ Change log
 HEAD
 ---
 
+0.2.0.5
+---
+
+Move stuff around in `Muste.Linearization`:
+
+* `LinTokens` becomes `Linearization`
+* `Linearization` disappears
+
 0.2.0.4
 ---
 
