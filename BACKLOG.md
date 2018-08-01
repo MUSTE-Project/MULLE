@@ -89,13 +89,3 @@ Do we want to keep supporting `muste-cgi`?
 
 AFAIK CGI scripts just speak a different protocol from
 `application/json`.  So this should be easy to keep support for.
-
-Merge `LinToken` and `Linearization`
----
-
-Q: Do we need both representations? A: No. For, as @heatherleaf writes:
-
-> There is also LinToken and Linearization (in Muste.hs) - should be
-> merged into one.
-
-In the same go-around we should make these abstract.

@@ -30,7 +30,7 @@ import qualified Data.Text.Encoding as T
 import Data.Time
 import Data.Function (on)
 
-import Muste (Context, Path, TTree, LinTokens)
+import Muste (Context, Path, TTree, Linearization)
 import qualified Muste
 
 import Ajax
