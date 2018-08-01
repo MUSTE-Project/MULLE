@@ -6,6 +6,8 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Foldable
 
 import Muste
@@ -33,7 +35,7 @@ multipleSteps g = do
   let parse = parseTTree g
       adjTs = getAdjunctionTrees g
       m     = replaceTrees g adjTs (parse "usePN Africa_PN")
-      ts    = (fmap snd) <$> m
+      ts    = Set.map snd <$> m
       t     = parse
         $ "useCNdefsg (attribCN (useA victus_A) (useN imperium_N))"
       tslst = fold ts

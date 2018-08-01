@@ -14,6 +14,8 @@ import Data.List
 -- FIXME I think we might need to consider switching to strict maps.
 import Data.Map.Lazy (Map)
 import qualified Data.Map.Lazy   as Map
+import Data.Set (Set)
+import qualified Data.Set        as Set
 import Data.Aeson
 import qualified Data.Text as Text
 import qualified Data.Containers as Mono
@@ -64,8 +66,8 @@ instance ToJSON CostTree where
 getPrunedSuggestions :: Context -> TTree -> Menu
 getPrunedSuggestions ctxt tree = Menu $ go `Map.mapWithKey` Prune.replaceTrees (ctxtGrammar ctxt) (ctxtPrecomputed ctxt) tree
   where
-  go :: Path -> [(Int, TTree)] -> Mono.MapValue Menu
-  go path trees = uncurry (costTree ctxt) <$> trees
+  go :: Path -> Set (Int, TTree) -> Mono.MapValue Menu
+  go path = map (uncurry (costTree ctxt)) . Set.toList
 
 -- | Creates a 'CostTree' from a tree and it's cost.  Since the cost
 -- is already calculated, it basically just linearizes the tree.
@@ -88,6 +90,8 @@ getCleanMenu context tree
   = filterCostTrees
   $ getPrunedSuggestions context tree
 
+-- If we had an ordering on `CostTree`s we could also use `Set` here
+-- in stead of `[]`.
 -- | A 'Menu' maps paths to 'CostTree's.
 newtype Menu = Menu (Map Path [CostTree]) deriving (Show)
 

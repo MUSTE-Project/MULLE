@@ -7,10 +7,13 @@ module Muste.Prune
 
 import Control.Monad
 import Data.List (sort, nub)
+import Data.MonoTraversable
 import qualified Data.Containers as Mono
 import Data.Maybe
 import Data.Map (Map)
 import qualified Data.Map as M
+import Data.Set (Set)
+import qualified Data.Set as S
 
 import Muste.Common
 import Muste.Tree
@@ -25,11 +28,15 @@ import Muste.AdjunctionTrees
 -- @tree@ in @adjTs@.  Return a mapping from 'Path''s to the tree you
 -- get when you replace one of the valid trees into that given
 -- position along with the "cost" of doing so.
-replaceTrees :: Grammar -> AdjunctionTrees -> TTree -> Map Path [(Int, TTree)]
+replaceTrees
+  :: Grammar
+  -> AdjunctionTrees
+  -> TTree
+  -> Map Path (Set (Int, TTree))
 replaceTrees grammar precomputed tree = M.fromList (go <$> collectSimilarTrees grammar precomputed tree)
   where
-  go :: ReplacementTree -> (Path, [(Int, TTree)])
-  go (path, _, trees) = (path, replaceTree tree path <$> trees)
+  go :: ReplacementTree -> (Path, Set (Int, TTree))
+  go (path, _, trees) = (path, S.map (replaceTree tree path) trees)
 
 -- | @'replaceTree' trees@ returns a list of @(cost, t)@ where
 -- @t@ is a new tree arising from the 'SimTree'.
@@ -56,7 +63,7 @@ type SimTree = (Int, TTree, TTree, TTree)
 --
 -- Replacements are done at the subtree 'originalSubTree', and the
 -- possible replacements are given by 'replacements'.
-type ReplacementTree = (Path, TTree, [SimTree])
+type ReplacementTree = (Path, TTree, Set SimTree)
 
 -- FIXME We are not using the grammar. Is this a mistake
 -- | @'collectSimilarTrees' grammar adjTrees baseTree@ grammar
@@ -75,7 +82,7 @@ collectSimilarTrees
 collectSimilarTrees _grammar adjTrees basetree = go <$> getAllPaths basetree
   where
   go :: Path -> ReplacementTree
-  go path = (path, tree, simtrees)
+  go path = (path, tree, S.fromList simtrees)
     where
       err = error "Muste.Prune.collectSimilarTrees: Incongruence with 'getAllPaths'"
       tree = fromMaybe err $ selectNode basetree path
