@@ -7,7 +7,6 @@ module Muste.Prune
 
 import Control.Monad
 import Data.List (sort, nub)
-import Data.MonoTraversable
 import qualified Data.Containers as Mono
 import Data.Maybe
 import Data.Map (Map)
@@ -184,6 +183,7 @@ insertBranches branches tree = map fst (ins branches tree)
           selectBranch cat (tree@(TNode _ (Fun cat' _) _) : trees)
               = [ (tree, trees) | cat == cat' ] ++
                 [ (tree', tree:trees') | (tree', trees') <- selectBranch cat trees ]
+          selectBranch _ _ = error "Muste.Prune.insertBranches: Incomplete pattern match"
 
 -- | Calculates a sorted list of the categories of all metavariables
 -- in a tree. Note that the list may contain duplicates
@@ -209,6 +209,7 @@ pruneTree tree = [(t, bs) | (t, bs, _) <- pt [] tree]
                   (children', branches', visited') <- pc (cat:visited) children,
                   let tree' = TNode fun typ children'
                 ]
+          pt _ _ = error "Muste.Prune.pruneTree: Incomplete pattern match"
           pc visited [] = [([], [], visited)]
           pc visited (t:ts) = [ (t':ts', bs' ++ bs'', visited'') |
                                 (t', bs', visited') <- pt visited t,

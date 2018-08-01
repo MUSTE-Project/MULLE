@@ -16,8 +16,6 @@ module Muste.Feat
 
 import Data.List
 
-import PGF
-
 import Muste.Grammar
 import Muste.Tree
 
