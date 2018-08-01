@@ -1,6 +1,7 @@
 {-# Language
     GeneralizedNewtypeDeriving
   , TypeFamilies
+  , StandaloneDeriving
 #-}
 -- | Adjunction trees
 --
@@ -35,8 +36,7 @@ instance MonoTraversable AdjunctionTrees where
 instance Semigroup AdjunctionTrees where
   AdjunctionTrees a <> AdjunctionTrees b = AdjunctionTrees $ a <> b
 
-instance Monoid AdjunctionTrees where
-  mempty = AdjunctionTrees mempty
+deriving instance Monoid AdjunctionTrees
 
 instance GrowingAppend AdjunctionTrees where
 
