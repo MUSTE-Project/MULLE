@@ -67,8 +67,10 @@ instance ToJSON CostTree where
 -- remember what the idea with this is, but currently the outermost
 -- list is always a singleton.
 getPrunedSuggestions :: Context -> TTree -> Menu
-getPrunedSuggestions ctxt tree = Menu $ go `Map.mapWithKey` Prune.replaceTrees (ctxtGrammar ctxt) (ctxtPrecomputed ctxt) tree
+getPrunedSuggestions ctxt tree = Menu $ go `Map.mapWithKey` replaceTrees tree
   where
+  replaceTrees :: TTree -> Map Path (Set (Prune.SimTree, TTree))
+  replaceTrees = Prune.replaceTrees (ctxtGrammar ctxt) (ctxtPrecomputed ctxt)
   go :: Path -> Set (Prune.SimTree, TTree) -> Mono.MapValue Menu
   go path = map (uncurry (costTree ctxt)) . Set.toList
 
@@ -76,10 +78,10 @@ getPrunedSuggestions ctxt tree = Menu $ go `Map.mapWithKey` Prune.replaceTrees (
 -- is already calculated, it basically just linearizes the tree.
 costTree
   :: Context       -- ^ Context of the tree
-  -> Prune.SimTree -- ^ Information regarding where replacement
-  -> TTree         -- ^ The tree itself
+  -> Prune.SimTree -- ^ Information regarding what the tree is replacing
+  -> TTree         -- ^ The replacement tree
   -> CostTree
-costTree ctxt (cost, subtree, _, _) t
+costTree ctxt (cost, s, _, _) t
   = CostTree cost (Linearization.linearizeTree ctxt t) t isInsertion
   where
   -- Assume we’re building the suggestions for subtree s somewhere
