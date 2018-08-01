@@ -6,6 +6,7 @@ module Muste.Linearization.Internal
   , linearizeTree
   , langAndContext
   , mkLin
+  , sameOrder
   ) where
 
 import Data.Aeson
@@ -154,3 +155,19 @@ mkLin ctxt srcTree trgTree tree
   = Linearization $ matchTk srcTree trgTree <$> xs
   where
     (Linearization xs) = linearizeTree ctxt tree
+
+-- | @'sameOrder' xs ys@ checks to see if the tokens in @xs@ occurs in
+-- the same sequence in @ys@.
+sameOrder :: Linearization -> Linearization -> Bool
+sameOrder (Linearization xs) (Linearization ys) = sameOrder' xs ys
+
+-- If we were feeling fancy we might be able to generalize this from
+-- '[]' to any 'Traversable'.
+-- | @'sameOrder'' xs ys@ checks to see if the elements in @xs@ occurs
+-- in the same sequence in @ys@.
+sameOrder' :: Eq a => [a] -> [a] -> Bool
+sameOrder' [] _ = True
+sameOrder' _ [] = False
+sameOrder' (x:xs) yss@(y:ys)
+  | x == y    = sameOrder' xs ys
+  | otherwise = sameOrder' xs yss

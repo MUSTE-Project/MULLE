@@ -3,6 +3,7 @@
   , StandaloneDeriving
   , GeneralizedNewtypeDeriving
   , TypeFamilies
+  , TypeApplications
 #-}
 module Muste.Menu
   ( Menu
@@ -28,6 +29,7 @@ import qualified Muste.Prune as Prune
 import Muste.Linearization
 import qualified Muste.Linearization.Internal as Linearization
   ( linearizeTree
+  , sameOrder
   )
 
 -- | A 'CostTree' is a tree associated with it's linearization and a
@@ -72,35 +74,52 @@ getPrunedSuggestions ctxt tree = Menu $ go `Map.mapWithKey` replaceTrees tree
   replaceTrees :: TTree -> Map Path (Set (Prune.SimTree, TTree))
   replaceTrees = Prune.replaceTrees (ctxtGrammar ctxt) (ctxtPrecomputed ctxt)
   go :: Path -> Set (Prune.SimTree, TTree) -> Mono.MapValue Menu
-  go path = map (uncurry (costTree ctxt)) . Set.toList
+  go path = map (uncurry (costTree ctxt tree)) . Set.toList
 
 -- | Creates a 'CostTree' from a tree and it's cost.  Since the cost
 -- is already calculated, it basically just linearizes the tree.
 costTree
   :: Context       -- ^ Context of the tree
+  -> TTree         -- ^ The original tree
   -> Prune.SimTree -- ^ Information regarding what the tree is replacing
   -> TTree         -- ^ The replacement tree
   -> CostTree
-costTree ctxt (cost, s, _, _) t
-  = CostTree cost (Linearization.linearizeTree ctxt t) t isInsertion
+costTree ctxt s (cost, r, _, _) t
+  = CostTree cost (Linearization.linearizeTree ctxt t) t ins
   where
-  -- Assume we’re building the suggestions for subtree s somewhere
-  -- inside the tree. For simplicity, let s cover the words w_j...w_k in
-  -- the linearisation (w_1...w_n). Every word w_j...w_k are introduced
-  -- by some node s_j, ..., s_k (all s_i are in subtree s, and s_i and
-  -- s_i’ can be the same node (but doesn’t have to))
-  --
-  -- Now, collect all replacement subtrees for s (Prune.replaceTrees)
-  -- and look through them. Given a replacement r, let its linearisation
-  -- cover be u_p...u_q, and their corresponding nodes be r_p, ..., r_q:
-  --
-  -- IF all cover nodes of s (s_j, ..., s_k) are included in r_p, ..., r_q;
-  -- AND the linearisation order between s_j, ..., s_k are kept the same as in w_j...w_k;
-  -- AND there are some additional new cover nodes r_i, ..., r_i’ which are not in s_j, ..., s_k;
-  -- THEN r should be an insertion (at the corresponding positions of r_i, ..., r_i’);
-  -- OTHERWISE r is a normal replacement
-  isInsertion :: Bool
-  isInsertion = True
+  ins :: Bool
+  ins = isInsertion ctxt s r
+
+-- Assume we’re building the suggestions for subtree s somewhere
+-- inside the tree. For simplicity, let s cover the words w_j...w_k in
+-- the linearisation (w_1...w_n). Every word w_j...w_k are introduced
+-- by some node s_j, ..., s_k (all s_i are in subtree s, and s_i and
+-- s_i’ can be the same node (but doesn’t have to))
+--
+-- Now, collect all replacement subtrees for s (Prune.replaceTrees)
+-- and look through them. Given a replacement r, let its linearisation
+-- cover be u_p...u_q, and their corresponding nodes be r_p, ..., r_q:
+--
+-- IF all cover nodes of s (s_j, ..., s_k) are included in r_p, ..., r_q;
+-- AND the linearisation order between s_j, ..., s_k are kept the same as in w_j...w_k;
+-- AND there are some additional new cover nodes r_i, ..., r_i’ which are not in s_j, ..., s_k;
+-- THEN r should be an insertion (at the corresponding positions of r_i, ..., r_i’);
+-- OTHERWISE r is a normal replacement
+isInsertion :: Context -> TTree -> TTree -> Bool
+isInsertion ctxt s r = coverNodesIsProperSubset && sameOrder'
+  where
+  -- Checks if the "cover nodes" of @s@ is a proper subset of those in
+  -- @r@.
+  coverNodesIsProperSubset :: Bool
+  coverNodesIsProperSubset = (Set.isProperSubsetOf `on` coverNodes @()) s r
+  -- Checks if the nodes in the linearization of @s@ appear in the
+  -- same order as in @r@.
+  sameOrder' :: Bool
+  sameOrder' = (Linearization.sameOrder `on` Linearization.linearizeTree ctxt) s r
+
+-- TODO Stub!!
+coverNodes :: Ord what => TTree -> Set what
+coverNodes = const mempty
 
 filterCostTrees :: Menu -> Menu
 filterCostTrees = removeFree >>> sortByCost >>> filterEmpty
