@@ -35,7 +35,7 @@ multipleSteps g = do
   let parse = parseTTree g
       adjTs = getAdjunctionTrees g
       m     = replaceTrees g adjTs (parse "usePN Africa_PN")
-      ts    = Set.map snd <$> m
+      ts    = Set.map (\(_, _, a) -> a) <$> m
       t     = parse
         $ "useCNdefsg (attribCN (useA victus_A) (useN imperium_N))"
       tslst = fold ts

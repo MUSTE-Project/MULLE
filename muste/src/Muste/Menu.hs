@@ -37,9 +37,10 @@ import qualified Muste.Linearization.Internal as Linearization
 --
 -- [^1]: Here's to hoping this documentation will be kept up-to-date.
 data CostTree = CostTree
-  { cost :: Int
-  , _lin :: Linearization
-  , _tree :: TTree
+  { cost           :: Int
+  , _lin           :: Linearization
+  , _tree          :: TTree
+  , _isInsertion   :: Bool
   } deriving (Show,Eq)
 
 instance FromJSON CostTree where
@@ -47,12 +48,14 @@ instance FromJSON CostTree where
     <$> v .: "cost"
     <*> v .: "lin"
     <*> v .: "tree"
+    <*> v .: "insertion"
 
 instance ToJSON CostTree where
-  toJSON (CostTree score lin tree) = object
-    [ "score" .= score
-    , "lin"   .= lin
-    , "tree"  .= tree
+  toJSON (CostTree score lin tree repl) = object
+    [ "score"       .= score
+    , "lin"         .= lin
+    , "tree"        .= tree
+    , "insertion"   .= repl
     ]
 
 -- | @'getPrunedSuggestions' ctxt tree@ finds all trees similar to
@@ -66,14 +69,19 @@ instance ToJSON CostTree where
 getPrunedSuggestions :: Context -> TTree -> Menu
 getPrunedSuggestions ctxt tree = Menu $ go `Map.mapWithKey` Prune.replaceTrees (ctxtGrammar ctxt) (ctxtPrecomputed ctxt) tree
   where
-  go :: Path -> Set (Int, TTree) -> Mono.MapValue Menu
-  go path = map (uncurry (costTree ctxt)) . Set.toList
+  go :: Path -> Set (Int, Bool, TTree) -> Mono.MapValue Menu
+  go path = map (\(a, b, c) -> costTree ctxt a b c) . Set.toList
 
 -- | Creates a 'CostTree' from a tree and it's cost.  Since the cost
 -- is already calculated, it basically just linearizes the tree.
-costTree :: Context -> Int -> TTree -> CostTree
-costTree ctxt cost fullTree
-  = CostTree cost (Linearization.linearizeTree ctxt fullTree) fullTree
+costTree
+  :: Context -- ^ Context of the tree
+  -> Int     -- ^ The cost of chosing this tree
+  -> Bool    -- ^ Is the tre to be considered an insertion
+  -> TTree   -- ^ The tree itself
+  -> CostTree
+costTree ctxt cost insrt t
+  = CostTree cost (Linearization.linearizeTree ctxt t) t insrt
 
 filterCostTrees :: Menu -> Menu
 filterCostTrees = removeFree >>> sortByCost >>> filterEmpty

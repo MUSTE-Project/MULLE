@@ -1,7 +1,7 @@
 ROOT=`stack path --local-install-root`
 # TODO Automatically figure out.
 GHC=x86_64-linux-ghc-8.4.3
-MUSTE_AJAX=muste-ajax-0.2.0.2
+MUSTE_AJAX=muste-ajax-0.2.0.5
 SHARE=${ROOT}/share
 MUSTE_AJAX_SHARE=${SHARE}/${GHC}/${MUSTE_AJAX}
 LOG=${MUSTE_AJAX_SHARE}/log
