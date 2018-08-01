@@ -26,11 +26,6 @@ Use front end framework
 
 https://github.com/MUSTE-Project/MULLE/issues/6
 
-Prune suggestions that can be reached in multiple steps
----
-
-https://github.com/MUSTE-Project/MULLE/issues/5
-
 Better configuration support
 ---
 

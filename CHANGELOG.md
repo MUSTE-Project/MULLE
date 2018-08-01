@@ -1,6 +1,15 @@
 Change log
 ==========
 
+HEAD
+---
+
+0.2.0.4
+---
+
+Make `Menu` a monomorphic container and make it map to `[CostTree]`
+rather than `[[CostTree]]`.
+
 0.2.0.3
 ----
 
