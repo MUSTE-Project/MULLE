@@ -12,7 +12,7 @@ flags:
     manual: true
     default: false
 
-ghc-options: -fmax-valid-substitutions=0
+# ghc-options: -fmax-valid-substitutions=0
 
 data-files:
   - ./data/gf/compiled/novo_modo/*.pgf

@@ -3,6 +3,7 @@
   , StandaloneDeriving
   , GeneralizedNewtypeDeriving
   , TypeFamilies
+  , CPP
 #-}
 module Muste.Menu
   ( Menu
@@ -20,6 +21,10 @@ import qualified Data.Containers as Mono
 import Data.MonoTraversable
 import Data.Function (on)
 import Control.Category ((>>>))
+#if MIN_VERSION_base(4,11,0)
+#else
+import Data.Semigroup (Semigroup)
+#endif
 
 import Muste.Tree
 import qualified Muste.Prune as Prune

@@ -1,3 +1,4 @@
+{-# Language CPP #-}
 -- FIXME Should this be an internal module? It's not currently used in
 -- @muste-ajax@.
 module Muste.Prune
@@ -11,6 +12,10 @@ import qualified Data.Containers as Mono
 import Data.Maybe
 import Data.Map (Map)
 import qualified Data.Map as M
+#if MIN_VERSION_base(4,11,0)
+#else
+import Data.Semigroup ((<>))
+#endif
 
 import Muste.Common
 import Muste.Tree

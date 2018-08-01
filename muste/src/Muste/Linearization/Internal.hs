@@ -1,4 +1,4 @@
-{-# Language OverloadedStrings, GeneralizedNewtypeDeriving #-}
+{-# Language OverloadedStrings, GeneralizedNewtypeDeriving, CPP #-}
 module Muste.Linearization.Internal
   ( Context(ctxtGrammar, ctxtPrecomputed)
   , buildContext
@@ -13,6 +13,10 @@ import Data.Aeson
 import qualified PGF
 import qualified PGF.Internal as PGF hiding (funs, cats)
 import Data.Function (on)
+#if MIN_VERSION_base(4,11,0)
+#else
+import Data.Semigroup (Semigroup((<>)))
+#endif
 
 import Muste.Tree
 import Muste.Grammar
