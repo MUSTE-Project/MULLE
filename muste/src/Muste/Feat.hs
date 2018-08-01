@@ -17,6 +17,7 @@ module Muste.Feat
 import Data.List
 
 import Muste.Grammar
+import Muste.Grammar.Internal (Rule(Function))
 import Muste.Tree
 
 type FEAT = String -> Int -> (Integer, Integer -> TTree)

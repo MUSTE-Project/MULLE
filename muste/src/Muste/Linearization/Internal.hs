@@ -17,6 +17,7 @@ import Data.Function (on)
 
 import Muste.Tree
 import Muste.Grammar
+import Muste.Grammar.Internal (pgf)
 import qualified Muste.Grammar.Internal as Grammar
   ( brackets
   , readPGF

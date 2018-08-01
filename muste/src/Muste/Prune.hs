@@ -15,6 +15,7 @@ import qualified Data.Map as M
 import Muste.Common
 import Muste.Tree
 import Muste.Grammar
+import Muste.Grammar.Internal (Rule(Function))
 import Muste.AdjunctionTrees
 
 
