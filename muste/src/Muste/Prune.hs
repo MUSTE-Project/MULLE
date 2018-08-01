@@ -3,6 +3,7 @@
 module Muste.Prune
   ( getAdjunctionTrees
   , replaceTrees
+  , SimTree
   ) where
 
 import Control.Monad
@@ -32,20 +33,17 @@ replaceTrees
   :: Grammar
   -> AdjunctionTrees
   -> TTree
-  -> Map Path (Set (Int, Bool, TTree))
+  -> Map Path (Set (SimTree, TTree))
 replaceTrees grammar precomputed tree = M.fromList (go <$> collectSimilarTrees grammar precomputed tree)
   where
-  go :: ReplacementTree -> (Path, Set (Int, Bool, TTree))
+  go :: ReplacementTree -> (Path, Set (SimTree, TTree))
   go (path, _, trees) = (path, S.map (replaceTree tree path) trees)
 
--- | @'replaceTree' trees@ returns a list of @(cost, t)@ where
--- @t@ is a new tree arising from the 'SimTree'.
-replaceTree :: TTree -> Path -> SimTree -> (Int, Bool, TTree)
-replaceTree tree path (cost, subtree, _, _)
-  = (cost, isInsertion, replaceNode tree path subtree)
-  where
-  -- TODO Stub!
-  isInsertion = True
+-- | @'replaceTree' trees@ returns a list of @(cost, isInsertion, t)@
+-- where @t@ is a new tree arising from the 'SimTree'.
+replaceTree :: TTree -> Path -> SimTree -> (SimTree, TTree)
+replaceTree tree path sim@(_, subtree, _, _)
+  = (sim, replaceNode tree path subtree)
 
 
 -- * Pruning
