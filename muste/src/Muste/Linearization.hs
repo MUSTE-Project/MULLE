@@ -1,5 +1,5 @@
 module Muste.Linearization
-  ( LinTokens
+  ( Linearization
   , Context(ctxtGrammar, ctxtPrecomputed)
   , buildContext
   , langAndContext

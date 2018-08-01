@@ -149,7 +149,7 @@ instance ToJSON ClientMessage where
 data ServerTree = ServerTree
   { slanguage :: String
   , trees :: [TTree]
-  , lin   :: LinTokens
+  , lin   :: Linearization
   , smenu :: Menu
   } deriving (Show) ;
 
@@ -168,7 +168,7 @@ instance ToJSON ServerTree where
     , "menu"    .= menu
     ]
 
-mkServerTree :: String -> [TTree] -> LinTokens -> Menu -> ServerTree
+mkServerTree :: String -> [TTree] -> Linearization -> Menu -> ServerTree
 mkServerTree lang trees lin menu = ServerTree lang trees lin menu
 
 data Lesson = Lesson {

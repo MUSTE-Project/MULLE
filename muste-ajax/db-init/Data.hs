@@ -5,7 +5,6 @@ module Data (exercises, getLessons) where
 import qualified Config
 
 import Muste.Tree
-import Muste.Grammar
 
 -- TODO Make a newtype for this (and instances of 'FromROW' and
 -- 'ToROW',
