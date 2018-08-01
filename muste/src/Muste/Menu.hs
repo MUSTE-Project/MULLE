@@ -25,8 +25,7 @@ import Muste.Tree
 import qualified Muste.Prune as Prune
 import Muste.Linearization
 import qualified Muste.Linearization.Internal as Linearization
-  ( OldLinearization
-  , linearizeTree
+  ( linearizeTree
   )
 
 -- | A 'CostTree' is a tree associated with it's linearization and a
@@ -37,7 +36,7 @@ import qualified Muste.Linearization.Internal as Linearization
 -- [^1]: Here's to hoping this documentation will be kept up-to-date.
 data CostTree = CostTree
   { cost :: Int
-  , _lin :: Linearization.OldLinearization
+  , _lin :: Linearization
   , _tree :: TTree
   } deriving (Show,Eq)
 

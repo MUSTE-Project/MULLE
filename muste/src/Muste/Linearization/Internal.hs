@@ -3,7 +3,6 @@ module Muste.Linearization.Internal
   ( Context(ctxtGrammar, ctxtPrecomputed)
   , buildContext
   , Linearization
-  , OldLinearization
   , linearizeTree
   , langAndContext
   , mkLin
@@ -57,36 +56,6 @@ data Context = Context
   , ctxtPrecomputed :: AdjunctionTrees
   }
 
-type OldLinearization = [OldL]
-
-{-# DEPRECATED OldL "Being merged with Linearization" #-}
--- | A linearization of a tree is the way a @TTree@ is represented in
--- a given language.  It represents the way the sentence is read.
-data OldL = OldL
-  { _lpath :: Path
-  , _llin :: String
-  } deriving (Show,Eq)
-
--- FIXME Is this right? I copied this from
--- @Muste.getPrunedSuggestions@ So that I could make 'OldL'
--- abstract.
--- | Convert a 'LinToken' to a 'OldL'.
-mkOldL :: Linearization -> OldLinearization
-mkOldL (Linearization xs) = go <$> xs
-  where
-  go (LinToken p l _) = OldL p l
-
-instance FromJSON OldL where
-  parseJSON = withObject "Linearization" $ \v -> OldL
-    <$> v .: "path"
-    <*> v .: "lin"
-
-instance ToJSON OldL where
-  toJSON (OldL path lin) = object
-    [ "path" .= path
-    , "lin" .= lin
-    ]
-
 instance FromJSON LinToken where
   parseJSON = withObject "LinToken" $ \v -> LinToken
     <$> v .: "path"
@@ -109,8 +78,8 @@ buildContext grammar lang =
 -- Maybe fits better in the grammar.
 -- | The 'linearizeTree' function linearizes a @TTree@ to a list of
 -- tokens and paths to the nodes that create it
-linearizeTreeAux :: Context -> TTree -> Linearization
-linearizeTreeAux (Context grammar language _) ttree =
+linearizeTree :: Context -> TTree -> Linearization
+linearizeTree (Context grammar language _) ttree =
   let
     brackets = Grammar.brackets grammar language ttree
   in
@@ -119,13 +88,6 @@ linearizeTreeAux (Context grammar language _) ttree =
       && not (null brackets)
     then bracketsToTuples ttree $ head brackets
     else Linearization $ [LinToken [] "?0" []]
-
-
--- @CostTree@'s use @OldLinearization@ and not 'Linearization' as
--- returned by 'linearizeTreeAux'.
-linearizeTree :: Context -> TTree -> OldLinearization
-linearizeTree ctxt tree = mkOldL
-  $ linearizeTreeAux ctxt tree
 
 -- | Given a file path creates a mapping from the an identifier of the
 -- language to the 'Context' of that language.
@@ -191,4 +153,4 @@ mkLin
 mkLin ctxt srcTree trgTree tree
   = Linearization $ matchTk srcTree trgTree <$> xs
   where
-    (Linearization xs) = linearizeTreeAux ctxt tree
+    (Linearization xs) = linearizeTree ctxt tree
