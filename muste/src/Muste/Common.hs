@@ -66,6 +66,7 @@ editDistance a b = last (if lab == 0 then mainDiag
           eachDiag a [] diags = []
           eachDiag a (bch:bs) (lastDiag:diags) = oneDiag a bs nextDiag lastDiag : eachDiag a bs diags
               where nextDiag = head (tail diags)
+          eachDiag _ _ _ = error "Common.editDistance: Unmatched clause"
           oneDiag a b diagAbove diagBelow = thisdiag
               where doDiag [] b nw n w = []
                     doDiag a [] nw n w = []

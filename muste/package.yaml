@@ -1,5 +1,5 @@
 name:                muste
-version:             0.2.0.3
+version:             0.2.0.4
 license:             BSD3
 author:              Herbert Lange
 maintainer:          herbert.lange@cse.gu.se
@@ -47,6 +47,7 @@ library:
     - Muste.Feat
     - Muste.Prune
     - Muste.Linearization
+    - Muste.Menu
 
   other-modules:
     - Muste.Common

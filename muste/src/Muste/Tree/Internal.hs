@@ -31,15 +31,12 @@ import qualified Data.Text.Lazy.Encoding as LText
 import qualified Data.Binary as Binary
 import qualified Data.ByteString.Lazy as LBS
 import GHC.Generics
-import Control.Monad.State hiding (fail)
 import Data.String
 import Data.String.ToString
 import Control.Monad.Fail hiding (fail)
 import Text.Read (readEither)
-import Control.Exception
 
 import qualified Database.SQLite.Simple as SQL
-import qualified Database.SQLite.Simple.Ok as SQL
 import qualified Database.SQLite.Simple.FromField as SQL (returnError)
 import Database.SQLite.Simple.ToField (ToField)
 import qualified Database.SQLite.Simple.ToField as SQL
@@ -134,9 +131,6 @@ instance FromField TTree where
   fromField fld = case SQL.fieldData fld of
     SQL.SQLText t -> pure $ binaryFromText t
     _ -> SQL.returnError SQL.ConversionFailed fld mempty
-
-todo :: a
-todo = error "Muste.Tree.Internal: TODO More descriptive error message"
 
 instance ToField TTree where
   toField = SQL.SQLText . binaryToText
@@ -305,23 +299,23 @@ getPath ltree id =
   in
     reverse $ deep (ttreeToLTree ltree) id []
 
--- My attempt at replacing the above function with something that does
--- not need to know about @LTree@'s. I misunderstood @getPath@ and
--- wrote a depth first algorithm in stead.
-getPathDF :: TTree -> Int -> Path      
-getPathDF t n = maybe mempty reverse $ evalState (aux t) n
-  where
-  aux :: TTree -> State Int (Maybe Path)
-  aux t = do
-    n <- get
-    modify pred
-    if n <= 0
-    then pure $ pure $ [0]
-    else case t of
-      TMeta{}      -> pure Nothing
-      TNode _ _ xs -> fmap (listToMaybe . catMaybes) <$> mapM step $ zip [0..] xs
-  step :: (Int, TTree) -> State Int (Maybe Path)
-  step (childNo, t) = fmap (childNo :) <$> aux t
+-- -- My attempt at replacing the above function with something that does
+-- -- not need to know about @LTree@'s. I misunderstood @getPath@ and
+-- -- wrote a depth first algorithm in stead.
+-- getPathDF :: TTree -> Int -> Path
+-- getPathDF t n = maybe mempty reverse $ evalState (aux t) n
+--   where
+--   aux :: TTree -> State Int (Maybe Path)
+--   aux t = do
+--     n <- get
+--     modify pred
+--     if n <= 0
+--     then pure $ pure $ [0]
+--     else case t of
+--       TMeta{}      -> pure Nothing
+--       TNode _ _ xs -> fmap (listToMaybe . catMaybes) <$> mapM step $ zip [0..] xs
+--   step :: (Int, TTree) -> State Int (Maybe Path)
+--   step (childNo, t) = fmap (childNo :) <$> aux t
 
 -- | The function 'maxDepth' gets the length of the maximum path between root and a leaf (incl. meta nodes) of a 'TTree'
 maxDepth :: TTree -> Int

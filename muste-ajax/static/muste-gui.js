@@ -244,10 +244,8 @@ function clean_server_data(data) {
     var oldmenu = data.menu;
     data.menu = {};
     for (var path in oldmenu) {
-        oldmenu[path].forEach(function(submenu){
-            submenu.forEach(function(item){
-                clean_lin(item.lin);
-            });
+        oldmenu[path].forEach(function(item){
+            clean_lin(item.lin);
         });
 	data.menu[convert_path(path)] = oldmenu[path];
     }
@@ -378,28 +376,28 @@ function click_word(event) {
         //     .addClass('striked');
 
         $('#menus').data('selection', selection);
+        var ul = $('<ul>').appendTo($('#menus')).hide();
         for (var i = 0; i < menus.length; i++) {
-            var ul = $('<ul>').appendTo($('#menus')).hide();
-            for (var j = 0; j < menus[i].length; j++) {
-                var item = menus[i][j];
-                var menuitem = $('<span class="clickable">')
-                    .data({'tree': item.tree, 'lang': lang})
-                    .click(BUSY(function(c){
-                        select_menuitem($(c).data());
-                    }));
-                if (item.lin.length == 0) {
-                    $('<span>').html("&empty;").appendTo(menuitem);
-                } else {
-                    item.lin.forEach(function(pword){
-			var marked = pword.path.startsWith(selection);
-                        $('<span>').text(pword.lin)
-			    .addClass(marked ? 'marked' : 'greyed')
-                            .appendTo(menuitem);
-                        $('<span>').text(" ").appendTo(menuitem);
-                    });
-                }
-                $('<li>').append(menuitem).appendTo(ul);
+
+            var item = menus[i];
+            var menuitem = $('<span class="clickable">')
+                .data({'tree': item.tree, 'lang': lang})
+                .click(BUSY(function(c){
+                    select_menuitem($(c).data());
+                }));
+            if (item.lin.length == 0) {
+                $('<span>').html("&empty;").appendTo(menuitem);
+            } else {
+                item.lin.forEach(function(pword){
+                    var marked = pword.path.startsWith(selection);
+                    $('<span>').text(pword.lin)
+                        .addClass(marked ? 'marked' : 'greyed')
+                        .appendTo(menuitem);
+                    $('<span>').text(" ").appendTo(menuitem);
+                });
             }
+            $('<li>').append(menuitem).appendTo(ul);
+
         }
     }
 
