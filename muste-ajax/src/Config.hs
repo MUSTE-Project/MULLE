@@ -29,7 +29,7 @@ dataDir :: FilePath
 dataDir = "./data/"
 
 grammarDir :: FilePath
-grammarDir = dataDir </> "gf/compiled/novo_modo/"
+grammarDir = dataDir </> "gf/grammars/novo_modo/"
 
 getGrammar :: String -> IO FilePath
 getGrammar f = Paths.getDataFileName $ grammarDir </> f <.> "pgf"

@@ -15,7 +15,8 @@ flags:
 # ghc-options: -fmax-valid-substitutions=0
 
 data-files:
-  - ./data/gf/compiled/novo_modo/*.pgf
+  - ./data/gf/grammars/novo_modo/*.pgf
+  - ./data/gf/grammars/misc/*.pgf
   - ./log/*.log
   - ./static/index.html
   - ./static/muste.html
