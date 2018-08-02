@@ -16,7 +16,6 @@ flags:
 
 data-files:
   - ./data/gf/grammars/novo_modo/*.pgf
-  - ./data/gf/grammars/misc/*.pgf
   - ./log/*.log
   - ./static/index.html
   - ./static/muste.html
@@ -74,6 +73,7 @@ dependencies:
   - snap-extras
   - lens
   - io-streams
+  - exceptions
 
 library:
 

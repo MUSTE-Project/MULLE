@@ -1,4 +1,4 @@
-resolver: lts-9.21 # => ghc-8.4.3
+resolver: lts-9.21 # => ghc-8.0.2
 
 packages:
 - ./muste/
