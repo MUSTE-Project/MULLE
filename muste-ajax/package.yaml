@@ -12,10 +12,10 @@ flags:
     manual: true
     default: false
 
-ghc-options: -fmax-valid-substitutions=0
+# ghc-options: -fmax-valid-substitutions=0
 
 data-files:
-  - ./data/gf/compiled/novo_modo/*.pgf
+  - ./data/gf/grammars/novo_modo/*.pgf
   - ./log/*.log
   - ./static/index.html
   - ./static/muste.html
@@ -73,6 +73,7 @@ dependencies:
   - snap-extras
   - lens
   - io-streams
+  - exceptions
 
 library:
 

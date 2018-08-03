@@ -4,6 +4,7 @@
   , TypeApplications
   , ViewPatterns
   , FlexibleContexts
+  , StandaloneDeriving
 #-}
 module Protocol
   ( apiRoutes
@@ -12,7 +13,7 @@ module Protocol
 import Data.Aeson
 import Data.Set (Set)
 import qualified Data.Set as S
-import Data.Map ((!),Map)
+import Data.Map (Map)
 import qualified Data.Map.Lazy as M
 import Control.Monad
 import Database.SQLite.Simple
@@ -29,6 +30,8 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Data.Time
 import Data.Function (on)
+import Control.Monad.Catch (MonadThrow(throwM))
+import Control.Exception (Exception, throw)
 
 import Muste (Context, Path, TTree, Linearization)
 import qualified Muste
@@ -54,6 +57,9 @@ data Env = Env
 
 -- | A simple monad for handling responding to requests.
 type Protocol v w a = ReaderT Env (Snap.Handler v w) a
+
+instance MonadThrow (Snap.Handler v w) where
+  throwM = liftIO . throwM
 
 runProtocol :: Protocol v w a -> Snap.Handler v w a
 runProtocol app = do
@@ -304,13 +310,46 @@ assembleMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
 -- We could make the constraint on `m` more general, but then I get
 -- into some stuff with some functional dependencies that I'm not
 -- entirely sure how works.
-getContext
-  :: Text -- ^ The lesson
+getContextM
+  :: Text   -- ^ The lesson
   -> String -- ^ The language
   -> Protocol v w Context
-getContext lesson lang = do
+getContextM lesson lang = do
   ctxts <- askContexts
-  pure $ ctxts ! lesson ! lang
+  getContext ctxts lesson lang
+  -- pure $ getContext ctxts -- ctxts ! lesson ! lang
+
+data ProtocolException
+  = LessonNotFound Text
+  | LanguageNotFound String
+
+deriving instance Show ProtocolException
+
+instance Exception ProtocolException where
+
+getContext
+  :: MonadThrow m
+  => Contexts
+  -> Text   -- ^ Lesson
+  -> String -- ^ Language
+  -> m Context
+getContext ctxts lesson lang
+  =   pure ctxts
+  >>= lookupM (LessonNotFound lesson) lesson
+  >>= lookupM (LanguageNotFound lang) lang
+
+lookupM
+  :: MonadThrow m
+  => Exception e
+  => Ord k
+  => e -> k -> Map k a -> m a
+lookupM err k = liftMaybe err . M.lookup k
+
+-- | Lift a 'Maybe' to any 'MonadThrow'.
+liftMaybe :: MonadThrow m => Exception e => e -> Maybe a -> m a
+liftMaybe e = \case
+  Nothing -> throwM e
+  Just a  -> pure a
 
 -- | @'makeTree' ctxt lesson src trg tree@ Creates a 'ServerTree' from
 -- a source trees and a target tree.  The 'Menu' is provided given
@@ -324,12 +363,17 @@ makeTree
 makeTree contexts lesson (srcLang, srcTrees) (trgLang, trgTrees) (lang, trees)
   = Ajax.mkServerTree lang trees lin (Muste.getCleanMenu ctxt tree)
     where
-    grammar = Muste.ctxtGrammar (contexts ! lesson ! srcLang)
-    ctxt    = contexts ! lesson ! lang
+    grammar = throwLeft $ getContext contexts lesson srcLang
+    ctxt    = throwLeft $ getContext contexts lesson lang
     lin     = Muste.mkLin ctxt srcTree trgTree tree
     srcTree = unsafeTakeTree srcTrees
     trgTree = unsafeTakeTree trgTrees
     tree    = unsafeTakeTree trees
+
+-- | Throws an exception if the it's a 'Left' (requires the left to be
+-- an exception).  This method is *unsafe*!
+throwLeft :: Exception e => Either e c -> c
+throwLeft = either throw id
 
 emptyMenus
   :: Contexts
@@ -345,7 +389,7 @@ emptyMenus contexts lesson src@(srcLang, srcTrees) trg@(_, trgTrees) =
   -- FIXME In 'assembleMenus' we actually use the language of the tree
   -- we're building.  Investigate if this may be a bug.  Similiarly
   -- for 'lin'.  This is the reason we are not using 'makeTree' here.
-  ctxt = contexts ! lesson ! srcLang
+  ctxt = throwLeft $ getContext contexts lesson srcLang
   grammar = Muste.ctxtGrammar ctxt
   srcTree = unsafeTakeTree srcTrees
   trgTree = unsafeTakeTree trgTrees

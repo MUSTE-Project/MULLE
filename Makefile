@@ -1,7 +1,8 @@
-ROOT=`stack path --local-install-root`
-# TODO Automatically figure out.
-GHC=x86_64-linux-ghc-8.4.3
-MUSTE_AJAX=muste-ajax-0.2.0.5
+# These three lines are horribly brittle.
+ROOT := $(shell stack path --local-install-root)
+GHC := x86_64-linux-$(shell stack query compiler actual)
+MUSTE_AJAX := muste-ajax-$(shell stack query locals muste-ajax version | tr -d "'")
+
 SHARE=${ROOT}/share
 MUSTE_AJAX_SHARE=${SHARE}/${GHC}/${MUSTE_AJAX}
 LOG=${MUSTE_AJAX_SHARE}/log

@@ -1,6 +1,12 @@
+{-# Language CPP #-}
 -- | Data used for inititializing the database
 
 module Data (exercises, getLessons) where
+
+#if MIN_VERSION_base(4,11,0)
+#else
+import Data.Semigroup (Semigroup((<>)))
+#endif
 
 import qualified Config
 
