@@ -9,6 +9,7 @@ module Muste.Grammar.Internal
   , getAllRules
   , getRuleType
   , readPGF
+  , parseGrammar
   , brackets
   -- Used in test module
   , parseTTree
@@ -24,6 +25,7 @@ import Data.List
 import Data.Text.Prettyprint.Doc (Pretty(..))
 import qualified Data.Text.Prettyprint.Doc as Doc
 import Text.Printf
+import Data.ByteString.Lazy (ByteString)
 
 import Muste.Common
 import Muste.Tree
@@ -152,6 +154,11 @@ readPGF
   :: FilePath -- ^ Path to the grammar.
   -> IO Grammar
 readPGF grammarName = pgfToGrammar <$> PGF.readPGF grammarName
+
+parseGrammar
+  :: ByteString -- ^ Path to the grammar.
+  -> Grammar
+parseGrammar = pgfToGrammar . PGF.parsePGF
 
 brackets :: Grammar -> PGF.Language -> TTree -> [PGF.BracketedString]
 brackets grammar language ttree

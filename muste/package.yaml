@@ -23,7 +23,7 @@ dependencies:
 - aeson
 - mtl
 - aeson
-- pgf >=3.7
+- pgf >=3.9.1
 - binary
 - text
 - bytestring
@@ -32,13 +32,16 @@ dependencies:
 - prettyprinter
 - mono-traversable
 - base >=4.8
+- file-embed
+- template-haskell
+- filepath
 
 library:
   other-extensions:
     FlexibleInstances
 
   dependencies:
-    - pgf >=3.7
+    - pgf >=3.9.1
 
   exposed-modules:
     - Muste
@@ -55,6 +58,9 @@ library:
     - Muste.Grammar.Internal
     - Muste.Linearization.Internal
     - Muste.AdjunctionTrees
+    - Muste.Data
+    - Muste.Grammar.Embed
+    - Muste.Grammar.Grammars
 
 tests:
   test:
