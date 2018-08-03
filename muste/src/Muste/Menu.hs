@@ -20,6 +20,9 @@ import Data.Set (Set)
 import qualified Data.Set        as Set
 import Data.Aeson
 import qualified Data.Text as Text
+import qualified Data.Foldable as Mono
+import qualified Data.MonoTraversable as Mono
+import qualified Data.Sequences as Mono
 import qualified Data.Containers as Mono
 import Data.MonoTraversable
 import Data.Function (on)
@@ -35,7 +38,10 @@ import Muste.Linearization
 import qualified Muste.Linearization.Internal as Linearization
   ( linearizeTree
   , sameOrder
+  , LinToken
+  , ltpath
   )
+import Muste.Common (isSubList)
 
 -- | A 'CostTree' is a tree associated with it's linearization and a
 -- "cost".  The cost is with reference to some "base tree".  The only
@@ -79,21 +85,23 @@ getPrunedSuggestions ctxt tree = Menu $ go `Map.mapWithKey` replaceTrees tree
   replaceTrees :: TTree -> Map Path (Set (Prune.SimTree, TTree))
   replaceTrees = Prune.replaceTrees (ctxtGrammar ctxt) (ctxtPrecomputed ctxt)
   go :: Path -> Set (Prune.SimTree, TTree) -> Mono.MapValue Menu
-  go path = map (uncurry (costTree ctxt tree)) . Set.toList
+  go path = map (uncurry (costTree ctxt tree path)) . Set.toList
 
 -- | Creates a 'CostTree' from a tree and it's cost.  Since the cost
 -- is already calculated, it basically just linearizes the tree.
 costTree
   :: Context       -- ^ Context of the tree
   -> TTree         -- ^ The original tree
+  -> Path          -- ^ 'Path' in the original tree where the
+                   --   replacement is happening.
   -> Prune.SimTree -- ^ Information regarding what the tree is replacing
   -> TTree         -- ^ The replacement tree
   -> CostTree
-costTree ctxt s (cost, r, _, _) t
+costTree ctxt s p (cost, r, _, _) t
   = CostTree cost (Linearization.linearizeTree ctxt t) t ins
   where
   ins :: Bool
-  ins = isInsertion ctxt s r
+  ins = isInsertion ctxt p s r
 
 -- Assume we’re building the suggestions for subtree s somewhere
 -- inside the tree. For simplicity, let s cover the words w_j...w_k in
@@ -110,21 +118,31 @@ costTree ctxt s (cost, r, _, _) t
 -- AND there are some additional new cover nodes r_i, ..., r_i’ which are not in s_j, ..., s_k;
 -- THEN r should be an insertion (at the corresponding positions of r_i, ..., r_i’);
 -- OTHERWISE r is a normal replacement
-isInsertion :: Context -> TTree -> TTree -> Bool
-isInsertion ctxt s r = coverNodesIsProperSubset && sameOrder'
+isInsertion :: Context -> Path -> TTree -> TTree -> Bool
+isInsertion ctxt p s r = coverNodesIsProperSubset && sameOrder'
   where
   -- Checks if the "cover nodes" of @s@ is a proper subset of those in
   -- @r@.
   coverNodesIsProperSubset :: Bool
-  coverNodesIsProperSubset = (Set.isProperSubsetOf `on` coverNodes @()) s r
+  coverNodesIsProperSubset
+    = (isSubList `on` coverNodes ctxt p) s r
   -- Checks if the nodes in the linearization of @s@ appear in the
   -- same order as in @r@.
   sameOrder' :: Bool
-  sameOrder' = (Linearization.sameOrder `on` Linearization.linearizeTree ctxt) s r
+  sameOrder'
+    = (Linearization.sameOrder `on` Linearization.linearizeTree ctxt) s r
 
--- TODO Stub!!
-coverNodes :: Ord what => TTree -> Set what
-coverNodes = const mempty
+-- | @'coverNodes' ctxt p t@.  @p@ is the assumed to be the path to
+-- @t@ in the original tree.
+coverNodes :: Context -> Path -> TTree -> [Path]
+coverNodes ctxt p
+  -- Linearize the tree.
+  =   Linearization.linearizeTree ctxt
+  -- Get the path to the originating node of all the tokens.
+  >>> Mono.otoList
+  >>> fmap Linearization.ltpath
+  -- Only keep those that @p@ is a prefix of.
+  >>> filter (isPrefixOf p)
 
 filterCostTrees :: Menu -> Menu
 filterCostTrees = removeFree >>> sortByCost >>> filterEmpty
