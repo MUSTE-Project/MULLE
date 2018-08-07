@@ -47,7 +47,7 @@ dependencies:
   - bytestring
   - containers
   - muste
-  - pgf
+  - pgf >= 3.9.1
   - mtl
   - network-uri
   - filepath
