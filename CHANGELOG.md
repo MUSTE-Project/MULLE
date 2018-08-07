@@ -1,6 +1,12 @@
 Change log
 ==========
 
+0.2.2.0
+---
+
+Implement `coverNodes` for determining which replacement trees are to
+be considered "insertions".
+
 0.2.1.0
 ---
 

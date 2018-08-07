@@ -23,11 +23,8 @@ getStaticDir = pure staticDir
 getStaticDir = Paths.getDataFileName staticDir
 #endif
 
-dataDir :: FilePath
-dataDir = "./data/"
-
 getDB :: IO FilePath
-getDB = Paths.getDataFileName $ dataDir </> "muste.db"
+getDB = Paths.getDataFileName $ "muste.db"
 
 -- FIXME Should we maybe log to the current dir (rather than the
 -- shared resource returned by Haskells data-files construct) or to

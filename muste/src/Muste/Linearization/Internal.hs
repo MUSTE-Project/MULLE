@@ -1,9 +1,18 @@
-{-# Language OverloadedStrings, GeneralizedNewtypeDeriving
-, CPP, UnicodeSyntax, NamedWildCards #-}
+{-# Language OverloadedStrings
+, GeneralizedNewtypeDeriving
+, CPP
+, StandaloneDeriving
+, FlexibleContexts
+, TypeFamilies
+, UnicodeSyntax
+, NamedWildCards
+#-}
 module Muste.Linearization.Internal
   ( Context(ctxtGrammar, ctxtPrecomputed)
   , buildContext
   , Linearization
+  , LinToken
+  , ltpath
   , linearizeTree
   , langAndContext
   , mkLin
@@ -25,6 +34,14 @@ import Text.Printf
 #else
 import Data.Semigroup (Semigroup((<>)))
 #endif
+import Data.MonoTraversable
+  ( Element, MonoTraversable(..), MonoFunctor
+  , MonoFoldable(..), GrowingAppend, MonoPointed
+  )
+import qualified Data.MonoTraversable as Mono
+import qualified Data.MonoTraversable.Unprefixed as Mono
+import Data.Sequences (SemiSequence, IsSequence, Index)
+import qualified Data.Sequences as Mono
 
 import Muste.Tree
 import Muste.Grammar
@@ -39,7 +56,7 @@ import Muste.AdjunctionTrees
 import Muste.Prune
 
 data LinToken = LinToken
-  { _ltpath :: Path
+  { ltpath :: Path
   , _ltlin :: String
   , _ltmatched :: Path
   } deriving (Show)
@@ -56,7 +73,8 @@ instance ToJSONKey LinToken
 
 -- FIXME Better name
 -- TODO Merge with `OldL`.
-newtype Linearization = Linearization [LinToken] deriving
+newtype Linearization = Linearization { runLinearization:: [LinToken] }
+  deriving
   ( Show, FromJSON, ToJSON, Semigroup, Monoid
   , Ord, Eq, FromJSONKey, ToJSONKey
   )
@@ -81,6 +99,37 @@ instance ToJSON LinToken where
     , "lin"     .= lin
     , "matched" .= matched
     ]
+
+type instance Element Linearization = LinToken
+
+deriving instance MonoFunctor Linearization
+
+instance MonoFoldable Linearization where
+  ofoldl'    f a (Linearization m) = ofoldl' f a m
+  ofoldr     f a (Linearization m) = ofoldr f a m
+  ofoldMap   f (Linearization m)   = ofoldMap f m
+  ofoldr1Ex  f (Linearization m)   = ofoldr1Ex f m
+  ofoldl1Ex' f (Linearization m)   = ofoldl1Ex' f m
+
+
+instance MonoTraversable Linearization where
+  otraverse f (Linearization m) = Linearization <$> otraverse f m
+
+instance MonoPointed Linearization where
+  opoint = Linearization . Mono.opoint
+
+instance GrowingAppend Linearization where
+
+instance SemiSequence Linearization where
+  type Index Linearization = Int
+  intersperse a = Linearization .  Mono.intersperse a . runLinearization
+  reverse = Linearization . Mono.reverse . runLinearization
+  find p = Mono.find p . runLinearization
+  sortBy p = Linearization . Mono.sortBy p . runLinearization
+  cons e = Linearization . Mono.cons e . runLinearization
+  snoc xs e = Linearization . (`Mono.snoc` e) . runLinearization $ xs
+
+instance IsSequence Linearization where
 
 -- | Memoize all @AjdunctionTrees@ for a given grammar and language.
 buildContext :: Grammar -> PGF.Language -> Context

@@ -14,6 +14,7 @@ import qualified Data.Containers as Mono
 import Data.Maybe
 import Data.Map (Map)
 import qualified Data.Map as M
+import Data.Set (Set)
 #if MIN_VERSION_base(4,11,0)
 #else
 import Data.Semigroup ((<>))
@@ -46,7 +47,6 @@ replaceTrees
 replaceTrees grammar precomputed tree = M.fromList (go <$> collectSimilarTrees grammar precomputed tree)
   where
   go :: ReplacementTree -> (Path, Set (SimTree, TTree))
-  -- go (path, _, trees) = (path, Set.map (replaceTree tree path) trees)
   go (path, _, trees) = (path, Set.map (replaceTree tree path) trees)
 
 -- | @'replaceTree' trees@ returns a list of @(cost, isInsertion, t)@
