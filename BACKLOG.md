@@ -66,7 +66,7 @@ Issue #3: Change representation from single tree to sets of trees.
 
 https://github.com/MUSTE-Project/MULLE/issues/3
 
-Inn `Protocol.emptyMenus` and `Protocol.assembleMenus` we make use of
+In `Protocol.emptyMenus` and `Protocol.assembleMenus` we make use of
 `unsafeTakeTree`.  This is perhaps inelegant, but should be safe.
 Should work under the assumption that all the trees we consider have
 the same linearization, so it probably shouldn't matter which one we
@@ -76,6 +76,11 @@ non-empty set. Since we at least need one reference tree to linearize.
 Also there is some code-duplication in `Protocol.emptyMenus` and
 `Protocol.assembleMenus` that I haven't been able to get rid of.  This
 is because they differ ever so slightly.
+
+Most importantly perhaps we need to make the test case in `Test.Menu`
+pass.  The reason it's not passing is that the saved test case does
+not, in fact, contain an ambiguity.  There can of course be several
+reasons for this.
 
 Wide / narrow grammar
 ---
