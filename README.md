@@ -31,7 +31,7 @@ included verbatim into `muste-ajax/src/Config.hs` - so it's really
 more a fragment of a Haskell source file with C preprocessor
 directives.  The values in that directory are the ones suitable for
 production.  The directory `config/` provides alternative
-configuration sets.  Here is documentation on the available options.
+configuration sets.  Here is documentation on the available options:
 
 * `SERVE_STATIC_RELATIVE_PATH` useful while developing since changes
   to the static file (e.g. the front end JavaScript code) is served
@@ -43,6 +43,7 @@ configuration sets.  Here is documentation on the available options.
   against the href `/`.  NB! If you need to override this you should
   also change the value of `VIRTUAL_ROOT` in
   `muste-ajax/static/muste-gui.j`.
+* `PORT` the port to serve the application on.
 
 ### Building
 
