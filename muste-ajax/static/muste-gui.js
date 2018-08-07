@@ -10,7 +10,8 @@ var LOGIN_TOKEN = null;
 var TIMER_START = null;
 
 var EXERCISES = [];
-var SERVER = "/api/"
+var VIRTUAL_ROOT = "/";
+var SERVER = VIRTUAL_ROOT + "api/";
 
 var MESSAGES =
   { LOGOUT: "logout"

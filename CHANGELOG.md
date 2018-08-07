@@ -1,6 +1,17 @@
 Change log
 ==========
 
+HEAD
+----
+
+Add configuration options for
+
+* `SERVE_STATIC_RELATIVE_PATH`
+* `WWW_ROOT`
+* `VIRTUAL_ROOT`
+
+Please see the readme.
+
 0.2.2.0
 ---
 

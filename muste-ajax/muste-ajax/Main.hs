@@ -1,4 +1,4 @@
-{-# language OverloadedStrings #-}
+{-# language OverloadedStrings, UnicodeSyntax #-}
 module Main (main) where
 
 import Control.Monad
@@ -10,6 +10,10 @@ import System.IO.Error
 import Control.Monad.IO.Class (liftIO)
 import Data.String
 import Snap.Util.CORS
+import Data.ByteString (ByteString)
+import qualified Data.ByteString.Char8 as ByteString
+import Data.Semigroup (Semigroup((<>)))
+
 import qualified Protocol
 import qualified Config
 
@@ -19,11 +23,19 @@ import qualified Config
 -- for static files housed in @Config.demoDir@.
 main :: IO ()
 main = do
+  showConfig
   (_, site, cleanup) <- runSnaplet Nothing appInit
   cfg <- getCfg
   httpServe cfg site `catchIOError` \err -> do
     cleanup
     ioError err
+
+showConfig ∷ IO ()
+showConfig = do
+  printf "[Configurations options]\n"
+  printf "WWW Root: %s\n"     =<< Config.getWwwRoot
+  printf "Static dir: %s\n"   =<< Config.getStaticDir
+  printf "Virtual Root: %s\n" $   Config.virtualRoot
 
 instance IsString ConfigLog where
   fromString = ConfigFileLog
@@ -54,12 +66,18 @@ staticInit = makeSnaplet "static" "Static file server" Nothing $ do
 
 -- | Handler for api requests and serving file serving.
 appInit :: SnapletInit b ()
-appInit = makeSnaplet "muste" "Multi Semantic Text Editor" Nothing
+appInit = makeSnaplet "muste" "Multi Semantic Text Editor"
+  (Just Config.getWwwRoot)
   $ void $ do
     -- TODO Missing lenses.  Dunno what they are used for though.
-    nestSnaplet "api"  (err "api")    apiInit
-    nestSnaplet mempty (err "static") staticInit
+    nestSnaplet (p "api")  (err "api")    apiInit
+    nestSnaplet (p mempty) (err "static") staticInit
   where
+    p ∷ ByteString → ByteString
+    p = (ByteString.pack Config.virtualRoot </>)
     err :: String -> a
     err s = error
-      $ printf "Main.appInit: Missing lens for `%s`" s
+      $ printf "Main.appInit: TODO: Missing lens for `%s`" s
+
+(</>) ∷ IsString a ⇒ Semigroup a ⇒ a → a → a
+a </> b = a <> "/" <> b

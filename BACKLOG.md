@@ -1,6 +1,19 @@
 BACKLOG
 =======
 
+Better handling of build configuration options
+---
+
+The configuration options described in the readme under "Configuring"
+seem quite brittle.  For one, it's annoying to have to manually edit a
+file that is being revision controlled.  Another thing is that in
+particular the option `VIRTUAL_ROOT` does not automatically also
+change the value in `muste-gui.js` (see readme) which means it's easy
+to get into an inconsistent state if you are not careful.  The
+redeeming quality is that it should not be necessary to change the
+default options when running the program locally for
+development/testing.
+
 Restore bitrotten test-cases
 ---
 

@@ -1,4 +1,5 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, UnicodeSyntax #-}
+#include "../app.config"
 module Config
   ( getDB
   , getStaticDir
@@ -7,6 +8,8 @@ module Config
   , loggingEnabled
   , webPrefix
   , port
+  , getWwwRoot
+  , virtualRoot
   ) where
 
 import System.FilePath
@@ -14,13 +17,27 @@ import System.FilePath
 import qualified Paths_muste_ajax as Paths
 
 staticDir :: FilePath
-staticDir = "./static/"
+staticDir = "static"
 
 getStaticDir :: IO FilePath
-#ifdef RELATIVE_PATHS
+#ifdef SERVE_RELATIVE_STATIC_DIR
 getStaticDir = pure staticDir
 #else
 getStaticDir = Paths.getDataFileName staticDir
+#endif
+
+getWwwRoot :: IO FilePath
+#ifdef WWW_ROOT
+getWwwRoot = pure $ WWW_ROOT
+#else
+getWwwRoot = Paths.getDataDir
+#endif
+
+virtualRoot ∷ FilePath
+#ifdef VIRTUAL_ROOT
+virtualRoot = VIRTUAL_ROOT
+#else
+virtualRoot = mempty
 #endif
 
 getDB :: IO FilePath
@@ -30,7 +47,7 @@ getDB = Paths.getDataFileName $ "muste.db"
 -- shared resource returned by Haskells data-files construct) or to
 -- /var/log/?
 logDir :: FilePath
-logDir = "./log/"
+logDir = "log"
 
 getLogDir :: IO FilePath
 getLogDir = Paths.getDataFileName logDir

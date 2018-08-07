@@ -22,6 +22,32 @@ this version do
 You can now simply build the projects with `stack build` and browse
 the Haddock documentation with `stack haddock --open`.
 
+### Configuring
+
+Currently configuration of the package `muste-ajax` is done using the
+C preprocessor.  See the values in the file `muste-ajax/app.config`.
+Please note that this is not a regular C header file, since it is
+included verbatim into `muste-ajax/src/Config.hs` - so it's really
+more a fragment of a Haskell source file with C preprocessor
+directives.  The values in that directory are the ones suitable for
+production.  The directory `config/` provides alternative
+configuration sets.  Here is documentation on the available options.
+
+* `SERVE_STATIC_RELATIVE_PATH` useful while developing since changes
+  to the static file (e.g. the front end JavaScript code) is served
+  from a path relative to where the `muste-ajax` executable is run.
+* `WWW_ROOT` used for overriding the location to the physical files
+  needed.  I'm not sure this is working correctly, please see
+  `Main.appInit` and the documentation for `make-snapplet`.
+* `VIRTUAL_ROOT` used when the requests to the application is not made
+  against the href `/`.  NB! If you need to override this you should
+  also change the value of `VIRTUAL_ROOT` in
+  `muste-ajax/static/muste-gui.j`.
+
+### Building
+
+    stack build
+
 Running
 -------
 
