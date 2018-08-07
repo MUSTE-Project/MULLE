@@ -67,4 +67,8 @@ webPrefix :: FilePath
 webPrefix = "/"
 
 port :: Int
+#ifdef PORT
+port = PORT
+#else
 port = 8080
+#endif

@@ -36,6 +36,7 @@ showConfig = do
   printf "WWW Root: %s\n"     =<< Config.getWwwRoot
   printf "Static dir: %s\n"   =<< Config.getStaticDir
   printf "Virtual Root: %s\n" $   Config.virtualRoot
+  printf "Port: %d\n"         $   Config.port
 
 instance IsString ConfigLog where
   fromString = ConfigFileLog
