@@ -107,6 +107,6 @@ initDB conn = do
   addUser "herbert" "HERBERT" True
   addUser "peter" "PETER" True
   let insertLessonQuery = "INSERT INTO Lesson (Name,Description,Grammar,SourceLanguage,TargetLanguage,ExerciseCount,Enabled,Repeatable) VALUES (?,?,?,?,?,?,?,?);" :: Query
-  mapM_ (exec insertLessonQuery) =<< Data.getLessons
+  mapM_ (exec insertLessonQuery) Data.lessons
   let insertExerciseQuery = "INSERT INTO Exercise (SourceTree,TargetTree,Lesson) VALUES (?,?,?);" :: Query
   mapM_ (exec insertExerciseQuery) Data.exercises

@@ -1,4 +1,4 @@
-{-# language DeriveGeneric, LambdaCase #-}
+{-# language DeriveGeneric, LambdaCase, UnicodeSyntax #-}
 {- | This Module is the internal implementation behind the module 'Muste.Tree' -}
 module Muste.Tree.Internal
   ( Path
@@ -16,10 +16,12 @@ module Muste.Tree.Internal
   , countMatchedNodes
   , TTree(TNode,TMeta)
   , FunType(Fun, NoType)
+  , toGfTree
   ) where
 
 -- TODO Do not depend on PGF
-import qualified PGF (CId, mkCId)
+import qualified PGF
+  (CId, mkCId, Tree, wildCId, mkMeta, mkApp, showExpr, readExpr)
 
 import Data.Maybe
 import Data.Aeson
@@ -35,6 +37,8 @@ import Data.String
 import Data.String.ToString
 import Control.Monad.Fail hiding (fail)
 import Text.Read (readEither)
+import Data.Text.Prettyprint.Doc (Pretty(pretty))
+import Text.Printf
 
 import qualified Database.SQLite.Simple as SQL
 import qualified Database.SQLite.Simple.FromField as SQL (returnError)
@@ -62,18 +66,28 @@ type Category = String
 data TTree
    -- Regular node consisting of a function name, function type and
    -- possible subtrees
-  = TNode
-    { _functionName :: String
-    , _functionType :: FunType
-    , _subTrees :: [TTree]
-    }
+  = TNode String FunType [TTree]
   -- A meta tree consisting just of a category type
-  | TMeta { _categoryType :: Category }
+  | TMeta Category
    -- read is broken at the moment, most likely because of the
    -- read/show instances for @CId@
   deriving (Ord, Eq, Show, Read, Generic)
 
 instance Binary TTree
+
+instance Pretty TTree where
+  pretty = pretty . prettyTree
+
+prettyTree ∷ TTree → String
+prettyTree = PGF.showExpr mempty . toGfTree
+
+-- parseTree ∷ MonadFail fail ⇒ String → fail TTree
+-- parseTree = do
+--   gfTree ← liftFailMaybe _ . PGF.readExpr
+--   _ gfTree
+
+-- liftFailMaybe ∷ MonadFail m => String → Maybe a → m a
+-- liftFailMaybe err = _
 
 -- TODO Make generalized container for @TTree@ (i.e. kind @* -> *@,
 -- that way we can make suitable instances for @Foldable@,
@@ -91,10 +105,10 @@ foldlTTree f x t = case t of
 parseString :: MonadFail m => String -> (Text.Text -> m p) -> Value -> m p
 parseString errMsg f = \case
   (String s) -> f s
-  _ -> fail errMsg
+  val -> fail $ printf "%s: %s" errMsg (show val)
 
-liftFail :: MonadFail m => Either String a -> m a
-liftFail = either fail pure
+liftFailEither :: MonadFail m => Either String a -> m a
+liftFailEither = either fail pure
 
 -- I've experimented with different ways of serializing this data.
 -- Since the client don't need direct access to 'TTree''s it makes
@@ -111,7 +125,7 @@ liftFail = either fail pure
 --     [WIP] Experiment with different encodings
 instance FromJSON TTree where
   parseJSON = parseString "Muste.Tree.parseJSON @TTree"
-    (liftFail . readEither . toString)
+    (liftFailEither . readEither . toString)
 
 instance ToJSON TTree where
   toJSON = String . fromString . show
@@ -126,7 +140,6 @@ binaryToText = LText.toStrict . LText.decodeUtf8 . Binary.encode
 binaryFromText :: Binary c => Text.Text -> c
 binaryFromText = Binary.decode . LBS.fromStrict . Text.encodeUtf8
 
-
 instance FromField TTree where
   fromField fld = case SQL.fieldData fld of
     SQL.SQLText t -> pure $ binaryFromText t
@@ -138,9 +151,8 @@ instance ToField TTree where
 -- | The basic type of sentences and sentence formers.
 data FunType
   = Fun
-    { _category :: Category -- ^ The resulting category
-    , _params :: [Category] -- ^ The categories of the parameters.
-    }
+    Category   -- ^ The resulting category
+    [Category] -- ^ The categories of the parameters.
   | NoType
   deriving (Ord, Eq, Show, Read, Generic)
 
@@ -371,3 +383,29 @@ countMatchedNodes tree1 tree2 =
     paths = getAllPaths tree1
   in
     length $ filter (\p -> selectNode tree1 p == selectNode tree2 p) paths
+
+-- FIXME I didn't want to place this here, it really belongs in the
+-- Muste.Grammar module, but we need it here to get a 'Pretty'
+-- instance for 'TTree' (we're reusing functionality in 'PGF').  This
+-- is the lesser evil compared to orhpan instances.
+-- | Creates a GF abstract syntax Tree from a generic tree.
+toGfTree :: TTree -> PGF.Tree
+toGfTree tree =
+  let
+    loop :: [TTree] -> Int -> (Int,[PGF.Tree])
+    loop [] id = (id,[])
+    loop (t:ts) id =
+      let
+        (nid,nt) = convert t id
+        (fid,nts) = loop ts nid
+      in
+        (fid,nt:nts)
+    convert :: TTree -> Int -> (Int,PGF.Tree)
+    convert (TMeta _) id = (id + 1, PGF.mkMeta id)
+    convert (TNode name _ ns) id =
+      let
+        (nid,nts) = loop ns id
+      in
+        if name == wildCard then (nid,PGF.mkApp PGF.wildCId nts) else (nid,PGF.mkApp (PGF.mkCId name) nts)
+  in
+    snd $ convert tree 0

@@ -1,3 +1,4 @@
+{-# Language UnicodeSyntax #-}
 module Muste.Common
   ( preAndSuffix
   , wildCard
@@ -5,7 +6,22 @@ module Muste.Common
   , areDisjoint
   , isSubList
   , editDistance
+  , groupOn
+  , groupOnSingle
+  , isSubListOf
+  , prettyShow
+  , prettyTrace
+  , prettyTraceId
   ) where
+
+import Data.Set (Set)
+import qualified Data.Set as Set
+import Data.List (groupBy)
+import Data.Function (on)
+import Data.Text.Prettyprint.Doc (Pretty)
+import qualified Data.Text.Prettyprint.Doc as Doc
+
+import Debug.Trace
 
 -- Computes the longest common prefix and suffix for linearized trees
 preAndSuffix :: Eq a => [a] -> [a] -> ([a],[a])
@@ -76,3 +92,31 @@ editDistance a b = last (if lab == 0 then mainDiag
                     thisdiag = firstelt : doDiag a b firstelt diagAbove (tail diagBelow)
           lab = length a - length b
           min3 x y z = if x < y then x else min y z
+
+-- | 'groupOn p' groups a list by using the 'Eq' instance of the
+-- projection @p@.
+groupOn ∷ Eq b ⇒ (a → b) → [a] → [[a]]
+groupOn p = groupBy ((==) `on` p)
+
+-- NB: Even though we're using the unsafe method 'head' we shuold be
+-- safe since 'groupOn' should not return any empty lists.
+-- | Like 'groupOn' but just with a single element from each
+-- group.
+groupOnSingle ∷ Eq b ⇒ (a → b) → [a] → [a]
+groupOnSingle p = map head . groupOn p
+
+-- | @'isSublistOf' xs ys@ checks if @xs@ is a sub list (disregarding
+-- the order) of @ys@.
+isSubListOf ∷ Ord a ⇒ Eq a ⇒ [a] → [a] → Bool
+isSubListOf = Set.isSubsetOf `on` Set.fromList
+
+prettyShow ∷ Pretty a => a → String
+prettyShow = show . Doc.pretty
+
+{-# Deprecated prettyTrace "'prettyTrace' remains in your code. Pls fix!" #-}
+prettyTrace ∷ Pretty a ⇒ a → b → b
+prettyTrace a = trace (prettyShow a)
+
+{-# Deprecated prettyTraceId "'prettyTraceId' remains in your code. Pls fix!" #-}
+prettyTraceId ∷ Pretty a ⇒ a → a
+prettyTraceId a = trace (prettyShow a) a

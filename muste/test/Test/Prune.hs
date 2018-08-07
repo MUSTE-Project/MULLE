@@ -2,18 +2,28 @@ module Test.Prune (tests) where
 
 import qualified PGF
 
+import Data.Maybe
 import Test.Tasty
 import Test.Tasty.HUnit
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Foldable
+import Text.Printf
 
 import Muste
-import Muste.Grammar.Internal
+import qualified Muste.Grammar.Internal as Grammar
 import Muste.Prune
 
 prima :: IO Grammar
-prima = readPGF "gf/Prima.pgf"
+prima
+  = pure
+  $ fromMaybe err
+  $ Grammar.lookupGrammar g
+  where
+  g = "novo_modo/Prima"
+  err = error $ printf "Could not find grammar: %s" g
 
 -- | Issue #5: Should not include results that can be reached in
 -- multiple steps E.g. the suggestions for
@@ -30,10 +40,10 @@ prima = readPGF "gf/Prima.pgf"
 --
 multipleSteps :: Grammar -> Assertion
 multipleSteps g = do
-  let parse = parseTTree g
+  let parse = Grammar.parseTTree g
       adjTs = getAdjunctionTrees g
       m     = replaceTrees g adjTs (parse "usePN Africa_PN")
-      ts    = (fmap snd) <$> m
+      ts    = Set.map snd <$> m
       t     = parse
         $ "useCNdefsg (attribCN (useA victus_A) (useN imperium_N))"
       tslst = fold ts

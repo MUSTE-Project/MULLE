@@ -1,7 +1,6 @@
 {-# LANGUAGE CPP #-}
 module Config
-  ( getGrammar
-  , getDB
+  ( getDB
   , getStaticDir
   , getErrorLog
   , getAccessLog
@@ -24,15 +23,8 @@ getStaticDir = pure staticDir
 getStaticDir = Paths.getDataFileName staticDir
 #endif
 
--- FIXME Use haskell resource files for this.
 dataDir :: FilePath
 dataDir = "./data/"
-
-grammarDir :: FilePath
-grammarDir = dataDir </> "gf/grammars/novo_modo/"
-
-getGrammar :: String -> IO FilePath
-getGrammar f = Paths.getDataFileName $ grammarDir </> f <.> "pgf"
 
 getDB :: IO FilePath
 getDB = Paths.getDataFileName $ dataDir </> "muste.db"

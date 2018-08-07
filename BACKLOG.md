@@ -66,13 +66,11 @@ Issue #3: Change representation from single tree to sets of trees.
 
 https://github.com/MUSTE-Project/MULLE/issues/3
 
-UI should handle similiar trees.  It doesn't.  Similarly in
-`Protocol.emptyMenus` and `Protocol.assembleMenus` we make use of
-`unsafeTakeTree`.  We shouldn't.  The challenge is that we need to
-create a single linearization from the trees, and for this we need a
-single tree .  It's an invariant that all the trees we consider should
-have the same linearization, so it probably shouldn't matter which one
-we pick.  It would be nice to encapsulate this somehow.  One
+Inn `Protocol.emptyMenus` and `Protocol.assembleMenus` we make use of
+`unsafeTakeTree`.  This is perhaps inelegant, but should be safe.
+Should work under the assumption that all the trees we consider have
+the same linearization, so it probably shouldn't matter which one we
+pick.  It would be nice to encapsulate this in the type somehow.  One
 low-hanging piece of fruit would be to use some representation for a
 non-empty set. Since we at least need one reference tree to linearize.
 Also there is some code-duplication in `Protocol.emptyMenus` and

@@ -1,14 +1,12 @@
 {-# Language CPP #-}
 -- | Data used for inititializing the database
 
-module Data (exercises, getLessons) where
+module Data (exercises, lessons) where
 
 #if MIN_VERSION_base(4,11,0)
 #else
 import Data.Semigroup (Semigroup((<>)))
 #endif
-
-import qualified Config
 
 import Muste.Tree
 
@@ -16,16 +14,11 @@ import Muste.Tree
 -- 'ToROW',
 type Lesson = (String,String,String,String,String,Int,Int,Int)
 
-mkLesson :: Lesson -> IO Lesson
-mkLesson (f,u,n,k,y,e,a,h) = do
-  n' <- Config.getGrammar n
-  pure (f,u,n',k,y,e,a,h)
-
-getLessons :: IO [Lesson]
-getLessons = mapM mkLesson
+lessons :: [Lesson]
+lessons =
   [ ( "Prima Pars"
     , "Den första Lektionen fran boken \"Novo modo\""
-    , "Prima"
+    , "novo_modo/Prima"
     , "PrimaLat"
     , "PrimaSwe"
     , 5
@@ -34,7 +27,7 @@ getLessons = mapM mkLesson
     )
   , ( "Secunda Pars"
     , "Den andra Lektionen fran boken \"Novo modo\""
-    , "Secunda"
+    , "novo_modo/Secunda"
     , "SecundaLat"
     , "SecundaSwe"
     , 8
@@ -43,7 +36,7 @@ getLessons = mapM mkLesson
     )
   , ( "Tertia Pars"
     , "Den tredje Lektionen fran boken \"Novo modo\""
-    , "Tertia"
+    , "novo_modo/Tertia"
     , "TertiaLat"
     , "TertiaSwe"
     , 12
@@ -52,7 +45,7 @@ getLessons = mapM mkLesson
     )
   , ( "Quarta Pars"
     , "Den fjärde Lektionen fran boken \"Novo modo\""
-    , "Quarta"
+    , "novo_modo/Quarta"
     , "QuartaLat"
     , "QuartaSwe"
     , 15

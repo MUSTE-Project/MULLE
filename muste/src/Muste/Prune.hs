@@ -1,13 +1,15 @@
-{-# Language CPP #-}
+{-# Language CPP, UnicodeSyntax, NamedWildCards #-}
 -- FIXME Should this be an internal module? It's not currently used in
 -- @muste-ajax@.
 module Muste.Prune
   ( getAdjunctionTrees
   , replaceTrees
+  , SimTree
   ) where
 
 import Control.Monad
 import Data.List (sort, nub)
+import Data.MonoTraversable
 import qualified Data.Containers as Mono
 import Data.Maybe
 import Data.Map (Map)
@@ -16,9 +18,15 @@ import qualified Data.Map as M
 #else
 import Data.Semigroup ((<>))
 #endif
+import Data.Set (Set)
+import qualified Data.Set as Set
+import Data.Function
 
 import Muste.Common
-import Muste.Tree
+import Muste.Tree (TTree(..), Path, FunType(..), Category)
+import qualified Muste.Tree as Tree
+  ( replaceNode, getAllPaths, selectNode
+  )
 import Muste.Grammar
 import Muste.Grammar.Internal (Rule(Function))
 import Muste.AdjunctionTrees
@@ -30,16 +38,22 @@ import Muste.AdjunctionTrees
 -- @tree@ in @adjTs@.  Return a mapping from 'Path''s to the tree you
 -- get when you replace one of the valid trees into that given
 -- position along with the "cost" of doing so.
-replaceTrees :: Grammar -> AdjunctionTrees -> TTree -> Map Path [(Int, TTree)]
+replaceTrees
+  :: Grammar
+  -> AdjunctionTrees
+  -> TTree
+  -> Map Path (Set (SimTree, TTree))
 replaceTrees grammar precomputed tree = M.fromList (go <$> collectSimilarTrees grammar precomputed tree)
   where
-  go :: ReplacementTree -> (Path, [(Int, TTree)])
-  go (path, _, trees) = (path, replaceTree tree path <$> trees)
+  go :: ReplacementTree -> (Path, Set (SimTree, TTree))
+  -- go (path, _, trees) = (path, Set.map (replaceTree tree path) trees)
+  go (path, _, trees) = (path, Set.map (replaceTree tree path) trees)
 
--- | @'replaceTree' trees@ returns a list of @(cost, t)@ where
--- @t@ is a new tree arising from the 'SimTree'.
-replaceTree :: TTree -> Path -> SimTree -> (Int, TTree)
-replaceTree tree path (cost, subtree, _, _) = (cost, replaceNode tree path subtree)
+-- | @'replaceTree' trees@ returns a list of @(cost, isInsertion, t)@
+-- where @t@ is a new tree arising from the 'SimTree'.
+replaceTree :: TTree -> Path -> SimTree -> (SimTree, TTree)
+replaceTree tree path sim@(_, subtree, _, _)
+  = (sim, Tree.replaceNode tree path subtree)
 
 
 -- * Pruning
@@ -61,7 +75,7 @@ type SimTree = (Int, TTree, TTree, TTree)
 --
 -- Replacements are done at the subtree 'originalSubTree', and the
 -- possible replacements are given by 'replacements'.
-type ReplacementTree = (Path, TTree, [SimTree])
+type ReplacementTree = (Path, TTree, Set SimTree)
 
 -- FIXME We are not using the grammar. Is this a mistake
 -- | @'collectSimilarTrees' grammar adjTrees baseTree@ grammar
@@ -77,13 +91,14 @@ collectSimilarTrees
   -> AdjunctionTrees
   -> TTree
   -> [ReplacementTree]
-collectSimilarTrees _grammar adjTrees basetree = go <$> getAllPaths basetree
+collectSimilarTrees _grammar adjTrees basetree
+  = go <$> Tree.getAllPaths basetree
   where
   go :: Path -> ReplacementTree
-  go path = (path, tree, simtrees)
+  go path = (path, tree, Set.fromList simtrees)
     where
       err = error "Muste.Prune.collectSimilarTrees: Incongruence with 'getAllPaths'"
-      tree = fromMaybe err $ selectNode basetree path
+      tree = fromMaybe err $ Tree.selectNode basetree path
       -- Get similar trees.
       simtrees = onlyKeepCheapest $ similarTreesForSubtree tree adjTrees
       -- And then additionally filter some out...

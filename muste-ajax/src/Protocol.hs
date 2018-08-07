@@ -5,6 +5,8 @@
   , ViewPatterns
   , FlexibleContexts
   , StandaloneDeriving
+  , TupleSections
+  , UnicodeSyntax
 #-}
 module Protocol
   ( apiRoutes
@@ -208,6 +210,16 @@ handleLessonInit token lesson = do
                 (targetLang,pure targetTree)
     verifyMessage token (SMMenuList lesson False 0 a b)
 
+-- | This request is called after the user selects a new sentence from
+-- the drop-down menu.  A request consists of two 'ClientTree's (the
+-- source and the target sentece) these can represent multiple actual
+-- sentences ('TTree's).  We determine if the current exercise is over
+-- by checking the source and target tree for equality.  'ClientTree's
+-- are considered equal in this case if they have just one 'TTree' in
+-- common.  We respond to the caller whether the exercise is over.  In
+-- either case we also return two new 'ClientTree's -- these are used
+-- if the exercise continues.  For more information about what these
+-- contain see the documentation there.
 handleMenuRequest
   :: String -- ^ Token
   -> Text -- ^ Lesson
@@ -282,18 +294,17 @@ initContexts
   :: MonadIO io
   => Connection
   -> io Contexts
-initContexts conn = liftIO $ do
-  lessonGrammarList <- Database.getLessons conn
-  M.fromList <$> (mapM mkContext lessonGrammarList)
+initContexts conn = liftIO $ mkContexts <$> Database.getLessons conn
 
-mkContext :: Database.Lesson -> IO (Text, M.Map String Context)
-mkContext (ls, _, nm, _, _, _, _, _) = do
-  langs <- Muste.langAndContext (T.unpack nm)
-  pure (ls, M.fromList langs)
+mkContexts ∷ [Database.Lesson] → Contexts
+mkContexts = M.fromList . map mkContext
 
--- FIXME At the moment the menu is not really a list of menus but
--- instead a list with only one menu as the only element
--- | Gets the menus for a lesson, two trees and two languages
+mkContext :: Database.Lesson -> (Text, M.Map String Context)
+mkContext (ls, _, nm, _, _, _, _, _) =
+  (ls, Muste.langAndContext (T.unpack nm))
+
+-- | Gets the menus for a lesson.  This consists of a source tree and
+-- a target tree.
 assembleMenus
   :: Contexts
   -> Text
@@ -307,9 +318,6 @@ assembleMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
   where
   mkTree = makeTree contexts lesson src trg
 
--- We could make the constraint on `m` more general, but then I get
--- into some stuff with some functional dependencies that I'm not
--- entirely sure how works.
 getContextM
   :: Text   -- ^ The lesson
   -> String -- ^ The language
@@ -317,7 +325,6 @@ getContextM
 getContextM lesson lang = do
   ctxts <- askContexts
   getContext ctxts lesson lang
-  -- pure $ getContext ctxts -- ctxts ! lesson ! lang
 
 data ProtocolException
   = LessonNotFound Text

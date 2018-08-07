@@ -4,19 +4,18 @@ module Muste.Grammar.Grammars (grammars) where
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.ByteString (ByteString)
-import qualified Data.ByteString.Lazy as LB
 
-import Muste.Grammar.Internal (Grammar, parseGrammar)
 import qualified Muste.Grammar.Embed as Embed
 
-grammars :: Map String Grammar
-grammars = Map.fromList (uncurry grm <$> grammars')
-  where
-  grm :: String -> ByteString -> (String, Grammar)
-  grm idf pgf = (idf, parseGrammar $ LB.fromStrict pgf)
-
-grammars' :: [(String, ByteString)]
-grammars' =
+-- Better yet it would be to complete the parsing of all this data.
+-- However, I'm not strong enough in Template Haskell to figure out
+-- how to make a gadget that does that.  The type would ideally be
+-- @Map String Grammar@.  That way we can also know at compile time(!)
+-- if there is an error in one of the compiled binaries.  That
+-- situation might arise if the version of the pgf runtime is
+-- different from the compiler used to generate the binaries.
+grammars :: [(String, ByteString)]
+grammars =
   [ $(Embed.grammar "novo_modo/Prima")
   , $(Embed.grammar "novo_modo/Secunda")
   , $(Embed.grammar "novo_modo/Tertia")

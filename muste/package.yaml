@@ -1,5 +1,5 @@
 name:                muste
-version:             0.2.0.5
+version:             0.2.1.0
 license:             BSD3
 author:              Herbert Lange
 maintainer:          herbert.lange@cse.gu.se
@@ -61,6 +61,7 @@ library:
     - Muste.Data
     - Muste.Grammar.Embed
     - Muste.Grammar.Grammars
+    - Muste.Menu.Internal
 
 tests:
   test:

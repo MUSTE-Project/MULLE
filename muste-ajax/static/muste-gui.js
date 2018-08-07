@@ -381,7 +381,7 @@ function click_word(event) {
 
             var item = menus[i];
             var menuitem = $('<span class="clickable">')
-                .data({'tree': item.tree, 'lang': lang})
+                .data({'trees': item.trees, 'lang': lang})
                 .click(BUSY(function(c){
                     select_menuitem($(c).data());
                 }));
@@ -418,7 +418,7 @@ function click_word(event) {
 
 
 function select_menuitem(item) {
-    DATA[item.lang].trees = [item.tree];
+    DATA[item.lang].trees = item.trees;
     DATA.token = LOGIN_TOKEN;
     DATA.time = elapsed_time();
     call_server(MESSAGES.MENU, DATA);
