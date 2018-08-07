@@ -31,7 +31,12 @@ included verbatim into `muste-ajax/src/Config.hs` - so it's really
 more a fragment of a Haskell source file with C preprocessor
 directives.  The values in that directory are the ones suitable for
 production.  The directory `config/` provides alternative
-configuration sets.  Here is documentation on the available options:
+configuration sets.  To pick an alternative configuration option you
+can e.g. from the muste-ajax directory do:
+
+  ln -sf config/cse-principia app.config
+
+Here is documentation on the available options:
 
 * `SERVE_STATIC_RELATIVE_PATH` useful while developing since changes
   to the static file (e.g. the front end JavaScript code) is served
