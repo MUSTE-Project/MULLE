@@ -1,5 +1,5 @@
 name:                muste
-version:             0.2.0.5
+version:             0.2.2.0
 license:             BSD3
 author:              Herbert Lange
 maintainer:          herbert.lange@cse.gu.se
@@ -23,7 +23,7 @@ dependencies:
 - aeson
 - mtl
 - aeson
-- pgf >=3.7
+- pgf >=3.9.1
 - binary
 - text
 - bytestring
@@ -32,13 +32,16 @@ dependencies:
 - prettyprinter
 - mono-traversable
 - base >=4.8
+- file-embed
+- template-haskell
+- filepath
 
 library:
   other-extensions:
     FlexibleInstances
 
   dependencies:
-    - pgf >=3.7
+    - pgf >=3.9.1
 
   exposed-modules:
     - Muste
@@ -55,6 +58,10 @@ library:
     - Muste.Grammar.Internal
     - Muste.Linearization.Internal
     - Muste.AdjunctionTrees
+    - Muste.Data
+    - Muste.Grammar.Embed
+    - Muste.Grammar.Grammars
+    - Muste.Menu.Internal
 
 tests:
   test:

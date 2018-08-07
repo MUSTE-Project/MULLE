@@ -1,4 +1,4 @@
-resolver: lts-12.0 # => ghc-8.4.3
+resolver: lts-9.21 # => ghc-8.0.2
 
 packages:
 - ./muste/
@@ -6,8 +6,8 @@ packages:
 
 extra-deps:
 # - ../libs/GF/src/runtime/haskell/
-- git: git@github.com:GrammaticalFramework/gf-core.git
-  commit: 636a8142b4ef3950d4d0e04b0be872590a204520
+- git: git@github.com:MUSTE-Project/gf-core.git
+  commit: 456efc0c84e13ca326dbe4c4f3c878ae22304d40
   subdirs:
   # Just list all directories with cabal files.
   - ./

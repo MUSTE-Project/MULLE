@@ -2,6 +2,7 @@
     GeneralizedNewtypeDeriving
   , TypeFamilies
   , StandaloneDeriving
+  , CPP
 #-}
 -- | Adjunction trees
 --
@@ -12,6 +13,10 @@ module Muste.AdjunctionTrees (AdjunctionTrees) where
 import qualified Data.Containers      as Mono
 import Data.MonoTraversable
 import qualified Data.Map.Strict      as M
+#if MIN_VERSION_base(4,11,0)
+#else
+import Data.Semigroup (Semigroup)
+#endif
 
 import Muste.Tree
 
@@ -33,8 +38,7 @@ instance MonoFoldable AdjunctionTrees where
 instance MonoTraversable AdjunctionTrees where
   otraverse f (AdjunctionTrees m) = AdjunctionTrees <$> otraverse f m
 
-instance Semigroup AdjunctionTrees where
-  AdjunctionTrees a <> AdjunctionTrees b = AdjunctionTrees $ a <> b
+deriving instance Semigroup AdjunctionTrees
 
 deriving instance Monoid AdjunctionTrees
 

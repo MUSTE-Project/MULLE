@@ -4,6 +4,7 @@
   , LambdaCase
   , FlexibleContexts
   , ConstraintKinds
+  , CPP
 #-}
 module Database
   ( getLessons
@@ -38,6 +39,10 @@ import Data.Maybe
 import Data.Time.Clock
 import Data.Time.Format
 import Control.Monad.Reader
+#if MIN_VERSION_base(4,11,0)
+#else
+import Data.Semigroup ((<>))
+#endif
 
 -- FIXME QuickCheck seems like a heavy dependency just to get access
 -- to `shuffle`.

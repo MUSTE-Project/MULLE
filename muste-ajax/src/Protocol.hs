@@ -4,6 +4,9 @@
   , TypeApplications
   , ViewPatterns
   , FlexibleContexts
+  , StandaloneDeriving
+  , TupleSections
+  , UnicodeSyntax
 #-}
 module Protocol
   ( apiRoutes
@@ -12,7 +15,7 @@ module Protocol
 import Data.Aeson
 import Data.Set (Set)
 import qualified Data.Set as S
-import Data.Map ((!),Map)
+import Data.Map (Map)
 import qualified Data.Map.Lazy as M
 import Control.Monad
 import Database.SQLite.Simple
@@ -29,6 +32,8 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Data.Time
 import Data.Function (on)
+import Control.Monad.Catch (MonadThrow(throwM))
+import Control.Exception (Exception, throw)
 
 import Muste (Context, Path, TTree, Linearization)
 import qualified Muste
@@ -54,6 +59,9 @@ data Env = Env
 
 -- | A simple monad for handling responding to requests.
 type Protocol v w a = ReaderT Env (Snap.Handler v w) a
+
+instance MonadThrow (Snap.Handler v w) where
+  throwM = liftIO . throwM
 
 runProtocol :: Protocol v w a -> Snap.Handler v w a
 runProtocol app = do
@@ -202,6 +210,16 @@ handleLessonInit token lesson = do
                 (targetLang,pure targetTree)
     verifyMessage token (SMMenuList lesson False 0 a b)
 
+-- | This request is called after the user selects a new sentence from
+-- the drop-down menu.  A request consists of two 'ClientTree's (the
+-- source and the target sentece) these can represent multiple actual
+-- sentences ('TTree's).  We determine if the current exercise is over
+-- by checking the source and target tree for equality.  'ClientTree's
+-- are considered equal in this case if they have just one 'TTree' in
+-- common.  We respond to the caller whether the exercise is over.  In
+-- either case we also return two new 'ClientTree's -- these are used
+-- if the exercise continues.  For more information about what these
+-- contain see the documentation there.
 handleMenuRequest
   :: String -- ^ Token
   -> Text -- ^ Lesson
@@ -276,18 +294,17 @@ initContexts
   :: MonadIO io
   => Connection
   -> io Contexts
-initContexts conn = liftIO $ do
-  lessonGrammarList <- Database.getLessons conn
-  M.fromList <$> (mapM mkContext lessonGrammarList)
+initContexts conn = liftIO $ mkContexts <$> Database.getLessons conn
 
-mkContext :: Database.Lesson -> IO (Text, M.Map String Context)
-mkContext (ls, _, nm, _, _, _, _, _) = do
-  langs <- Muste.langAndContext (T.unpack nm)
-  pure (ls, M.fromList langs)
+mkContexts ∷ [Database.Lesson] → Contexts
+mkContexts = M.fromList . map mkContext
 
--- FIXME At the moment the menu is not really a list of menus but
--- instead a list with only one menu as the only element
--- | Gets the menus for a lesson, two trees and two languages
+mkContext :: Database.Lesson -> (Text, M.Map String Context)
+mkContext (ls, _, nm, _, _, _, _, _) =
+  (ls, Muste.langAndContext (T.unpack nm))
+
+-- | Gets the menus for a lesson.  This consists of a source tree and
+-- a target tree.
 assembleMenus
   :: Contexts
   -> Text
@@ -301,16 +318,45 @@ assembleMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
   where
   mkTree = makeTree contexts lesson src trg
 
--- We could make the constraint on `m` more general, but then I get
--- into some stuff with some functional dependencies that I'm not
--- entirely sure how works.
-getContext
-  :: Text -- ^ The lesson
+getContextM
+  :: Text   -- ^ The lesson
   -> String -- ^ The language
   -> Protocol v w Context
-getContext lesson lang = do
+getContextM lesson lang = do
   ctxts <- askContexts
-  pure $ ctxts ! lesson ! lang
+  getContext ctxts lesson lang
+
+data ProtocolException
+  = LessonNotFound Text
+  | LanguageNotFound String
+
+deriving instance Show ProtocolException
+
+instance Exception ProtocolException where
+
+getContext
+  :: MonadThrow m
+  => Contexts
+  -> Text   -- ^ Lesson
+  -> String -- ^ Language
+  -> m Context
+getContext ctxts lesson lang
+  =   pure ctxts
+  >>= lookupM (LessonNotFound lesson) lesson
+  >>= lookupM (LanguageNotFound lang) lang
+
+lookupM
+  :: MonadThrow m
+  => Exception e
+  => Ord k
+  => e -> k -> Map k a -> m a
+lookupM err k = liftMaybe err . M.lookup k
+
+-- | Lift a 'Maybe' to any 'MonadThrow'.
+liftMaybe :: MonadThrow m => Exception e => e -> Maybe a -> m a
+liftMaybe e = \case
+  Nothing -> throwM e
+  Just a  -> pure a
 
 -- | @'makeTree' ctxt lesson src trg tree@ Creates a 'ServerTree' from
 -- a source trees and a target tree.  The 'Menu' is provided given
@@ -324,12 +370,17 @@ makeTree
 makeTree contexts lesson (srcLang, srcTrees) (trgLang, trgTrees) (lang, trees)
   = Ajax.mkServerTree lang trees lin (Muste.getCleanMenu ctxt tree)
     where
-    grammar = Muste.ctxtGrammar (contexts ! lesson ! srcLang)
-    ctxt    = contexts ! lesson ! lang
+    grammar = throwLeft $ getContext contexts lesson srcLang
+    ctxt    = throwLeft $ getContext contexts lesson lang
     lin     = Muste.mkLin ctxt srcTree trgTree tree
     srcTree = unsafeTakeTree srcTrees
     trgTree = unsafeTakeTree trgTrees
     tree    = unsafeTakeTree trees
+
+-- | Throws an exception if the it's a 'Left' (requires the left to be
+-- an exception).  This method is *unsafe*!
+throwLeft :: Exception e => Either e c -> c
+throwLeft = either throw id
 
 emptyMenus
   :: Contexts
@@ -345,7 +396,7 @@ emptyMenus contexts lesson src@(srcLang, srcTrees) trg@(_, trgTrees) =
   -- FIXME In 'assembleMenus' we actually use the language of the tree
   -- we're building.  Investigate if this may be a bug.  Similiarly
   -- for 'lin'.  This is the reason we are not using 'makeTree' here.
-  ctxt = contexts ! lesson ! srcLang
+  ctxt = throwLeft $ getContext contexts lesson srcLang
   grammar = Muste.ctxtGrammar ctxt
   srcTree = unsafeTakeTree srcTrees
   trgTree = unsafeTakeTree trgTrees

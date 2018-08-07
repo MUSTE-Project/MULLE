@@ -1,32 +1,62 @@
-{-# Language OverloadedStrings, GeneralizedNewtypeDeriving #-}
+{-# Language OverloadedStrings
+, GeneralizedNewtypeDeriving
+, CPP
+, StandaloneDeriving
+, FlexibleContexts
+, TypeFamilies
+, UnicodeSyntax
+, NamedWildCards
+#-}
 module Muste.Linearization.Internal
   ( Context(ctxtGrammar, ctxtPrecomputed)
   , buildContext
   , Linearization
+  , LinToken
+  , ltpath
   , linearizeTree
   , langAndContext
   , mkLin
+  , sameOrder
+  -- Used in test suite:
+  , readLangs
   ) where
 
+import Data.Maybe (fromMaybe)
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Aeson
 -- This might be the only place we should know of PGF
 import qualified PGF
 import qualified PGF.Internal as PGF hiding (funs, cats)
 import Data.Function (on)
+import Text.Printf
+#if MIN_VERSION_base(4,11,0)
+#else
+import Data.Semigroup (Semigroup((<>)))
+#endif
+import Data.MonoTraversable
+  ( Element, MonoTraversable(..), MonoFunctor
+  , MonoFoldable(..), GrowingAppend, MonoPointed
+  )
+import qualified Data.MonoTraversable as Mono
+import qualified Data.MonoTraversable.Unprefixed as Mono
+import Data.Sequences (SemiSequence, IsSequence, Index)
+import qualified Data.Sequences as Mono
 
 import Muste.Tree
 import Muste.Grammar
+import Muste.Grammar.Grammars (grammars)
 import Muste.Grammar.Internal (pgf)
 import qualified Muste.Grammar.Internal as Grammar
   ( brackets
-  , readPGF
+  , lookupGrammar
   )
 import Muste.AdjunctionTrees
 
 import Muste.Prune
 
 data LinToken = LinToken
-  { _ltpath :: Path
+  { ltpath :: Path
   , _ltlin :: String
   , _ltmatched :: Path
   } deriving (Show)
@@ -43,7 +73,8 @@ instance ToJSONKey LinToken
 
 -- FIXME Better name
 -- TODO Merge with `OldL`.
-newtype Linearization = Linearization [LinToken] deriving
+newtype Linearization = Linearization { runLinearization:: [LinToken] }
+  deriving
   ( Show, FromJSON, ToJSON, Semigroup, Monoid
   , Ord, Eq, FromJSONKey, ToJSONKey
   )
@@ -69,6 +100,37 @@ instance ToJSON LinToken where
     , "matched" .= matched
     ]
 
+type instance Element Linearization = LinToken
+
+deriving instance MonoFunctor Linearization
+
+instance MonoFoldable Linearization where
+  ofoldl'    f a (Linearization m) = ofoldl' f a m
+  ofoldr     f a (Linearization m) = ofoldr f a m
+  ofoldMap   f (Linearization m)   = ofoldMap f m
+  ofoldr1Ex  f (Linearization m)   = ofoldr1Ex f m
+  ofoldl1Ex' f (Linearization m)   = ofoldl1Ex' f m
+
+
+instance MonoTraversable Linearization where
+  otraverse f (Linearization m) = Linearization <$> otraverse f m
+
+instance MonoPointed Linearization where
+  opoint = Linearization . Mono.opoint
+
+instance GrowingAppend Linearization where
+
+instance SemiSequence Linearization where
+  type Index Linearization = Int
+  intersperse a = Linearization .  Mono.intersperse a . runLinearization
+  reverse = Linearization . Mono.reverse . runLinearization
+  find p = Mono.find p . runLinearization
+  sortBy p = Linearization . Mono.sortBy p . runLinearization
+  cons e = Linearization . Mono.cons e . runLinearization
+  snoc xs e = Linearization . (`Mono.snoc` e) . runLinearization $ xs
+
+instance IsSequence Linearization where
+
 -- | Memoize all @AjdunctionTrees@ for a given grammar and language.
 buildContext :: Grammar -> PGF.Language -> Context
 buildContext grammar lang =
@@ -89,13 +151,28 @@ linearizeTree (Context grammar language _) ttree =
     then bracketsToTuples ttree $ head brackets
     else Linearization $ [LinToken [] "?0" []]
 
--- | Given a file path creates a mapping from the an identifier of the
--- language to the 'Context' of that language.
-langAndContext :: FilePath -> IO [(String, Context)]
-langAndContext nm = readLangs <$> Grammar.readPGF nm
+-- | Given an identifier for a grammar, looks up that grammar and then
+-- creates a mapping from all the languages in that grammar to their
+-- respective 'Context's.
+--
+-- This method is unsafe and will throw if we can't find the
+-- corresponding grammar.
+langAndContext
+  ∷ String -- ^ An identitfier for a grammar.  E.g. @novo_modo/Prima@.
+  → Map String Context
+langAndContext = readLangs . getGrammar
+  where
+  getGrammar ∷ String → Grammar
+  getGrammar s = fromMaybe (err s) $ Grammar.lookupGrammar s
+  err s = error $ printf errMsg s
+  errMsg
+    =  "Muste.Linearization.langAndContext: "
+    <> "Couldn't find grammar corresponding for: %s"
 
-readLangs :: Grammar -> [(String, Context)]
-readLangs grammar = mkCtxt <$> PGF.languages (pgf grammar)
+-- | Given a grammar creates a mapping from all the languages in that
+-- grammar to their respective 'Context's.
+readLangs :: Grammar -> Map String Context
+readLangs grammar = Map.fromList $ mkCtxt <$> PGF.languages (pgf grammar)
   where
   mkCtxt lang = (PGF.showCId lang, buildContext grammar lang)
 
@@ -154,3 +231,19 @@ mkLin ctxt srcTree trgTree tree
   = Linearization $ matchTk srcTree trgTree <$> xs
   where
     (Linearization xs) = linearizeTree ctxt tree
+
+-- | @'sameOrder' xs ys@ checks to see if the tokens in @xs@ occurs in
+-- the same sequence in @ys@.
+sameOrder :: Linearization -> Linearization -> Bool
+sameOrder (Linearization xs) (Linearization ys) = sameOrder' xs ys
+
+-- If we were feeling fancy we might be able to generalize this from
+-- '[]' to any 'Traversable'.
+-- | @'sameOrder'' xs ys@ checks to see if the elements in @xs@ occurs
+-- in the same sequence in @ys@.
+sameOrder' :: Eq a => [a] -> [a] -> Bool
+sameOrder' [] _ = True
+sameOrder' _ [] = False
+sameOrder' (x:xs) yss@(y:ys)
+  | x == y    = sameOrder' xs ys
+  | otherwise = sameOrder' xs yss

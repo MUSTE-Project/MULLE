@@ -1,4 +1,4 @@
-{-# language OverloadedStrings, TypeApplications #-}
+{-# language OverloadedStrings, TypeApplications, UnicodeSyntax #-}
 {- | This Module is the internal implementation behind the module 'Muste.Grammar' -}
 module Muste.Grammar.Internal
   ( Grammar(..)
@@ -8,25 +8,35 @@ module Muste.Grammar.Internal
   , getFunType
   , getAllRules
   , getRuleType
-  , readPGF
   , brackets
   -- Used in test module
   , parseTTree
-  , ttreeToGFAbsTree
+  , lookupGrammar
+  , parseGrammar
   )  where
 
 import Prelude hiding (id)
 
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.ByteString as SB (ByteString)
+import qualified Data.ByteString.Lazy as LB
 -- This might be the only place we should know of PGF
 import qualified PGF
+  ( Tree(..), wildCId, mkCId, functions
+  , showCId, startCat, functionType, parsePGF
+  , bracketedLinearize
+  )
 import PGF.Internal as PGF hiding (funs, cats)
 import Data.List
 import Data.Text.Prettyprint.Doc (Pretty(..))
 import qualified Data.Text.Prettyprint.Doc as Doc
 import Text.Printf
 
+import qualified Muste.Grammar.Grammars as Grammars (grammars)
 import Muste.Common
 import Muste.Tree
+import qualified Muste.Tree.Internal as Tree (toGfTree)
 
 -- | Type 'Rule' consists of a 'String' representing the function name
 -- and a 'FunType' representing its type.
@@ -54,28 +64,6 @@ instance Pretty Grammar where
 -- | Rename GF abstract syntax tree (from PGF)
 type GFAbsTree = PGF.Tree
 
--- | Creates a GF abstract syntax Tree from a generic tree
-ttreeToGFAbsTree :: TTree -> GFAbsTree
-ttreeToGFAbsTree tree =
-  let
-    loop :: [TTree] -> Int -> (Int,[GFAbsTree])
-    loop [] id = (id,[])
-    loop (t:ts) id =
-      let
-        (nid,nt) = convert t id
-        (fid,nts) = loop ts nid
-      in
-        (fid,nt:nts)
-    convert :: TTree -> Int -> (Int,GFAbsTree)
-    convert (TMeta _) id = (id + 1, mkMeta id)
-    convert (TNode name _ ns) id =
-      let
-        (nid,nts) = loop ns id
-      in
-        if name == wildCard then (nid,mkApp PGF.wildCId nts) else (nid,mkApp (PGF.mkCId name) nts)
-  in
-    snd $ convert tree 0
-
 -- | The function 'getRules' returns the union of syntactic and lexical rules of a grammar
 getAllRules :: Grammar -> [Rule]
 getAllRules g = union (synrules g) (lexrules g)
@@ -97,7 +85,6 @@ isEmptyPGF pgf = absname pgf == PGF.wildCId
 -- is PGF.wildCId and pgf is empty
 isEmptyGrammar :: Grammar -> Bool
 isEmptyGrammar grammar = startcat grammar == wildCard && isEmptyPGF (pgf grammar)
-  
 
 -- | The function 'getFunTypeWithGrammar' extracts the function type from a Grammar given a function name
 getFunType :: Grammar -> String -> FunType
@@ -147,20 +134,21 @@ pgfToGrammar pgf
               Fun (PGF.showCId typeid) (map PGF.showCId cats)
             }
 
--- | Converts a @.pgf@ file to a 'Grammar'.
-readPGF
-  :: FilePath -- ^ Path to the grammar.
-  -> IO Grammar
-readPGF grammarName = pgfToGrammar <$> PGF.readPGF grammarName
+parseGrammar
+  :: LB.ByteString -- ^ Path to the grammar.
+  -> Grammar
+parseGrammar = pgfToGrammar . PGF.parsePGF
 
 brackets :: Grammar -> PGF.Language -> TTree -> [PGF.BracketedString]
 brackets grammar language ttree
-  = PGF.bracketedLinearize (pgf grammar) language (ttreeToGFAbsTree ttree) :: [PGF.BracketedString]
+  = PGF.bracketedLinearize (pgf grammar) language (Tree.toGfTree ttree)
 
 parseTTree :: Grammar -> String -> TTree
 parseTTree g = gfAbsTreeToTTree g . read
 
--- | The function 'gfAbsTreeToTTree' creates a 'TTree' from an GFabstract syntax 'Tree' and a Grammar. Othewise  similar to gfAbsTreeToTTreeWithPGF
+-- | The function 'gfAbsTreeToTTree' creates a 'TTree' from an
+-- 'GFAbsTree' and a 'Grammar'. Othewise similar to
+-- 'gfAbsTreeToTTreeWithPGF'
 gfAbsTreeToTTree :: Grammar -> GFAbsTree -> TTree
 gfAbsTreeToTTree g (EFun f) =
   let
@@ -174,3 +162,12 @@ gfAbsTreeToTTree g (EApp e1 e2) =
   in
     TNode name typ (sts ++ [st2])
 gfAbsTreeToTTree _ _ = TMeta wildCard
+
+grammars :: Map String Grammar
+grammars = Map.fromList (uncurry grm <$> Grammars.grammars)
+  where
+  grm :: String -> SB.ByteString -> (String, Grammar)
+  grm idf pgf = (idf, parseGrammar $ LB.fromStrict pgf)
+
+lookupGrammar ∷ String → Maybe Grammar
+lookupGrammar s = Map.lookup s grammars

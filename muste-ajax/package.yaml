@@ -1,5 +1,5 @@
 name:                muste-ajax
-version:             0.2.0.5
+version:             0.2.2.0
 license-file:        LICENSE
 author:              Herbert Lange
 maintainer:          herbert.lange@cse.gu.se
@@ -12,10 +12,9 @@ flags:
     manual: true
     default: false
 
-ghc-options: -fmax-valid-substitutions=0
+# ghc-options: -fmax-valid-substitutions=0
 
 data-files:
-  - ./data/gf/compiled/novo_modo/*.pgf
   - ./log/*.log
   - ./static/index.html
   - ./static/muste.html
@@ -73,6 +72,7 @@ dependencies:
   - snap-extras
   - lens
   - io-streams
+  - exceptions
 
 library:
 

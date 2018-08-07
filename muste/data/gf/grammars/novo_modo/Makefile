@@ -1,3 +1,5 @@
+SHELL=/bin/bash
+
 MAKE = -make 
 GF = gf
 LANGS = Lat,Eng,Swe

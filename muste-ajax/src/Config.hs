@@ -1,7 +1,6 @@
 {-# LANGUAGE CPP #-}
 module Config
-  ( getGrammar
-  , getDB
+  ( getDB
   , getStaticDir
   , getErrorLog
   , getAccessLog
@@ -24,18 +23,8 @@ getStaticDir = pure staticDir
 getStaticDir = Paths.getDataFileName staticDir
 #endif
 
--- FIXME Use haskell resource files for this.
-dataDir :: FilePath
-dataDir = "./data/"
-
-grammarDir :: FilePath
-grammarDir = dataDir </> "gf/compiled/novo_modo/"
-
-getGrammar :: String -> IO FilePath
-getGrammar f = Paths.getDataFileName $ grammarDir </> f <.> "pgf"
-
 getDB :: IO FilePath
-getDB = Paths.getDataFileName $ dataDir </> "muste.db"
+getDB = Paths.getDataFileName $ "muste.db"
 
 -- FIXME Should we maybe log to the current dir (rather than the
 -- shared resource returned by Haskells data-files construct) or to
