@@ -137,21 +137,8 @@ costTree ctxt s p (cost, r, _, _) t
   ins :: Bool
   ins = isInsertion ctxt p s r
 
--- Assume we’re building the suggestions for subtree s somewhere
--- inside the tree. For simplicity, let s cover the words w_j...w_k in
--- the linearisation (w_1...w_n). Every word w_j...w_k are introduced
--- by some node s_j, ..., s_k (all s_i are in subtree s, and s_i and
--- s_i’ can be the same node (but doesn’t have to))
---
--- Now, collect all replacement subtrees for s (Prune.replaceTrees)
--- and look through them. Given a replacement r, let its linearisation
--- cover be u_p...u_q, and their corresponding nodes be r_p, ..., r_q:
---
--- IF all cover nodes of s (s_j, ..., s_k) are included in r_p, ..., r_q;
--- AND the linearisation order between s_j, ..., s_k are kept the same as in w_j...w_k;
--- AND there are some additional new cover nodes r_i, ..., r_i’ which are not in s_j, ..., s_k;
--- THEN r should be an insertion (at the corresponding positions of r_i, ..., r_i’);
--- OTHERWISE r is a normal replacement
+-- | @'isInsertion' ctxt p s r@ determines if the subtree @r@ is to be
+-- considered an "insertion" into the tree @s@.
 isInsertion :: Context -> Path -> TTree -> TTree -> Bool
 isInsertion ctxt p s r = coverNodesIsProperSubset && sameOrder'
   where
