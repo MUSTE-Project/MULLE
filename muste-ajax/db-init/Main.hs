@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, CPP #-}
+{-# LANGUAGE OverloadedStrings, CPP, UnicodeSyntax #-}
 module Main (main) where
 
 import Database.SQLite.Simple
@@ -6,18 +6,26 @@ import Database.SQLite.Simple
 #else
 import Data.Semigroup (Semigroup((<>)))
 #endif
-
+import System.IO (IOMode(..), openFile)
+import System.Directory
 import qualified Config
 import qualified Database
+import System.FilePath (takeDirectory)
+import System.Directory (createDirectoryIfMissing)
 
 import qualified Data
 
 main :: IO ()
 main = do
   putStrLn "Initializing database..."
-  db <- Config.getDB
-  withConnection db initDB
+  mkParDir Config.db
+  withConnection Config.db initDB
   putStrLn "Initializing database... done"
+
+-- | @'mkParDir' p@ Ensure that the directory that @p@ is in is
+-- created.
+mkParDir ∷ FilePath → IO ()
+mkParDir = createDirectoryIfMissing True . takeDirectory
 
 initDB :: Connection -> IO ()
 initDB conn = do

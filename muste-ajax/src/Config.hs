@@ -1,74 +1,68 @@
-{-# LANGUAGE CPP, UnicodeSyntax #-}
-#include "../app.config"
+{-# LANGUAGE
+    UnicodeSyntax
+  , NamedWildCards
+  , TemplateHaskell
+  , RecordWildCards
+  , DuplicateRecordFields
+#-}
 module Config
-  ( getDB
-  , getStaticDir
-  , getErrorLog
-  , getAccessLog
-  , loggingEnabled
-  , webPrefix
-  , port
-  , getWwwRoot
-  , virtualRoot
+  ( App.AppConfig
+  , appConfig
+  , Config.db
+  , Config.accessLog
+  , Config.errorLog
+  , Config.port
+  , Config.staticDir
+  , Config.wwwRoot
+  , Config.virtualRoot
   ) where
 
-import System.FilePath
+import qualified Config.TH as CFG hiding (AppConfig(..))
+import Config.TH as App (AppConfig(..))
+import System.FilePath ((</>), (<.>))
+import Data.Yaml
+  ( FromJSON(parseJSON), withObject
+  , ToJSON(toJSON), object
+  , (.:), (.:?), (.!=), (.=)
+  )
 
-import qualified Paths_muste_ajax as Paths
+cfg ∷ CFG.Config
+cfg = $( CFG.config )
 
-staticDir :: FilePath
-staticDir = "static"
+appConfig ∷ AppConfig
+appConfig = fromConfig cfg
 
-getStaticDir :: IO FilePath
-#ifdef SERVE_RELATIVE_STATIC_DIR
-getStaticDir = pure staticDir
-#else
-getStaticDir = Paths.getDataFileName staticDir
-#endif
+fromConfig ∷ CFG.Config → AppConfig
+fromConfig (CFG.Config { .. }) = AppConfig
+  { db          = dataDir </> "muste"  <.> "sqlite3"
+  , accessLog   = logDir  </> "access" <.> "log"
+  , errorLog    = logDir  </> "error"  <.> "log"
+  , port        = port
+  , staticDir   = staticDir
+  , wwwRoot     = wwwRoot
+  , virtualRoot = virtualRoot
+  }
+  where
+  logDir  = CFG.logDir cfg
+  dataDir = CFG.dataDir cfg
 
-getWwwRoot :: IO FilePath
-#ifdef WWW_ROOT
-getWwwRoot = pure $ WWW_ROOT
-#else
-getWwwRoot = Paths.getDataDir
-#endif
+staticDir     ∷ FilePath
+staticDir     = App.staticDir appConfig
 
-virtualRoot ∷ FilePath
-#ifdef VIRTUAL_ROOT
-virtualRoot = VIRTUAL_ROOT
-#else
-virtualRoot = mempty
-#endif
+port          ∷ Int
+port          = App.port appConfig
 
-getDB :: IO FilePath
-getDB = Paths.getDataFileName $ "muste.db"
+wwwRoot       ∷ FilePath
+wwwRoot       = App.wwwRoot appConfig
 
--- FIXME Should we maybe log to the current dir (rather than the
--- shared resource returned by Haskells data-files construct) or to
--- /var/log/?
-logDir :: FilePath
-logDir = "log"
+virtualRoot   ∷ FilePath
+virtualRoot   = App.virtualRoot appConfig
 
-getLogDir :: IO FilePath
-getLogDir = Paths.getDataFileName logDir
+db            ∷ FilePath
+db            = App.db appConfig
 
-getAccessLog :: IO FilePath
-getAccessLog = (</> "access.log") <$> getLogDir
+accessLog     ∷ FilePath
+accessLog     = App.accessLog appConfig
 
-getErrorLog :: IO FilePath
-getErrorLog = (</> "error.log") <$> getLogDir
-
--- FIXME Handle this with CPP
--- | Switch loggin on/off
-loggingEnabled :: Bool
-loggingEnabled = True
-
-webPrefix :: FilePath
-webPrefix = "/"
-
-port :: Int
-#ifdef PORT
-port = PORT
-#else
-port = 8080
-#endif
+errorLog      ∷ FilePath
+errorLog      = App.errorLog appConfig

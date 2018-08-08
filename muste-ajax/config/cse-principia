@@ -1,3 +1,0 @@
-#define VIRTUAL_ROOT "/mulle-dev/"
-
-#define PORT 8081

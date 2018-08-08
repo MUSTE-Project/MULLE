@@ -150,9 +150,9 @@ instance ToField TTree where
 
 -- | The basic type of sentences and sentence formers.
 data FunType
-  = Fun
-    Category   -- ^ The resulting category
-    [Category] -- ^ The categories of the parameters.
+  = Fun Category [Category]
+  -- ^ Contains the resulting category and the categories of the
+  -- parameters.
   | NoType
   deriving (Ord, Eq, Show, Read, Generic)
 

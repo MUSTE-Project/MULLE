@@ -1,0 +1,3 @@
+serve-static-relative: True
+port: 8080
+log-dir: .

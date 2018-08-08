@@ -157,7 +157,7 @@ getUser :: Protocol v w (Text, Text)
 getUser = (\(CMLoginRequest usr pwd) -> (usr, pwd)) <$> getMessage
 
 getConnection :: IO Connection
-getConnection = Config.getDB >>= open
+getConnection = open Config.db
 
 setLoginCookie
   :: Text -- ^ The token

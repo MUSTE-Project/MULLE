@@ -68,6 +68,9 @@ dependencies:
   - lens
   - io-streams
   - exceptions
+  - yaml
+  - template-haskell
+  - directory
 
 library:
 
@@ -79,6 +82,7 @@ library:
     - Database
     - Database.Types
     - Config
+    - Config.TH
     - Protocol
 
   other-modules:
