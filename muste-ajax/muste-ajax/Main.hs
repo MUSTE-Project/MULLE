@@ -11,6 +11,8 @@ import qualified Snap as Snap
 import qualified Snap.Util.FileServe as Snap (serveDirectory)
 import qualified Snap.Http.Server as Snap
 import System.IO.Error
+import System.FilePath (takeDirectory)
+import System.Directory (createDirectoryIfMissing)
 import Control.Monad.IO.Class (liftIO)
 import Data.String
 import Snap.Util.CORS
@@ -29,6 +31,7 @@ import qualified Config
 main :: IO ()
 main = do
   showConfig
+  mapM_ mkParDir [Config.accessLog, Config.errorLog]
   (_, site, cleanup) <- Snap.runSnaplet Nothing appInit
   Snap.httpServe appConfig site `catchIOError` \err -> do
     cleanup
@@ -39,8 +42,10 @@ showConfig = do
   printf "[Configurations options]\n"
   printf $ ByteString.unpack $ Yaml.encode $ Config.appConfig
 
--- instance IsString ConfigLog where
---   fromString = ConfigFileLog
+-- | @'mkParDir' p@ Ensure that the directory that @p@ is in is
+-- created.
+mkParDir ∷ FilePath → IO ()
+mkParDir = createDirectoryIfMissing True . takeDirectory
 
 -- | The main configuration.
 appConfig :: Snap.Config a b

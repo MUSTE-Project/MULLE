@@ -49,7 +49,7 @@ defaultWwwRoot ∷ FilePath
 defaultWwwRoot = shareDir </> "www"
 
 defaultStaticDir ∷ FilePath
-defaultStaticDir = "static"
+defaultStaticDir = shareDir </> "static"
 
 defaultVirtualRoot ∷ FilePath
 defaultVirtualRoot = mempty

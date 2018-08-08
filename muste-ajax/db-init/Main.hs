@@ -12,15 +12,25 @@ import qualified Config
 import qualified Database
 import System.FilePath (takeDirectory)
 import System.Directory (createDirectoryIfMissing)
+import Data.ByteString (ByteString)
+import qualified Data.ByteString.Char8 as ByteString
+import qualified Data.Yaml as Yaml (encode)
+import Text.Printf
 
 import qualified Data
 
 main :: IO ()
 main = do
   putStrLn "Initializing database..."
+  showConfig
   mkParDir Config.db
   withConnection Config.db initDB
   putStrLn "Initializing database... done"
+
+showConfig ∷ IO ()
+showConfig = do
+  printf "[Configurations options]\n"
+  printf $ ByteString.unpack $ Yaml.encode $ Config.appConfig
 
 -- | @'mkParDir' p@ Ensure that the directory that @p@ is in is
 -- created.

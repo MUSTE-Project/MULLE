@@ -2,13 +2,20 @@ Change log
 ==========
 
 HEAD
+---
+
+0.2.2.1
 ----
 
 Add configuration options for
 
-* `SERVE_STATIC_RELATIVE_PATH`
-* `WWW_ROOT`
-* `VIRTUAL_ROOT`
+* `port`
+* `www-root`
+* `static-directory`
+* `virtual-root`
+* `serve-static-relative`
+* `data-dir`
+* `log-dir`
 
 Please see the readme.
 

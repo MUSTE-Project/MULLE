@@ -14,3 +14,7 @@ hacky-sack/deploy/cse-principia:
 	@echo ""
 	@echo "    muste-ajax"
 	@echo ""
+	@echo "... recreating the database if necessary with:"
+	@echo ""
+	@echo "    db-init"
+	@echo ""

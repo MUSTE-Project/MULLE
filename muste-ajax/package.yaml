@@ -1,5 +1,5 @@
 name:                muste-ajax
-version:             0.2.2.0
+version:             0.2.2.1
 license-file:        LICENSE
 author:              Herbert Lange
 maintainer:          herbert.lange@cse.gu.se
@@ -15,7 +15,6 @@ flags:
 # ghc-options: -fmax-valid-substitutions=0
 
 data-files:
-  - ./log/*.log
   - ./static/index.html
   - ./static/muste.html
   - ./static/cgi-simulation/muste-backend.js
