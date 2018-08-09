@@ -71,6 +71,8 @@ dependencies:
   - template-haskell
   - directory
   - direct-sqlite
+  - file-embed
+  - optparse-applicative
 
 library:
 
@@ -88,51 +90,11 @@ library:
   other-modules:
     - Paths_muste_ajax
 
-executables:
-  muste-ajax:
-    source-dirs:
-      - muste-ajax
+executable:
+  source-dirs:
+    - app
 
-    main: Main.hs
+  main: Main.hs
 
-    # when:
-    #   - condtion: flag(CGI)
-    #     then:
-    #       main:             Main-CGI.hs
-    #     else:
-    #       main:             Main-Standalone.hs
-
-    # when:
-    #   - condition: flag(CGI)
-    #     then:
-    #       dependencies:       cgi >= 3001.3.0.2
-    #     else:
-
-    dependencies:
-      - muste-ajax
-
-  # Commented out because cgi is currently incompatible with lts-12.0
-
-  muste-cgi:
-    source-dirs:
-      - muste-cgi
-
-    main: Main.hs
-
-    dependencies:
-      - muste-ajax
-      - cgi >= 3001.3.0.2
-
-  db-init:
-    source-dirs:
-      - db-init
-
-    main: Main.hs
-
-    other-modules:
-      - Data
-      - Paths_muste_ajax
-
-    dependencies:
-      - muste-ajax
-      - file-embed
+  dependencies:
+    - muste-ajax

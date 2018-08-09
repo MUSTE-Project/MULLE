@@ -23,6 +23,8 @@ import qualified Data.Yaml as Yaml (encode)
 
 import qualified Protocol
 import qualified Config
+import qualified DbInit (initDb)
+import qualified Options
 
 -- | Runs a static file server and the main api.  All requests to
 -- @/api/*@ are handled by the API.  For the protocol refer to
@@ -30,7 +32,9 @@ import qualified Config
 -- for static files housed in @Config.demoDir@.
 main :: IO ()
 main = do
+  opts <- Options.getOptions
   showConfig
+  when (Options.initDb opts) DbInit.initDb
   mapM_ mkParDir [Config.accessLog, Config.errorLog]
   (_, site, cleanup) <- Snap.runSnaplet Nothing appInit
   Snap.httpServe appConfig site `catchIOError` \err -> do
@@ -41,6 +45,7 @@ showConfig ∷ IO ()
 showConfig = do
   printf "[Configurations options]\n"
   printf $ ByteString.unpack $ Yaml.encode $ Config.appConfig
+  printf "\n"
 
 -- | @'mkParDir' p@ Ensure that the directory that @p@ is in is
 -- created.
