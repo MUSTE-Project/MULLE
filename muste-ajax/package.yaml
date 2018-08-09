@@ -70,6 +70,7 @@ dependencies:
   - yaml
   - template-haskell
   - directory
+  - direct-sqlite
 
 library:
 
@@ -134,3 +135,4 @@ executables:
 
     dependencies:
       - muste-ajax
+      - file-embed

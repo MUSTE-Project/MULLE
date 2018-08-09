@@ -1,30 +1,30 @@
-{-# LANGUAGE OverloadedStrings, CPP, UnicodeSyntax #-}
+{-# LANGUAGE OverloadedStrings, CPP, UnicodeSyntax, TemplateHaskell, QuasiQuotes, TypeApplications #-}
 module Main (main) where
 
-import Database.SQLite.Simple
-#if MIN_VERSION_base(4,11,0)
-#else
-import Data.Semigroup (Semigroup((<>)))
-#endif
-import System.IO (IOMode(..), openFile)
-import System.Directory
-import qualified Config
-import qualified Database
-import System.FilePath (takeDirectory)
-import System.Directory (createDirectoryIfMissing)
-import Data.ByteString (ByteString)
+import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as ByteString
+import           Data.FileEmbed (embedFile)
+import           Data.Text (Text)
+import           Data.Text.Encoding (decodeUtf8)
 import qualified Data.Yaml as Yaml (encode)
-import Text.Printf
+import qualified Database
+import           Database.SQLite.Simple (Connection(Connection), Query)
+import qualified Database.SQLite.Simple as SQL
+import           Database.SQLite.Simple.QQ (sql)
+import qualified Database.SQLite3 as SQL
+import           System.Directory (createDirectoryIfMissing)
+import           System.FilePath (takeDirectory)
+import           Text.Printf
 
 import qualified Data
+import qualified Config
 
 main :: IO ()
 main = do
   putStrLn "Initializing database..."
   showConfig
   mkParDir Config.db
-  withConnection Config.db initDB
+  SQL.withConnection Config.db initDB
   putStrLn "Initializing database... done"
 
 showConfig ∷ IO ()
@@ -37,94 +37,42 @@ showConfig = do
 mkParDir ∷ FilePath → IO ()
 mkParDir = createDirectoryIfMissing True . takeDirectory
 
-initDB :: Connection -> IO ()
+initScript ∷ ByteString
+initScript = $(embedFile "data/sql/create.sql")
+
+execRaw ∷ Connection → Text → IO ()
+execRaw (Connection db) qry = SQL.exec db qry
+
+initDB ∷ Connection → IO ()
 initDB conn = do
-  let exec_ = execute_ conn
-  let exec q = execute conn q
-  exec_ "DROP TABLE IF EXISTS User;"
-  exec_ "DROP TABLE IF EXISTS Session;"
-  exec_ "DROP TABLE IF EXISTS Lesson;"
-  exec_ "DROP TABLE IF EXISTS Exercise;"
-  exec_ "DROP TABLE IF EXISTS FinishedExercise;"
-  exec_ "DROP TABLE IF EXISTS StartedLesson;"
-  exec_ "DROP TABLE IF EXISTS FinishedLesson;"
-  exec_ "DROP TABLE IF EXISTS ExerciseList"
-  exec_ $
-    "CREATE TABLE User (" <>
-    "Username TEXT NOT NULL," <>
-    "Password BLOB NOT NULL," <>
-    "Salt BLOB NOT NULL," <>
-    "Enabled BOOL NOT NULL DEFAULT 0," <>
-    "PRIMARY KEY(Username));"
-  exec_ $
-    "CREATE TABLE Session (" <>
-    "User TEXT NOT NULL REFERENCES User(Username)," <>
-    "Token TEXT," <>
-    "Starttime NUMERIC NOT NULL DEFAULT CURRENT_TIMESTAMP," <>
-    "LastActive NUMERIC NOT NULL DEFAULT CURRENT_TIMESTAMP," <>
-    "PRIMARY KEY(Token));"
-  exec_ $
-    "CREATE TABLE Exercise (" <>
-    "SourceTree TEXT," <>
-    "TargetTree TEXT," <>
-    "Lesson TEXT," <>
-    "Timeout NUMERIC NOT NULL DEFAULT 0," <>
-    "PRIMARY KEY(SourceTree, TargetTree, Lesson)," <>
-    "FOREIGN KEY(Lesson) References Lesson(Name));"
-  exec_ $
-    "CREATE TABLE Lesson (" <>
-    "Name TEXT," <>
-    "Description TEXT NOT NULL," <>
-    "Grammar TEXT NOT NULL," <>
-    "SourceLanguage TEXT NOT NULL," <>
-    "TargetLanguage TEXT NOT NULL," <>
-    "ExerciseCount NUMERIC NOT NULL," <>
-    "Enabled BOOL NOT NULL DEFAULT 0," <>
-    "Repeatable BOOL NOT NULL DEFAULT 1," <>
-    "PRIMARY KEY(Name));"
-  exec_ $
-    "CREATE TABLE FinishedExercise (" <>
-    "User TEXT," <>
-    "SourceTree TEXT," <>
-    "TargetTree TEXT," <>
-    "Lesson TEXT," <>
-    "Time NUMERIC NOT NULL," <>
-    "ClickCount NUMERIC NOT NULL," <>
-    "Round NUMERIC NOT NULL," <>
-    "PRIMARY KEY (User,SourceTree, TargetTree, Lesson, Round)," <>
-    "FOREIGN KEY (User) REFERENCES User(Username)," <>
-    "FOREIGN KEY(SourceTree, TargetTree, Lesson) REFERENCES Exercise(SourceTree, TargetTree, Lesson));"
-  exec_ $
-    "CREATE TABLE StartedLesson (" <>
-    "Lesson TEXT," <>
-    "User TEXT," <>
-    "Round NUMERIC NOT NULL DEFAULT 1," <>
-    "PRIMARY KEY(Lesson, User, Round)," <>
-    "FOREIGN KEY(Lesson) REFERENCES Lesson(Name), FOREIGN KEY(User) REFERENCES User(Username));"
-  exec_ $
-    "CREATE TABLE FinishedLesson (" <>
-    "Lesson TEXT," <>
-    "User TEXT," <>
-    "Time NUMERIC NOT NULL," <>
-    "ClickCount NUMERIC NOT NULL," <>
-    "Round NUMERIC NOT NULL DEFAULT 1," <>
-    "PRIMARY KEY (Lesson, User, Round)," <>
-    "FOREIGN KEY (User) REFERENCES User(Username)," <>
-    "FOREIGN KEY (Lesson) REFERENCES Lesson(Name));"
-  exec_ $
-    "CREATE TABLE ExerciseList (" <>
-    "User TEXT," <>
-    "SourceTree TEXT," <>
-    "TargetTree TEXT," <>
-    "Lesson TEXT," <>
-    "Round NUMERIC NOT NULL DEFAULT 1," <>
-    "PRIMARY KEY (User, SourceTree, TargetTree, Lesson, Round)," <>
-    "FOREIGN KEY(User) REFERENCES User(Username)," <>
-    "FOREIGN KEY(SourceTree,TargetTree, Lesson) REFERENCES Exercise (SourceTree, TargetTree, Lesson));"
-  let addUser = Database.addUser conn
-  addUser "herbert" "HERBERT" True
-  addUser "peter" "PETER" True
-  let insertLessonQuery = "INSERT INTO Lesson (Name,Description,Grammar,SourceLanguage,TargetLanguage,ExerciseCount,Enabled,Repeatable) VALUES (?,?,?,?,?,?,?,?);" :: Query
-  mapM_ (exec insertLessonQuery) Data.lessons
-  let insertExerciseQuery = "INSERT INTO Exercise (SourceTree,TargetTree,Lesson) VALUES (?,?,?);" :: Query
+  let exec p = SQL.execute conn p
+  putStrLn $ ByteString.unpack initScript
+  execRaw conn $ decodeUtf8 initScript
+  mapM_ (addUser conn) users
+  mapM_ (exec insertLessonQuery)   Data.lessons
   mapM_ (exec insertExerciseQuery) Data.exercises
+
+addUser ∷ Connection → (Text, Text, Bool) → IO ()
+addUser c (usr,psw,active) = Database.addUser c usr psw active
+
+users ∷ [(Text, Text, Bool)]
+users =
+  [ ("herbert", "HERBERT", True)
+  , ("peter",   "PETER",   True)
+  ]
+
+insertLessonQuery ∷ Query
+insertLessonQuery
+  = [sql|
+        INSERT INTO Lesson
+        (Name,Description,Grammar,SourceLanguage,TargetLanguage,ExerciseCount,Enabled,Repeatable)
+        VALUES (?,?,?,?,?,?,?,?);
+     |]
+
+insertExerciseQuery ∷ Query
+insertExerciseQuery
+  = [sql|
+        INSERT INTO Exercise
+        (SourceTree,TargetTree,Lesson)
+        VALUES (?,?,?);
+    |]
