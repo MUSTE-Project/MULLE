@@ -1,10 +1,9 @@
 {-# Language CPP #-}
 -- | Data used for inititializing the database
 
-module Data (exercises, lessons) where
+module DbInit.Data (exercises, lessons) where
 
-#if MIN_VERSION_base(4,11,0)
-#else
+#if !(MIN_VERSION_base(4,11,0))
 import Data.Semigroup (Semigroup((<>)))
 #endif
 

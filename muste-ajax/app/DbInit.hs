@@ -1,12 +1,11 @@
 {-# LANGUAGE OverloadedStrings, CPP, UnicodeSyntax, TemplateHaskell, QuasiQuotes, TypeApplications #-}
-module Main (main) where
+module DbInit (initDb) where
 
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as ByteString
 import           Data.FileEmbed (embedFile)
 import           Data.Text (Text)
 import           Data.Text.Encoding (decodeUtf8)
-import qualified Data.Yaml as Yaml (encode)
 import qualified Database
 import           Database.SQLite.Simple (Connection(Connection), Query)
 import qualified Database.SQLite.Simple as SQL
@@ -16,21 +15,15 @@ import           System.Directory (createDirectoryIfMissing)
 import           System.FilePath (takeDirectory)
 import           Text.Printf
 
-import qualified Data
+import qualified DbInit.Data as Data
 import qualified Config
 
-main :: IO ()
-main = do
+initDb :: IO ()
+initDb = do
   putStrLn "Initializing database..."
-  showConfig
   mkParDir Config.db
   SQL.withConnection Config.db initDB
   putStrLn "Initializing database... done"
-
-showConfig ∷ IO ()
-showConfig = do
-  printf "[Configurations options]\n"
-  printf $ ByteString.unpack $ Yaml.encode $ Config.appConfig
 
 -- | @'mkParDir' p@ Ensure that the directory that @p@ is in is
 -- created.
@@ -46,7 +39,6 @@ execRaw (Connection db) qry = SQL.exec db qry
 initDB ∷ Connection → IO ()
 initDB conn = do
   let exec p = SQL.execute conn p
-  putStrLn $ ByteString.unpack initScript
   execRaw conn $ decodeUtf8 initScript
   mapM_ (addUser conn) users
   mapM_ (exec insertLessonQuery)   Data.lessons

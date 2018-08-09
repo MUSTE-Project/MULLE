@@ -4,6 +4,12 @@ Change log
 HEAD
 ---
 
+0.2.3.0
+---
+
+Recreating the database is now a flag to the single executable that
+the package `muste-ajax` defines.
+
 0.2.2.1
 ----
 
