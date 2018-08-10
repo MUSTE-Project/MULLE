@@ -16,12 +16,6 @@ flags:
 
 data-files:
   - ./static/index.html
-  - ./static/muste.html
-  - ./static/cgi-simulation/muste-backend.js
-  - ./static/cgi-simulation/prima.js
-  - ./static/cgi-simulation/GF.js
-  - ./static/muste-haste.css
-  - ./static/muste-haste.html
   - ./static/img/menu.jpg
   - ./static/img/menu2.jpg
   - ./static/img/menu1.jpg
