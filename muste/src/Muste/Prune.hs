@@ -200,31 +200,30 @@ guardHeuristics ∷ Alternative f ⇒ TTree → TTree → f ()
 guardHeuristics pruned pruned' = guard $ and
   [ True
 #ifdef PRUNE_ALT_1A
-  ---- Alternative 1a: the root must change (==> fewer trees)
+  ---- Alternative 1a: the root must change.
   , not (sameRoot pruned pruned') --- ***
 #endif
 #ifdef PRUNE_ALT_1B
-  ---- Alternative 1b: it's ok if two different children change (==> more trees)
+  ---- Alternative 1b: it's ok if two different children change.
   , not (exactlyOneChildDiffers pruned pruned') -- ***
 #endif
 #ifdef PRUNE_ALT_1C
-  ---- Alternative 1c: the pruned trees should not share any functions (==> even fewer trees)
+  ---- Alternative 1c: the pruned trees should not share any functions.
   , noDuplicates funs' -- ***
 #endif
 #ifdef PRUNE_ALT_1D
   , funs `areDisjoint` funs'
 #endif
 #ifdef PRUNE_ALT_2A
-  ---- Alternative 2a: all branches are put back into the new tree (==> fewer trees)
-  , metas == getMetas pruned'
+  ---- Alternative 2a: all branches are put back into the new tree.
+  , getMetas pruned == getMetas pruned'
 #endif
 #ifdef PRUNE_ALT_2B
-  ---- Alternative 2b: some branches may be removed from the new tree (==> more trees)
+  ---- Alternative 2b: some branches may be removed from the new tree.
   , isSubList metas (getMetas pruned') -- ***
 #endif
   ]
   where
-  metas = getMetas pruned
   funs  = getFunctions pruned
   funs' = getFunctions pruned'
 
