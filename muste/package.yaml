@@ -40,6 +40,8 @@ ghc-options:
 - -Wall
 - -Wno-name-shadowing
 
+cpp-options: -DPRUNE_ALT_1D -DPRUNE_ALT_2A
+
 library:
   other-extensions:
     FlexibleInstances

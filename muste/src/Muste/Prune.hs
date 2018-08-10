@@ -1,4 +1,5 @@
 {-# Language CPP, UnicodeSyntax, NamedWildCards, TypeSynonymInstances, FlexibleInstances, ScopedTypeVariables, ViewPatterns #-}
+{-# OPTIONS_GHC -Wno-unused-top-binds #-}
 -- FIXME Should this be an internal module? It's not currently used in
 -- @muste-ajax@.
 module Muste.Prune
@@ -8,9 +9,8 @@ module Muste.Prune
   ) where
 
 import Control.Applicative
-import Control.Category ((>>>))
 import Control.Monad
-import Data.List (sort, nub, sortBy)
+import Data.List (sort, nub)
 import qualified Data.Containers as Mono
 import Data.Maybe
 import Data.Map (Map)
@@ -165,32 +165,68 @@ similarTreesForSubtree
   :: TTree
   -> AdjunctionTrees
   -> [SimTree]
-similarTreesForSubtree tree@(TNode _ (Fun cat _) _) adjTrees = do
-  let
-    err = error $ "Muste.Prune.similarTreesForSubtree: "
+similarTreesForSubtree tree adjTrees = simTrees trees tree
+  where
+    trees = fromMaybe errNoCat $ Mono.lookup cat adjTrees
+    cat = case tree of
+      (TNode _ (Fun c _) _) → c
+      _ → errNotNode
+    errNoCat = error
+      $  "Muste.Prune.similarTreesForSubtree: "
       <> "The given category does not exist in the adjunction tree"
-    adjTreesForCat = fromMaybe err $ Mono.lookup cat adjTrees
-  (pruned, branches) <- pruneTree tree
-  let funs = getFunctions pruned
+    errNotNode = error
+      $  "Muste.Prune.similarTreesForSubtree: "
+      <> "Non-exhaustive pattern match"
+
+-- O(n^3) !!!! I don't think this can be avoided though since the
+-- output is bounded by Ω(n^3).
+simTrees ∷ [TTree] → TTree → [SimTree]
+simTrees adjTreesForCat tree = do
+  (pruned, branches) ← pruneTree tree
+  pruned'            ← filterTrees adjTreesForCat pruned
+  tree'              ← insertBranches branches pruned'
+  pure (tree `treeDiff` tree', tree', pruned, pruned')
+
+-- O(n)
+filterTrees ∷ Monad m ⇒ Alternative m ⇒ m TTree → TTree → m TTree
+filterTrees trees pruned = do
   -- guard $ noDuplicates funs
-  let metas = getMetas pruned
-  pruned' <- adjTreesForCat
+  pruned' ← trees
+  guardHeuristics pruned pruned'
+  pure pruned'
+
+-- | Various heuristics used for filtering out results.
+guardHeuristics ∷ Alternative f ⇒ TTree → TTree → f ()
+guardHeuristics pruned pruned' = guard $ and
+  [ True
+#ifdef PRUNE_ALT_1A
   ---- Alternative 1a: the root must change (==> fewer trees)
-  -- guard $ not (sameRoot pruned pruned')
+  , not (sameRoot pruned pruned') --- ***
+#endif
+#ifdef PRUNE_ALT_1B
   ---- Alternative 1b: it's ok if two different children change (==> more trees)
-  -- guard $ not (exactlyOneChildDiffers pruned pruned')
+  , not (exactlyOneChildDiffers pruned pruned') -- ***
+#endif
+#ifdef PRUNE_ALT_1C
   ---- Alternative 1c: the pruned trees should not share any functions (==> even fewer trees)
-  let funs' = getFunctions pruned'
-  -- guard $ noDuplicates funs'
-  guard $ funs `areDisjoint` funs'
+  , noDuplicates funs' -- ***
+#endif
+#ifdef PRUNE_ALT_1D
+  , funs `areDisjoint` funs'
+#endif
+#ifdef PRUNE_ALT_2A
   ---- Alternative 2a: all branches are put back into the new tree (==> fewer trees)
-  guard $ metas == getMetas pruned'
+  , metas == getMetas pruned'
+#endif
+#ifdef PRUNE_ALT_2B
   ---- Alternative 2b: some branches may be removed from the new tree (==> more trees)
-  -- guard $ isSubList metas (getMetas pruned')
-  tree' <- insertBranches branches pruned'
-  return (tree `treeDiff` tree', tree', pruned, pruned')
-similarTreesForSubtree _ _
-  = error "Prune.collectSimiliarTrees: Non-exhaustive pattern match"
+  , isSubList metas (getMetas pruned') -- ***
+#endif
+  ]
+  where
+  metas = getMetas pruned
+  funs  = getFunctions pruned
+  funs' = getFunctions pruned'
 
 -- | Returns an ordered list with all functions in a tree.
 getFunctions :: TTree -> [Rule]
@@ -198,21 +234,21 @@ getFunctions tree = sort (getF tree)
     where getF (TNode fun typ children) = Function fun typ : concatMap getF children
           getF _ = []
 
--- -- | @True@ if two trees have the same root.
--- sameRoot :: TTree -> TTree -> Bool
--- sameRoot (TNode fun _ _) (TNode fun' _ _) | fun == fun' = True
--- sameRoot (TMeta cat) (TMeta cat') | cat == cat' = True
--- sameRoot _ _ = False
+-- | @True@ if two trees have the same root.
+sameRoot :: TTree -> TTree -> Bool
+sameRoot (TNode fun _ _) (TNode fun' _ _) | fun == fun' = True
+sameRoot (TMeta cat) (TMeta cat') | cat == cat' = True
+sameRoot _ _ = False
 
--- -- | @True@ if two trees have the same root, and exactly one child
--- -- differs.
--- exactlyOneChildDiffers :: TTree -> TTree -> Bool
--- exactlyOneChildDiffers (TNode fun _ children) (TNode fun' _ children')
---     | fun == fun' = difftrees children children'
---     where difftrees (t:ts) (t':ts') | t == t' = difftrees ts ts'
---                                     | otherwise = ts == ts'
---           difftrees _ _ = False
--- exactlyOneChildDiffers _ _ = False
+-- | @True@ if two trees have the same root, and exactly one child
+-- differs.
+exactlyOneChildDiffers :: TTree -> TTree -> Bool
+exactlyOneChildDiffers (TNode fun _ children) (TNode fun' _ children')
+    | fun == fun' = difftrees children children'
+    where difftrees (t:ts) (t':ts') | t == t' = difftrees ts ts'
+                                    | otherwise = ts == ts'
+          difftrees _ _ = False
+exactlyOneChildDiffers _ _ = False
 
 -- | Replace all metavariables in a tree with corresponding branches
 -- (i.e. they have the correct (same?) type).
