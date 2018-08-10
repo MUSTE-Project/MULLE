@@ -3,26 +3,17 @@ module Test.Menu (tests) where
 
 import Data.Semigroup
 import Data.Maybe
-import Data.Functor
-import Control.Monad (void)
 import Test.Tasty
 import Test.Tasty.HUnit
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.Foldable
-import Text.Printf
 import qualified Data.Containers as Mono
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as LB
-import Data.Text.Prettyprint.Doc (Pretty)
-import qualified Data.Text.Prettyprint.Doc as Doc
 
 import Muste.Common
 import Muste
-import Muste.Menu
-import qualified Muste.Tree.Internal as Tree
 import qualified Muste.Grammar.Internal as Grammar
 import qualified Muste.Menu.Internal as Menu
 import qualified Muste.Linearization.Internal as Linearization
@@ -31,8 +22,6 @@ import qualified Muste.Grammar.Embed as Embed
 resource :: Applicative m ⇒ m Grammar
 resource = pure grammar
   where
-  g = "novo-modo-test/Prima"
-  err = error "Can't find grammar"
   grammar' ∷ (String, ByteString)
   grammar' = $(Embed.grammar "novo_modo/Prima")
   grammar ∷ Grammar

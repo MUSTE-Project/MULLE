@@ -14,7 +14,6 @@ module Muste.Common
   , prettyTraceId
   ) where
 
-import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.List (groupBy)
 import Data.Function (on)
@@ -48,7 +47,7 @@ wildCard = "*empty*"
 
 -- | True if the (ordered) list contains no duplicates (i.e., is a set)
 noDuplicates :: Eq a => [a] -> Bool
-noDuplicates (x:y:zs)
+noDuplicates (x:y:_)
   | x == y = False
   | otherwise = error "Prune.noDuplicates: Non-exhaustive guard statement"
 noDuplicates (_:zs) = noDuplicates zs
@@ -79,13 +78,13 @@ editDistance a b = last (if lab == 0 then mainDiag
     where mainDiag = oneDiag a b (head uppers) (-1 : head lowers)
           uppers   = eachDiag a b (mainDiag : uppers) -- upper diagonals
           lowers   = eachDiag b a (mainDiag : lowers) -- lower diagonals
-          eachDiag a [] diags = []
-          eachDiag a (bch:bs) (lastDiag:diags) = oneDiag a bs nextDiag lastDiag : eachDiag a bs diags
+          eachDiag _ [] _ = []
+          eachDiag a (_:bs) (lastDiag:diags) = oneDiag a bs nextDiag lastDiag : eachDiag a bs diags
               where nextDiag = head (tail diags)
           eachDiag _ _ _ = error "Common.editDistance: Unmatched clause"
           oneDiag a b diagAbove diagBelow = thisdiag
-              where doDiag [] b nw n w = []
-                    doDiag a [] nw n w = []
+              where doDiag [] _b _nw _n _w = []
+                    doDiag _a [] _nw _n _w = []
                     doDiag (ach:as) (bch:bs) nw n w = me : doDiag as bs me (tail n) (tail w)
                         where me = if ach == bch then nw else 1 + min3 (head w) nw (head n)
                     firstelt = 1 + head diagBelow

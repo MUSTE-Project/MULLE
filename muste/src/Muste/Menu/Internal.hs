@@ -25,15 +25,13 @@ import qualified Data.Set        as Set
 import Data.Aeson
 import qualified Data.Text as Text
 import qualified Data.Containers as Mono
-import qualified Data.Sequences  as Mono
 import Data.MonoTraversable
 import Data.Function (on)
 import Control.Category ((>>>))
-#if MIN_VERSION_base(4,11,0)
-#else
-import Data.Semigroup (Semigroup((<>)))
+#if !(MIN_VERSION_base(4,11,0))
+import Data.Semigroup (Semigroup)
 #endif
-import Data.Text.Prettyprint.Doc (Pretty(..), (<+>), Doc)
+import Data.Text.Prettyprint.Doc (Pretty(..), Doc)
 import qualified Data.Text.Prettyprint.Doc as Doc
 
 import Muste.Common
@@ -45,7 +43,6 @@ import qualified Muste.Linearization.Internal as Linearization
   ( linearizeTree
   , sameOrder
   , ltpath
-  , LinToken
   )
 
 -- | A 'CostTree' is a tree associated with it's linearization and a

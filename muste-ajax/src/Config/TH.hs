@@ -34,7 +34,6 @@ data Config = Config
   , wwwRoot       ∷ FilePath
   , staticDir     ∷ FilePath
   , virtualRoot   ∷ FilePath
-  , serveRelative ∷ Bool
   , dataDir       ∷ FilePath
   , logDir        ∷ FilePath
   } deriving (Lift)
@@ -54,9 +53,6 @@ defaultStaticDir = shareDir </> "static"
 defaultVirtualRoot ∷ FilePath
 defaultVirtualRoot = mempty
 
-defaultServeStaticRelative ∷ Bool
-defaultServeStaticRelative = False
-
 defaultDataDir ∷ FilePath
 defaultDataDir = shareDir </> "data"
 
@@ -69,7 +65,6 @@ instance FromJSON Config where
     <*> v .:? "www-root"              .!= defaultWwwRoot
     <*> v .:? "static-dir"            .!= defaultStaticDir
     <*> v .:? "virtual-root"          .!= defaultVirtualRoot
-    <*> v .:? "serve-static-relative" .!= defaultServeStaticRelative
     <*> v .:? "data-dir"              .!= defaultDataDir
     <*> v .:? "log-dir"               .!= defaultLogDir
 
@@ -99,10 +94,10 @@ data AppConfig = AppConfig
 instance ToJSON AppConfig where
   toJSON (AppConfig { .. }) = object
     [ "db"          .= db
-    , "accessLog"   .= accessLog
-    , "errorLog"    .= errorLog
+    , "access-log"   .= accessLog
+    , "error-log"    .= errorLog
     , "port"        .= port
-    , "staticDir"   .= staticDir
-    , "wwwRoot"     .= wwwRoot
-    , "virtualRoot" .= virtualRoot
+    , "static-dir"   .= staticDir
+    , "www-root"     .= wwwRoot
+    , "virtual-root" .= virtualRoot
     ]

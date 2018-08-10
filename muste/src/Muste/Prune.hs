@@ -9,19 +9,15 @@ module Muste.Prune
 
 import Control.Monad
 import Data.List (sort, nub)
-import Data.MonoTraversable
 import qualified Data.Containers as Mono
 import Data.Maybe
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Set (Set)
-#if MIN_VERSION_base(4,11,0)
-#else
+#if !(MIN_VERSION_base(4,11,0))
 import Data.Semigroup ((<>))
 #endif
-import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.Function
 
 import Muste.Common
 import Muste.Tree (TTree(..), Path, FunType(..), Category)
@@ -168,21 +164,21 @@ getFunctions tree = sort (getF tree)
     where getF (TNode fun typ children) = Function fun typ : concatMap getF children
           getF _ = []
 
--- | @True@ if two trees have the same root.
-sameRoot :: TTree -> TTree -> Bool
-sameRoot (TNode fun _ _) (TNode fun' _ _) | fun == fun' = True
-sameRoot (TMeta cat) (TMeta cat') | cat == cat' = True
-sameRoot _ _ = False
+-- -- | @True@ if two trees have the same root.
+-- sameRoot :: TTree -> TTree -> Bool
+-- sameRoot (TNode fun _ _) (TNode fun' _ _) | fun == fun' = True
+-- sameRoot (TMeta cat) (TMeta cat') | cat == cat' = True
+-- sameRoot _ _ = False
 
--- | @True@ if two trees have the same root, and exactly one child
--- differs.
-exactlyOneChildDiffers :: TTree -> TTree -> Bool
-exactlyOneChildDiffers (TNode fun _ children) (TNode fun' _ children')
-    | fun == fun' = difftrees children children'
-    where difftrees (t:ts) (t':ts') | t == t' = difftrees ts ts'
-                                    | otherwise = ts == ts'
-          difftrees _ _ = False
-exactlyOneChildDiffers _ _ = False
+-- -- | @True@ if two trees have the same root, and exactly one child
+-- -- differs.
+-- exactlyOneChildDiffers :: TTree -> TTree -> Bool
+-- exactlyOneChildDiffers (TNode fun _ children) (TNode fun' _ children')
+--     | fun == fun' = difftrees children children'
+--     where difftrees (t:ts) (t':ts') | t == t' = difftrees ts ts'
+--                                     | otherwise = ts == ts'
+--           difftrees _ _ = False
+-- exactlyOneChildDiffers _ _ = False
 
 -- | Replace all metavariables in a tree with corresponding branches
 -- (i.e. they have the correct (same?) type).
@@ -233,7 +229,7 @@ pruneTree tree = [(t, bs) | (t, bs, _) <- pt [] tree]
           pt _ _ = error "Muste.Prune.pruneTree: Incomplete pattern match"
           pc visited [] = [([], [], visited)]
           pc visited (t:ts) = [ (t':ts', bs' ++ bs'', visited'') |
-                                (t', bs', visited') <- pt visited t,
+                                (t', bs', _visited') <- pt visited t,
                                 (ts', bs'', visited'') <- pc visited ts ]
 
 -- | Edit distance between trees.

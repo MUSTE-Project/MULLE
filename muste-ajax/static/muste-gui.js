@@ -165,8 +165,16 @@ function start_lesson(lesson) {
     call_server_new(MESSAGES.LESSON, {token: LOGIN_TOKEN, lesson: lesson}, MESSAGES.LESSON + "/" + lesson);
 }
 
+function showMenu(menu) {
+    console.info("[Showing menu for '%s']", menu.grammar);
+    console.info(menu.menu);
+    // menu.menu.forEach(function(adjTree) {
+    //     console.info(adjTree);
+    // });
+}
 
 function show_exercise(parameters) {
+    showMenu(parameters.b);
     show_page("exercisepage");
     DATA = parameters;
     clean_server_data(DATA.a);
@@ -360,7 +368,6 @@ function click_word(event) {
             return menus;
         }
         var menus = getMenus(DATA);
-        console.info(menus);
         if (menus === null) return;
 
         clicked.addClass('striked');
