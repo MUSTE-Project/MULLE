@@ -13,33 +13,25 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as LB
 
 import Muste.Common
-import Muste
+import Muste (Grammar, Context, TTree, Menu)
+import qualified Muste as Muste
 import qualified Muste.Grammar.Internal as Grammar
 import qualified Muste.Menu.Internal as Menu
 import qualified Muste.Linearization.Internal as Linearization
 import qualified Muste.Grammar.Embed as Embed
 
-resource :: Applicative m ⇒ m Grammar
-resource = pure grammar
+grammar :: Grammar
+grammar = Grammar.parseGrammar $ LB.fromStrict $ snd grammar'
   where
   grammar' ∷ (String, ByteString)
   grammar' = $(Embed.grammar "novo_modo/Prima")
-  grammar ∷ Grammar
-  grammar = Grammar.parseGrammar $ LB.fromStrict $ snd grammar'
 
-ambiguities ∷ Grammar → Assertion
-ambiguities grammar = (menu `contains` both) @?= True
+ctxts ∷ Map String Context
+ctxts = Linearization.readLangs grammar
+
+ambiguities ∷ Assertion
+ambiguities = (menu `contains` both) @?= True
   where
-  ctxts ∷ Map String Context
-  ctxts = Linearization.readLangs grammar
-  treeDefinite ∷ TTree
-  treeDefinite = parse
-    $ "useS (useCl (simpleCl (useCNdefsg   (useN hostis_N)) "
-    <>            "(transV vincere_V2 (usePN Africa_PN))))"
-  treeIndefinite ∷ TTree
-  treeIndefinite = parse
-    $ "useS (useCl (simpleCl (useCNindefsg (useN hostis_N)) "
-    <>            "(transV vincere_V2 (usePN Africa_PN))))"
   both ∷ [TTree]
   both = [treeDefinite, treeIndefinite]
   contains ∷ Menu → [TTree] → Bool
@@ -53,25 +45,32 @@ ambiguities grammar = (menu `contains` both) @?= True
     $ Mono.lookup [0,0,0] mn
   contains' ∷ [TTree] → [[TTree]] → Bool
   contains' ts = any (isSubListOf ts)
-  menu = getMenu ctxts treeDefinite
-  parse ∷ String → TTree
-  parse = Grammar.parseTTree grammar
+  menu = getMenu treeDefinite
 
-getMenu ∷ Map String Context → TTree → Menu
-getMenu ctxts = getCleanMenu latinCtxt
+treeDefinite ∷ TTree
+treeDefinite = parse
+  $ "useS (useCl (simpleCl (useCNdefsg   (useN hostis_N)) "
+  <>            "(transV vincere_V2 (usePN Africa_PN))))"
+
+treeIndefinite ∷ TTree
+treeIndefinite = parse
+  $ "useS (useCl (simpleCl (useCNindefsg (useN hostis_N)) "
+  <>            "(transV vincere_V2 (usePN Africa_PN))))"
+
+parse ∷ String → TTree
+parse = Grammar.parseTTree grammar
+
+getMenu ∷ TTree → Menu
+getMenu = Muste.getCleanMenu latinCtxt
   where
   latinCtxt ∷ Context
   latinCtxt = fromMaybe (error "Can't find Latin context")
     $ Map.lookup "PrimaLat" ctxts
 
-theTests ∷ IO Grammar → TestTree
-theTests act = 
+tests ∷ TestTree
+tests =
   testGroup "Prune"
     [ "ambiguities" |> ambiguities
     ]
   where
-  (|>) ∷ TestName → (Grammar → Assertion) → TestTree
-  tn |> asrt = testCase tn $ act >>= asrt
-
-tests :: TestTree
-tests = withResource resource mempty theTests
+  (|>) = testCase
