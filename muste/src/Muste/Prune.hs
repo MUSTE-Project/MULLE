@@ -1,4 +1,4 @@
-{-# Language CPP, UnicodeSyntax, NamedWildCards #-}
+{-# Language CPP, UnicodeSyntax, NamedWildCards, TypeSynonymInstances, FlexibleInstances, ScopedTypeVariables, ViewPatterns #-}
 -- FIXME Should this be an internal module? It's not currently used in
 -- @muste-ajax@.
 module Muste.Prune
@@ -7,8 +7,10 @@ module Muste.Prune
   , SimTree
   ) where
 
+import Control.Applicative
+import Control.Category ((>>>))
 import Control.Monad
-import Data.List (sort, nub)
+import Data.List (sort, nub, sortBy)
 import qualified Data.Containers as Mono
 import Data.Maybe
 import Data.Map (Map)
@@ -99,7 +101,8 @@ collectSimilarTrees _grammar adjTrees basetree
       simtrees = onlyKeepCheapest $ similarTreesForSubtree tree adjTrees
       -- And then additionally filter some out...
 
--- FIXME Quadratic in the length of 'simtrees'
+-- FIXME Quadratic in the length of 'simtrees'.  Even though this is
+-- quadratic, profiling shows that this is negliciable.
 --
 -- FIXME Shouldn't the condition that the edge between two nodes is
 -- less than or equal to the cost be vacously true? -- No! This is the
@@ -120,13 +123,44 @@ collectSimilarTrees _grammar adjTrees basetree
 -- shortest path, then it means we can reach this tree via a series of
 -- other edits, so we exclude this.
 onlyKeepCheapest :: [SimTree] -> [SimTree]
-onlyKeepCheapest simtrees = do
-  sim@(cost, t, _, _) <- simtrees
-  guard $ not $ or $ do
-    (cost', t', _, _) <- simtrees
-    pure $ cost' < cost && t' `treeDiff` t < cost
-  pure sim
+onlyKeepCheapest = keepWith directMoreExpensive
 
+keepWith
+  ∷ Monad f ⇒ Foldable f ⇒ Alternative f
+  ⇒ (a → a → Bool) → f a -> f a
+keepWith p xs = do
+  x <- xs
+  guard $ not $ or $ do
+    x' <- xs
+    pure $ x `p` x'
+  pure x
+
+-- | Checks if the direct edge between two trees is more expensive
+-- than the shortest path.
+directMoreExpensive ∷ SimTree → SimTree → Bool
+directMoreExpensive (cost, t, _, _) (cost', t', _, _)
+  = cost' < cost && t' `treeDiff` t < cost
+
+-- Profiling has shown me that this function is really heavy.  Quoting
+-- the relevant bits:
+--
+-- COST CENTRE                            entries  %time %alloc   %time %alloc
+--
+--     similarTreesForSubtree                  10    0.7    0.9    42.9   72.2
+--      areDisjoint                       3813390    6.0    2.3    10.9    2.3
+--       ==                               3752120    2.5    0.0     3.7    0.0
+--        ==                               568487    1.1    0.0     1.1    0.0
+--       <                                3183633    1.3    0.0     1.3    0.0
+--      similarTreesForSubtree.funs'       569826    0.1    0.0    30.0   66.0
+--       getFunctions                      569826   12.8   29.1    29.9   66.0
+--        compare                         9820790    5.2    0.0     5.2    0.0
+--        getFunctions.getF               6681507   11.9   36.9    11.9   36.9
+--      getMetas                            61270    0.6    1.0     1.2    2.9
+--       getMetas.getMetas'                695042    0.6    1.9     0.6    1.9
+--      insertBranches                        136    0.0    0.0     0.0    0.0
+--       insertBranches.ins                   178    0.0    0.0     0.0    0.0
+--        insertBranches.inslist               81    0.0    0.0     0.0    0.0
+--        insertBranches.selectBranch          48    0.0    0.0     0.0    0.0
 similarTreesForSubtree
   :: TTree
   -> AdjunctionTrees
@@ -245,6 +279,20 @@ treeDiff s t = getNodes s `editDistance` getNodes t
 
 -- * Creating adjunction trees.
 
+-- Profiling has shown me that this function is really heavy.  Quoting the relevant bits:
+--
+-- COST CENTRE                                                               entries  %time %alloc   %time %alloc
+--     getAdjunctionTrees                                                    1        0.0    0.0     4.6   10.2
+--      getAdjunctionTrees.\                                                 29       0.0    0.2     4.6   10.2
+--       getAdjunctionTrees.adjTrees                                         54085    0.6    1.1     4.6   10.0
+--        getAdjunctionTrees.adjChildren                                     341021   0.9    2.4     3.1    8.8
+--         treeIsRecursive                                                   281519   0.3    0.2     2.3    6.3
+--          getMetas                                                         227463   0.8    2.6     1.7    5.1
+--           getMetas.getMetas'                                              1184075  1.0    2.6     1.0    2.6
+--          getFunctions                                                     62894    0.2    0.6     0.2    1.0
+--           getFunctions.getF                                               98140    0.0    0.3     0.0    0.3
+--           compare                                                         57024    0.0    0.0     0.0    0.0
+--        getAdjunctionTrees.getRulesFor                                     18947    0.9    0.1     0.9    0.1
 -- | Finds all @AdjunctionTrees@ from a specified 'Grammar'.  That is;
 -- a mapping from a @Category@ to all trees in the specified 'Grammar'
 -- that have this type.
