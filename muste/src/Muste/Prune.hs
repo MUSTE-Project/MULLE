@@ -8,8 +8,10 @@ module Muste.Prune
   , SimTree
   ) where
 
+import Control.Category ((>>>))
 import Control.Applicative
 import Control.Monad
+import Control.Monad.Reader
 import Data.List (sort, nub)
 import qualified Data.Containers as Mono
 import Data.Maybe
@@ -332,26 +334,32 @@ treeDiff s t = getNodes s `editDistance` getNodes t
 -- a mapping from a @Category@ to all trees in the specified 'Grammar'
 -- that have this type.
 getAdjunctionTrees :: Grammar -> AdjunctionTrees
-getAdjunctionTrees grammar = Mono.mapFromList ((\cat -> (cat, map fst (adjTrees cat []))) <$> allCats)
-    where allRules :: [Rule]
-          allRules = getAllRules grammar
-          allCats :: [String]
-          allCats = nub [cat | (Function _ (Fun cat _)) <- allRules]
-          getRulesFor :: String -> [Rule]
-          getRulesFor cat = [rule | rule@(Function _ (Fun cat' _)) <- allRules, cat == cat']
-          adjTrees :: String -> [String] -> [(TTree, [String])]
-          adjTrees cat visited = (TMeta cat, visited) :
-                                 [ (TNode fun typ children, visited') |
-                                   cat `notElem` visited,
-                                   (Function fun typ@(Fun _ childcats)) <- getRulesFor cat,
-                                   (children, visited') <- adjChildren childcats (cat:visited)
-                                 ]
-          adjChildren :: [String] -> [String] -> [([TTree], [String])]
-          adjChildren [] visited = [([], visited)]
-          adjChildren (cat:cats) visited = [ (tree:trees, visited'') |
-                                             (tree, visited') <- adjTrees cat visited,
-                                             not $ treeIsRecursive tree,
-                                             (trees, visited'') <- adjChildren cats visited' ]
+getAdjunctionTrees grammar = Mono.mapFromList ((\cat -> (cat, map fst (adjTrees getRulesFor cat []))) <$> allCats)
+    where
+    allRules :: Map String [Rule]
+    allRules = M.fromListWith mappend $ fmap catRule $ getAllRules grammar
+    catRule ∷ Rule → (String, [Rule])
+    catRule r@(Function _ (Fun c _)) = (c, pure r)
+    allCats :: [String]
+    allCats = M.keys allRules
+    getRulesFor :: String -> [Rule]
+    getRulesFor cat = M.findWithDefault mempty cat allRules
+
+-- The next two functions are mutually recursive.
+adjTrees :: (String → [Rule]) → String -> [String] -> [(TTree, [String])]
+adjTrees getRulesFor cat visited = (TMeta cat, visited) :
+                       [ (TNode fun typ children, visited') |
+                         cat `notElem` visited,
+                         (Function fun typ@(Fun _ childcats)) <- getRulesFor cat,
+                         (children, visited') <- adjChildren getRulesFor childcats (cat:visited)
+                       ]
+
+adjChildren :: (String → [Rule]) → [String] -> [String] -> [([TTree], [String])]
+adjChildren getRulesFor [] visited = [([], visited)]
+adjChildren getRulesFor (cat:cats) visited = [ (tree:trees, visited'') |
+                                   (tree, visited') <- adjTrees getRulesFor cat visited,
+                                   not $ treeIsRecursive tree,
+                                   (trees, visited'') <- adjChildren getRulesFor cats visited' ]
 
 treeIsRecursive :: TTree -> Bool
 treeIsRecursive tree@(TNode _ (Fun cat _) children) =
