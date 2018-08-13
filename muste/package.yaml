@@ -12,6 +12,10 @@ flags:
     description: Build test suite
     manual: true
     default: false
+  dist:
+    description: Build the distribution version
+    manual: true
+    default: false
 
 source-dirs:
 - src/
@@ -35,12 +39,28 @@ dependencies:
 - file-embed
 - template-haskell
 - filepath
+- exceptions
+- string-conversions
 
-ghc-options:
-- -Wall
-- -Wno-name-shadowing
+when:
+  - condition: flag(dist)
+    ghc-options:
+      - -Wall
+      - -Wno-name-shadowing
+      - -Werr
 
 cpp-options: -DPRUNE_ALT_1D -DPRUNE_ALT_2A
+
+default-extensions:
+- UnicodeSyntax
+- NamedWildCards
+- TypeSynonymInstances
+- FlexibleInstances
+- ScopedTypeVariables
+- ViewPatterns
+- DeriveGeneric
+- LambdaCase
+- TypeApplications
 
 library:
   other-extensions:

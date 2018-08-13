@@ -5,6 +5,7 @@
   , FlexibleContexts
   , ConstraintKinds
   , CPP
+  , QuasiQuotes
 #-}
 module Database
   ( getLessons
@@ -22,6 +23,7 @@ import Database.SQLite.Simple
   ( Query, Connection, Only(Only), fromOnly
   , ToRow, FromRow
   )
+import Database.SQLite.Simple.QQ (sql)
 import qualified Database.SQLite.Simple as SQL (query, query_, execute)
 
 import Crypto.Random.API (getSystemRandomGen, genRandomBytes)
@@ -75,7 +77,7 @@ getLessons
   :: MonadIO io
   => Connection
   -> io [Types.Lesson]
-getLessons conn = liftIO $ SQL.query_ conn "select * from lesson;"
+getLessons conn = liftIO $ SQL.query_ conn [sql|select * from lesson;|]
 
 createUser
   :: Connection
@@ -98,10 +100,10 @@ addUser
 addUser conn user pass enabled = do
   u <- createUser conn user pass enabled
   -- Remove user if they already exists
-  let deleteQuery = "DELETE FROM User WHERE Username = ?;" :: Query
+  let deleteQuery = [sql|DELETE FROM User WHERE Username = ?;|] :: Query
   SQL.execute conn deleteQuery [user]
   -- Add new user
-  let insertQuery = "INSERT INTO User VALUES (?,?,?,?);" :: Query
+  let insertQuery = [sql|INSERT INTO User VALUES (?,?,?,?);|] :: Query
   SQL.execute conn insertQuery u
 
 authUser
@@ -122,7 +124,7 @@ authUser conn user pass = liftIO $ do
   else pure False
   where
   selectPasswordSaltQuery
-    = "SELECT Password,Salt,Enabled FROM User WHERE (Username = ?);"
+    = [sql|SELECT Password,Salt,Enabled FROM User WHERE (Username = ?);|]
 
 changePassword
   :: Connection
@@ -143,7 +145,7 @@ createSession
   -> IO Types.Session
 createSession conn user = do
     -- maybe check for old sessions and clean up?
-    let deleteSessionQuery = "DELETE FROM Session WHERE User = ? ;" :: Query
+    let deleteSessionQuery = [sql|DELETE FROM Session WHERE User = ? ;|] :: Query
     SQL.execute conn deleteSessionQuery [user]
     -- create new session
     timeStamp <- getCurrentTime
@@ -164,7 +166,7 @@ startSession
   -> io Text
 startSession conn user = liftIO $ do
   session@(_, token, _, _) <- createSession conn user
-  let insertSessionQuery = "INSERT INTO Session VALUES (?,?,?,?);" :: Query
+  let insertSessionQuery = [sql|INSERT INTO Session VALUES (?,?,?,?);|] :: Query
   SQL.execute conn insertSessionQuery session
   return token
 
@@ -172,7 +174,7 @@ updateActivity :: Connection -> String -> IO ()
 updateActivity conn token =
   do
     timeStamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime
-    let updateSessionLastActiveQuery = "UPDATE Session SET LastActive = ? WHERE Token = ?;" :: Query
+    let updateSessionLastActiveQuery = [sql|UPDATE Session SET LastActive = ? WHERE Token = ?;|] :: Query
     SQL.execute conn updateSessionLastActiveQuery (timeStamp,token)
 
 -- | Returns @Just err@ if there is an error.
@@ -182,13 +184,13 @@ verifySession
   -> IO (Maybe String)
 verifySession conn token = do
   -- Get potential user session(s)
-  let selectSessionQuery = "SELECT LastActive FROM Session WHERE Token = ?;" :: Query
+  let selectSessionQuery = [sql|SELECT LastActive FROM Session WHERE Token = ?;|] :: Query
   sessions <- SQL.query conn selectSessionQuery [token] :: IO [Only UTCTime]
   -- from here might not be executed due to lazy evaluation...
   -- Compute the difference in time stamps
   newTimeStamp <- getCurrentTime
   let oldTimeStamp = fromOnly . head $ sessions
-      deleteSessionQuery = "DELETE FROM Session WHERE Token = ? ;"
+      deleteSessionQuery = [sql|DELETE FROM Session WHERE Token = ? ;|]
       diff = diffUTCTime newTimeStamp oldTimeStamp
       hour = fromInteger 60
       threshold = fromInteger (30 * hour)
@@ -213,30 +215,29 @@ listLessons
 listLessons conn token = liftIO $ do
   let qry :: (ToRow q, FromRow r) => Query -> q -> IO [r]
       qry = SQL.query conn
-  users <- qry @(Only Text) @(Only Text) "SELECT User FROM Session WHERE Token = ?;" (Only token)
-  let listLessonsQuery = mconcat
-       [ "WITH userName AS (SELECT ?), "
-       , "maxRounds AS (SELECT Lesson,IFNULL(MAX(Round),0) AS Round FROM "
-       , "    (SELECT * FROM StartedLesson UNION SELECT Lesson,User,Round FROM FinishedLesson) "
-       , "WHERE User = (SELECT * FROM userName) GROUP BY Lesson) "
-       , "SELECT Name, Description, ExerciseCount,"
-       , "(SELECT COUNT(*) AS Passed FROM FinishedExercise WHERE "
-       , "User = (SELECT * FROM userName) AND Lesson = Name AND Round = "
-       , "    (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)"
-       , ") AS Passed, "
-       , "(SELECT IFNULL(SUM(ClickCount),0) FROM FinishedExercise F WHERE "
-       , "User = (SELECT * from UserName) AND Lesson = Name  AND Round = "
-       , "    (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)"
-       , ") AS Score, "
-       , "(SELECT IFNULL(SUM(Time),0) FROM FinishedExercise F WHERE "
-       , "User = (SELECT * from UserName) AND Lesson = Name  AND Round = "
-       , "    (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)"
-       , ") AS Time, "
-       , "(SELECT MIN(IFNULL(COUNT(*),0),1) FROM FinishedLesson WHERE "
-       , "User = (SELECT * from UserName) AND Lesson = Name) AS Passed, "
-       , "Enabled "
-       , "FROM Lesson;"
-       ]
+  users <- qry @(Only Text) @(Only Text) [sql|SELECT User FROM Session WHERE Token = ?;|] (Only token)
+  let listLessonsQuery = [sql|
+      WITH userName AS (SELECT ?),
+      maxRounds AS (SELECT Lesson,IFNULL(MAX(Round),0) AS Round FROM
+          (SELECT * FROM StartedLesson UNION SELECT Lesson,User,Round FROM FinishedLesson)
+      WHERE User = (SELECT * FROM userName) GROUP BY Lesson)
+      SELECT Name, Description, ExerciseCount,
+      (SELECT COUNT(*) AS Passed FROM FinishedExercise WHERE
+      User = (SELECT * FROM userName) AND Lesson = Name AND Round =
+          (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)
+      ) AS Passed,
+      (SELECT IFNULL(SUM(ClickCount),0) FROM FinishedExercise F WHERE
+      User = (SELECT * from UserName) AND Lesson = Name  AND Round =
+          (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)
+      ) AS Score,
+      (SELECT IFNULL(SUM(Time),0) FROM FinishedExercise F WHERE
+      User = (SELECT * from UserName) AND Lesson = Name  AND Round =
+          (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)
+      ) AS Time,
+      (SELECT MIN(IFNULL(COUNT(*),0),1) FROM FinishedLesson WHERE
+      User = (SELECT * from UserName) AND Lesson = Name) AS Passed,
+      Enabled
+      FROM Lesson;|]
   case users of
     [] -> throw $ DatabaseException "No user found"
     [Only user] -> SQL.query conn listLessonsQuery [user]
@@ -262,9 +263,9 @@ startLesson conn token lesson = liftIO $ do
   else newLesson      conn user lesson
   where
   userQuery
-    = "SELECT User FROM Session WHERE Token = ?;"
+    = [sql|SELECT User FROM Session WHERE Token = ?;|]
   checkLessonStartedQuery
-    = "SELECT COUNT(*) FROM StartedLesson WHERE User = ? AND Lesson = ?"
+    = [sql|SELECT COUNT(*) FROM StartedLesson WHERE User = ? AND Lesson = ?|]
   errUsr = error "No active session for user"
 
 newLesson
@@ -314,10 +315,10 @@ getTreePairs
   -> db [(Types.TTree, Types.TTree)]
 getTreePairs lesson = query exerciseQuery (Only lesson)
   where
-  exerciseQuery
-    =  "SELECT SourceTree, TargetTree "
-    <> "FROM Exercise "
-    <> "WHERE Lesson = ?;"
+  exerciseQuery =
+    [sql| SELECT SourceTree, TargetTree
+          FROM Exercise
+          WHERE Lesson = ?;|]
 
 newLessonM :: Text -> Text -> DB
   ( String, Types.TTree
@@ -341,19 +342,19 @@ newLessonM user lesson = do
   execute insertStartedLesson startedLesson
   mapM_ (\(sTree,tTree) -> execute insertExerciseList (lesson,user,sTree,tTree,round)) selectedTrees
   -- get languages
-  let languagesQuery = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;" :: Query
+  let languagesQuery = [sql|SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;|]
   langs <- query @_ @_ languagesQuery [lesson] -- :: IO [(String,String)]
   case langs of
     [(sourceLang, targetLang)] -> do
       pure (sourceLang, sourceTree, targetLang, targetTree)
     _ -> throw $ DatabaseException "Couldn't find the languages"
   where
-  exerciseCountQuery = "SELECT ExerciseCount FROM Lesson WHERE Name = ?;"
-  lessonRoundQuery = "SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;"
-  insertStartedLesson = "INSERT INTO StartedLesson (Lesson, User, Round) VALUES (?,?,?);"
-  insertExerciseList = "INSERT INTO ExerciseList (Lesson,User,SourceTree,TargetTree,Round) VALUES (?,?,?,?,?);"
-  errNoExercises = error "Database.newLesson: Invariant violated: No exercises for lesson"
-  errNonUniqueLesson = error "Database.newLesson: Non unique lesson"
+  exerciseCountQuery  = [sql|SELECT ExerciseCount FROM Lesson WHERE Name = ?;|]
+  lessonRoundQuery    = [sql|SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;|]
+  insertStartedLesson = [sql|INSERT INTO StartedLesson (Lesson, User, Round) VALUES (?,?,?);|]
+  insertExerciseList  = [sql|INSERT INTO ExerciseList (Lesson,User,SourceTree,TargetTree,Round) VALUES (?,?,?,?,?);|]
+  errNoExercises      = error "Database.newLesson: Invariant violated: No exercises for lesson"
+  errNonUniqueLesson  = error "Database.newLesson: Non unique lesson"
 
 continueLesson
   :: Connection
@@ -389,15 +390,15 @@ continueLessonM user lesson = do
   pure (sourceLang,sourceTree,targetLang,targetTree)
   where
   lessonRoundQuery
-    = "SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;"
-  selectExerciseListQuery
-    =  "SELECT SourceTree,TargetTree FROM ExerciseList "
-    <> "WHERE Lesson = ? AND User = ? "
-    <> "AND (User,SourceTree,TargetTree,Lesson) NOT IN "
-    <> "(SELECT User,SourceTree,TargetTree,Lesson "
-    <> "FROM FinishedExercise WHERE Round = ?);"
+    = [sql|SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;|]
+  selectExerciseListQuery = [sql|
+       SELECT SourceTree,TargetTree FROM ExerciseList
+       WHERE Lesson = ? AND User = ?
+       AND (User,SourceTree,TargetTree,Lesson) NOT IN
+       (SELECT User,SourceTree,TargetTree,Lesson
+       FROM FinishedExercise WHERE Round = ?);|]
   languagesQuery
-    = "SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;"
+    = [sql|SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;|]
   errNoExercises = error "Database.continueLesson: Invariant violated: No exercises for lesson"
   errLangs = error "Database.continueLesson: Invariant violated: Multiple results for lesson"
 
@@ -424,27 +425,55 @@ finishExercise conn token lesson time clicks = do
     SQL.execute conn deleteStartedLessonQuery (user,lesson)
   else return ()
   where
-    userQuery = "SELECT User FROM Session WHERE Token = ?;"
-    lessonRoundQuery = "SELECT ifnull(MAX(Round),1) FROM StartedLesson WHERE User = ? AND Lesson = ?;"
-    selectExerciseListQuery = "SELECT SourceTree,TargetTree FROM ExerciseList WHERE Lesson = ? AND User = ? AND (User,SourceTree,TargetTree,Lesson) NOT IN (SELECT User,SourceTree,TargetTree,Lesson FROM FinishedExercise WHERE Round = ?);"
-    insertFinishedExerciseQuery = "INSERT INTO FinishedExercise (User,Lesson,SourceTree,TargetTree,Time,ClickCount,Round) VALUES (?,?,?,?,?,?,?);"
-    countFinishesExercisesQuery = "SELECT COUNT(*) FROM FinishedExercise F WHERE User = ? AND Lesson = ? AND Round = (SELECT MAX(Round) FROM StartedLesson WHERE User = F.User AND Lesson = F.Lesson);"
-    countExercisesInLesson = "SELECT ExerciseCount FROM Lesson WHERE Name = ?;"
-    deleteStartedLessonQuery = "DELETE FROM StartedLesson WHERE User = ? AND Lesson = ? ;"
-    insertFinishedLessonQuery = mconcat
-      [ "WITH userName AS (SELECT ?),"
-      , "lessonName AS (SELECT ?),"
-      , "roundCount as (SELECT MAX(Round) FROM StartedLesson WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName)) "
-      , "INSERT INTO FinishedLesson (User,Lesson,Time,ClickCount,Round) VALUES "
-      , "((SELECT * FROM userName),"
-      , "(SELECT * FROM lessonName),"
-      , "(SELECT SUM(Time) FROM FinishedExercise WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName) AND Round = (SELECT * FROM roundCount)),"
-      , "(SELECT SUM(clickcount) FROM FinishedExercise WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName) AND Round = (SELECT * FROM roundCount)),"
-      , "(SELECT * FROM roundCount));"
-      ]
+    userQuery = [sql|SELECT User FROM Session WHERE Token = ?;|]
+    lessonRoundQuery = [sql|
+      SELECT ifnull(MAX(Round),1)
+      FROM StartedLesson
+      WHERE User = ? AND Lesson = ?;
+      |]
+    selectExerciseListQuery = [sql|
+      SELECT SourceTree,TargetTree
+      FROM ExerciseList
+      WHERE Lesson = ? AND User = ? AND
+      (User,SourceTree,TargetTree,Lesson) NOT IN
+        (SELECT User,SourceTree,TargetTree,Lesson
+         FROM FinishedExercise WHERE Round = ?);
+      |]
+    insertFinishedExerciseQuery = [sql|
+      INSERT INTO FinishedExercise
+        (User,Lesson,SourceTree,TargetTree,Time,ClickCount,Round)
+      VALUES (?,?,?,?,?,?,?);
+      |]
+    countFinishesExercisesQuery = [sql|
+      SELECT COUNT(*)
+      FROM FinishedExercise F
+      WHERE User = ? AND Lesson = ? AND Round =
+        (SELECT MAX(Round)
+        FROM StartedLesson
+        WHERE User = F.User AND Lesson = F.Lesson);
+      |]
+    countExercisesInLesson = [sql|
+      SELECT ExerciseCount FROM Lesson WHERE Name = ?;
+      |]
+    deleteStartedLessonQuery = [sql|
+      DELETE FROM StartedLesson
+      WHERE User = ? AND Lesson = ? ;
+      |]
+    insertFinishedLessonQuery = [sql|
+      WITH userName AS (SELECT ?),
+      lessonName AS (SELECT ?),
+      roundCount as (SELECT MAX(Round)
+      FROM StartedLesson WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName))
+      INSERT INTO FinishedLesson (User,Lesson,Time,ClickCount,Round) VALUES
+      ((SELECT * FROM userName),
+      (SELECT * FROM lessonName),
+      (SELECT SUM(Time) FROM FinishedExercise WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName) AND Round = (SELECT * FROM roundCount)),
+      (SELECT SUM(clickcount) FROM FinishedExercise WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName) AND Round = (SELECT * FROM roundCount)),
+      (SELECT * FROM roundCount));
+      |]
 
 endSession :: Connection -> String -> IO ()
 endSession conn token =
   do
-    let deleteSessionQuery = "DELETE FROM Session WHERE Token = ?;"
+    let deleteSessionQuery = [sql|DELETE FROM Session WHERE Token = ?;|]
     SQL.execute conn deleteSessionQuery [token]

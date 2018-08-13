@@ -104,3 +104,15 @@ Do we want to keep supporting `muste-cgi`?
 
 AFAIK CGI scripts just speak a different protocol from
 `application/json`.  So this should be easy to keep support for.
+
+Multiple trees
+---
+
+'Menu' must not map from paths, but from selections.
+
+ClientTree and ServerTree must not know about TTrees, but rather a
+single lintoken.
+
+CostTree must also not save the TTree, again just the linearization.
+
+pathToCover :: Path -> Selection
