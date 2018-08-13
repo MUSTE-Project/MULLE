@@ -21,7 +21,7 @@ module Muste.Tree.Internal
 
 -- TODO Do not depend on PGF
 import qualified PGF
-  (CId, mkCId, Tree, wildCId, mkMeta, mkApp, showExpr, readExpr)
+  (CId, mkCId, Tree, wildCId, mkMeta, mkApp, showExpr)
 
 import Data.Maybe
 import Data.Aeson
@@ -97,10 +97,10 @@ prettyTree = PGF.showExpr mempty . toGfTree
 -- @TTree@ has the guarantee that the leafs only contain a string and
 -- the internal nodes contain a @Sring@ and a `FunType`.
 
-foldlTTree :: (b -> Either (String, FunType) Category -> b) -> b -> TTree -> b
-foldlTTree f x t = case t of
-  TNode nm tp xs -> f (foldl (foldlTTree f) x xs) (Left (nm, tp))
-  TMeta cat      -> f x (Right cat)
+-- foldlTTree :: (b -> Either (String, FunType) Category -> b) -> b -> TTree -> b
+-- foldlTTree f x t = case t of
+--   TNode nm tp xs -> f (foldl (foldlTTree f) x xs) (Left (nm, tp))
+--   TMeta cat      -> f x (Right cat)
 
 parseString :: MonadFail m => String -> (Text.Text -> m p) -> Value -> m p
 parseString errMsg f = \case
@@ -231,7 +231,7 @@ isValid t =
 -- | The function 'getTreeCat' gives the root category of a 'TTree',
 -- returns 'wildCId' on missing type
 getTreeCat :: TTree -> Category
-getTreeCat (TNode id typ _) =
+getTreeCat (TNode _id typ _) =
   case typ of {
     (Fun cat _) -> cat ;
     NoType -> wildCard
@@ -271,8 +271,8 @@ ttreeToLTree tree =
     -- Update the labels in a tree
     update :: Int -> LTree -> (Int, LTree)
     update pos LLeaf = (pos, LLeaf)
-    update pos (LNode cat id []) = (pos + 1, LNode cat pos [])
-    update pos (LNode cat id ns) =
+    update pos (LNode cat _id []) = (pos + 1, LNode cat pos [])
+    update pos (LNode cat _id ns) =
       let
         (npos,ults) = updates pos ns
       in
@@ -299,7 +299,7 @@ getPath ltree id =
   let
     deep :: LTree -> Int -> Path -> Path
     deep LLeaf _ _ = []
-    deep (LNode cid fid ns) id path = if fid == id then path else broad ns id path 0
+    deep (LNode _cid fid ns) _id path = if fid == id then path else broad ns id path 0
     broad :: [LTree] -> Int -> Path -> Pos -> Path
     broad [] _ _ _ = []
     broad (n:ns) id path pos =
@@ -359,14 +359,14 @@ replaceBranch tree _ _ = tree
 
 -- | The function 'replaceNode' replaces a subtree given by 'Path' in a 'TTree'
 replaceNode :: TTree -> Path -> TTree -> TTree
-replaceNode oldTree@(TNode _ _ trees) path@(pos:ps) newTree
+replaceNode oldTree@(TNode _ _ trees) (pos:ps) newTree
   | pos >= 0 && pos < length trees =  -- subtree must exist
     let
       branch = fromJust $ selectBranch oldTree pos
     in
       replaceBranch oldTree pos (replaceNode branch ps newTree)
   | otherwise = oldTree -- if branch does not exist just do nothing
-replaceNode oldTree [] newTree =
+replaceNode _oldTree [] newTree =
   newTree -- at the end of the path just give the new tree to be inserted
 replaceNode oldTree _ _ =
   oldTree -- No more subtrees, cancel search

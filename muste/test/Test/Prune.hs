@@ -1,13 +1,8 @@
 module Test.Prune (tests) where
 
-import qualified PGF
-
 import Data.Maybe
 import Test.Tasty
 import Test.Tasty.HUnit
-import Data.Map (Map)
-import qualified Data.Map as Map
-import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Foldable
 import Text.Printf

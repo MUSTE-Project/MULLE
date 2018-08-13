@@ -62,6 +62,9 @@ Improved support for insertion
 
 https://github.com/MUSTE-Project/MULLE/issues/2
 
+We should now correctly be reporting which trees are to be considered
+"insertions", we now need to make the front end act on this.
+
 Automatically generate .pgf files
 ---
 

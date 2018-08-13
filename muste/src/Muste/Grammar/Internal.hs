@@ -23,7 +23,7 @@ import Data.ByteString as SB (ByteString)
 import qualified Data.ByteString.Lazy as LB
 -- This might be the only place we should know of PGF
 import qualified PGF
-  ( Tree(..), wildCId, mkCId, functions
+  ( Tree, wildCId, functions
   , showCId, startCat, functionType, parsePGF
   , bracketedLinearize
   )

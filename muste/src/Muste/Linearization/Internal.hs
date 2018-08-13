@@ -39,13 +39,11 @@ import Data.MonoTraversable
   , MonoFoldable(..), GrowingAppend, MonoPointed
   )
 import qualified Data.MonoTraversable as Mono
-import qualified Data.MonoTraversable.Unprefixed as Mono
 import Data.Sequences (SemiSequence, IsSequence, Index)
 import qualified Data.Sequences as Mono
 
 import Muste.Tree
 import Muste.Grammar
-import Muste.Grammar.Grammars (grammars)
 import Muste.Grammar.Internal (pgf)
 import qualified Muste.Grammar.Internal as Grammar
   ( brackets

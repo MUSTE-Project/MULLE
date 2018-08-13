@@ -1,8 +1,6 @@
 {-# Language TemplateHaskell #-}
 module Muste.Grammar.Grammars (grammars) where
 
-import Data.Map (Map)
-import qualified Data.Map as Map
 import Data.ByteString (ByteString)
 
 import qualified Muste.Grammar.Embed as Embed

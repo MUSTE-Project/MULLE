@@ -1,19 +1,16 @@
 module Main (main) where
 
-import Test.Tasty
-import Test.Tasty.QuickCheck as QC
-
-import Data.List
-import Data.Ord
+import Test.Tasty (TestTree)
+import qualified Test.Tasty as Tasty
 
 import qualified Test.Prune as Prune
 import qualified Test.Menu  as Menu
 
 main :: IO ()
-main = defaultMain tests
+main = Tasty.defaultMain tests
 
 tests :: TestTree
-tests = testGroup "Tests"
+tests = Tasty.testGroup "Tests"
   [ Prune.tests
   , Menu.tests
   ]
