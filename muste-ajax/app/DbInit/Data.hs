@@ -1,4 +1,4 @@
-{-# Language CPP #-}
+{-# Language CPP, TemplateHaskell #-}
 -- | Data used for inititializing the database
 
 module DbInit.Data (exercises, lessons) where
@@ -8,9 +8,10 @@ import Data.Semigroup (Semigroup((<>)))
 #endif
 
 import Muste.Tree
+import Muste.Grammar.TH (tree)
 
 -- TODO Make a newtype for this (and instances of 'FromROW' and
--- 'ToROW',
+-- 'ToROW')
 type Lesson = (String,String,String,String,String,Int,Int,Int)
 
 lessons :: [Lesson]
@@ -53,76 +54,123 @@ lessons =
     )
   ]
 
-exercises :: [(TTree, TTree, String)]
-exercises = primaPars <> secundaPars
+-- | List of exercises group by the lesson they belong to.  The lesson
+-- is identified by 1. an identifier for the grammar for that lesson
+-- and 2. by the name of that lesson (a PK in the DB).  Exercises are
+-- identified by a pair of tree/language pairs.
+exercises :: [(String, String, String, String, [(TTree, TTree)])]
+exercises =
+  [ ("novo_modo/Prima"  , "Prima Pars"  , "PrimaLat"  , "PrimaSwe"  , primaPars)
+  , ("novo_modo/Secunda", "Secunda Pars", "SecundaLat", "SecundaSwe", secundaPars)
+  ]
 
-primaPars :: [(TTree, TTree, String)]
+primaPars ∷ [(TTree, TTree)]
 primaPars =
-  [ ( TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefsg" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "vinum_N" (Fun "N" []) []]],TNode "complVA" (Fun "VP" ["VA","AP"]) [TNode "copula_VA" (Fun "VA" []) [],TNode "useA" (Fun "AP" ["A"]) [TNode "sapiens_A" (Fun "A" []) []]]]]]
-    , TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePron" (Fun "NP" ["Pron"]) [TNode "he_PP" (Fun "Pron" []) []],TNode "complVA" (Fun "VP" ["VA","AP"]) [TNode "copula_VA" (Fun "VA" []) [],TNode "useA" (Fun "AP" ["A"]) [TNode "sapiens_A" (Fun "A" []) []]]]]]
-    , "Prima Pars"
+  [ ( ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (useCNdefsg (useN vinum_N)) (complVA copula_VA (useA sapiens_A))))"))
+    , ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (usePron he_PP) (complVA copula_VA (useA sapiens_A))))"))
     )
-  , ( TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePN" (Fun "NP" ["PN"]) [TNode "Augustus_PN" (Fun "PN" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "tenere_V2" (Fun "V2" []) [],TNode "useCNdefsg" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "imperium_N" (Fun "N" []) []]]]]]]
-    , TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefsg" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "imperator_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "tenere_V2" (Fun "V2" []) [],TNode "useCNdefsg" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "imperium_N" (Fun "N" []) []]]]]]]
-    , "Prima Pars"
+  , ( ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (usePN Augustus_PN) (transV tenere_V2 (useCNdefsg (useN imperium_N)))))"))
+    , ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (useCNdefsg (useN imperator_N)) (transV tenere_V2 (useCNdefsg (useN imperium_N)))))"))
     )
-  , ( TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePN" (Fun "NP" ["PN"]) [TNode "Augustus_PN" (Fun "PN" []) []],TNode "complVA" (Fun "VP" ["VA","AP"]) [TNode "copula_VA" (Fun "VA" []) [],TNode "useA" (Fun "AP" ["A"]) [TNode "felix_A" (Fun "A" []) []]]]]]
-    , TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefsg" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "amicus_N" (Fun "N" []) []]],TNode "complVA" (Fun "VP" ["VA","AP"]) [TNode "copula_VA" (Fun "VA" []) [],TNode "useA" (Fun "AP" ["A"]) [TNode "felix_A" (Fun "A" []) []]]]]]
-    , "Prima Pars"
+  , ( ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (usePN Augustus_PN) (complVA copula_VA (useA felix_A))))"))
+    , ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (useCNdefsg (useN amicus_N)) (complVA copula_VA (useA felix_A))))"))
     )
-  , ( TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePN" (Fun "NP" ["PN"]) [TNode "Augustus_PN" (Fun "PN" []) []],TNode "complVA" (Fun "VP" ["VA","AP"]) [TNode "copula_VA" (Fun "VA" []) [],TNode "useA" (Fun "AP" ["A"]) [TNode "felix_A" (Fun "A" []) []]]]]]
-    , TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefsg" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "pater_N" (Fun "N" []) []]],TNode "complVA" (Fun "VP" ["VA","AP"]) [TNode "copula_VA" (Fun "VA" []) [],TNode "useA" (Fun "AP" ["A"]) [TNode "felix_A" (Fun "A" []) []]]]]]
-    , "Prima Pars"
+  , ( ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (usePN Augustus_PN) (complVA copula_VA (useA felix_A))))"))
+    , ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (useCNdefsg (useN pater_N)) (complVA copula_VA (useA felix_A))))"))
     )
-  , ( TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePN" (Fun "NP" ["PN"]) [TNode "Augustus_PN" (Fun "PN" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "copula_V2" (Fun "V2" []) [],TNode "useCNdefsg" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "imperator_N" (Fun "N" []) []]]]]]]
-    , TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePN" (Fun "NP" ["PN"]) [TNode "Augustus_PN" (Fun "PN" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "copula_V2" (Fun "V2" []) [],TNode "useCNdefsg" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "amicus_N" (Fun "N" []) []]]]]]]
-    , "Prima Pars"
+  , ( ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN imperator_N)))))"))
+    , ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN amicus_N)))))"))
     )
-  , ( TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePN" (Fun "NP" ["PN"]) [TNode "Augustus_PN" (Fun "PN" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "copula_V2" (Fun "V2" []) [],TNode "useCNdefsg" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "amicus_N" (Fun "N" []) []]]]]]]
-    , TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePN" (Fun "NP" ["PN"]) [TNode "Augustus_PN" (Fun "PN" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "copula_V2" (Fun "V2" []) [],TNode "useCNdefsg" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "imperator_N" (Fun "N" []) []]]]]]]
-    , "Prima Pars"
+  , ( ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN amicus_N)))))"))
+    , ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN imperator_N)))))"))
     )
-  , ( TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePN" (Fun "NP" ["PN"]) [TNode "Augustus_PN" (Fun "PN" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "copula_V2" (Fun "V2" []) [],TNode "useCNdefsg" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "imperator_N" (Fun "N" []) []]]]]]]
-    , TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePN" (Fun "NP" ["PN"]) [TNode "Augustus_PN" (Fun "PN" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "copula_V2" (Fun "V2" []) [],TNode "useCNdefsg" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "pater_N" (Fun "N" []) []]]]]]]
-    , "Prima Pars"
+  , ( ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN imperator_N)))))"))
+    , ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN pater_N)))))"))
     )
-  , ( TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePN" (Fun "NP" ["PN"]) [TNode "Augustus_PN" (Fun "PN" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "copula_V2" (Fun "V2" []) [],TNode "useCNdefsg" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "pater_N" (Fun "N" []) []]]]]]]
-    , TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePN" (Fun "NP" ["PN"]) [TNode "Augustus_PN" (Fun "PN" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "copula_V2" (Fun "V2" []) [],TNode "useCNdefsg" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "imperator_N" (Fun "N" []) []]]]]]]
-    , "Prima Pars"
+  , ( ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN pater_N)))))"))
+    , ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (usePN Augustus_PN) (transV copula_V2 (useCNdefsg (useN imperator_N)))))"))
     )
-  , ( TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "apposCNdefsg" (Fun "NP" ["CN","PN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Caesar_N" (Fun "N" []) []],TNode "Augustus_PN" (Fun "PN" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "vincere_V2" (Fun "V2" []) [],TNode "usePN" (Fun "NP" ["PN"]) [TNode "Gallia_PN" (Fun "PN" []) []]]]]]
-    , TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "apposCNdefsg" (Fun "NP" ["CN","PN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Caesar_N" (Fun "N" []) []],TNode "Augustus_PN" (Fun "PN" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "vincere_V2" (Fun "V2" []) [],TNode "usePN" (Fun "NP" ["PN"]) [TNode "Africa_PN" (Fun "PN" []) []]]]]]
-    , "Prima Pars"
+  , ( ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) Augustus_PN) (transV vincere_V2 (usePN Gallia_PN))))"))
+    , ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) Augustus_PN) (transV vincere_V2 (usePN Africa_PN))))"))
     )
-  , ( TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "apposCNdefsg" (Fun "NP" ["CN","PN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Caesar_N" (Fun "N" []) []],TNode "Augustus_PN" (Fun "PN" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "vincere_V2" (Fun "V2" []) [],TNode "usePN" (Fun "NP" ["PN"]) [TNode "Africa_PN" (Fun "PN" []) []]]]]]
-    , TNode "useS" (Fun "CS" ["S"]) [TNode "useCl" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "apposCNdefsg" (Fun "NP" ["CN","PN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Caesar_N" (Fun "N" []) []],TNode "Augustus_PN" (Fun "PN" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "vincere_V2" (Fun "V2" []) [],TNode "usePN" (Fun "NP" ["PN"]) [TNode "Gallia_PN" (Fun "PN" []) []]]]]]
-    , "Prima Pars"
+  , ( ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) Augustus_PN) (transV vincere_V2 (usePN Africa_PN))))"))
+    , ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (apposCNdefsg (useN Caesar_N) Augustus_PN) (transV vincere_V2 (usePN Gallia_PN))))"))
     )
   ]
 
-secundaPars :: [(TTree, TTree, String)]
+
+-- Offending trees:
+  --   ( ($(tree "novo_modo/Secunda" "useS (impS nos_Pron (useVV velle_VV))"))
+  --   , ($(tree "novo_modo/Secunda" "useS (presS (simpleCl (usePron nos_Pron) (intransV venire_V)))"))
+  --   )
+
+  -- , ( ($(tree "novo_modo/Secunda" "useS (presS (simpleCl (usePron nos_Pron) (intransV venire_V)))"))
+  --   , ($(tree "novo_modo/Secunda" "useS (impS nos_Pron (useVV velle_VV))"))
+  --   )
+
+secundaPars :: [(TTree, TTree)]
 secundaPars =
-  [(TNode "useS" (Fun "CS" ["S"]) [TNode "impS" (Fun "S" ["Pron","VP"]) [TNode "they_PP" (Fun "Pron" []) [],TNode "useVV" (Fun "VP" ["VV"]) [TNode "nolle_VV" (Fun "VV" []) []]]],TNode "useS" (Fun "CS" ["S"]) [TNode "presS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []],TNode "intransV" (Fun "VP" ["V"]) [TNode "gaudere_V" (Fun "V" []) []]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "presS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []],TNode "intransV" (Fun "VP" ["V"]) [TNode "gaudere_V" (Fun "V" []) []]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "impS" (Fun "S" ["Pron","VP"]) [TNode "they_PP" (Fun "Pron" []) [],TNode "useVV" (Fun "VP" ["VV"]) [TNode "nolle_VV" (Fun "VV" []) []]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "impS" (Fun "S" ["Pron","VP"]) [TNode "nos_Pron" NoType [],TNode "useVV" (Fun "VP" ["VV"]) [TNode "velle_VV" (Fun "VV" []) []]]],TNode "useS" (Fun "CS" ["S"]) [TNode "presS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePron" (Fun "NP" ["Pron"]) [TNode "nos_Pron" NoType []],TNode "intransV" (Fun "VP" ["V"]) [TNode "venire_V" (Fun "V" []) []]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "presS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePron" (Fun "NP" ["Pron"]) [TNode "nos_Pron" NoType []],TNode "intransV" (Fun "VP" ["V"]) [TNode "venire_V" (Fun "V" []) []]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "impS" (Fun "S" ["Pron","VP"]) [TNode "nos_Pron" NoType [],TNode "useVV" (Fun "VP" ["VV"]) [TNode "velle_VV" (Fun "VV" []) []]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Romanus_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "vincere_V2" (Fun "V2" []) [],TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []]]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "docere_V2" (Fun "V2" []) [],TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Romanus_N" (Fun "N" []) []]]]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "docere_V2" (Fun "V2" []) [],TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Romanus_N" (Fun "N" []) []]]]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Romanus_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "vincere_V2" (Fun "V2" []) [],TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []]]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "vir_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "rapere_V2" (Fun "V2" []) [],TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []]]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "invitare_V2" (Fun "V2" []) [],TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "vir_N" (Fun "N" []) []]]]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "invitare_V2" (Fun "V2" []) [],TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "vir_N" (Fun "N" []) []]]]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "vir_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "rapere_V2" (Fun "V2" []) [],TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []]]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Etruscus_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "observare_V2" (Fun "V2" []) [],TNode "useCNindefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "auspicium_N" (Fun "N" []) []]]]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "copula_V2" (Fun "V2" []) [],TNode "useCNindefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "agricola_N" (Fun "N" []) []]]]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Romanus_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "copula_V2" (Fun "V2" []) [],TNode "useCNindefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "agricola_N" (Fun "N" []) []]]]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "observare_V2" (Fun "V2" []) [],TNode "useCNindefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "auspicium_N" (Fun "N" []) []]]]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefsg" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "rex_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "observare_V2" (Fun "V2" []) [],TNode "useCNindefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "terra_N" (Fun "N" []) []]]]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "copula_V2" (Fun "V2" []) [],TNode "useCNindefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "vir_N" (Fun "N" []) []]]]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Romanus_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "copula_V2" (Fun "V2" []) [],TNode "useCNindefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "vir_N" (Fun "N" []) []]]]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefsg" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "rex_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "observare_V2" (Fun "V2" []) [],TNode "useCNindefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "terra_N" (Fun "N" []) []]]]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "advS" (Fun "S" ["Adv","S"]) [TNode "autem_Adv" (Fun "Adv" []) [],TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Sabinus_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "habere_V2" (Fun "V2" []) [],TNode "useCNindefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "femina_N" (Fun "N" []) []]]]]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "advS" (Fun "S" ["Adv","S"]) [TNode "autem_Adv" (Fun "Adv" []) [],TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Romanus_N" (Fun "N" []) []]],TNode "complVA" (Fun "VP" ["VA","AP"]) [TNode "copula_VA" (Fun "VA" []) [],TNode "useA" (Fun "AP" ["A"]) [TNode "fallax_A" (Fun "A" []) []]]]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "advS" (Fun "S" ["Adv","S"]) [TNode "autem_Adv" (Fun "Adv" []) [],TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Romanus_N" (Fun "N" []) []]],TNode "complVA" (Fun "VP" ["VA","AP"]) [TNode "copula_VA" (Fun "VA" []) [],TNode "useA" (Fun "AP" ["A"]) [TNode "fallax_A" (Fun "A" []) []]]]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "advS" (Fun "S" ["Adv","S"]) [TNode "autem_Adv" (Fun "Adv" []) [],TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Sabinus_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "habere_V2" (Fun "V2" []) [],TNode "useCNindefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "femina_N" (Fun "N" []) []]]]]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "advS" (Fun "S" ["Adv","S"]) [TNode "etiam_Adv" (Fun "Adv" []) [],TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Sabinus_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "habere_V2" (Fun "V2" []) [],TNode "useCNdefsg" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "religio_N" (Fun "N" []) []]]]]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "advS" (Fun "S" ["Adv","S"]) [TNode "iam_Adv" (Fun "Adv" []) [],TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Romanus_N" (Fun "N" []) []]],TNode "complVA" (Fun "VP" ["VA","AP"]) [TNode "copula_VA" (Fun "VA" []) [],TNode "useA" (Fun "AP" ["A"]) [TNode "victus_A" (Fun "A" []) []]]]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "advS" (Fun "S" ["Adv","S"]) [TNode "iam_Adv" (Fun "Adv" []) [],TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Romanus_N" (Fun "N" []) []]],TNode "complVA" (Fun "VP" ["VA","AP"]) [TNode "copula_VA" (Fun "VA" []) [],TNode "useA" (Fun "AP" ["A"]) [TNode "victus_A" (Fun "A" []) []]]]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "advS" (Fun "S" ["Adv","S"]) [TNode "etiam_Adv" (Fun "Adv" []) [],TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Sabinus_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "habere_V2" (Fun "V2" []) [],TNode "useCNdefsg" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "religio_N" (Fun "N" []) []]]]]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Sabinus_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "amare_V2" (Fun "V2" []) [],TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "liber_N" (Fun "N" []) []]]]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "negPastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "copula_V2" (Fun "V2" []) [],TNode "useCNindefpl" (Fun "NP" ["CN"]) [TNode "attribCN" (Fun "CN" ["AP","CN"]) [TNode "useA" (Fun "AP" ["A"]) [TNode "Romanus_A" (Fun "A" []) []],TNode "useN" (Fun "CN" ["N"]) [TNode "liber_N" (Fun "N" []) []]]]]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "negPastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "iuvenis_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "copula_V2" (Fun "V2" []) [],TNode "useCNindefpl" (Fun "NP" ["CN"]) [TNode "attribCN" (Fun "CN" ["AP","CN"]) [TNode "useA" (Fun "AP" ["A"]) [TNode "Romanus_A" (Fun "A" []) []],TNode "useN" (Fun "CN" ["N"]) [TNode "liber_N" (Fun "N" []) []]]]]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Sabinus_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "amare_V2" (Fun "V2" []) [],TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "liber_N" (Fun "N" []) []]]]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Sabinus_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "amare_V2" (Fun "V2" []) [],TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "mulier_N" (Fun "N" []) []]]]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "copula_V2" (Fun "V2" []) [],TNode "useCNindefpl" (Fun "NP" ["CN"]) [TNode "attribCN" (Fun "CN" ["AP","CN"]) [TNode "useA" (Fun "AP" ["A"]) [TNode "Sabinus_A" (Fun "A" []) []],TNode "useN" (Fun "CN" ["N"]) [TNode "liber_N" (Fun "N" []) []]]]]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "iuvenis_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "copula_V2" (Fun "V2" []) [],TNode "useCNindefpl" (Fun "NP" ["CN"]) [TNode "attribCN" (Fun "CN" ["AP","CN"]) [TNode "useA" (Fun "AP" ["A"]) [TNode "Sabinus_A" (Fun "A" []) []],TNode "useN" (Fun "CN" ["N"]) [TNode "liber_N" (Fun "N" []) []]]]]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Sabinus_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "amare_V2" (Fun "V2" []) [],TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "mulier_N" (Fun "N" []) []]]]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "presS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Sabinus_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "dicere_V2" (Fun "V2" []) [],TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "attribCN" (Fun "CN" ["AP","CN"]) [TNode "useA" (Fun "AP" ["A"]) [TNode "Romanus_A" (Fun "A" []) []],TNode "useN" (Fun "CN" ["N"]) [TNode "vir_N" (Fun "N" []) []]]]]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "presS" (Fun "S" ["Cl"]) [TNode "useVVCl" (Fun "Cl" ["NP","VV","VP"]) [TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []],TNode "velle_VV" (Fun "VV" []) [],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "occidere_V2" (Fun "V2" []) [],TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "attribCN" (Fun "CN" ["AP","CN"]) [TNode "useA" (Fun "AP" ["A"]) [TNode "Romanus_A" (Fun "A" []) []],TNode "useN" (Fun "CN" ["N"]) [TNode "vir_N" (Fun "N" []) []]]]]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Romanus_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "contendere_V2" (Fun "V2" []) [],TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []]]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "contendere_V2" (Fun "V2" []) [],TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Romanus_N" (Fun "N" []) []]]]]]],"Secunda Pars")
-  ,(TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Romanus_N" (Fun "N" []) []]],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "docere_V2" (Fun "V2" []) [],TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []]]]]],TNode "useS" (Fun "CS" ["S"]) [TNode "pastS" (Fun "S" ["Cl"]) [TNode "simpleCl" (Fun "Cl" ["NP","VP"]) [TNode "usePron" (Fun "NP" ["Pron"]) [TNode "they_PP" (Fun "Pron" []) []],TNode "transV" (Fun "VP" ["V2","NP"]) [TNode "docere_V2" (Fun "V2" []) [],TNode "useCNdefpl" (Fun "NP" ["CN"]) [TNode "useN" (Fun "CN" ["N"]) [TNode "Romanus_N" (Fun "N" []) []]]]]]],"Secunda Pars")
+  [ ( ($(tree "novo_modo/Secunda" "useS (impS they_PP (useVV nolle_VV))"))
+    , ($(tree "novo_modo/Secunda" "useS (presS (simpleCl (usePron they_PP) (intransV gaudere_V)))"))
+    )
+  , ( ($(tree "novo_modo/Secunda" "useS (presS (simpleCl (usePron they_PP) (intransV gaudere_V)))"))
+    , ($(tree "novo_modo/Secunda" "useS (impS they_PP (useVV nolle_VV))"))
+    )
+  , ( ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (useCNdefpl (useN Romanus_N)) (transV vincere_V2 (usePron they_PP))))"))
+    , ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (usePron they_PP) (transV docere_V2 (useCNdefpl (useN Romanus_N)))))"))
+    )
+    , ( ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (usePron they_PP) (transV docere_V2 (useCNdefpl (useN Romanus_N)))))"))
+    , ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (useCNdefpl (useN Romanus_N)) (transV vincere_V2 (usePron they_PP))))"))
+    )
+  , ( ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (useCNdefpl (useN vir_N)) (transV rapere_V2 (usePron they_PP))))"))
+    , ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (usePron they_PP) (transV invitare_V2 (useCNdefpl (useN vir_N)))))"))
+    )
+  , ( ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (usePron they_PP) (transV invitare_V2 (useCNdefpl (useN vir_N)))))"))
+    , ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (useCNdefpl (useN vir_N)) (transV rapere_V2 (usePron they_PP))))"))
+    )
+  , ( ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (useCNdefpl (useN Etruscus_N)) (transV observare_V2 (useCNindefpl (useN auspicium_N)))))"))
+    , ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (usePron they_PP) (transV copula_V2 (useCNindefpl (useN agricola_N)))))"))
+    )
+  , ( ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (useCNdefpl (useN Romanus_N)) (transV copula_V2 (useCNindefpl (useN agricola_N)))))"))
+    , ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (usePron they_PP) (transV observare_V2 (useCNindefpl (useN auspicium_N)))))"))
+    )
+  , ( ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (useCNdefsg (useN rex_N)) (transV observare_V2 (useCNindefpl (useN terra_N)))))"))
+    , ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (usePron they_PP) (transV copula_V2 (useCNindefpl (useN vir_N)))))"))
+    )
+  , ( ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (useCNdefpl (useN Romanus_N)) (transV copula_V2 (useCNindefpl (useN vir_N)))))"))
+    , ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (useCNdefsg (useN rex_N)) (transV observare_V2 (useCNindefpl (useN terra_N)))))"))
+    )
+  , ( ($(tree "novo_modo/Secunda" "useS (advS autem_Adv (pastS (simpleCl (useCNdefpl (useN Sabinus_N)) (transV habere_V2 (useCNindefpl (useN femina_N))))))"))
+    , ($(tree "novo_modo/Secunda" "useS (advS autem_Adv (pastS (simpleCl (useCNdefpl (useN Romanus_N)) (complVA copula_VA (useA fallax_A)))))"))
+    )
+  , ( ($(tree "novo_modo/Secunda" "useS (advS autem_Adv (pastS (simpleCl (useCNdefpl (useN Romanus_N)) (complVA copula_VA (useA fallax_A)))))"))
+    , ($(tree "novo_modo/Secunda" "useS (advS autem_Adv (pastS (simpleCl (useCNdefpl (useN Sabinus_N)) (transV habere_V2 (useCNindefpl (useN femina_N))))))"))
+    )
+  , ( ($(tree "novo_modo/Secunda" "useS (advS etiam_Adv (pastS (simpleCl (useCNdefpl (useN Sabinus_N)) (transV habere_V2 (useCNdefsg (useN religio_N))))))"))
+    , ($(tree "novo_modo/Secunda" "useS (advS iam_Adv (pastS (simpleCl (useCNdefpl (useN Romanus_N)) (complVA copula_VA (useA victus_A)))))"))
+    )
+  , ( ($(tree "novo_modo/Secunda" "useS (advS iam_Adv (pastS (simpleCl (useCNdefpl (useN Romanus_N)) (complVA copula_VA (useA victus_A)))))"))
+    , ($(tree "novo_modo/Secunda" "useS (advS etiam_Adv (pastS (simpleCl (useCNdefpl (useN Sabinus_N)) (transV habere_V2 (useCNdefsg (useN religio_N))))))"))
+    )
+  , ( ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (useCNdefpl (useN Sabinus_N)) (transV amare_V2 (useCNdefpl (useN liber_N)))))"))
+    , ($(tree "novo_modo/Secunda" "useS (negPastS (simpleCl (usePron they_PP) (transV copula_V2 (useCNindefpl (attribCN (useA Romanus_A) (useN liber_N))))))"))
+    )
+  , ( ($(tree "novo_modo/Secunda" "useS (negPastS (simpleCl (useCNdefpl (useN iuvenis_N)) (transV copula_V2 (useCNindefpl (attribCN (useA Romanus_A) (useN liber_N))))))"))
+    , ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (useCNdefpl (useN Sabinus_N)) (transV amare_V2 (useCNdefpl (useN liber_N)))))"))
+    )
+  , ( ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (useCNdefpl (useN Sabinus_N)) (transV amare_V2 (useCNdefpl (useN mulier_N)))))"))
+    , ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (usePron they_PP) (transV copula_V2 (useCNindefpl (attribCN (useA Sabinus_A) (useN liber_N))))))"))
+    )
+  , ( ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (useCNdefpl (useN iuvenis_N)) (transV copula_V2 (useCNindefpl (attribCN (useA Sabinus_A) (useN liber_N))))))"))
+    , ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (useCNdefpl (useN Sabinus_N)) (transV amare_V2 (useCNdefpl (useN mulier_N)))))"))
+    )
+  , ( ($(tree "novo_modo/Secunda" "useS (presS (simpleCl (useCNdefpl (useN Sabinus_N)) (transV dicere_V2 (useCNdefpl (attribCN (useA Romanus_A) (useN vir_N))))))"))
+    , ($(tree "novo_modo/Secunda" "useS (presS (useVVCl (usePron they_PP) velle_VV (transV occidere_V2 (useCNdefpl (attribCN (useA Romanus_A) (useN vir_N))))))"))
+    )
+  , ( ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (useCNdefpl (useN Romanus_N)) (transV contendere_V2 (usePron they_PP))))"))
+    , ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (usePron they_PP) (transV contendere_V2 (useCNdefpl (useN Romanus_N)))))"))
+    )
+  , ( ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (useCNdefpl (useN Romanus_N)) (transV docere_V2 (usePron they_PP))))"))
+    , ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (usePron they_PP) (transV docere_V2 (useCNdefpl (useN Romanus_N)))))"))
+    )
   ]

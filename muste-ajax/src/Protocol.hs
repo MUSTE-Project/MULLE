@@ -88,7 +88,9 @@ apiRoutes =
   ]
   where
     wrap :: ToJSON a => Protocol v w a -> Snap.Handler v w ()
-    wrap act = runProtocol $ act >>= Snap.writeLBS . encode
+    wrap act = do
+        Snap.modifyResponse (Snap.setContentType "application/json")
+        runProtocol $ act >>= Snap.writeLBS . encode
     (|>) = (,)
     err :: String -> a
     err = error . printf "missing api route for `%s`"
@@ -206,8 +208,8 @@ handleLessonInit token lesson = do
     (sourceLang,sourceTree,targetLang,targetTree)
       <- Database.startLesson conn token lesson
     let (a,b) = assembleMenus contexts lesson
-                (sourceLang,pure sourceTree)
-                (targetLang,pure targetTree)
+                (sourceLang,sourceTree)
+                (targetLang,targetTree)
     verifyMessage token (SMMenuList lesson False 0 a b)
 
 -- | This request is called after the user selects a new sentence from
@@ -230,8 +232,8 @@ handleMenuRequest
   -> Protocol v w ServerMessage
 handleMenuRequest
   token lesson clicks time
-  ctreea@(ClientTree langa srcTrees)
-  ctreeb@(ClientTree langb trgTrees) = do
+  ctreea@(ClientTree srcLang srcLin)
+  ctreeb@(ClientTree trgLang trgLin) = do
   contexts <- askContexts
   conn <- askConnection
   mErr <- verifySession token
@@ -243,23 +245,20 @@ handleMenuRequest
       pure emptyMenus
     else pure assembleMenus
   let (a , b) = act contexts lesson
-                 (langa, srcTrees)
-                 (langb, trgTrees)
+                 (srcLang, srcLin)
+                 (trgLang, trgLin)
   verifyMessage token (SMMenuList lesson finished (succ clicks) a b)
   where
     finished :: Bool
-    finished = ctreea `same` ctreeb
+    finished = ctreea `sameLin` ctreeb
 
--- | Two 'ClientTree''s are considered the same if they have just one
--- 'TTree' in common.  This uses the 'Eq' instance for 'TTree' (so
--- that better work).
-same :: ClientTree -> ClientTree -> Bool
-same = oneSame `on` thetrees
+-- | Checks if two Two 'ClientTree''s have the same linearization.
+sameLin :: ClientTree -> ClientTree -> Bool
+sameLin = (==)
+  `on` thetrees
   where
-  thetrees :: ClientTree -> Set TTree
-  thetrees (ClientTree _ trees) = S.fromList trees
-  oneSame :: Set TTree -> Set TTree -> Bool
-  oneSame a b = not $ S.null $ S.intersection a b
+  thetrees :: ClientTree -> Linearization
+  thetrees (ClientTree _ trees) = trees
 
 handleLogoutRequest :: String -> Protocol v w ServerMessage
 handleLogoutRequest token = do
@@ -308,8 +307,8 @@ mkContext (ls, _, nm, _, _, _, _, _) =
 assembleMenus
   :: Contexts
   -> Text
-  -> (String, [TTree]) -- ^ Source language and tree
-  -> (String, [TTree]) -- ^ Target language and tree
+  -> (String, Linearization) -- ^ Source language and tree
+  -> (String, Linearization) -- ^ Target language and tree
   -> (ServerTree,ServerTree)
 assembleMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
   ( mkTree src
@@ -363,19 +362,15 @@ liftMaybe e = \case
 -- @tree@.
 makeTree
   :: Contexts -> Text
-  -> (String, [TTree])
-  -> (String, [TTree])
-  -> (String, [TTree])
+  -> (String, Linearization)
+  -> (String, Linearization)
+  -> (String, Linearization)
   -> ServerTree
 makeTree contexts lesson (srcLang, srcTrees) (trgLang, trgTrees) (lang, trees)
-  = Ajax.mkServerTree lang trees lin (Muste.getCleanMenu ctxt tree)
+  = Ajax.mkServerTree lang trees (Muste.getMenu ctxt trees)
     where
     grammar = throwLeft $ getContext contexts lesson srcLang
     ctxt    = throwLeft $ getContext contexts lesson lang
-    lin     = Muste.mkLin ctxt srcTree trgTree tree
-    srcTree = unsafeTakeTree srcTrees
-    trgTree = unsafeTakeTree trgTrees
-    tree    = unsafeTakeTree trees
 
 -- | Throws an exception if the it's a 'Left' (requires the left to be
 -- an exception).  This method is *unsafe*!
@@ -385,8 +380,8 @@ throwLeft = either throw id
 emptyMenus
   :: Contexts
   -> Text
-  -> (String, [TTree]) -- ^ Source language and tree
-  -> (String, [TTree]) -- ^ Target language and tree
+  -> (String, Linearization) -- ^ Source language and tree
+  -> (String, Linearization) -- ^ Target language and tree
   -> (ServerTree, ServerTree)
 emptyMenus contexts lesson src@(srcLang, srcTrees) trg@(_, trgTrees) =
   ( mkTree src
@@ -398,13 +393,9 @@ emptyMenus contexts lesson src@(srcLang, srcTrees) trg@(_, trgTrees) =
   -- for 'lin'.  This is the reason we are not using 'makeTree' here.
   ctxt = throwLeft $ getContext contexts lesson srcLang
   grammar = Muste.ctxtGrammar ctxt
-  srcTree = unsafeTakeTree srcTrees
-  trgTree = unsafeTakeTree trgTrees
-  lin = Muste.mkLin ctxt srcTree trgTree
+  mkTree ∷ (String, Linearization) → ServerTree
   mkTree (lang, trees) = Ajax.mkServerTree
-    lang trees (lin tree) mempty
-    where
-    tree = unsafeTakeTree trees
+    lang trees mempty
 
 -- TODO Both unsafe and a dirty hack!
 unsafeTakeTree :: [TTree] -> TTree

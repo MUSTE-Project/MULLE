@@ -28,6 +28,7 @@ import qualified Data.Yaml as Yaml (decodeFileThrow)
 import qualified Data.Yaml as Yaml (decodeFileEither)
 #endif
 import Paths_muste_ajax
+import Data.FileEmbed
 
 data Config = Config
   { port          ∷ Int
@@ -75,11 +76,17 @@ decodeFileThrow = Yaml.decodeFileThrow
 decodeFileThrow f = liftIO $ Yaml.decodeFileEither f >>= either throwIO return
 #endif
 
-decodeConfig ∷ IO Config
-decodeConfig = decodeFileThrow "config.yaml"
+instance MonadIO Q where
+  liftIO = runIO
+
+decodeConfig ∷ Q Exp
+decodeConfig = do
+  p ← makeRelativeToProject "config.yaml"
+  cfg ← decodeFileThrow @_ @Config p
+  lift cfg
 
 config ∷ Q Exp
-config = runIO decodeConfig >>= lift
+config = decodeConfig
 
 data AppConfig = AppConfig
   { db          ∷ FilePath

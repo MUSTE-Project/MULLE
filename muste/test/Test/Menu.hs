@@ -19,6 +19,7 @@ import qualified Muste.Grammar.Internal as Grammar
 import qualified Muste.Menu.Internal as Menu
 import qualified Muste.Linearization.Internal as Linearization
 import qualified Muste.Grammar.Embed as Embed
+import qualified Muste.Selection as Selection
 
 grammar :: Grammar
 grammar = Grammar.parseGrammar $ LB.fromStrict $ snd grammar'
@@ -42,7 +43,7 @@ ambiguities = (menu `contains` both) @?= True
   groupsOfTrees mn
     = map (Set.toList . Menu.trees)
     $ fromMaybe (error "Path not found")
-    $ Mono.lookup [0,0,0] mn
+    $ Mono.lookup (Selection.fromList [0,0,0]) mn
   contains' ∷ [TTree] → [[TTree]] → Bool
   contains' ts = any (isSubListOf ts)
   menu = getMenu treeDefinite

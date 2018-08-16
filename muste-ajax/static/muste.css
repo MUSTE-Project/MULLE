@@ -269,3 +269,7 @@ img {
 .rightspace { background-color: #ddd }
 img { border: 1px dotted blue }
 */
+
+.sentence {
+    user-select: none;
+}

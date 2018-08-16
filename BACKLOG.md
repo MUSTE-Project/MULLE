@@ -108,11 +108,10 @@ AFAIK CGI scripts just speak a different protocol from
 Multiple trees
 ---
 
-'Menu' must not map from paths, but from selections.
-
 ClientTree and ServerTree must not know about TTrees, but rather a
 single lintoken.
 
 CostTree must also not save the TTree, again just the linearization.
 
-pathToCover :: Path -> Selection
+The highlighting in the drop-down menu that the user is shown when
+clicking on a word is broken as per `11604d2`.

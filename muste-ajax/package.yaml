@@ -33,6 +33,21 @@ data-files:
   - ./static/favicon.ico
   - ./static/muste.css
 
+default-extensions:
+- UnicodeSyntax
+- NamedWildCards
+- TypeSynonymInstances
+- FlexibleInstances
+- ScopedTypeVariables
+- ViewPatterns
+- DeriveGeneric
+- LambdaCase
+- TypeApplications
+- StandaloneDeriving
+- GADTs
+- GeneralizedNewtypeDeriving
+- TypeFamilies
+
 dependencies:
   - base >= 4.8 && < 4.12
   - aeson >=1.0
@@ -67,6 +82,7 @@ dependencies:
   - direct-sqlite
   - file-embed
   - optparse-applicative
+  - prettyprinter
 
 library:
 

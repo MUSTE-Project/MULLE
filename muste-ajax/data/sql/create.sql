@@ -24,8 +24,8 @@ LastActive NUMERIC NOT NULL DEFAULT CURRENT_TIMESTAMP,
 PRIMARY KEY(Token));
 
 CREATE TABLE Exercise (
-SourceTree TEXT,
-TargetTree TEXT,
+SourceTree BLOB,
+TargetTree BLOB,
 Lesson TEXT,
 Timeout NUMERIC NOT NULL DEFAULT 0,
 PRIMARY KEY(SourceTree, TargetTree, Lesson),
@@ -44,8 +44,8 @@ PRIMARY KEY(Name));
 
 CREATE TABLE FinishedExercise (
 User TEXT,
-SourceTree TEXT,
-TargetTree TEXT,
+SourceTree BLOB,
+TargetTree BLOB,
 Lesson TEXT,
 Time NUMERIC NOT NULL,
 ClickCount NUMERIC NOT NULL,
@@ -73,8 +73,8 @@ FOREIGN KEY (Lesson) REFERENCES Lesson(Name));
 
 CREATE TABLE ExerciseList (
 User TEXT,
-SourceTree TEXT,
-TargetTree TEXT,
+SourceTree BLOB,
+TargetTree BLOB,
 Lesson TEXT,
 Round NUMERIC NOT NULL DEFAULT 1,
 PRIMARY KEY (User, SourceTree, TargetTree, Lesson, Round),

@@ -165,16 +165,7 @@ function start_lesson(lesson) {
     call_server_new(MESSAGES.LESSON, {token: LOGIN_TOKEN, lesson: lesson}, MESSAGES.LESSON + "/" + lesson);
 }
 
-function showMenu(menu) {
-    console.info("[Showing menu for '%s']", menu.grammar);
-    console.info(menu.menu);
-    // menu.menu.forEach(function(adjTree) {
-    //     console.info(adjTree);
-    // });
-}
-
 function show_exercise(parameters) {
-    showMenu(parameters.b);
     show_page("exercisepage");
     DATA = parameters;
     clean_server_data(DATA.a);
@@ -249,15 +240,8 @@ function clean_server_data(data) {
             pword.path = convert_path(pword.path)
         });
     }
-    clean_lin(data.lin);
-    var oldmenu = data.menu;
-    data.menu = {};
-    for (var path in oldmenu) {
-        oldmenu[path].forEach(function(item){
-            clean_lin(item.lin);
-        });
-	data.menu[convert_path(path)] = oldmenu[path];
-    }
+    // clean_lin(data.lin);
+    data.menu = new Map(data.menu);
 }
 
 
@@ -293,8 +277,9 @@ function show_lin(lang, lin) {
         var path = lin[i].path;
         var match = lin[i].matched && lin[i].matched.length;
         // var subtree = lookup_subtree(path, tree);
+        var validMenus = getValidMenus(i, DATA[lang].menu);
         var wordspan = $('<span>')
-            .addClass('word clickable').data({nr:i, lang:lang, path:path /* , subtree:subtree */ })
+            .addClass('word clickable').data({nr:i, lang:lang, path:path /* , subtree:subtree */, idx: i,"valid-menus": validMenus })
             .html(current + '<sub class="debug">' + (match ? "=" : "") + path /* + ' ' + show_tree(subtree) */ + '</sub>')
             .click(click_word)
             .appendTo(sentence);
@@ -320,6 +305,10 @@ function click_word(event) {
     var clicked = $(event.target).closest('.clickable');
     var lang = clicked.data().lang;
     var path = clicked.data().path;
+    var validMenus = clicked.data("valid-menus");
+    if(validMenus === undefined) {
+        throw "No menu found. Probably because the user clicked a space between words, this is still not supported.";
+    }
 
     if (clicked.hasClass('striked') && $('#menus ul').length > 1) {
         $('#menus ul').first().remove();
@@ -349,55 +338,39 @@ function click_word(event) {
         var selection = getSelection();
         clear_selection();
 
-        // A given `.clickable` have multiple menus associated with
-        // it.  By clicking multiple times on the same `.clickable`
-        // the user is presented with these different menus.  Return
-        // values mean:
-        //
-        //     null      -> Do not make a selection
-        //     string    -> Path to node.
-        //
-        // Also modifies `selection` from closure.
-        function getMenus(data) {
-            var menus = data[lang].menu[selection];
-            while (!(menus && menus.length)) {
-                selection = next_selection(selection);
-                if (selection == null) return null;
-                menus = data[lang].menu[selection];
-            }
-            return menus;
-        }
-        var menus = getMenus(DATA);
-        if (menus === null) return;
+        // These are the valid menus.  Now we must toggle between them
+        // somehow.
+        var selsnmen = validMenus.next().value;
+        selection    = selsnmen[0];
+        var menus    = selsnmen[1];
+        if (menus === null) throw "No menu found";
 
         clicked.addClass('striked');
         $('#' + lang).find('.word')
             .filter(function(){
-                return $(this).data().path.startsWith(selection);
+                var idx = $(this).data("idx");
+                return selection.includes(idx);
             })
             .addClass('striked');
-        // $('#' + lang).find('.space')
-        //     .filter(function(){
-        //         var nr = $(this).data().nr;
-        //         return lin[nr] ? path.startsWith(selection) : false;
-        //     })
-        //     .addClass('striked');
 
         $('#menus').data('selection', selection);
         var ul = $('<ul>').appendTo($('#menus')).hide();
         for (var i = 0; i < menus.length; i++) {
-
             var item = menus[i];
             var menuitem = $('<span class="clickable">')
-                .data({'trees': item.trees, 'lang': lang})
+                .data('item', item)
+                .data('lang', lang)
                 .click(BUSY(function(c){
-                    select_menuitem($(c).data());
+                    var $c = $(c);
+                    var item = $c.data('item');
+                    var lang = $c.data('lang');
+                    select_menuitem(item, lang);
                 }));
             if (item.lin.length == 0) {
                 $('<span>').html("&empty;").appendTo(menuitem);
             } else {
                 item.lin.forEach(function(pword){
-                    var marked = pword.path.startsWith(selection);
+                    var marked = prefixOf(selection, pword.path);
                     $('<span>').text(pword.lin)
                         .addClass(marked ? 'marked' : 'greyed')
                         .appendTo(menuitem);
@@ -424,9 +397,47 @@ function click_word(event) {
     }).show();
 }
 
+function getValidMenus(idx, menu) {
+    return circular(lookupKeySet(idx, menu));
+}
 
-function select_menuitem(item) {
-    DATA[item.lang].trees = item.trees;
+function prefixOf(xs, ys) {
+    for(var i = 0 ; i < xs.length ; i ++) {
+        var x = xs[i];
+        var y = xs[i];
+        if(x != y) return false;
+    }
+    return true;
+}
+
+// Takes a generator and returns a circular generator.  Currently this
+// is implemented simply by making an array (by forcing the generator)
+// and then simply cycling through that..
+function* circular(gen) {
+    var xs = Array.from(gen);
+    if(xs.length == 0)
+        throw "Cannot create circular generator from an empty one";
+    var i = 0;
+    while(true) {
+        yield xs[i];
+        i = (i+1) % xs.length;
+    }
+}
+// Looks up a value in a set of keys. Returns the key and value where
+// the value is present in the key.
+
+// lookupKeySet :: a -> Map [a] v -> [([a], v)]
+function* lookupKeySet(idx, map) {
+    for(var item of map) {
+        var ks = item[0];
+        if(ks.includes(idx)) {
+            yield item;
+        }
+    }
+}
+
+function select_menuitem(item, lang) {
+    DATA[lang].lin = item.lin;
     DATA.token = LOGIN_TOKEN;
     DATA.time = elapsed_time();
     call_server(MESSAGES.MENU, DATA);

@@ -251,7 +251,7 @@ startLesson
   -> String -- ^ Token
   -> Text -- ^ Lesson name
   -- * Source- language and tree, target- langauge and tree.
-  -> io (String, Types.TTree, String, Types.TTree)
+  -> io (String, Types.Linearization, String, Types.Linearization)
 startLesson conn token lesson = liftIO $ do
   -- get user name
   Only user <- fromMaybe errUsr . listToMaybe
@@ -272,8 +272,8 @@ newLesson
   :: Connection
   -> Text -- ^ Username
   -> Text -- ^ Lesson name
-  -> IO ( String, Types.TTree
-        , String, Types.TTree
+  -> IO ( String, Types.Linearization
+        , String, Types.Linearization
         )
 newLesson conn usr lsn = newLessonM usr lsn `runDB` conn
 
@@ -312,7 +312,7 @@ shuffle = liftIO . QC.generate . QC.shuffle
 getTreePairs
   :: MonadDB db
   => Text
-  -> db [(Types.TTree, Types.TTree)]
+  -> db [(Types.Linearization, Types.Linearization)]
 getTreePairs lesson = query exerciseQuery (Only lesson)
   where
   exerciseQuery =
@@ -321,13 +321,12 @@ getTreePairs lesson = query exerciseQuery (Only lesson)
           WHERE Lesson = ?;|]
 
 newLessonM :: Text -> Text -> DB
-  ( String, Types.TTree
-  , String, Types.TTree
+  ( String, Types.Linearization
+  , String, Types.Linearization
   )
 newLessonM user lesson = do
   -- get exercise count
   count <- fromOnly . fromMaybe errNonUniqueLesson . listToMaybe
-    -- (\case { [Only count] -> count ; _ -> error "Database.newLesson: Non unique lesson"})
     <$> query exerciseCountQuery (Only lesson)
   -- get lesson round
   [[round]] <- query lessonRoundQuery [user,lesson]
@@ -362,9 +361,9 @@ continueLesson
   -> Text -- ^ Lesson name
   -> IO
      ( String
-     , Types.TTree
+     , Types.Linearization
      , String
-     , Types.TTree
+     , Types.Linearization
      )
 continueLesson conn user lesson = continueLessonM user lesson `runDB` conn
 
@@ -374,15 +373,15 @@ continueLessonM
   -> Text -- ^ Lesson name
   -> db
     ( String
-    , Types.TTree
+    , Types.Linearization
     , String
-    , Types.TTree
+    , Types.Linearization
     )
 continueLessonM user lesson = do
   [Only round] <- query @_ @_ @(Only Integer)
     lessonRoundQuery (user,lesson)
   (sourceTree,targetTree) <- fromMaybe errNoExercises . listToMaybe
-    <$> query @_ @_ @(Types.TTree, Types.TTree)
+    <$> query @_ @_ @(Types.Linearization, Types.Linearization)
         selectExerciseListQuery (lesson,user,round)
   (sourceLang,targetLang)
     <- fromMaybe errLangs . listToMaybe

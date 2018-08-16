@@ -4,6 +4,39 @@ Change log
 HEAD
 ---
 
+A menu now maps from "selections".  Selections correspond to the set
+of `LinToken`s that correspond to the subtree (`CostTree`) that the
+menu maps to.  Perhaps a bit convoluted explanation, sorry about that,
+please see `Muste.Menu.Internal.selectionFromPath` for the gory
+details.
+
+When clicking words in the UI we now cycle through the various
+"selections" corresponding to that word.
+
+A quasi-quoter has been implemented for generating `TTree`'s from
+their representation in `pgf`.  To this end a `Lift` instance has been
+declared for `TTree`s.  A test-case has been added for this.
+
+The database stores the linearized version of trees.
+
+How `TTree`s are marshalled to/from the database has been changed.
+Now uses sqlite's `BLOB` type (for binary data).
+
+`Menu`s are now no longer "cleaned" in `muste-gui` but rather we use
+the EcmaScript 6 Maps.  Can I use it?  [Yes I can!
+](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map#Browser_compatibility)
+
+Locate various config/data files in a more robust manner.
+
+Disable text-selection on the menus in the UI.  This is nice because
+one often wants to click multiple times, which can be registered as a
+double-click, such an even is not supposed to trigger text selection.
+Of course this means that it is not possible to copy-paste the
+exercises into other programs...
+
+Add new function to `Muste.Grammar.Internal` for parsing sentences
+into `TTree`s.  Similarly in `Muste.Linearization.Internal`.
+
 0.2.3.0
 ---
 

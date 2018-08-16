@@ -1,4 +1,4 @@
-{-# Language UnicodeSyntax #-}
+{-# Language UnicodeSyntax, FlexibleContexts #-}
 module Muste.Common
   ( preAndSuffix
   , wildCard
@@ -12,13 +12,26 @@ module Muste.Common
   , prettyShow
   , prettyTrace
   , prettyTraceId
+  , readFail
+  , eitherFail
+  , enumerate
+  , maybeFail
+  , binaryFromText
+  , binaryToText
   ) where
 
+import Prelude hiding (fail)
 import qualified Data.Set as Set
 import Data.List (groupBy)
 import Data.Function (on)
 import Data.Text.Prettyprint.Doc (Pretty)
 import qualified Data.Text.Prettyprint.Doc as Doc
+import Control.Monad.Fail
+import Text.Read (readEither)
+import Data.Binary (Binary)
+import qualified Data.Binary as Binary
+import Data.ByteString.Lazy (ByteString)
+import Data.String.Conversions (ConvertibleStrings(convertString))
 
 import Debug.Trace
 
@@ -119,3 +132,25 @@ prettyTrace a = trace (prettyShow a)
 {-# Deprecated prettyTraceId "'prettyTraceId' remains in your code. Pls fix!" #-}
 prettyTraceId ∷ Pretty a ⇒ a → a
 prettyTraceId a = trace (prettyShow a) a
+
+readFail ∷ Read r ⇒ MonadFail m ⇒ String → m r
+readFail = eitherFail . readEither
+
+eitherFail ∷ MonadFail m ⇒ Either String a → m a
+eitherFail = \case
+  Left s → fail s
+  Right a → pure a
+
+enumerate ∷ [a] → [(Int, a)]
+enumerate = zipWith (,) [0..]
+
+maybeFail ∷ MonadFail m ⇒ String → Maybe a → m a
+maybeFail err = \case
+  Nothing → fail err
+  Just a → pure a
+
+binaryToText :: Binary bin ⇒ ConvertibleStrings ByteString text ⇒ bin → text
+binaryToText = convertString . Binary.encode
+
+binaryFromText :: Binary bin ⇒ ConvertibleStrings text ByteString ⇒ text → bin
+binaryFromText = Binary.decode . convertString

@@ -9,11 +9,13 @@ module Muste.Grammar.Internal
   , getAllRules
   , getRuleType
   , brackets
-  -- Used in test module
+  -- Used internally
   , parseTTree
   , lookupGrammar
+  , lookupGrammarM
   , parseGrammar
-  )  where
+  , parseSentence
+  ) where
 
 import Prelude hiding (id)
 
@@ -25,13 +27,15 @@ import qualified Data.ByteString.Lazy as LB
 import qualified PGF
   ( Tree, wildCId, functions
   , showCId, startCat, functionType, parsePGF
-  , bracketedLinearize
+  , bracketedLinearize, parse
   )
 import PGF.Internal as PGF hiding (funs, cats)
 import Data.List
 import Data.Text.Prettyprint.Doc (Pretty(..))
 import qualified Data.Text.Prettyprint.Doc as Doc
 import Text.Printf
+import Control.Category ((>>>))
+import Control.Monad.Fail (MonadFail(fail))
 
 import qualified Muste.Grammar.Grammars as Grammars (grammars)
 import Muste.Common
@@ -43,12 +47,13 @@ import qualified Muste.Tree.Internal as Tree (toGfTree)
 data Rule = Function String FunType deriving (Ord,Eq,Show,Read)
 
 -- | Type 'Grammar' consists of a start category and a list of rules.
-data Grammar = Grammar {
-  startcat :: String,
-  synrules :: [Rule],
-  lexrules :: [Rule],
-  pgf :: PGF
+data Grammar = Grammar
+  { startcat :: String
+  , synrules :: [Rule]
+  , lexrules :: [Rule]
+  , pgf :: PGF
   }
+
 
 instance Pretty Grammar where
   pretty (Grammar sCat srules lrules _) = Doc.sep
@@ -60,9 +65,6 @@ instance Pretty Grammar where
     s = unwords . (map (\r -> "\t" ++ show r ++ "\n"))
     p :: String -> String -> Doc.Doc ann
     p frmt s = Doc.pretty @String $ printf frmt s
-
--- | Rename GF abstract syntax tree (from PGF)
-type GFAbsTree = PGF.Tree
 
 -- | The function 'getRules' returns the union of syntactic and lexical rules of a grammar
 getAllRules :: Grammar -> [Rule]
@@ -144,24 +146,24 @@ brackets grammar language ttree
   = PGF.bracketedLinearize (pgf grammar) language (Tree.toGfTree ttree)
 
 parseTTree :: Grammar -> String -> TTree
-parseTTree g = gfAbsTreeToTTree g . read
+parseTTree g = fromGfTree g . read
 
--- | The function 'gfAbsTreeToTTree' creates a 'TTree' from an
--- 'GFAbsTree' and a 'Grammar'. Othewise similar to
--- 'gfAbsTreeToTTreeWithPGF'
-gfAbsTreeToTTree :: Grammar -> GFAbsTree -> TTree
-gfAbsTreeToTTree g (EFun f) =
+-- | The function 'fromGfTree' creates a 'TTree' from an
+-- 'PGF.Tree' and a 'Grammar'. Othewise similar to
+-- 'fromGfTreeWithPGF'
+fromGfTree :: Grammar -> PGF.Tree -> TTree
+fromGfTree g (EFun f) =
   let
     typ = getFunType g (PGF.showCId f)
   in
     TNode (PGF.showCId f) typ []
-gfAbsTreeToTTree g (EApp e1 e2) =
+fromGfTree g (EApp e1 e2) =
   let
-    (TNode name typ sts) = gfAbsTreeToTTree g e1
-    st2 = gfAbsTreeToTTree g e2
+    (TNode name typ sts) = fromGfTree g e1
+    st2 = fromGfTree g e2
   in
     TNode name typ (sts ++ [st2])
-gfAbsTreeToTTree _ _ = TMeta wildCard
+fromGfTree _ _ = TMeta wildCard
 
 grammars :: Map String Grammar
 grammars = Map.fromList (uncurry grm <$> Grammars.grammars)
@@ -171,3 +173,19 @@ grammars = Map.fromList (uncurry grm <$> Grammars.grammars)
 
 lookupGrammar ∷ String → Maybe Grammar
 lookupGrammar s = Map.lookup s grammars
+
+-- | lookup a grammar in some fallible monad.
+lookupGrammarM ∷ MonadFail m ⇒ String → String → m Grammar
+lookupGrammarM err = lookupGrammar >>> maybeFail err
+
+-- | Parses a linearized sentence.  Essentially a wrapper around
+-- 'PGF.parse'.
+parseSentence ∷ Grammar → Language → String → [TTree]
+parseSentence grammar lang = pgfIfy >>> fmap musteIfy
+  where
+  pgfIfy ∷ String → [PGF.Tree]
+  pgfIfy = PGF.parse (pgf grammar) lang (PGF.startCat p)
+  musteIfy ∷ PGF.Tree → TTree
+  musteIfy = fromGfTree grammar
+  p ∷ PGF.PGF
+  p = pgf grammar

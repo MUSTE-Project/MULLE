@@ -1,15 +1,9 @@
-{-# language
-    OverloadedStrings
-  , TypeApplications
-  , LambdaCase
-  , StandaloneDeriving
-  , GeneralizedNewtypeDeriving
-#-}
+{-# language OverloadedStrings, DuplicateRecordFields #-}
 module Ajax
   ( ServerTree
   , ServerMessage(..)
-  , ClientTree(..)
-  , ClientMessage(..)
+  , ClientTree(ClientTree)
+  , ClientMessage(CMMenuRequest, CMLoginRequest)
   , Menu(..)
   , Lesson(..)
   , decodeClientMessage
@@ -38,15 +32,16 @@ data ReadTreeException = RTE String deriving (Show)
 instance Exception ClientMessageException
 instance Exception ReadTreeException
 
-data ClientTree = ClientTree {
-  clanguage :: String,
-  ctrees :: [TTree]
-  } deriving (Show) ;
+data ClientTree = ClientTree
+  { clanguage ∷ String
+  , lin       ∷ Linearization
+  } deriving (Show)
 
 instance FromJSON ClientTree where
-  parseJSON = withObject "ClientTree" $ \v -> ClientTree
+  parseJSON = withObject "tree"
+     $ \v -> ClientTree
     <$> v .: "grammar"
-    <*> v .: "trees"
+    <*> v .: "lin"
 
 instance ToJSON ClientTree where
   toJSON (ClientTree tree language) = object
@@ -147,29 +142,26 @@ instance ToJSON ClientMessage where
 -- reason for it of course is that less information is needed by the
 -- server when receiving a request for e.g. @\/api\/menu@.
 data ServerTree = ServerTree
-  { slanguage :: String
-  , trees :: [TTree]
-  , lin   :: Linearization
-  , smenu :: Menu
-  } deriving (Show) ;
+  { slanguage ∷ String
+  , lin       ∷ Linearization
+  , smenu     ∷ Menu
+  } deriving (Show)
 
 instance FromJSON ServerTree where
   parseJSON = withObject "ServerTree" $ \v -> ServerTree
     <$> v .: "grammar"
-    <*> v .: "trees"
     <*> v .: "lin"
     <*> v .: "menu"
 
 instance ToJSON ServerTree where
-  toJSON (ServerTree grammar trees lin menu) = object
+  toJSON (ServerTree grammar lin menu) = object
     [ "grammar" .= grammar
-    , "trees"   .= trees
     , "lin"     .= lin
     , "menu"    .= menu
     ]
 
-mkServerTree :: String -> [TTree] -> Linearization -> Menu -> ServerTree
-mkServerTree lang trees lin menu = ServerTree lang trees lin menu
+mkServerTree ∷ String → Linearization → Menu → ServerTree
+mkServerTree lang lin menu = ServerTree lang lin menu
 
 data Lesson = Lesson {
   lname :: Text,

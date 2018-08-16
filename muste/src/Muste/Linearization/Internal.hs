@@ -1,12 +1,4 @@
-{-# Language OverloadedStrings
-, GeneralizedNewtypeDeriving
-, CPP
-, StandaloneDeriving
-, FlexibleContexts
-, TypeFamilies
-, UnicodeSyntax
-, NamedWildCards
-#-}
+{-# Language CPP, OverloadedStrings #-}
 module Muste.Linearization.Internal
   ( Context(ctxtGrammar, ctxtPrecomputed)
   , buildContext
@@ -17,6 +9,7 @@ module Muste.Linearization.Internal
   , langAndContext
   , mkLin
   , sameOrder
+  , disambiguate
   -- Used in test suite:
   , readLangs
   ) where
@@ -25,6 +18,8 @@ import Data.Maybe (fromMaybe)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Aeson
+import GHC.Generics (Generic)
+import Data.Binary (Binary)
 -- This might be the only place we should know of PGF
 import qualified PGF
 import qualified PGF.Internal as PGF hiding (funs, cats)
@@ -41,47 +36,69 @@ import Data.MonoTraversable
 import qualified Data.MonoTraversable as Mono
 import Data.Sequences (SemiSequence, IsSequence, Index)
 import qualified Data.Sequences as Mono
+import Control.Category ((>>>))
 
 import Muste.Tree
 import Muste.Grammar
-import Muste.Grammar.Internal (pgf)
 import qualified Muste.Grammar.Internal as Grammar
-  ( brackets
+  ( pgf
+  , brackets
   , lookupGrammar
+  , parseTTree
+  , parseSentence
   )
 import Muste.AdjunctionTrees
-
+import Muste.Selection
 import Muste.Prune
+import Muste.Common.SQL (FromField, ToField)
+import qualified Muste.Common.SQL as SQL
 
 data LinToken = LinToken
+  -- The path refers to the path in the 'TTree'
   { ltpath :: Path
-  , _ltlin :: String
+  , ltlin :: String
   , _ltmatched :: Path
-  } deriving (Show)
+  }
+
+deriving instance Show LinToken
+
+deriving instance Generic LinToken
+
+instance Binary LinToken where
 
 instance Eq LinToken where
-  (==) = (==) `on` _ltlin
+  (==) = (==) `on` ltlin
 
 instance Ord LinToken where
-  compare = compare `on` _ltlin
+  compare = compare `on` ltlin
 
-instance FromJSONKey LinToken
-
-instance ToJSONKey LinToken
-
--- FIXME Better name
--- TODO Merge with `OldL`.
-newtype Linearization = Linearization { runLinearization:: [LinToken] }
+newtype Linearization = Linearization { runLinearization :: [LinToken] }
   deriving
-  ( Show, FromJSON, ToJSON, Semigroup, Monoid
-  , Ord, Eq, FromJSONKey, ToJSONKey
+  ( Semigroup, Monoid
+  , Ord, Eq, Binary
+  , FromJSON, ToJSON
   )
+
+stringRep ∷ Linearization → String
+stringRep = otoList >>> fmap ltlin >>> unwords
+
+deriving instance Show Linearization
+
+-- This is not a valid show instance
+-- instance Show Linearization where
+--   show = show . stringRep
+
+instance ToField Linearization where
+  toField = SQL.toBlob
+
+instance FromField Linearization where
+  fromField = SQL.fromBlob
 
 -- | Remember all 'AdjunctionTrees' in a certain 'PGF.Language' for a
 -- certain 'Grammar'.
 data Context = Context
   { ctxtGrammar :: Grammar
-  , _ctxtLang   :: PGF.Language
+  , ctxtLang   :: PGF.Language
   , ctxtPrecomputed :: AdjunctionTrees
   }
 
@@ -144,7 +161,7 @@ linearizeTree (Context grammar language _) ttree =
     brackets = Grammar.brackets grammar language ttree
   in
     if not (isEmptyGrammar grammar)
-      && language `elem` PGF.languages (pgf grammar)
+      && language `elem` PGF.languages (Grammar.pgf grammar)
       && not (null brackets)
     then bracketsToTuples ttree $ head brackets
     else Linearization $ [LinToken [] "?0" []]
@@ -170,7 +187,8 @@ langAndContext = readLangs . getGrammar
 -- | Given a grammar creates a mapping from all the languages in that
 -- grammar to their respective 'Context's.
 readLangs :: Grammar -> Map String Context
-readLangs grammar = Map.fromList $ mkCtxt <$> PGF.languages (pgf grammar)
+readLangs grammar
+  = Map.fromList $ mkCtxt <$> PGF.languages (Grammar.pgf grammar)
   where
   mkCtxt lang = (PGF.showCId lang, buildContext grammar lang)
 
@@ -245,3 +263,9 @@ sameOrder' _ [] = False
 sameOrder' (x:xs) yss@(y:ys)
   | x == y    = sameOrder' xs ys
   | otherwise = sameOrder' xs yss
+
+disambiguate ∷ Context → Linearization → [TTree]
+disambiguate ctxt = stringRep >>> parse
+  where
+  parse ∷ String → [TTree]
+  parse = Grammar.parseSentence (ctxtGrammar ctxt) (ctxtLang ctxt)

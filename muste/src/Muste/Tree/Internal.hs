@@ -1,4 +1,4 @@
-{-# language DeriveGeneric, LambdaCase, UnicodeSyntax #-}
+{-# language DeriveGeneric, LambdaCase, UnicodeSyntax, DeriveLift #-}
 {- | This Module is the internal implementation behind the module 'Muste.Tree' -}
 module Muste.Tree.Internal
   ( Path
@@ -30,7 +30,6 @@ import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
 import qualified Data.Text.Lazy as LText
 import qualified Data.Text.Lazy.Encoding as LText
-import qualified Data.Binary as Binary
 import qualified Data.ByteString.Lazy as LBS
 import GHC.Generics
 import Data.String
@@ -39,13 +38,11 @@ import Control.Monad.Fail hiding (fail)
 import Text.Read (readEither)
 import Data.Text.Prettyprint.Doc (Pretty(pretty))
 import Text.Printf
+import Language.Haskell.TH.Syntax (Lift)
+import Data.String.Conversions (convertString)
 
-import qualified Database.SQLite.Simple as SQL
-import qualified Database.SQLite.Simple.FromField as SQL (returnError)
-import Database.SQLite.Simple.ToField (ToField)
-import qualified Database.SQLite.Simple.ToField as SQL
-import Database.SQLite.Simple.FromField (FromField(fromField))
-import qualified Database.SQLite.Simple.FromField as SQL
+import Muste.Common.SQL (FromField, ToField)
+import qualified Muste.Common.SQL as SQL
 
 import Muste.Common
 
@@ -72,6 +69,8 @@ data TTree
    -- read is broken at the moment, most likely because of the
    -- read/show instances for @CId@
   deriving (Ord, Eq, Show, Read, Generic)
+
+deriving instance Lift TTree
 
 instance Binary TTree
 
@@ -130,23 +129,11 @@ instance FromJSON TTree where
 instance ToJSON TTree where
   toJSON = String . fromString . show
 
--- FIXME Do I really need to do two three steps of encoding?  Is it
--- not possible to jump directly from binary to a 'Text.Text' (the
--- strict variant).
-binaryToText :: Binary a => a -> Text.Text
-binaryToText = LText.toStrict . LText.decodeUtf8 . Binary.encode
-
--- FIXME Similiar issue as for 'binaryToJSON'.
-binaryFromText :: Binary c => Text.Text -> c
-binaryFromText = Binary.decode . LBS.fromStrict . Text.encodeUtf8
-
 instance FromField TTree where
-  fromField fld = case SQL.fieldData fld of
-    SQL.SQLText t -> pure $ binaryFromText t
-    _ -> SQL.returnError SQL.ConversionFailed fld mempty
+  fromField = SQL.fromBlob
 
 instance ToField TTree where
-  toField = SQL.SQLText . binaryToText
+  toField = SQL.toBlob
 
 -- | The basic type of sentences and sentence formers.
 data FunType
@@ -155,6 +142,8 @@ data FunType
   -- parameters.
   | NoType
   deriving (Ord, Eq, Show, Read, Generic)
+
+deriving instance Lift FunType
 
 instance Binary FunType
 
@@ -171,8 +160,12 @@ class Show t => TreeC t where
 -- | Position in a path
 type Pos = Int
 
--- FIXME Consider making abstract.
+-- FIXME Make this abstract so we can override the {To,From}JSON
+-- instance for this type and avoid using this `clean_lin` function
+-- which is defined in `muste-gui.js`.
+
 -- FIXME Another idea for indexing into a tree would be to a graph.
+
 -- | A path in a tree.  Used by e.g. linearization for indexing into
 -- the tree.
 type Path = [Pos]

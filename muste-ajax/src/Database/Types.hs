@@ -27,6 +27,7 @@ import Data.Text (Text)
 import Data.Time
 
 import qualified Muste (TTree, Linearization)
+import Muste (Linearization)
 
 type Blob = ByteString
 type Numeric = Integer
@@ -65,8 +66,8 @@ type Session =
 -- * The lesson to which the exercise belongs.
 -- * Timeout for the exercise.
 type Exercise =
-  ( Text            -- @sourceTree@
-  , Text            -- @targetTree@
+  ( Linearization   -- @sourceTree@
+  , Linearization   -- @targetTree@
   , Text            -- @lesson@
   , Numeric         -- @timeout@
   )
@@ -105,8 +106,8 @@ type Lesson =
 -- * The round it was in the lesson.
 type FinishedExercise =
   ( Text            -- @user@
-  , Text            -- @sourceTree@
-  , Text            -- @targetTree@
+  , Linearization   -- @sourceTree@
+  , Linearization   -- @targetTree@
   , Text            -- @lesson@
   , NominalDiffTime -- @time@
   , Numeric         -- @clickCount@
@@ -151,8 +152,8 @@ type FinishedLesson =
 -- * The round.
 type ExerciseList =
   ( Text            -- @user@
-  , Text            -- @sourceTree@
-  , Text            -- @targetTree@
+  , Linearization   -- @sourceTree@
+  , Linearization   -- @targetTree@
   , Text            -- @lesson@
   , Numeric         -- @round@
   )

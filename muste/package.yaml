@@ -61,6 +61,10 @@ default-extensions:
 - DeriveGeneric
 - LambdaCase
 - TypeApplications
+- StandaloneDeriving
+- GADTs
+- GeneralizedNewtypeDeriving
+- TypeFamilies
 
 library:
   other-extensions:
@@ -77,9 +81,11 @@ library:
     - Muste.Prune
     - Muste.Linearization
     - Muste.Menu
+    - Muste.Grammar.TH
 
   other-modules:
     - Muste.Common
+    - Muste.Common.SQL
     - Muste.Tree.Internal
     - Muste.Grammar.Internal
     - Muste.Linearization.Internal
@@ -88,6 +94,7 @@ library:
     - Muste.Grammar.Embed
     - Muste.Grammar.Grammars
     - Muste.Menu.Internal
+    - Muste.Selection
 
 tests:
   test:
