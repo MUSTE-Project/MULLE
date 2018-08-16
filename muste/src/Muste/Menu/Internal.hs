@@ -46,9 +46,11 @@ import qualified Muste.Selection as Selection
 --
 -- [^1]: Here's to hoping this documentation will be kept up-to-date.
 data CostTree = CostTree
-  { cost           :: Int
-  , lin            :: Linearization
-  , _isInsertion   :: Bool
+  { cost           ∷ Int
+  , lin            ∷ Linearization
+  , _isInsertion   ∷ Bool
+  -- TODO Add this:
+  -- , changedWords   ∷ Selection
   } deriving (Show,Eq)
 
 instance FromJSON CostTree where
@@ -73,7 +75,7 @@ instance ToJSON CostTree where
 -- remember what the idea with this is, but currently the outermost
 -- list is always a singleton.
 getPrunedSuggestions :: Context -> TTree -> Menu
-getPrunedSuggestions ctxt tree = Menu $ Map.mapKeys toSel pathMap
+getPrunedSuggestions ctxt tree = Menu $ Map.mapKeysWith (mappend @[CostTree]) toSel pathMap
   where
   toSel ∷ Path → Selection
   toSel p = selectionFromPath p (Linearization.linearizeTree ctxt tree)
