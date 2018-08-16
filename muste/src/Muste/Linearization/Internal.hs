@@ -166,7 +166,7 @@ linearizeTree (Context grammar language _) ttree =
       && language `elem` PGF.languages (Grammar.pgf grammar)
       && not (null brackets)
     then bracketsToTuples ttree $ head brackets
-    else Linearization $ [LinToken [] "?0" []]
+    else Linearization [LinToken [] "?0" []]
 
 -- | Given an identifier for a grammar, looks up that grammar and then
 -- creates a mapping from all the languages in that grammar to their
@@ -202,16 +202,16 @@ readLangs grammar
 
 -- | Convert a 'PGF.BracketedString' to a list of string/path tuples.
 bracketsToTuples :: TTree -> PGF.BracketedString -> Linearization
-bracketsToTuples tree bs = deep tree bs
+bracketsToTuples = deep
   where
   deep :: TTree -> PGF.BracketedString -> Linearization
   deep _     (PGF.Bracket _ _   _ _ _ []) = mempty
   -- Ordinary leaf
   deep ltree (PGF.Bracket _ fid _ _ _ [PGF.Leaf token]) =
-    Linearization $ [LinToken (getPath ltree fid) token []]
+    Linearization [LinToken (getPath ltree fid) token []]
   -- Meta leaf
   deep ltree (PGF.Bracket _ fid _ _ [PGF.EMeta id] _) =
-    Linearization $ [LinToken (getPath ltree fid) ("?" ++ show id) []]
+    Linearization [LinToken (getPath ltree fid) ("?" ++ show id) []]
   -- In the middle of the tree
   deep ltree (PGF.Bracket _ fid _ _ _ bs) =
     broad ltree fid bs mempty

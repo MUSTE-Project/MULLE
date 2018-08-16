@@ -23,7 +23,7 @@ import Muste.Tree
 type FEAT = String -> Int -> (Integer, Integer -> TTree)
 
 emptyFeat :: String -> Int -> (Integer, Integer -> TTree)
-emptyFeat = \_ _ -> (-1, \_ -> TMeta "*empty*")
+emptyFeat _ _ = (-1, \_ -> TMeta "*empty*")
              
 -- | Compute how many trees there are of a given size and type.
 featCard :: FEAT -> String -> Int -> Integer
@@ -31,7 +31,7 @@ featCard f c n = fst (f c n)
 
 -- | Generate the i-th tree of a given size and type.
 featIth :: FEAT -> String -> Int -> Integer -> TTree
-featIth f c n i = snd (f c n) i
+featIth f c n = snd (f c n)
 
 mkFEAT :: Grammar -> FEAT
 mkFEAT gr =

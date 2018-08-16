@@ -13,7 +13,7 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as LB
 
 import Muste (Grammar, Context, TTree, Menu, Linearization)
-import qualified Muste as Muste
+import qualified Muste
 import qualified Muste.Grammar.Internal as Grammar
 import qualified Muste.Linearization.Internal as Linearization
 import qualified Muste.Grammar.Embed as Embed

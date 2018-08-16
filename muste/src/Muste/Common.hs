@@ -142,7 +142,7 @@ eitherFail = \case
   Right a → pure a
 
 enumerate ∷ [a] → [(Int, a)]
-enumerate = zipWith (,) [0..]
+enumerate = zip [0..]
 
 maybeFail ∷ MonadFail m ⇒ String → Maybe a → m a
 maybeFail err = \case

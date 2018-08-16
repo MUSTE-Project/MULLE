@@ -210,8 +210,8 @@ isValid t =
         vs = map (\(p,t) -> check t (p:path)) $ zip [0..] c
         brokenPath = filter (not . fst) vs
       in
-        if (t == ccats) && (and $ map fst vs)then (True,Nothing)
-        else if null brokenPath then (False, Just $ reverse path) else (False, Just $ reverse $ fromJust $ snd $ head $ brokenPath)
+        if (t == ccats) && all fst vs then (True,Nothing)
+        else if null brokenPath then (False, Just $ reverse path) else (False, Just $ reverse $ fromJust $ snd $ head brokenPath)
     check _ path = (False, Just $ reverse path)
   in
     check t []
@@ -240,7 +240,7 @@ instance TreeC LTree where
         Just b -> selectNode b tl ;
         Nothing -> Nothing
       }
-  selectBranch (LLeaf) _ = Nothing
+  selectBranch LLeaf _ = Nothing
   selectBranch (LNode _ _ [] ) _ = Nothing
   selectBranch (LNode _ _ trees) i
     | i < 0 || i >= length trees = Nothing
@@ -332,7 +332,7 @@ getAllPaths t =
     paths (TNode _ _ []) = []
     paths (TNode _ _ cs) =
       let zips = zip [0..] cs in
-      [[c]|(c,_) <- zips] ++ (concat $ map (\(p,c) -> map (p:) $ paths c) $ zips)
+      [[c]|(c,_) <- zips] ++ concatMap (\(p,c) -> map (p:) $ paths c) zips
   in
     []:paths t
 
@@ -363,7 +363,7 @@ replaceNode oldTree _ _ =
 countNodes :: TTree -> Int
 countNodes (TMeta _) = 1
 countNodes (TNode _ _ []) = 1
-countNodes (TNode _ _ ts) = 1 + (sum $ map countNodes ts)
+countNodes (TNode _ _ ts) = 1 + sum (map countNodes ts)
 
 countMatchedNodes :: TTree -> TTree -> Int
 countMatchedNodes tree1 tree2 =
