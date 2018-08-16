@@ -35,7 +35,7 @@ import Data.Text.Prettyprint.Doc (Pretty(..))
 import qualified Data.Text.Prettyprint.Doc as Doc
 import Text.Printf
 import Control.Category ((>>>))
-import Control.Monad.Fail (MonadFail(fail))
+import Control.Monad.Fail (MonadFail)
 
 import qualified Muste.Grammar.Grammars as Grammars (grammars)
 import Muste.Common

@@ -14,16 +14,14 @@ import System.FilePath
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (Lift(lift))
 import Control.Exception (throwIO)
-import Control.Monad
 import Control.Monad.IO.Class (MonadIO(liftIO))
-import Data.ByteString (ByteString)
 import Data.Yaml
   ( FromJSON(parseJSON), withObject
   , ToJSON(toJSON), object
-  , (.:), (.:?), (.!=), (.=)
+  , (.:?), (.!=), (.=)
   )
 #if MIN_VERSION_yaml(0,8,31)
-import qualified Data.Yaml as Yaml (decodeFileThrow)
+import qualified Data.Yaml as Yaml
 #else
 import qualified Data.Yaml as Yaml (decodeFileEither)
 #endif
@@ -73,16 +71,14 @@ decodeFileThrow ∷ MonadIO m ⇒ FromJSON a ⇒ FilePath → m a
 #if MIN_VERSION_yaml(0,8,31)
 decodeFileThrow = Yaml.decodeFileThrow
 #else
-decodeFileThrow f = liftIO $ Yaml.decodeFileEither f >>= either throwIO return
+decodeFileThrow f
+  = liftIO $ Yaml.decodeFileEither f >>= either throwIO return
 #endif
-
-instance MonadIO Q where
-  liftIO = runIO
 
 decodeConfig ∷ Q Exp
 decodeConfig = do
   p ← makeRelativeToProject "config.yaml"
-  cfg ← decodeFileThrow @_ @Config p
+  cfg ← runIO $ decodeFileThrow @_ @Config p
   lift cfg
 
 config ∷ Q Exp

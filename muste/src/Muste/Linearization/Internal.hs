@@ -37,7 +37,7 @@ import qualified Data.MonoTraversable as Mono
 import Data.Sequences (SemiSequence, IsSequence, Index)
 import qualified Data.Sequences as Mono
 import Control.Category ((>>>))
-import Data.Text.Prettyprint.Doc (Pretty(..), Doc)
+import Data.Text.Prettyprint.Doc (Pretty(..))
 
 import Muste.Tree
 import Muste.Grammar
@@ -45,11 +45,9 @@ import qualified Muste.Grammar.Internal as Grammar
   ( pgf
   , brackets
   , lookupGrammar
-  , parseTTree
   , parseSentence
   )
 import Muste.AdjunctionTrees
-import Muste.Selection
 import Muste.Prune
 import Muste.Common.SQL (FromField, ToField)
 import qualified Muste.Common.SQL as SQL

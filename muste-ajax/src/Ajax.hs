@@ -1,10 +1,11 @@
+{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 {-# language OverloadedStrings, DuplicateRecordFields #-}
 module Ajax
   ( ServerTree
   , ServerMessage(..)
   , ClientTree(ClientTree)
   , ClientMessage(CMMenuRequest, CMLoginRequest)
-  , Menu(..)
+  , Menu
   , Lesson(..)
   , decodeClientMessage
   , mkServerTree
@@ -14,11 +15,9 @@ module Ajax
 import Data.Aeson hiding (Null,String)
 import qualified Data.Aeson as A
 import Data.Aeson.Types hiding (Null)
-import Data.Text (Text(..),pack)
+import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as B
-import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
 import qualified Data.Vector as V
 import Data.Maybe
 import Control.Exception
@@ -126,6 +125,7 @@ instance ToJSON ClientMessage where
       , "a"      .= a
       , "b"      .= b
       ]
+    _ → error "Ajax.toJSON @ClientMessage: Non-exhaustive pattern-match"
     where
       (|>) = createMessageObject
 
@@ -244,6 +244,7 @@ instance FromJSON ServerMessage where
         "SMDataInvalid" ->
             SMDataInvalid <$> fromJust params .: "error" ;
         "SMLogoutResponse" -> return SMLogoutResponse ;
+        _ → error "Ajax.parseJSON @ServerMessage: Non-exhaustive pattern match"
         }
 
 instance ToJSON Lesson where
@@ -298,6 +299,7 @@ instance ToJSON ServerMessage where
     ]
   toJSON SMLogoutResponse =
     createMessageObject "SMLogoutResponse" A.Null
+  toJSON _ = error "Ajax.toJSON @ServerMessage: Non-exhaustive pattern match"
 
 -- FIXME Indicate in type signature that we can fail (e.g. `IO
 -- ClientMessage`)

@@ -27,10 +27,6 @@ import Data.Maybe
 import Data.Aeson
 import Data.Binary (Binary)
 import qualified Data.Text as Text
-import qualified Data.Text.Encoding as Text
-import qualified Data.Text.Lazy as LText
-import qualified Data.Text.Lazy.Encoding as LText
-import qualified Data.ByteString.Lazy as LBS
 import GHC.Generics
 import Data.String
 import Data.String.ToString
@@ -39,7 +35,6 @@ import Text.Read (readEither)
 import Data.Text.Prettyprint.Doc (Pretty(pretty))
 import Text.Printf
 import Language.Haskell.TH.Syntax (Lift)
-import Data.String.Conversions (convertString)
 
 import Muste.Common.SQL (FromField, ToField)
 import qualified Muste.Common.SQL as SQL
@@ -215,12 +210,12 @@ isValid t =
         vs = map (\(p,t) -> check t (p:path)) $ zip [0..] c
         brokenPath = filter (not . fst) vs
       in
-        if (t == ccats) && (and $ map fst vs)then (True,Nothing) 
+        if (t == ccats) && (and $ map fst vs)then (True,Nothing)
         else if null brokenPath then (False, Just $ reverse path) else (False, Just $ reverse $ fromJust $ snd $ head $ brokenPath)
     check _ path = (False, Just $ reverse path)
   in
     check t []
-    
+
 -- | The function 'getTreeCat' gives the root category of a 'TTree',
 -- returns 'wildCId' on missing type
 getTreeCat :: TTree -> Category
@@ -279,7 +274,7 @@ ttreeToLTree tree =
         (npos,ults) = updates npos1 lts
       in
         (npos, ult:ults)
-    
+
   in
     snd $ update 0 $ convert tree
 
@@ -288,7 +283,7 @@ ttreeToLTree tree =
 -- list is used as an out of bounds value.
 --- | The function 'getPath' finds a path to a node with a given label in a labeled tree
 getPath :: TTree -> Int -> Path
-getPath ltree id = 
+getPath ltree id =
   let
     deep :: LTree -> Int -> Path -> Path
     deep LLeaf _ _ = []
@@ -332,7 +327,7 @@ maxDepth (TNode _ _ trees) =
 -- | The function 'getAllPaths' returns all paths in a 'TTree'
 getAllPaths :: TTree -> [Path]
 getAllPaths t =
-  let 
+  let
     paths (TMeta _) = []
     paths (TNode _ _ []) = []
     paths (TNode _ _ cs) =
@@ -340,7 +335,7 @@ getAllPaths t =
       [[c]|(c,_) <- zips] ++ (concat $ map (\(p,c) -> map (p:) $ paths c) $ zips)
   in
     []:paths t
-         
+
 -- | The function 'replaceBranch' replaces a branch in a 'TTree' by a new 'TTree' if a subtree at the position exists
 replaceBranch :: TTree -> Pos -> TTree  -> TTree
 replaceBranch (TNode id typ trees) pos newTree =

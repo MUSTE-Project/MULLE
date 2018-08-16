@@ -1,3 +1,5 @@
+-- TODO Fix this:
+{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 {-# Language
     OverloadedStrings
   , TypeApplications
@@ -28,15 +30,13 @@ import qualified Database.SQLite.Simple as SQL (query, query_, execute)
 
 import Crypto.Random.API (getSystemRandomGen, genRandomBytes)
 import Crypto.KDF.PBKDF2 (fastPBKDF2_SHA512, Parameters(Parameters))
-import Crypto.Hash (Digest(..),SHA3_512(..),hash)
+import Crypto.Hash (Digest,SHA3_512(..),hash)
 
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as B
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
-import Data.Map.Lazy (Map)
-import qualified Data.Map.Lazy as M
 import Data.Maybe
 import Data.Time.Clock
 import Data.Time.Format
@@ -51,7 +51,6 @@ import Data.Semigroup ((<>))
 import qualified Test.QuickCheck as QC (shuffle, generate)
 
 import Control.Exception
-import Control.Monad.IO.Class
 
 import qualified Database.Types as Types
 
@@ -85,7 +84,7 @@ createUser
   -> Text -- ^ Password
   -> Bool -- ^ User enabled
   -> IO Types.User
-createUser conn user pass enabled = do
+createUser _conn user pass enabled = do
   -- Create a salted password
   salt <- createSalt
   let safePw = hashPasswd (T.encodeUtf8 pass) salt
@@ -239,9 +238,9 @@ listLessons conn token = liftIO $ do
       Enabled
       FROM Lesson;|]
   case users of
-    [] -> throw $ DatabaseException "No user found"
+    []          -> throw $ DatabaseException "No user found"
     [Only user] -> SQL.query conn listLessonsQuery [user]
-    usrs      -> throw $ DatabaseException "Non unique user associated with token"
+    _usrs       -> throw $ DatabaseException "Non unique user associated with token"
 
 -- | Start a new lesson by randomly choosing the right number of
 -- exercises and adding them to the users exercise list

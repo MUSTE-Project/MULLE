@@ -3,10 +3,6 @@
 
 module DbInit.Data (exercises, lessons) where
 
-#if !(MIN_VERSION_base(4,11,0))
-import Data.Semigroup (Semigroup((<>)))
-#endif
-
 import Muste.Tree
 import Muste.Grammar.TH (tree)
 
