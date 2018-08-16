@@ -114,4 +114,4 @@ single lintoken.
 CostTree must also not save the TTree, again just the linearization.
 
 The highlighting in the drop-down menu that the user is shown when
-clicking on a word is broken as per `11604d2`.
+clicking on a word is broken as per `1b95483`.
