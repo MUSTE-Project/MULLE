@@ -37,6 +37,7 @@ import qualified Data.MonoTraversable as Mono
 import Data.Sequences (SemiSequence, IsSequence, Index)
 import qualified Data.Sequences as Mono
 import Control.Category ((>>>))
+import Data.Text.Prettyprint.Doc (Pretty(..), Doc)
 
 import Muste.Tree
 import Muste.Grammar
@@ -83,6 +84,9 @@ stringRep ∷ Linearization → String
 stringRep = otoList >>> fmap ltlin >>> unwords
 
 deriving instance Show Linearization
+
+instance Pretty Linearization where
+  pretty = pretty . stringRep
 
 -- This is not a valid show instance
 -- instance Show Linearization where

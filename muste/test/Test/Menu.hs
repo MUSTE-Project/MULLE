@@ -13,13 +13,16 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as LB
 
 import Muste.Common
-import Muste (Grammar, Context, TTree, Menu)
+import Muste (Grammar, Context, TTree, Menu, Linearization)
 import qualified Muste as Muste
 import qualified Muste.Grammar.Internal as Grammar
 import qualified Muste.Menu.Internal as Menu
 import qualified Muste.Linearization.Internal as Linearization
 import qualified Muste.Grammar.Embed as Embed
 import qualified Muste.Selection as Selection
+import Muste.Grammar.TH (tree)
+
+import Muste.Common
 
 grammar :: Grammar
 grammar = Grammar.parseGrammar $ LB.fromStrict $ snd grammar'
@@ -31,47 +34,42 @@ ctxts ∷ Map String Context
 ctxts = Linearization.readLangs grammar
 
 ambiguities ∷ Assertion
-ambiguities = (menu `contains` both) @?= True
-  where
-  both ∷ [TTree]
-  both = [treeDefinite, treeIndefinite]
-  contains ∷ Menu → [TTree] → Bool
-  contains mn ts
-    = contains' ts
-    $ groupsOfTrees mn
-  groupsOfTrees ∷ Menu → [[TTree]]
-  groupsOfTrees mn
-    = map (Set.toList . Menu.trees)
-    $ fromMaybe (error "Path not found")
-    $ Mono.lookup (Selection.fromList [0,0,0]) mn
-  contains' ∷ [TTree] → [[TTree]] → Bool
-  contains' ts = any (isSubListOf ts)
-  menu = getMenu treeDefinite
+ambiguities = treeDefiniteL @?= treeIndefiniteL
+
+menu ∷ Menu
+menu = getMenu treeDefinite
 
 treeDefinite ∷ TTree
-treeDefinite = parse
-  $ "useS (useCl (simpleCl (useCNdefsg   (useN hostis_N)) "
-  <>            "(transV vincere_V2 (usePN Africa_PN))))"
+treeDefinite = $(tree "novo_modo/Prima"
+  $  "useS (useCl (simpleCl "
+  <>   "(useCNdefsg (useN hostis_N))"
+  <>   "(transV vincere_V2 (usePN Africa_PN))))")
+
+treeDefiniteL ∷ Linearization
+treeDefiniteL = mkLin treeDefinite
 
 treeIndefinite ∷ TTree
-treeIndefinite = parse
+treeIndefinite = $(tree "novo_modo/Prima"
   $ "useS (useCl (simpleCl (useCNindefsg (useN hostis_N)) "
-  <>            "(transV vincere_V2 (usePN Africa_PN))))"
+  <>            "(transV vincere_V2 (usePN Africa_PN))))")
 
-parse ∷ String → TTree
-parse = Grammar.parseTTree grammar
+treeIndefiniteL ∷ Linearization
+treeIndefiniteL = mkLin treeIndefinite
 
 getMenu ∷ TTree → Menu
 getMenu = Muste.getCleanMenu latinCtxt
-  where
-  latinCtxt ∷ Context
-  latinCtxt = fromMaybe (error "Can't find Latin context")
-    $ Map.lookup "PrimaLat" ctxts
+
+latinCtxt ∷ Context
+latinCtxt = fromMaybe (error "Can't find Latin context")
+  $ Map.lookup "PrimaLat" ctxts
+
+mkLin ∷ TTree → Linearization
+mkLin = Linearization.mkLin latinCtxt treeDefinite treeIndefinite
 
 tests ∷ TestTree
 tests =
   testGroup "Prune"
-    [ "ambiguities" |> ambiguities
+    [ "The (in-)definite form in latin is ambiguous" |> ambiguities
     ]
   where
   (|>) = testCase

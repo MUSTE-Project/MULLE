@@ -4,8 +4,6 @@ module Muste.Menu.Internal
   , getCleanMenu
   , getMenu
   , CostTree
-  -- Used in Test.Menu
-  , trees
   ) where
 
 import Data.List
@@ -50,8 +48,6 @@ import qualified Muste.Selection as Selection
 data CostTree = CostTree
   { cost           :: Int
   , lin            :: Linearization
-  -- TODO We should remove this as well, right?
-  , trees          :: Set TTree
   , _isInsertion   :: Bool
   } deriving (Show,Eq)
 
@@ -59,16 +55,12 @@ instance FromJSON CostTree where
   parseJSON = withObject "CostTree" $ \v -> CostTree
     <$> v .: "cost"
     <*> v .: "lin"
-    -- TODO Remove
-    <*> v .: "trees"
     <*> v .: "insertion"
 
 instance ToJSON CostTree where
-  toJSON (CostTree score lin trees repl) = object
+  toJSON (CostTree score lin repl) = object
     [ "score"       .= score
     , "lin"         .= lin
-    -- TODO Remove
-    , "trees"       .= trees
     , "insertion"   .= repl
     ]
 
@@ -132,7 +124,7 @@ costTree
   -> TTree         -- ^ The replacement tree
   -> CostTree
 costTree ctxt s p (cost, r, _, _) t
-  = CostTree cost (Linearization.linearizeTree ctxt t) (Set.singleton t) ins
+  = CostTree cost (Linearization.linearizeTree ctxt t) ins
   where
   ins :: Bool
   ins = isInsertion ctxt p s r
@@ -207,11 +199,9 @@ instance Pretty Menu where
   pretty (Menu mp) = Doc.vsep $ map p $ Map.toList $ mp
     where
     p ∷ ∀ a . (Selection, [CostTree]) → Doc.Doc a
-    p (p, cs) = Doc.vsep [ (pretty p), Doc.nest 2 $ Doc.vsep $ prettyCt <$> cs]
+    p (p, cs) = Doc.nest 2 $ Doc.vsep $ pretty p : map prettyCt cs
     prettyCt ∷ CostTree → Doc a
-    prettyCt
-      = Doc.hsep . map (Doc.pretty . show . Tree.toGfTree)
-      . Set.toList . trees
+    prettyCt = pretty . lin
 
 instance FromJSON Menu where
   -- parseJSON = withObject "menu" (parseJSON' . Object)
