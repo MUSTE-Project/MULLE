@@ -1,7 +1,7 @@
 Change log
 ==========
 
-HEAD
+0.2.3.1
 ---
 
 A menu now maps from "selections".  Selections correspond to the set
