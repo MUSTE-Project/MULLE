@@ -1,5 +1,5 @@
-incomplete concrete PrimaRulesI of PrimaRules = Cat, Conjunction**
-  open Syntax, Extra in {
+incomplete concrete PrimaRulesI of PrimaRules = Cat, Conjunction **
+  open Syntax in {
 
 lincat
   ListNP = Conjunction.ListNP;

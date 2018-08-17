@@ -1,7 +1,7 @@
 incomplete concrete PrimaLexI of PrimaLex = Cat **
   open Structural, Lexicon in {
 
-  lin
+lin
   tenere_V2 = Lexicon.hold_V2 ;
   magnus_A = Lexicon.big_A ;
   habere_V2 = Structural.have_V2 ;
@@ -15,4 +15,5 @@ incomplete concrete PrimaLexI of PrimaLex = Cat **
   bonus_A = Lexicon.good_A ;
   pater_N = Lexicon.father_N2 ;
   and_Conj = Structural.and_Conj ;
+
 }

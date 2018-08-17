@@ -1,4 +1,5 @@
 abstract PrimaLex = Cat ** {
+
 fun
   copula_VA : VA ;
   copula_V2 : V2 ;
@@ -43,4 +44,5 @@ fun
   Caesar_N : N ;
   he_PP : Pron ;
   and_Conj : Conj ;
+
 }

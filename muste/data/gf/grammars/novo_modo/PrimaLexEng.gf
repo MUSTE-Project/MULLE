@@ -2,8 +2,9 @@ concrete PrimaLexEng of PrimaLex = CatEng ** PrimaLexI
   with (Cat=CatEng), (Structural=StructuralEng), (Lexicon=LexiconEng) **
   open ParadigmsEng, (Irreg=IrregEng), (Verb=VerbEng), (Res=ResEng), Prelude in {
 
--- Note: The English RGL cannot encode the Copula as a regular verb, this is the best we can do:
-  oper verbBe = mkV ("be"|"are") "is" "was" "been" "being" ;
+oper
+  -- Note: The English RGL cannot encode the Copula as a regular verb, this is the best we can do:
+  verbBe = mkV ("be"|"are") "is" "was" "been" "being" ;
 
 lin
   copula_VA = mkVA verbBe ;

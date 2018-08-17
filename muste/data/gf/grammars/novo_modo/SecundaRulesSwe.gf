@@ -1,5 +1,5 @@
---# -path=/home/herb/src/foreign/GF/lib/src/swedish:/home/herb/src/foreign/GF/lib/src/scandinavian
-concrete SecundaRulesSwe of SecundaRules = CatSwe ** SecundaRulesI with (Cat=CatSwe),(Syntax=SyntaxSwe),(PrimaRules=PrimaRulesSwe) ** open (R=ResSwe), Prelude, ParamX, CommonScand in {
+concrete SecundaRulesSwe of SecundaRules = CatSwe ** SecundaRulesI
+  with (Syntax=SyntaxSwe), (PrimaRules=PrimaRulesSwe) ** open (R=ResSwe), Prelude, ParamX, CommonScand in {
   lincat CS = SS ;
   lin
     impS pron vp =
