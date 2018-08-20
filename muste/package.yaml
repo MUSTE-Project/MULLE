@@ -77,17 +77,15 @@ library:
     - Muste
     - Muste.Tree
     - Muste.Grammar
-    - Muste.Feat
-    - Muste.Prune
     - Muste.Linearization
     - Muste.Menu
-    - Muste.Grammar.TH
 
   other-modules:
     - Muste.Common
     - Muste.Common.SQL
     - Muste.Tree.Internal
     - Muste.Grammar.Internal
+    - Muste.Grammar.TH
     - Muste.Linearization.Internal
     - Muste.AdjunctionTrees
     - Muste.Data
@@ -95,6 +93,8 @@ library:
     - Muste.Grammar.Grammars
     - Muste.Menu.Internal
     - Muste.Selection
+    - Muste.Prune
+    - Muste.Feat
 
 tests:
   test:

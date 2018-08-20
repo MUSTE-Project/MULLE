@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# Language UnicodeSyntax, FlexibleContexts #-}
 module Muste.Common
   ( preAndSuffix

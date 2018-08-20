@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-unused-top-binds -Wno-name-shadowing #-}
 {-# Language CPP, OverloadedStrings #-}
 module Muste.Linearization.Internal
   ( Context(ctxtGrammar, ctxtPrecomputed)
@@ -40,13 +41,9 @@ import Control.Category ((>>>))
 import Data.Text.Prettyprint.Doc (Pretty(..))
 
 import Muste.Tree
+import qualified Muste.Tree.Internal as Tree
 import Muste.Grammar
 import qualified Muste.Grammar.Internal as Grammar
-  ( pgf
-  , brackets
-  , lookupGrammar
-  , parseSentence
-  )
 import Muste.AdjunctionTrees
 import Muste.Prune
 import Muste.Common.SQL (FromField, ToField)
@@ -162,7 +159,7 @@ linearizeTree (Context grammar language _) ttree =
   let
     brackets = Grammar.brackets grammar language ttree
   in
-    if not (isEmptyGrammar grammar)
+    if not (Grammar.isEmptyGrammar grammar)
       && language `elem` PGF.languages (Grammar.pgf grammar)
       && not (null brackets)
     then bracketsToTuples ttree $ head brackets
@@ -208,10 +205,10 @@ bracketsToTuples = deep
   deep _     (PGF.Bracket _ _   _ _ _ []) = mempty
   -- Ordinary leaf
   deep ltree (PGF.Bracket _ fid _ _ _ [PGF.Leaf token]) =
-    Linearization [LinToken (getPath ltree fid) token []]
+    Linearization [LinToken (Tree.getPath ltree fid) token []]
   -- Meta leaf
   deep ltree (PGF.Bracket _ fid _ _ [PGF.EMeta id] _) =
-    Linearization [LinToken (getPath ltree fid) ("?" ++ show id) []]
+    Linearization [LinToken (Tree.getPath ltree fid) ("?" ++ show id) []]
   -- In the middle of the tree
   deep ltree (PGF.Bracket _ fid _ _ _ bs) =
     broad ltree fid bs mempty
@@ -222,7 +219,7 @@ bracketsToTuples = deep
   -- Syncategorial word
   broad ltree fid (PGF.Leaf token:bss) ts = Linearization (x:xs)
     where
-    x = LinToken (getPath ltree fid) token []
+    x = LinToken (Tree.getPath ltree fid) token []
     Linearization xs = broad ltree fid bss ts
   -- In the middle of the nodes
   broad ltree fid (bs:bss)
@@ -237,7 +234,10 @@ matchTk srcTree trgTree (LinToken path lin _)
 -- | Checks if a linearization token matches in both trees.  If they
 -- don't match, then the empty path is returned.
 matched :: Path -> TTree -> TTree -> Path
-matched p t1 t2 = if selectNode t1 p == selectNode t2 p then p else []
+matched p t1 t2 =
+  if Tree.selectNode t1 p == Tree.selectNode t2 p
+  then p
+  else mempty
 
 mkLin
   :: Context

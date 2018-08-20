@@ -1,5 +1,5 @@
 -- TODO Fix this:
-{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
+{-# OPTIONS_GHC -fno-warn-unused-top-binds -Wno-name-shadowing #-}
 {-# Language
     OverloadedStrings
   , TypeApplications

@@ -16,8 +16,8 @@ module Muste.Feat
 
 import Data.List
 
-import Muste.Grammar
-import Muste.Grammar.Internal (Rule(Function))
+import Muste.Grammar.Internal
+  (Rule(Function), getAllRules, Grammar, getRuleType)
 import Muste.Tree
 
 type FEAT = String -> Int -> (Integer, Integer -> TTree)
@@ -81,6 +81,6 @@ generateTrees f cat =
   let
     feats = map (\d -> (featCard f cat d,featIth f cat d)) [0..]
   in
-    map (\(max,fs) -> map fs [0..max-1]) feats
+    map (\(m,fs) -> map fs [0..m-1]) feats
 
 

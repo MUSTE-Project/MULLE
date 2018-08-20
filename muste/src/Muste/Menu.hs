@@ -1,6 +1,5 @@
 module Muste.Menu
   ( Menu
-  , getCleanMenu
   , getMenu
   , CostTree
   ) where

@@ -1,16 +1,13 @@
 {-# Language TemplateHaskell #-}
 module Test.Prune (tests) where
 
-import Data.Maybe
 import Test.Tasty
 import Test.Tasty.HUnit
 import qualified Data.Set as Set
 import Data.Foldable
-import Text.Printf
 import Data.Set (Set)
 
 import Muste
-import qualified Muste.Grammar.Internal as Grammar
 import Muste.Prune
 import qualified Test.Common as Test
 import Muste.Grammar.TH (tree)
@@ -40,9 +37,8 @@ multipleSteps = testGroup "Africa" $ mk <$> zip [0..]
   isSuggested t = t `elem` trees @?= True
   isNotSuggested ∷ TTree → Assertion
   isNotSuggested t = t `elem` trees @?= False
+  mk ∷ (Int, IO ()) → TestTree
   mk (i, a) = testCase (show i) a
-
-parse = Grammar.parseTTree Test.grammar
 
 replacements ∷ TTree → Set TTree
 replacements source = fold ts

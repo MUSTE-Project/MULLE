@@ -1,15 +1,16 @@
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# language OverloadedStrings, TypeApplications, UnicodeSyntax #-}
 {- | This Module is the internal implementation behind the module 'Muste.Grammar' -}
 module Muste.Grammar.Internal
   ( Grammar(..)
   , Rule(..)
+  -- Used internally
   , pgfToGrammar
   , isEmptyGrammar
   , getFunType
   , getAllRules
   , getRuleType
   , brackets
-  -- Used internally
   , parseTTree
   , lookupGrammar
   , lookupGrammarM

@@ -1,5 +1,5 @@
 {-# Language CPP #-}
-{-# OPTIONS_GHC -Wno-unused-top-binds #-}
+{-# OPTIONS_GHC -Wno-unused-top-binds -Wno-name-shadowing #-}
 -- FIXME Should this be an internal module? It's not currently used in
 -- @muste-ajax@.
 module Muste.Prune
@@ -23,11 +23,10 @@ import qualified Data.Set as Set
 
 import Muste.Common
 import Muste.Tree (TTree(..), Path, FunType(..), Category)
-import qualified Muste.Tree as Tree
-  ( replaceNode, getAllPaths, selectNode
-  )
+import qualified Muste.Tree.Internal as Tree
 import Muste.Grammar
 import Muste.Grammar.Internal (Rule(Function))
+import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees
 
 
@@ -335,7 +334,7 @@ getAdjunctionTrees :: Grammar -> AdjunctionTrees
 getAdjunctionTrees grammar = Mono.mapFromList ((\cat -> (cat, map fst (adjTrees getRulesFor cat []))) <$> allCats)
   where
   allRules :: Map String [Rule]
-  allRules = M.fromListWith mappend $ catRule <$> getAllRules grammar
+  allRules = M.fromListWith mappend $ catRule <$> Grammar.getAllRules grammar
   catRule ∷ Rule → (String, [Rule])
   catRule r@(Function _ (Fun c _)) = (c, pure r)
   catRule _ = error "Non-exhaustive pattern match"

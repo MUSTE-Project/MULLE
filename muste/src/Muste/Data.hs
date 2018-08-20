@@ -1,3 +1,4 @@
+-- | Various helper methods for managing external resources.
 module Muste.Data (embedGrammar) where
 
 import System.FilePath (FilePath, (</>), (<.>))

@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# language DeriveGeneric, LambdaCase, UnicodeSyntax, DeriveLift #-}
 {- | This Module is the internal implementation behind the module 'Muste.Tree' -}
 module Muste.Tree.Internal
@@ -49,11 +50,12 @@ import Muste.Common
 -- | A semantic category
 type Category = String
 
--- | = Typed Trees
+-- * = Typed Trees
 --
 -- This is a representation of gramatically structured natural
 -- languages sentences.  The representation lends ideas from type
 -- theory (hence the name 'TTree' @~@ /Typed Trees/).
+
 -- | A generic tree with types
 data TTree
    -- Regular node consisting of a function name, function type and

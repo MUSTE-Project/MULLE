@@ -1,7 +1,9 @@
-{-# Language UnicodeSyntax, NamedWildCards, TemplateHaskell #-}
+{-# Language UnicodeSyntax, NamedWildCards, TemplateHaskell, CPP #-}
 module Test.Linearization (tests) where
 
-import Data.Semigroup
+#if !(MIN_VERSION_base(4,11,0))
+import Data.Semigroup ((<>))
+#endif
 import Data.Maybe
 import Test.Tasty
 import Test.Tasty.HUnit

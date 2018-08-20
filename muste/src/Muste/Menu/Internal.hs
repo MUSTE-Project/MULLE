@@ -1,7 +1,7 @@
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# Language OverloadedStrings, CPP #-}
 module Muste.Menu.Internal
   ( Menu
-  , getCleanMenu
   , getMenu
   , CostTree
   , lin
@@ -186,7 +186,7 @@ getCleanMenu context tree
   = filterCostTrees
   $ getPrunedSuggestions context tree
 
--- | Generate a menu from a lineartization.
+-- | Generate a 'Menu' from a linearization.
 getMenu ∷ Context → Linearization → Menu
 getMenu ctxt
   =   Linearization.disambiguate ctxt
@@ -194,7 +194,7 @@ getMenu ctxt
 
 -- If we had an ordering on `CostTree`s we could also use `Set` here
 -- in stead of `[]`.
--- | A 'Menu' maps paths to 'CostTree's.
+-- | A 'Menu' maps 'Selection's to 'CostTree's.
 newtype Menu = Menu (Map Selection [CostTree]) deriving (Show)
 
 instance Pretty Menu where
