@@ -1,22 +1,14 @@
 {-# Language OverloadedStrings #-}
 -- | A 'Set' with a dfferent 'Ord' instance.
-module Muste.Selection (Selection, fromList) where
+module Muste.Selection (Selection, fromList, toList) where
 
 import Prelude hiding (fail)
 import Data.Aeson
-import qualified Data.Aeson.Encoding as Aeson
-import Data.Text.Prettyprint.Doc (Pretty(..), Doc)
+import Data.Text.Prettyprint.Doc (Pretty(..))
 import qualified Data.Text.Prettyprint.Doc as Doc
 import Data.List
 import Data.IntSet (IntSet)
 import qualified Data.IntSet as IntSet
-import Data.String.Conversions (convertString)
-import Control.Monad.Fail (MonadFail(fail))
-import Data.Text (Text)
-import Text.Read (readEither)
-
-import Muste.Tree (Path)
-import Muste.Common
 
 -- | A selection represents parts of a 'Linearization' w.r.t a
 -- linearized 'TTree'.
@@ -36,21 +28,8 @@ instance Pretty Selection where
   pretty = Doc.pretty . intercalate ","
     . map show . IntSet.toList . runSelection
 
-fromText ∷ MonadFail m ⇒ Text → m Selection
-fromText t = case readEither $ convertString t of
-  Right x → pure $ fromList x
-  Left err → fail err
-
 deriving instance ToJSON Selection
 deriving instance FromJSON Selection
-
-shownToJSONKey ∷ (a → String) → ToJSONKeyFunction a
-shownToJSONKey show' = ToJSONKeyText f g
-  where f = convertString @String . show'
-        g = Aeson.text . convertString . show'
-
-showableToJSONKey ∷ Show a ⇒ ToJSONKeyFunction a
-showableToJSONKey = shownToJSONKey show
 
 fromList ∷ [Int] → Selection
 fromList = Selection . IntSet.fromList

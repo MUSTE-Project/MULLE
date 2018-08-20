@@ -9,11 +9,9 @@ import Snap
   )
 import qualified Snap as Snap
 import qualified Snap.Util.FileServe as Snap (serveDirectory)
-import qualified Snap.Http.Server as Snap
 import System.IO.Error
 import System.FilePath (takeDirectory)
 import System.Directory (createDirectoryIfMissing)
-import Control.Monad.IO.Class (liftIO)
 import Data.String
 import Snap.Util.CORS
 import Data.ByteString (ByteString)
@@ -76,10 +74,10 @@ staticInit = makeSnaplet "static" "Static file server" Nothing $ do
 appInit :: SnapletInit b ()
 appInit = makeSnaplet "muste" "Multi Semantic Text Editor"
   (Just (pure Config.wwwRoot))
-  $ void $ do
+  $ do
     -- TODO Missing lenses.  Dunno what they are used for though.
-    nestSnaplet (p "api")  (err "api")    apiInit
-    nestSnaplet (p mempty) (err "static") staticInit
+    void $ nestSnaplet (p "api")  (err "api")    apiInit
+    void $ nestSnaplet (p mempty) (err "static") staticInit
   where
     p ∷ ByteString → ByteString
     p = (ByteString.pack Config.virtualRoot </>)

@@ -1,4 +1,4 @@
-{-# Language CPP, UnicodeSyntax, NamedWildCards, TypeSynonymInstances, FlexibleInstances, ScopedTypeVariables, ViewPatterns #-}
+{-# Language CPP #-}
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
 -- FIXME Should this be an internal module? It's not currently used in
 -- @muste-ajax@.
@@ -335,7 +335,7 @@ getAdjunctionTrees :: Grammar -> AdjunctionTrees
 getAdjunctionTrees grammar = Mono.mapFromList ((\cat -> (cat, map fst (adjTrees getRulesFor cat []))) <$> allCats)
   where
   allRules :: Map String [Rule]
-  allRules = M.fromListWith mappend $ fmap catRule $ getAllRules grammar
+  allRules = M.fromListWith mappend $ catRule <$> getAllRules grammar
   catRule ∷ Rule → (String, [Rule])
   catRule r@(Function _ (Fun c _)) = (c, pure r)
   catRule _ = error "Non-exhaustive pattern match"

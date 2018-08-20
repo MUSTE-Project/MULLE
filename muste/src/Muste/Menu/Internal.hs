@@ -4,8 +4,6 @@ module Muste.Menu.Internal
   , getCleanMenu
   , getMenu
   , CostTree
-  -- Used in Test.Menu
-  , trees
   ) where
 
 import Data.List
@@ -16,7 +14,6 @@ import Data.Set (Set)
 import qualified Data.Set        as Set
 import Data.Aeson hiding (pairs)
 import Data.Aeson.Types (Parser)
-import qualified Data.Text as Text
 import qualified Data.Containers as Mono
 import Data.MonoTraversable
 import Data.Function (on)
@@ -29,7 +26,6 @@ import qualified Data.Text.Prettyprint.Doc as Doc
 
 import Muste.Common
 import Muste.Tree
-import qualified Muste.Tree.Internal as Tree (toGfTree)
 import qualified Muste.Prune as Prune
 import Muste.Linearization
 import qualified Muste.Linearization.Internal as Linearization
@@ -48,27 +44,23 @@ import qualified Muste.Selection as Selection
 --
 -- [^1]: Here's to hoping this documentation will be kept up-to-date.
 data CostTree = CostTree
-  { cost           :: Int
-  , lin            :: Linearization
-  -- TODO We should remove this as well, right?
-  , trees          :: Set TTree
-  , _isInsertion   :: Bool
+  { cost           ∷ Int
+  , lin            ∷ Linearization
+  , _isInsertion   ∷ Bool
+  -- TODO Add this:
+  -- , changedWords   ∷ Selection
   } deriving (Show,Eq)
 
 instance FromJSON CostTree where
   parseJSON = withObject "CostTree" $ \v -> CostTree
     <$> v .: "cost"
     <*> v .: "lin"
-    -- TODO Remove
-    <*> v .: "trees"
     <*> v .: "insertion"
 
 instance ToJSON CostTree where
-  toJSON (CostTree score lin trees repl) = object
+  toJSON (CostTree score lin repl) = object
     [ "score"       .= score
     , "lin"         .= lin
-    -- TODO Remove
-    , "trees"       .= trees
     , "insertion"   .= repl
     ]
 
@@ -81,7 +73,7 @@ instance ToJSON CostTree where
 -- remember what the idea with this is, but currently the outermost
 -- list is always a singleton.
 getPrunedSuggestions :: Context -> TTree -> Menu
-getPrunedSuggestions ctxt tree = Menu $ Map.mapKeys toSel pathMap
+getPrunedSuggestions ctxt tree = menu
   where
   toSel ∷ Path → Selection
   toSel p = selectionFromPath p (Linearization.linearizeTree ctxt tree)
@@ -92,6 +84,7 @@ getPrunedSuggestions ctxt tree = Menu $ Map.mapKeys toSel pathMap
     = Prune.replaceTrees (ctxtGrammar ctxt) (ctxtPrecomputed ctxt)
   go :: Path -> Set (Prune.SimTree, TTree) -> Mono.MapValue Menu
   go = costTrees ctxt tree
+  menu = Menu $ Map.mapKeysWith (mappend @[CostTree]) toSel pathMap
 
 -- | Creates a 'CostTree' from a tree and its cost.  Since the cost is
 -- already calculated, it basically just linearizes the tree.
@@ -132,7 +125,7 @@ costTree
   -> TTree         -- ^ The replacement tree
   -> CostTree
 costTree ctxt s p (cost, r, _, _) t
-  = CostTree cost (Linearization.linearizeTree ctxt t) (Set.singleton t) ins
+  = CostTree cost (Linearization.linearizeTree ctxt t) ins
   where
   ins :: Bool
   ins = isInsertion ctxt p s r
@@ -207,11 +200,9 @@ instance Pretty Menu where
   pretty (Menu mp) = Doc.vsep $ map p $ Map.toList $ mp
     where
     p ∷ ∀ a . (Selection, [CostTree]) → Doc.Doc a
-    p (p, cs) = Doc.vsep [ (pretty p), Doc.nest 2 $ Doc.vsep $ prettyCt <$> cs]
+    p (p, cs) = Doc.nest 2 $ Doc.vsep $ pretty p : map prettyCt cs
     prettyCt ∷ CostTree → Doc a
-    prettyCt
-      = Doc.hsep . map (Doc.pretty . show . Tree.toGfTree)
-      . Set.toList . trees
+    prettyCt = pretty . lin
 
 instance FromJSON Menu where
   -- parseJSON = withObject "menu" (parseJSON' . Object)
@@ -232,7 +223,7 @@ instance ToJSON Menu where
 instance Semigroup Menu where
   -- | When 'Menu's are combined, if they share a key, then the
   -- '[CostTree]' they map to are 'mappend'ed together.
-  Menu a <> Menu b = Menu $ Map.unionWith mappend a b
+  Menu a <> Menu b = Menu $ Map.unionWith (mappend @[CostTree]) a b
 
 instance Monoid Menu where
   mempty = Menu mempty

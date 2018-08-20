@@ -35,7 +35,7 @@ import Data.Text.Prettyprint.Doc (Pretty(..))
 import qualified Data.Text.Prettyprint.Doc as Doc
 import Text.Printf
 import Control.Category ((>>>))
-import Control.Monad.Fail (MonadFail(fail))
+import Control.Monad.Fail (MonadFail)
 
 import qualified Muste.Grammar.Grammars as Grammars (grammars)
 import Muste.Common
@@ -62,13 +62,13 @@ instance Pretty Grammar where
     , p "Lexical Rules: %s" (s lrules)
     ]
     where
-    s = unwords . (map (\r -> "\t" ++ show r ++ "\n"))
+    s = unwords . map (\r -> "\t" ++ show r ++ "\n")
     p :: String -> String -> Doc.Doc ann
     p frmt s = Doc.pretty @String $ printf frmt s
 
 -- | The function 'getRules' returns the union of syntactic and lexical rules of a grammar
 getAllRules :: Grammar -> [Rule]
-getAllRules g = union (synrules g) (lexrules g)
+getAllRules g = synrules g `union` lexrules g
 
 -- | The function 'getRuleType' extracts the full type of a rule
 getRuleType :: Rule -> FunType

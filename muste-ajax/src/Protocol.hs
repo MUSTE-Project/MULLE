@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
 {-# language
     LambdaCase
   , OverloadedStrings
@@ -13,8 +14,6 @@ module Protocol
   ) where
 
 import Data.Aeson
-import Data.Set (Set)
-import qualified Data.Set as S
 import Data.Map (Map)
 import qualified Data.Map.Lazy as M
 import Control.Monad
@@ -35,12 +34,12 @@ import Data.Function (on)
 import Control.Monad.Catch (MonadThrow(throwM))
 import Control.Exception (Exception, throw)
 
-import Muste (Context, Path, TTree, Linearization)
+import Muste (Context, Linearization)
 import qualified Muste
 
 import Ajax
   ( ServerMessage(..), ClientMessage(..)
-  , ClientTree(..), ServerTree(..)
+  , ClientTree(..), ServerTree
   )
 import qualified Ajax
 import qualified Database
@@ -60,6 +59,7 @@ data Env = Env
 -- | A simple monad for handling responding to requests.
 type Protocol v w a = ReaderT Env (Snap.Handler v w) a
 
+-- Orphan instance!!
 instance MonadThrow (Snap.Handler v w) where
   throwM = liftIO . throwM
 
@@ -283,7 +283,6 @@ verifyMessage
   -> ServerMessage     -- ^ The message to verify
   -> Protocol v w ServerMessage
 verifyMessage tok msg = do
-  conn <- askConnection
   m <- verifySession tok
   pure $ case m of
     Nothing  -> msg
@@ -310,20 +309,12 @@ assembleMenus
   -> (String, Linearization) -- ^ Source language and tree
   -> (String, Linearization) -- ^ Target language and tree
   -> (ServerTree,ServerTree)
-assembleMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
+assembleMenus contexts lesson src trg =
   ( mkTree src
   , mkTree trg
   )
   where
   mkTree = makeTree contexts lesson src trg
-
-getContextM
-  :: Text   -- ^ The lesson
-  -> String -- ^ The language
-  -> Protocol v w Context
-getContextM lesson lang = do
-  ctxts <- askContexts
-  getContext ctxts lesson lang
 
 data ProtocolException
   = LessonNotFound Text
@@ -366,10 +357,9 @@ makeTree
   -> (String, Linearization)
   -> (String, Linearization)
   -> ServerTree
-makeTree contexts lesson (srcLang, srcTrees) (trgLang, trgTrees) (lang, trees)
+makeTree contexts lesson _ _ (lang, trees)
   = Ajax.mkServerTree lang trees (Muste.getMenu ctxt trees)
     where
-    grammar = throwLeft $ getContext contexts lesson srcLang
     ctxt    = throwLeft $ getContext contexts lesson lang
 
 -- | Throws an exception if the it's a 'Left' (requires the left to be
@@ -383,7 +373,7 @@ emptyMenus
   -> (String, Linearization) -- ^ Source language and tree
   -> (String, Linearization) -- ^ Target language and tree
   -> (ServerTree, ServerTree)
-emptyMenus contexts lesson src@(srcLang, srcTrees) trg@(_, trgTrees) =
+emptyMenus _ _ src trg =
   ( mkTree src
   , mkTree trg
   )
@@ -391,14 +381,5 @@ emptyMenus contexts lesson src@(srcLang, srcTrees) trg@(_, trgTrees) =
   -- FIXME In 'assembleMenus' we actually use the language of the tree
   -- we're building.  Investigate if this may be a bug.  Similiarly
   -- for 'lin'.  This is the reason we are not using 'makeTree' here.
-  ctxt = throwLeft $ getContext contexts lesson srcLang
-  grammar = Muste.ctxtGrammar ctxt
   mkTree ∷ (String, Linearization) → ServerTree
-  mkTree (lang, trees) = Ajax.mkServerTree
-    lang trees mempty
-
--- TODO Both unsafe and a dirty hack!
-unsafeTakeTree :: [TTree] -> TTree
-unsafeTakeTree = fromMaybe err . listToMaybe
-  where
-  err = error "Protocol.unsafeTakeTree: A hack shows its true colors."
+  mkTree (lang, trees) = Ajax.mkServerTree lang trees mempty

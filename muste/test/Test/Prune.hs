@@ -40,7 +40,7 @@ multipleSteps g = do
       m     = replaceTrees g adjTs (parse "usePN Africa_PN")
       ts    = Set.map snd <$> m
       t     = parse
-        $ "useCNdefsg (attribCN (useA victus_A) (useN imperium_N))"
+        "useCNdefsg (attribCN (useA victus_A) (useN imperium_N))"
       tslst = fold ts
   parse "useCNdefsg (useN imperium_N)" `elem` tslst @?= True
   t `elem` tslst @?= False

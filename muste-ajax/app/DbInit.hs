@@ -2,7 +2,6 @@
 module DbInit (initDb) where
 
 import           Data.ByteString (ByteString)
-import qualified Data.ByteString.Char8 as ByteString
 import           Data.FileEmbed (embedFile)
 import           Data.Text (Text)
 import           Data.Text.Encoding (decodeUtf8)
@@ -14,7 +13,6 @@ import qualified Database.SQLite3 as SQL
 import           System.Directory (createDirectoryIfMissing)
 import           System.FilePath (takeDirectory)
 import           Text.Printf
-import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Maybe (fromMaybe)
 import           Data.FileEmbed
@@ -24,8 +22,6 @@ import qualified Config
 
 import Muste (TTree, Linearization, Context)
 import qualified Muste.Linearization as Linearization (langAndContext, mkLin)
-
-import Database.Types
 
 initDb :: IO ()
 initDb = do

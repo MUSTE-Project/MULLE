@@ -20,11 +20,6 @@ module Config
 import qualified Config.TH as CFG hiding (AppConfig(..))
 import Config.TH as App (AppConfig(..))
 import System.FilePath ((</>), (<.>))
-import Data.Yaml
-  ( FromJSON(parseJSON), withObject
-  , ToJSON(toJSON), object
-  , (.:), (.:?), (.!=), (.=)
-  )
 
 cfg ∷ CFG.Config
 cfg = $( CFG.config )
