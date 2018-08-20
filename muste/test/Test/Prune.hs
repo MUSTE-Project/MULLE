@@ -27,18 +27,28 @@ import Muste.Grammar.TH (tree)
 --
 multipleSteps ∷ TestTree
 multipleSteps = testGroup "Africa" $ mk <$> zip [0..]
-  [ isSuggested $(tree "novo_modo/Exemplum" "useCNdefsg (useN imperium_N)")
-  , isNotSuggested defsg
+  [ isSuggested    short
+  , isNotSuggested long
   ]
   where
-  source = $(tree "novo_modo/Exemplum" "usePN Africa_PN")
-  trees = replacements source
   isSuggested ∷ TTree → Assertion
   isSuggested t = t `elem` trees @?= True
   isNotSuggested ∷ TTree → Assertion
   isNotSuggested t = t `elem` trees @?= False
   mk ∷ (Int, IO ()) → TestTree
   mk (i, a) = testCase (show i) a
+
+source ∷ TTree
+source = $(tree "novo_modo/Exemplum" "usePN Africa_PN")
+
+trees ∷ Set TTree
+trees = replacements source
+
+short ∷ TTree
+short = $(tree "novo_modo/Exemplum" "(useS (useCl (simpleCl (detCN theSg_Det (useN imperium_N)) (complVA copula_V (useA magnus_A)))))")
+
+long ∷ TTree
+long = $(tree "novo_modo/Exemplum" "(useS (useCl (simpleCl (detCN theSg_Det (attribCN (useA victus_A) (useN imperium_N))) (complVA copula_V (useA magnus_A)))))")
 
 replacements ∷ TTree → Set TTree
 replacements source = fold ts
@@ -47,15 +57,6 @@ replacements source = fold ts
   adjTs = getAdjunctionTrees g
   m     = replaceTrees g adjTs source
   ts    = Set.map snd <$> m
-
--- Used to be
---
---     useCNdefsg (attribCN (useA victus_A) (useN imperium_N))
---
--- But since the test grammar changed this one does not exist anymore.
-defsg ∷ TTree
--- defsg = $(tree "novo_modo/Exemplum" "detCN multus_Det (useN imperium_N)")
-defsg = $(tree "novo_modo/Exemplum" "useCNdefsg (attribCN (useA victus_A) (useN imperium_N))")
 
 tests ∷ TestTree
 tests = testGroup "Prune" $ [multipleSteps]
