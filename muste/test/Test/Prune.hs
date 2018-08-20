@@ -1,3 +1,4 @@
+{-# Language TemplateHaskell #-}
 module Test.Prune (tests) where
 
 import Data.Maybe
@@ -6,19 +7,13 @@ import Test.Tasty.HUnit
 import qualified Data.Set as Set
 import Data.Foldable
 import Text.Printf
+import Data.Set (Set)
 
 import Muste
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.Prune
-
-prima :: IO Grammar
-prima
-  = pure
-  $ fromMaybe err
-  $ Grammar.lookupGrammar g
-  where
-  g = "novo_modo/Prima"
-  err = error $ printf "Could not find grammar: %s" g
+import qualified Test.Common as Test
+import Muste.Grammar.TH (tree)
 
 -- | Issue #5: Should not include results that can be reached in
 -- multiple steps E.g. the suggestions for
@@ -33,29 +28,39 @@ prima
 --
 --     useCNdefsg (useN imperium_N)
 --
-multipleSteps :: Grammar -> Assertion
-multipleSteps g = do
-  let parse = Grammar.parseTTree g
-      adjTs = getAdjunctionTrees g
-      m     = replaceTrees g adjTs (parse "usePN Africa_PN")
-      ts    = Set.map snd <$> m
-      t     = parse
-        "useCNdefsg (attribCN (useA victus_A) (useN imperium_N))"
-      tslst = fold ts
-  parse "useCNdefsg (useN imperium_N)" `elem` tslst @?= True
-  t `elem` tslst @?= False
-
-tests :: TestTree
-tests = withResource prima mempty doTests
-  where
-    doTests act = testGroup "Prune" $ fmap (uncurry mkTest) testCases
-      where
-      mkTest :: String -> (Grammar -> Assertion) -> TestTree
-      mkTest nm t = testCase nm (act >>= t)
-
-testCases :: [(String, Grammar -> Assertion)]
-testCases =
-  [ "Prune suggestions that can be reached in multiple steps" |> multipleSteps
+multipleSteps ∷ TestTree
+multipleSteps = testGroup "Africa" $ mk <$> zip [0..]
+  [ isSuggested $(tree "novo_modo/Exemplum" "useCNdefsg (useN imperium_N)")
+  , isNotSuggested defsg
   ]
   where
-    (|>) = (,)
+  source = $(tree "novo_modo/Exemplum" "usePN Africa_PN")
+  trees = replacements source
+  isSuggested ∷ TTree → Assertion
+  isSuggested t = t `elem` trees @?= True
+  isNotSuggested ∷ TTree → Assertion
+  isNotSuggested t = t `elem` trees @?= False
+  mk (i, a) = testCase (show i) a
+
+parse = Grammar.parseTTree Test.grammar
+
+replacements ∷ TTree → Set TTree
+replacements source = fold ts
+  where
+  g     = Test.grammar
+  adjTs = getAdjunctionTrees g
+  m     = replaceTrees g adjTs source
+  ts    = Set.map snd <$> m
+
+-- Used to be
+--
+--     useCNdefsg (attribCN (useA victus_A) (useN imperium_N))
+--
+-- But since the test grammar changed this one does not exist anymore.
+defsg ∷ TTree
+-- defsg = $(tree "novo_modo/Exemplum" "detCN multus_Det (useN imperium_N)")
+defsg = $(tree "novo_modo/Exemplum" "useCNdefsg (attribCN (useA victus_A) (useN imperium_N))")
+
+tests ∷ TestTree
+tests = testGroup "Prune" $ [multipleSteps]
+  -- [ testCase "Multiple steps" multipleSteps ]
