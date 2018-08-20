@@ -15,7 +15,7 @@ For the impatient:
     make
     stack install muste-ajax
     muste-ajax
-    
+
 And then navigate to
 
     http://localhost:8080
