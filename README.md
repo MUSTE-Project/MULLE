@@ -9,7 +9,7 @@ learning exercises.
 All dependencies are resolved automatically by stack.  You just need
 to initialize the submodules:
 
-    git submodule init
+    git submodule update --init
 
 Setup
 -----
@@ -54,6 +54,14 @@ Partially/unsupported options:
   resolved relative to the above option.
 
 ### Building
+
+If the grammar-files (in `muste/data/gf/grammars/`) have changed (or
+if you just cloned the repository) you need to build the
+grammar-files.  This can be achieved with:
+
+    make
+
+Assuming you have set up `gf-core` and `gf-rgl`.
 
     stack build
 
