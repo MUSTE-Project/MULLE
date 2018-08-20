@@ -4,6 +4,7 @@ module Muste.Menu.Internal
   , getCleanMenu
   , getMenu
   , CostTree
+  , lin
   ) where
 
 import Data.List

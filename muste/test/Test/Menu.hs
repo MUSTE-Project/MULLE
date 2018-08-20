@@ -1,77 +1,81 @@
 {-# Language UnicodeSyntax, NamedWildCards, TemplateHaskell #-}
 -- TODO Still need to add test-case that uses a menu.
-{-# OPTIONS_GHC -Wno-all #-}
+{-# OPTIONS_GHC -Wall #-}
 module Test.Menu (tests) where
 
-import Data.Semigroup
 import Data.Maybe
 import Test.Tasty
 import Test.Tasty.HUnit
-import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.ByteString (ByteString)
-import qualified Data.ByteString.Lazy as LB
+import Data.Set (Set)
+import qualified Data.Set as Set
+import Control.Category ((>>>))
+import Control.Monad.Fail (MonadFail)
+import Text.Printf
+import Data.Containers (IsMap)
+import qualified Data.Containers as Mono
+import Data.Text.Prettyprint.Doc (pretty)
 
-import Muste (Grammar, Context, TTree, Menu, Linearization)
+import Muste (Grammar, TTree, Menu, Linearization, Context)
 import qualified Muste
+import qualified Muste.Common as Common
 import qualified Muste.Grammar.Internal as Grammar
 import qualified Muste.Linearization.Internal as Linearization
-import qualified Muste.Grammar.Embed as Embed
-import Muste.Grammar.TH (tree)
+import qualified Muste.Menu.Internal as Menu
+import Muste.Selection (Selection)
+import qualified Muste.Selection as Selection
 
 import qualified Test.Common as Test
 
 grammar :: Grammar
 grammar = Test.grammar
 
-ctxts ∷ Map String Context
-ctxts = Linearization.readLangs grammar
+getMenu ∷ TTree → TTree → TTree → Menu
+getMenu src trg = mkLin src trg >>> Muste.getMenu theCtxt
 
-ambiguities ∷ Assertion
-ambiguities = treeDefiniteL @?= treeIndefiniteL
+mkLin ∷ TTree → TTree → TTree → Linearization
+mkLin src trg = Linearization.mkLin theCtxt src trg
 
-menu ∷ Menu
-menu = getMenu treeDefinite
+theCtxt ∷ Context
+theCtxt = fromMaybe (error "Can't find Swedish context")
+  $ Map.lookup "ExemplumSwe" $ Linearization.readLangs grammar
 
-treeDefinite ∷ TTree
-treeDefinite = $(tree "novo_modo/Exemplum"
-  $  "useS (useCl (simpleCl "
-  <>   "(useCNdefsg (useN hostis_N))"
-  <>   "(transV vincere_V2 (usePN Africa_PN))))")
-
-treeDefiniteL ∷ Linearization
-treeDefiniteL = mkLin treeDefinite
-
-treeIndefinite ∷ TTree
-treeIndefinite = $(tree "novo_modo/Exemplum"
-  $ "useS (useCl (simpleCl (useCNindefsg (useN hostis_N)) "
-  <>            "(transV vincere_V2 (usePN Africa_PN))))")
-
-treeIndefiniteL ∷ Linearization
-treeIndefiniteL = mkLin treeIndefinite
-
-getMenu ∷ TTree → Menu
-getMenu = Muste.getCleanMenu theCtxt
-
-getMenu' ∷ Linearization → Menu
-getMenu' = Muste.getMenu theCtxt
-
-latCtxt ∷ Context
-latCtxt = fromMaybe (error "Can't find Latin context")
-  $ Map.lookup "ExemplumLat" ctxts
-
-sweCtxt ∷ Context
-sweCtxt = fromMaybe (error "Can't find Swedish context")
-  $ Map.lookup "ExemplumSwe" ctxts
-
-mkLin ∷ TTree → Linearization
-mkLin = Linearization.mkLin theCtxt treeDefinite treeIndefinite
-
-theCtxt = sweCtxt
 tests ∷ TestTree
-tests =
-  testGroup "Menu"
-    [ "The (in-)definite form in latin is ambiguous" |> ambiguities
-    ]
+tests = testGroup "Menu" $ mkTests
+  [ ("name", "source tree", [0], "target tree")
+  ]
+
+mkTests ∷ [(String, String, [Int], String)] → [TestTree]
+mkTests = map go
   where
-  (|>) = testCase
+  go ∷ (String, String, [Int], String) → TestTree
+  go (nm, src, n, trg) = testCase nm
+    $ assertThere (parseTree src) (Selection.fromList n) (parseTree trg)
+
+-- | @'assertThere' src n trg@ asserts that @trg@ exists in the menu
+-- you get from @src@.
+assertThere ∷ TTree → Selection → TTree → Assertion
+assertThere src n trg = do
+  cts ← lookupMenu err (getMenu src trg src)
+  Mono.member (mkLin src trg trg) cts @?= True
+  where
+  lookupMenu ∷ ∀ m . MonadFail m ⇒ String → Menu → m (Set Linearization)
+  -- lookup mn = undefined
+  lookupMenu s mn
+    = Set.fromList . fmap Menu.lin
+    <$> lookupFail s n mn
+  err ∷ String
+  err = printf "Test.Menu.assertThere: Selection not in tree: (%s)"
+    $ show $ pretty n
+
+lookupFail
+  ∷ MonadFail m
+  ⇒ IsMap map
+  ⇒ String
+  → Mono.ContainerKey map
+  → map
+  → m (Mono.MapValue map)
+lookupFail err k = Common.maybeFail err . Mono.lookup k
+
+parseTree ∷ String → TTree
+parseTree s = Grammar.parseTTree grammar s  
