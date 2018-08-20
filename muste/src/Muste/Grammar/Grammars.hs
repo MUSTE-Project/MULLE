@@ -16,6 +16,6 @@ grammars :: [(String, ByteString)]
 grammars =
   [ $(Embed.grammar "novo_modo/Prima")
   , $(Embed.grammar "novo_modo/Secunda")
-  , $(Embed.grammar "novo_modo/Tertia")
-  , $(Embed.grammar "novo_modo/Quarta")
+  -- , $(Embed.grammar "novo_modo/Tertia")
+  -- , $(Embed.grammar "novo_modo/Quarta")
   ]

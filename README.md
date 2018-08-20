@@ -1,10 +1,25 @@
 MULLE
 =====
+
 The [MUSTE](http://www.cse.chalmers.se/~peb/muste.html) Language
 Learning Environment is a framework to provide grammar-based language
 learning exercises.
 
-## Dependencies
+Setup
+-----
+
+For the impatient:
+
+    git submodule update --init
+    ln -s stack-lts-9.21.yaml stack.yaml
+    make
+    stack install muste-ajax
+    muste-ajax
+    xdg-open http://localhost:8080
+
+For more details please see below.
+
+### Dependencies
 
 All Haskell dependencies are resolved automatically by stack.  You
 just need to initialize the submodules:
@@ -25,8 +40,8 @@ by running (in the `gf-rgl` directory):
 
     runghc Make install DictEng.gf DictSwe.gf
 
-Setup
------
+### Setup
+
 To setup one of the packages you need to select which GHC version you
 want to use.  Currently I've only tested this with 8.4.3.  To e.g. use
 this version do
