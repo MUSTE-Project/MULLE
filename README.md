@@ -6,10 +6,24 @@ learning exercises.
 
 ## Dependencies
 
-All dependencies are resolved automatically by stack.  You just need
-to initialize the submodules:
+All Haskell dependencies are resolved automatically by stack.  You
+just need to initialize the submodules:
 
     git submodule update --init
+
+To be able to build the grammar files you will also need to install
+`gf-core` and `gf-core`.  Please follow the guidelines in
+
+- <https://github.com/GrammaticalFramework/gf-core>
+- <https://github.com/GrammaticalFramework/gf-rgl>
+
+To compile and install the RGLs, run the make scripts in the `gf-rgl`
+directory.
+
+You also have to install the dictionary files `DictEng` and `DictSwe`,
+by running (in the `gf-rgl` directory):
+
+    runghc Make install DictEng.gf DictSwe.gf
 
 Setup
 -----
