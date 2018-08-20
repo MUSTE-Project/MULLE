@@ -15,6 +15,7 @@ import qualified Data.IntSet as IntSet
 newtype Selection = Selection { runSelection ∷ IntSet }
 
 deriving instance Show Selection
+deriving instance Semigroup Selection
 deriving instance Monoid Selection
 deriving instance Eq Selection
 
@@ -31,8 +32,11 @@ instance Pretty Selection where
 deriving instance ToJSON Selection
 deriving instance FromJSON Selection
 
+-- | Generate a selection from a list of indices.  The incides must
+-- correspond the index into some 'Linearization'.
 fromList ∷ [Int] → Selection
 fromList = Selection . IntSet.fromList
 
+-- | Convert a selection to a list of indices.
 toList ∷ Selection → [Int]
 toList = IntSet.toList . runSelection
