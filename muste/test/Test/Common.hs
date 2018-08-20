@@ -11,4 +11,4 @@ prima :: Grammar
 prima = Grammar.parseGrammar $ LB.fromStrict $ snd grammar'
   where
   grammar' ∷ (String, ByteString)
-  grammar' = $(Embed.grammar "novo_modo/Prima")
+  grammar' = $(Embed.grammar "novo_modo/Exemplum")
