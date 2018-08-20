@@ -7,7 +7,7 @@ packages:
 extra-deps:
 # - ../libs/GF/src/runtime/haskell/
 - git: git@github.com:GrammaticalFramework/gf-core.git
-  commit: 636a8142b4ef3950d4d0e04b0be872590a204520
+  commit: e89e5f13bf50767665507aa7ffe0ccd813cb70f4
   subdirs:
   # Just list all directories with cabal files.
   - ./
