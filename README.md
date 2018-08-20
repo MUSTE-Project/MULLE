@@ -14,7 +14,7 @@ For the impatient:
     ln -s stack-lts-9.21.yaml stack.yaml
     make
     stack install muste-ajax
-    muste-ajax
+    muste-ajax --recreate-db
 
 And then navigate to
 
