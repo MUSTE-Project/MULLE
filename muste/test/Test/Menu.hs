@@ -101,11 +101,11 @@ mkTest' (nm, lang, src, sel, trg) = testCase nm $ do
   err = printf "Selection not found in menu for: \"%s\""
 
 prettyTruncate ∷ Pretty a ⇒ Int → Set a → Doc b
-prettyTruncate n s = truncationWarning <+> pretty trnc
+prettyTruncate n s = vsep [truncationWarning, pretty trnc]
   where
   (trnc, rest) = splitAt n $ Set.toList s
   truncationWarning = case null rest of
-    False → pretty @String "[TRUNCATED]:"
+    False → pretty @String "[RESULT TRUNCATED]:"
     True → mempty
 
 failDoc ∷ MonadFail m ⇒ Doc a → m ()
