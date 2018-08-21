@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wno-unused-top-binds -Wno-name-shadowing #-}
 {-# Language CPP, OverloadedStrings #-}
 module Muste.Linearization.Internal
-  ( Context(ctxtGrammar, ctxtPrecomputed)
+  ( Context(..)
   , buildContext
   , Linearization
   , LinToken

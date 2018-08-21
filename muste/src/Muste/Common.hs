@@ -34,7 +34,7 @@ import qualified Data.Binary as Binary
 import Data.ByteString.Lazy (ByteString)
 import Data.String.Conversions (ConvertibleStrings(convertString))
 
-import Debug.Trace
+import qualified Debug.Trace
 
 -- Computes the longest common prefix and suffix for linearized trees
 preAndSuffix :: Eq a => [a] -> [a] -> ([a],[a])
@@ -123,17 +123,6 @@ groupOnSingle p = map head . groupOn p
 isSubListOf ∷ Ord a ⇒ Eq a ⇒ [a] → [a] → Bool
 isSubListOf = Set.isSubsetOf `on` Set.fromList
 
-prettyShow ∷ Pretty a => a → String
-prettyShow = show . Doc.pretty
-
-{-# Deprecated prettyTrace "'prettyTrace' remains in your code. Pls fix!" #-}
-prettyTrace ∷ Pretty a ⇒ a → b → b
-prettyTrace a = trace (prettyShow a)
-
-{-# Deprecated prettyTraceId "'prettyTraceId' remains in your code. Pls fix!" #-}
-prettyTraceId ∷ Pretty a ⇒ a → a
-prettyTraceId a = trace (prettyShow a) a
-
 readFail ∷ Read r ⇒ MonadFail m ⇒ String → m r
 readFail = eitherFail . readEither
 
@@ -155,3 +144,40 @@ binaryToText = convertString . Binary.encode
 
 binaryFromText :: Binary bin ⇒ ConvertibleStrings text ByteString ⇒ text → bin
 binaryFromText = Binary.decode . convertString
+
+
+-- * Debug aids
+
+{-# DEPRECATED trace "Development aid remain in your code!!" #-}
+trace ∷ String → a → a
+trace = Debug.Trace.trace
+
+{-# DEPRECATED traceShow "Development aid remain in your code!!" #-}
+traceShow ∷ Show a ⇒ a → b → b
+traceShow = Debug.Trace.traceShow
+
+{-# DEPRECATED traceShowId "Development aid remain in your code!!" #-}
+traceShowId ∷ Show a ⇒ a → a
+traceShowId = Debug.Trace.traceShowId
+
+{-# DEPRECATED prettyShow "Development aid remain in your code!!" #-}
+prettyShow ∷ Pretty a => a → String
+prettyShow = show . Doc.pretty
+
+{-# DEPRECATED prettyTrace "Development aid remain in your code!!" #-}
+prettyTrace ∷ Pretty a ⇒ a → b → b
+prettyTrace a = trace (prettyShow a)
+
+{-# DEPRECATED prettyTraceId "Development aid remain in your code!!" #-}
+prettyTraceId ∷ Pretty a ⇒ a → a
+prettyTraceId a = trace (prettyShow a) a
+
+-- | Useful in concert with TypeApplications during development.
+{-# DEPRECATED from "Development aid remain in your code!!" #-}
+from ∷ ∀ a b . a → b
+from = undefined
+
+-- | Useful in concert with TypeApplications during development.
+{-# DEPRECATED to "Development aid remain in your code!!" #-}
+to ∷ ∀ a b . b → a
+to = undefined
