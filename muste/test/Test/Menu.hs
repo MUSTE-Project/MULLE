@@ -61,20 +61,18 @@ tests = testGroup "Menu" [menuLin, menuTrees]
 
 menuLin ∷ TestTree
 menuLin = testGroup "Linearization" $ mkTest' <$>
-  [ ("REPL: fienden 0"   , "ExemplumSwe", "fienden besegrar Afrika"     , [0]  , "en fiende besegrar Afrika"   , expectSuccess)
-  -- FAILING
-  , ("REPL: fienden 1"   , "ExemplumSwe", "fienden besegrar Afrika"     , [0]  , "Augustus besegrar Afrika"    , expectSuccess)
-  -- FAILING
-  , ("REPL: besegrar"    , "ExemplumSwe", "fienden besegrar Afrika"     , [1]  , "fienden är Afrika"           , expectSuccess)
-  , ("REPL: Afrika 0"    , "ExemplumSwe", "fienden är Afrika"           , [2]  , "fienden är stor"             , expectSuccess)
-  -- FAILING
-  , ("REPL: Afrika 1"    , "ExemplumSwe", "fienden är Afrika"           , [2]  , "fienden är en vän"           , expectSuccess)
-  -- FAILING
-  , ("DEL: det besegrade", "ExemplumSwe", "det besegrade riket är stort", [0,1], "fienden besegr, ar Afrika"   , expectSuccess)
+  [ ("fienden->en fiende" , "ExemplumSwe", "fienden besegrar Afrika"     , [0]  , "en fiende besegrar Afrika"     , expectSuccess)
+  , ("fienden->Augustus"  , "ExemplumSwe", "fienden besegrar Afrika"     , [0]  , "Augustus besegrar Afrika"      , expectSuccess)  -- FAILING
+  , ("besegrar->är"       , "ExemplumSwe", "fienden besegrar Afrika"     , [1]  , "fienden är Afrika"             , expectSuccess)  -- FAILING
+  , ("Afrika->stor"       , "ExemplumSwe", "fienden är Afrika"           , [2]  , "fienden är stor"               , expectSuccess)
+  , ("Afrika->en vän"     , "ExemplumSwe", "fienden är Afrika"           , [2]  , "fienden är en vän"             , expectSuccess)  -- FAILING
+  , ("DEL: det besegrade" , "ExemplumSwe", "det besegrade riket är stort", [0,1], "riket är stort"                , expectSuccess)
     -- NOTE: the "selection" should really be an insertion BEFORE "fienden" -- how do we represent that?
-  , ("INS: det besegrade", "ExemplumSwe", "fienden besegrar Afrika"     , []   , "det besegrade riket är stort", expectSuccess)
-  -- FAILING
-  , ("REPL: fienden"     , "ExemplumSwe", "fienden besegrar Afrika"     , [0,1], "Augustus besegrar Afrika"    , expectFailure)
+  , ("INS: det besegrade" , "ExemplumSwe", "riket är stort"              , []   , "det besegrade riket är stort"  , expectSuccess)  -- SUCCESS: WHY?
+  , ("Augustus->en fiende", "ExemplumSwe", "Augustus besegrar Afrika"    , [0]  , "en fiende besegrar Afrika"     , expectSuccess)  -- FAILING
+  , ("INS: stor"          , "ExemplumSwe", "en fiende besegrar Afrika"   , []   , "en stor fiende besegrar Afrika", expectSuccess)  -- FAILING
+  , ("Aug.->en stor fi."  , "ExemplumSwe", "Augustus besegrar Afrika"    , [0]  , "en stor fiende besegrar Afrika", expectFailure)  -- FAILING
+    -- NOTE: the last should fail and does fail, but still it's reported as a failure??
   ]
   where
   expectSuccess = True
