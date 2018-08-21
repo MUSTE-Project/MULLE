@@ -62,9 +62,8 @@ appConfig
 apiInit :: SnapletInit a ()
 apiInit = makeSnaplet "api" "MUSTE API" Nothing $ do
   Snap.wrapSite (applyCORS defaultOptions)
-  void $ addRoutes Protocol.apiRoutes
+  Protocol.registerRoutes Config.db
 
--- TODO Move @demo@ dir to @static@.
 -- | Serves static files in the @demo/@ directory.
 staticInit :: SnapletInit a ()
 staticInit = makeSnaplet "static" "Static file server" Nothing $ do
@@ -75,7 +74,6 @@ appInit :: SnapletInit b ()
 appInit = makeSnaplet "muste" "Multi Semantic Text Editor"
   (Just (pure Config.wwwRoot))
   $ do
-    -- TODO Missing lenses.  Dunno what they are used for though.
     void $ nestSnaplet (p "api")  (err "api")    apiInit
     void $ nestSnaplet (p mempty) (err "static") staticInit
   where

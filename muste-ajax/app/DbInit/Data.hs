@@ -6,8 +6,6 @@ module DbInit.Data (exercises, lessons) where
 import Muste.Tree
 import Muste.Grammar (tree)
 
--- TODO Make a newtype for this (and instances of 'FromROW' and
--- 'ToROW')
 type Lesson = (String,String,String,String,String,Int,Int,Int)
 
 lessons :: [Lesson]

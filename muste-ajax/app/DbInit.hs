@@ -70,7 +70,8 @@ exercises = Data.exercises >>= mkExercise
   go srcC trgC idfE (src, trg) = (srcC src trg src, trgC src trg trg, idfE)
 
 addUser ∷ Connection → (Text, Text, Bool) → IO ()
-addUser c (usr,psw,active) = Database.addUser c usr psw active
+addUser c (usr,psw,active)
+  = Database.runDB (Database.addUser usr psw active) c
 
 users ∷ [(Text, Text, Bool)]
 users =

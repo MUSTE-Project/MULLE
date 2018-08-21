@@ -129,9 +129,6 @@ instance ToJSON ClientMessage where
     where
       (|>) = createMessageObject
 
--- TODO One linearization can originate from multiple trees.  We
--- probably still want the ability to lookup the linearization
--- belonging to tree efficiently though.
 -- | 'ServerTree's represent the data needed to display a sentence in
 -- the GUI.  The naming is maybe not the best, but the reason it is
 -- called like that is simply because it is the data that the client

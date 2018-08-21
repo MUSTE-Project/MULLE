@@ -14,6 +14,17 @@ flags:
 
 # ghc-options: -fmax-valid-substitutions=0
 
+default-extensions:
+- LambdaCase
+- OverloadedStrings
+- TypeApplications
+- ViewPatterns
+- FlexibleContexts
+- StandaloneDeriving
+- TupleSections
+- UnicodeSyntax
+- ConstraintKinds
+
 data-files:
   - ./static/index.html
   - ./static/img/menu.jpg
@@ -85,6 +96,17 @@ dependencies:
   - prettyprinter
 
 library:
+  default-extensions:
+  - LambdaCase
+  - ScopedTypeVariables
+  - OverloadedStrings
+  - TypeApplications
+  - ViewPatterns
+  - FlexibleContexts
+  - StandaloneDeriving
+  - TupleSections
+  - UnicodeSyntax
+  - ConstraintKinds
 
   source-dirs:
     - src

@@ -67,12 +67,6 @@ default-extensions:
 - TypeFamilies
 
 library:
-  other-extensions:
-    FlexibleInstances
-
-  dependencies:
-    - pgf >=3.9.1
-
   exposed-modules:
     - Muste
     - Muste.Tree

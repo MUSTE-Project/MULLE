@@ -1,16 +1,6 @@
-{-# OPTIONS_GHC -Wno-orphans #-}
-{-# language
-    LambdaCase
-  , OverloadedStrings
-  , TypeApplications
-  , ViewPatterns
-  , FlexibleContexts
-  , StandaloneDeriving
-  , TupleSections
-  , UnicodeSyntax
-#-}
+{-# OPTIONS_GHC -Wall -Wno-orphans #-}
 module Protocol
-  ( apiRoutes
+  ( registerRoutes
   ) where
 
 import Data.Aeson
@@ -22,6 +12,7 @@ import Control.Monad.Reader
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C8
+import Snap (MonadSnap)
 import qualified Snap
 import qualified System.IO.Streams as Streams
 import Text.Printf
@@ -42,11 +33,9 @@ import Ajax
   , ClientTree(..), ServerTree
   )
 import qualified Ajax
+import Database (MonadDB, getConnection)
 import qualified Database
 import qualified Database.Types as Database
-
--- FIXME Do not import this
-import qualified Config
 
 type Contexts = Map Text (Map String Context)
 
@@ -56,47 +45,57 @@ data Env = Env
   , contexts   :: Contexts
   }
 
--- | A simple monad for handling responding to requests.
-type Protocol v w a = ReaderT Env (Snap.Handler v w) a
+-- | A simple monad transformer for handling responding to requests.
+type ProtocolT m a = ReaderT Env m a
 
--- Orphan instance!!
-instance MonadThrow (Snap.Handler v w) where
-  throwM = liftIO . throwM
+type MonadProtocol m =
+  ( MonadReader Env m
+  , MonadSnap m
+  , Database.HasConnection m
+  )
 
-runProtocol :: Protocol v w a -> Snap.Handler v w a
-runProtocol app = do
-  env <- getEnv
-  app `runReaderT` env
+instance MonadIO m ⇒ Database.HasConnection (ReaderT Env m) where
+  -- getConnection :: MonadIO m ⇒ m Connection
+  -- getConnection = liftIO $ open Config.db
+  getConnection = asks connection
 
-getEnv :: MonadIO m => m Env
-getEnv = liftIO $ do
-  conn <- getConnection
-  ctxts <- initContexts conn
+-- runProtocol :: ToJSON a ⇒ Protocol v w a -> Snap.Handler v w ()
+runProtocolT :: MonadSnap m ⇒ ToJSON a ⇒ String → ProtocolT m a → m ()
+runProtocolT db app = do
+  Snap.modifyResponse (Snap.setContentType "application/json")
+  conn ← liftIO $ open db
+  env <- getEnv conn
+  res ← app `runReaderT` env
+  Snap.writeLBS $ encode res
+
+getEnv :: MonadIO io => Connection → io Env
+getEnv conn = do
+  ctxts <- liftIO $ Database.runDB initContexts conn
   pure $ Env conn ctxts
 
+registerRoutes ∷ String → Snap.Initializer v w ()
+registerRoutes db = Snap.addRoutes (apiRoutes db)
+
 -- | Map requests to various handlers.
-apiRoutes :: [(B.ByteString, Snap.Handler v w ())]
-apiRoutes =
-  [ "login"        |> wrap (Snap.method Snap.POST loginHandler)
-  , "logout"       |> wrap (Snap.method Snap.POST logoutHandler)
-  , "lessons"      |> wrap lessonsHandler
-  , "lesson"       |> wrap (Snap.pathArg lessonHandler)
-  , "menu"         |> wrap menuHandler
+apiRoutes :: ∀ v w . String → [(B.ByteString, Snap.Handler v w ())]
+apiRoutes db =
+  [ "login"        |> run loginHandler
+  , "logout"       |> run logoutHandler
+  , "lessons"      |> run lessonsHandler
+  , "lesson"       |> run lessonHandler
+  , "menu"         |> run menuHandler
   -- TODO What are these requests?
   , "MOTDRequest"  |> err "MOTDRequest"
   , "DataResponse" |> err "DataResponse"
   ]
   where
-    wrap :: ToJSON a => Protocol v w a -> Snap.Handler v w ()
-    wrap act = do
-        Snap.modifyResponse (Snap.setContentType "application/json")
-        runProtocol $ act >>= Snap.writeLBS . encode
+    run = runProtocolT @(Snap.Handler v w) db
     (|>) = (,)
     err :: String -> a
     err = error . printf "missing api route for `%s`"
 
 -- | Reads the data from the request and deserializes from JSON.
-getMessage :: FromJSON json => Protocol v w json
+getMessage :: FromJSON json ⇒ MonadProtocol m => m json
 getMessage = Snap.runRequestBody act
   where
     act stream = do
@@ -110,7 +109,7 @@ getMessage = Snap.runRequestBody act
 -- TODO Token should be set as an HTTP header.
 -- FIXME Use ByteString
 -- | Gets the current session token.
-getToken :: Protocol v w String
+getToken :: MonadProtocol m ⇒ m String
 -- getToken = cheatTakeToken <$> getMessage
 getToken = do
   m <- getTokenCookie
@@ -119,22 +118,22 @@ getToken = do
     Nothing -> error
       $ printf "Warning, reverting back to deprecated way of handling sesson cookies\n"
 
-getTokenCookie :: Protocol v w (Maybe Snap.Cookie)
+getTokenCookie :: MonadProtocol m ⇒ m (Maybe Snap.Cookie)
 getTokenCookie = Snap.getCookie "LOGIN_TOKEN"
 
 
 -- * Handlers
-lessonsHandler :: Protocol v w ServerMessage
+lessonsHandler :: MonadProtocol m ⇒ m ServerMessage
 lessonsHandler = do
   token <- getToken
   handleLessonsRequest token
 
-lessonHandler :: Text -> Protocol v w ServerMessage
-lessonHandler p = do
+lessonHandler :: MonadProtocol m ⇒ m ServerMessage
+lessonHandler = Snap.pathArg $ \p → do
   t <- getToken
   handleLessonInit t p
 
-menuHandler :: Protocol v w ServerMessage
+menuHandler :: MonadProtocol m ⇒ m ServerMessage
 menuHandler = do
   req <- getMessage
   token <- getToken
@@ -143,27 +142,25 @@ menuHandler = do
       -> handleMenuRequest token lesson score time a b
     _ -> error "Wrong request"
 
-loginHandler :: Protocol v w ServerMessage
-loginHandler = do
+loginHandler :: MonadProtocol m ⇒ m ServerMessage
+loginHandler = Snap.method Snap.POST $ do
   (usr, pwd) <- getUser
   handleLoginRequest usr pwd
 
-logoutHandler :: Protocol v w ServerMessage
-logoutHandler = do
+logoutHandler :: MonadProtocol m ⇒ m ServerMessage
+logoutHandler = Snap.method Snap.POST $ do
   tok <- getToken
   handleLogoutRequest tok
 
 -- TODO Now how this info should be retreived
 -- | Returns @(username, password)@.
-getUser :: Protocol v w (Text, Text)
+getUser :: MonadProtocol m ⇒ m (Text, Text)
 getUser = (\(CMLoginRequest usr pwd) -> (usr, pwd)) <$> getMessage
 
-getConnection :: IO Connection
-getConnection = open Config.db
-
 setLoginCookie
-  :: Text -- ^ The token
-  -> Protocol v w ()
+  :: MonadProtocol m
+  => Text -- ^ The token
+  -> m ()
 setLoginCookie tok = Snap.modifyResponse $ Snap.addResponseCookie c
   where
     c = Snap.Cookie "LOGIN_TOKEN" (T.encodeUtf8 tok)
@@ -172,42 +169,42 @@ setLoginCookie tok = Snap.modifyResponse $ Snap.addResponseCookie c
 -- TODO I think we shouldn't be using sessions for this.  I think the
 -- way to go is to use the basic http authentication *on every
 -- request*.  That is, the client submits user/password on every
--- request.  Security is handled by SSl in the transport layer.
+-- request.  Security is handled by SSL in the transport layer.
 handleLoginRequest
-  :: Text -- ^ Username
+  :: MonadProtocol m
+  => Text -- ^ Username
   -> Text -- ^ Password
-  -> Protocol v w ServerMessage
+  -> m ServerMessage
 handleLoginRequest user pass = do
-  c <- askConnection
-  authed <- liftIO $ Database.authUser c user pass
-  token  <- liftIO $ Database.startSession c user
+  authed <- Database.authUser user pass
+  token  <- Database.startSession user
   if authed
   then SMLoginSuccess token
     <$ setLoginCookie token
   else pure $ SMLoginFail
 
-askConnection :: Protocol v w Connection
+askConnection :: MonadProtocol m ⇒ m Connection
 askConnection = asks connection
 
-askContexts :: Protocol v w Contexts
+askContexts :: MonadProtocol m ⇒ m Contexts
 askContexts = asks contexts
 
-handleLessonsRequest :: String -> Protocol v w ServerMessage
+handleLessonsRequest :: MonadProtocol m ⇒ String -> m ServerMessage
 handleLessonsRequest token = do
   conn <- askConnection
   lessons <- liftIO $ Database.listLessons conn (T.pack token)
   verifyMessage token (SMLessonsList $ Ajax.lessonFromTuple <$> lessons)
 
 handleLessonInit
-  :: String -- ^ Token
-  -> Text -- ^ Lesson
-  -> Protocol v w ServerMessage
+  ∷ MonadProtocol m
+  ⇒ String -- ^ Token
+  → Text -- ^ Lesson
+  → m ServerMessage
 handleLessonInit token lesson = do
-    contexts <- askContexts
-    conn <- askConnection
+    c <- askContexts
     (sourceLang,sourceTree,targetLang,targetTree)
-      <- Database.startLesson conn token lesson
-    let (a,b) = assembleMenus contexts lesson
+      <- Database.startLesson token lesson
+    let (a,b) = assembleMenus c lesson
                 (sourceLang,sourceTree)
                 (targetLang,targetTree)
     verifyMessage token (SMMenuList lesson False 0 a b)
@@ -223,28 +220,28 @@ handleLessonInit token lesson = do
 -- if the exercise continues.  For more information about what these
 -- contain see the documentation there.
 handleMenuRequest
-  :: String -- ^ Token
+  :: MonadProtocol m
+  => String -- ^ Token
   -> Text -- ^ Lesson
   -> Integer -- ^ Clicks
   -> NominalDiffTime -- ^ Time elapsed
   -> ClientTree -- ^ Source tree
   -> ClientTree -- ^ Target tree
-  -> Protocol v w ServerMessage
+  -> m ServerMessage
 handleMenuRequest
   token lesson clicks time
   ctreea@(ClientTree srcLang srcLin)
   ctreeb@(ClientTree trgLang trgLin) = do
-  contexts <- askContexts
-  conn <- askConnection
+  c <- askContexts
   mErr <- verifySession token
   let authd = not $ isJust mErr
   act <-
     if finished
     then do
-      when authd (liftIO $ Database.finishExercise conn token lesson time clicks)
+      when authd (Database.finishExercise token lesson time clicks)
       pure emptyMenus
     else pure assembleMenus
-  let (a , b) = act contexts lesson
+  let (a , b) = act c lesson
                  (srcLang, srcLin)
                  (trgLang, trgLin)
   verifyMessage token (SMMenuList lesson finished (succ clicks) a b)
@@ -260,28 +257,27 @@ sameLin = (==)
   thetrees :: ClientTree -> Linearization
   thetrees (ClientTree _ trees) = trees
 
-handleLogoutRequest :: String -> Protocol v w ServerMessage
+handleLogoutRequest :: MonadProtocol m ⇒ String -> m ServerMessage
 handleLogoutRequest token = do
-  conn <- askConnection
-  liftIO $ Database.endSession conn token
+  Database.endSession token
   pure $ SMLogoutResponse
 
 -- | @'verifySession' tok@ verifies the user identified by
 -- @tok@. Returns 'Nothing' if authentication is successfull and @Just
 -- err@ if not. @err@ is a message describing what went wrong.
 verifySession
-  :: String -- ^ The token of the logged in user
-  -> Protocol v w (Maybe String)
-verifySession tok = do
-  conn <- askConnection
-  liftIO $ Database.verifySession conn tok
+  :: MonadProtocol m
+  => String -- ^ The token of the logged in user
+  -> m (Maybe String)
+verifySession tok = Database.verifySession tok
 
 -- | Returns the same message unmodified if the user is authenticated,
 -- otherwise return 'SMSessionInvalid'.
 verifyMessage
-  :: String -- ^ The logged in users session id.
+  :: MonadProtocol m
+  => String -- ^ The logged in users session id.
   -> ServerMessage     -- ^ The message to verify
-  -> Protocol v w ServerMessage
+  -> m ServerMessage
 verifyMessage tok msg = do
   m <- verifySession tok
   pure $ case m of
@@ -289,10 +285,9 @@ verifyMessage tok msg = do
     Just err -> SMSessionInvalid err
 
 initContexts
-  :: MonadIO io
-  => Connection
-  -> io Contexts
-initContexts conn = liftIO $ mkContexts <$> Database.getLessons conn
+  :: Database.MonadDB db
+  => db Contexts
+initContexts = mkContexts <$> Database.getLessons
 
 mkContexts ∷ [Database.Lesson] → Contexts
 mkContexts = M.fromList . map mkContext
@@ -309,12 +304,12 @@ assembleMenus
   -> (String, Linearization) -- ^ Source language and tree
   -> (String, Linearization) -- ^ Target language and tree
   -> (ServerTree,ServerTree)
-assembleMenus contexts lesson src trg =
+assembleMenus c lesson src trg =
   ( mkTree src
   , mkTree trg
   )
   where
-  mkTree = makeTree contexts lesson src trg
+  mkTree = makeTree c lesson src trg
 
 data ProtocolException
   = LessonNotFound Text
@@ -357,10 +352,10 @@ makeTree
   -> (String, Linearization)
   -> (String, Linearization)
   -> ServerTree
-makeTree contexts lesson _ _ (lang, trees)
+makeTree c lesson _ _ (lang, trees)
   = Ajax.mkServerTree lang trees (Muste.getMenu ctxt trees)
     where
-    ctxt    = throwLeft $ getContext contexts lesson lang
+    ctxt    = throwLeft $ getContext c lesson lang
 
 -- | Throws an exception if the it's a 'Left' (requires the left to be
 -- an exception).  This method is *unsafe*!
