@@ -30,8 +30,8 @@ import Crypto.Random.API (getSystemRandomGen, genRandomBytes)
 import Crypto.KDF.PBKDF2 (fastPBKDF2_SHA512, Parameters(Parameters))
 import Crypto.Hash (Digest,SHA3_512(..),hash)
 
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Char8 as B
+import Data.ByteString (ByteString)
+import qualified Data.ByteString.Char8 as Char8
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -40,8 +40,7 @@ import Data.Time.Clock (NominalDiffTime, UTCTime)
 import qualified Data.Time.Clock as Time
 import Data.Time.Format
 import Control.Monad.Reader
-#if MIN_VERSION_base(4,11,0)
-#else
+#if !(MIN_VERSION_base(4,11,0))
 import Data.Semigroup ((<>))
 #endif
 
@@ -53,26 +52,32 @@ import Control.Exception
 
 import qualified Database.Types as Types
 
--- TODO User transactions for most of these methods.
+data DatabaseException
+  = NoUserFound
+  | NonUniqueUser
+  | LangNotFound
 
-data DatabaseException = DatabaseException String deriving (Show)
+instance Show DatabaseException where
+  show = \case
+    NoUserFound   → "No user found"
+    NonUniqueUser → "Non unique user associated with token"
+    LangNotFound  → "Couldn't find the languages"
+
 instance Exception DatabaseException
 
 -- | hashPasswd returns a SHA512 hash of a PBKDF2 encoded password
 -- (SHA512,10000 iterations,1024 bytes output)
-hashPasswd :: B.ByteString -> B.ByteString -> BS.ByteString
+hashPasswd :: ByteString -> ByteString -> ByteString
 hashPasswd = fastPBKDF2_SHA512
   (Parameters 10000 1024)
 
 -- | createSalt returns a SHA512 hash of 512 bytes of random data as a
 -- bytestring
-createSalt :: MonadIO io ⇒ io B.ByteString
-createSalt = liftIO $ do
-  rng <- getSystemRandomGen
-  return $ fst $ genRandomBytes 512 rng
+createSalt :: MonadIO io ⇒ io ByteString
+createSalt = fst . genRandomBytes 512 <$> liftIO getSystemRandomGen
 
 getCurrentTime ∷ MonadIO io ⇒ io UTCTime
-getCurrentTime = liftIO $ Time.getCurrentTime
+getCurrentTime = liftIO Time.getCurrentTime
 
 getLessons
   :: MonadDB db
@@ -113,7 +118,7 @@ authUser
   -> db Bool
 authUser user pass = do
   -- Get password and salt from database
-  userList <- query @(B.ByteString, B.ByteString, Bool) selectPasswordSaltQuery [user]
+  userList <- query @(ByteString, ByteString, Bool) selectPasswordSaltQuery [user]
   -- Generate new password hash and compare to the stored one
   if length userList == 1
   then
@@ -152,7 +157,7 @@ createSession user = do
          <> formatTime defaultTimeLocale "%s" timeStamp
 
     let token :: Text
-        token = T.pack (show (hash (B.pack sessionData) :: Digest SHA3_512) :: String)
+        token = T.pack (show (hash (Char8.pack sessionData) :: Digest SHA3_512) :: String)
     pure (user, token, timeStamp, timeStamp)
 
 -- | Creates a new session and returns the session token.  At the
@@ -232,9 +237,9 @@ listLessons token = do
       Enabled
       FROM Lesson;|]
   case users of
-    []          -> throw $ DatabaseException "No user found"
+    []          -> throw NoUserFound
     [Only user] -> query listLessonsQuery [user]
-    _usrs       -> throw $ DatabaseException "Non unique user associated with token"
+    _usrs       -> throw NonUniqueUser
 
 -- | Start a new lesson by randomly choosing the right number of
 -- exercises and adding them to the users exercise list
@@ -328,7 +333,7 @@ newLesson user lesson = do
   count <- fromOnly . fromMaybe errNonUniqueLesson . listToMaybe
     <$> query exerciseCountQuery (Only lesson)
   -- get lesson round
-  [[round]] <- query lessonRoundQuery [user,lesson]
+  [Only round] <- query lessonRoundQuery [user,lesson]
   trees <- getTreePairs lesson
   -- randomly select
   selectedTrees <- take count <$> shuffle trees
@@ -345,7 +350,7 @@ newLesson user lesson = do
   case langs of
     [(sourceLang, targetLang)] -> do
       pure (sourceLang, sourceTree, targetLang, targetTree)
-    _ -> throw $ DatabaseException "Couldn't find the languages"
+    _ -> throw LangNotFound
   where
   exerciseCountQuery  = [sql|SELECT ExerciseCount FROM Lesson WHERE Name = ?;|]
   lessonRoundQuery    = [sql|SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;|]
