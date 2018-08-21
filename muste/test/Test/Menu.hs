@@ -61,23 +61,26 @@ tests = testGroup "Menu" [menuLin, menuTrees]
 
 menuLin ∷ TestTree
 menuLin = testGroup "Linearization" $ mkTest' <$>
-  [ ("REPL: fienden" , "ExemplumSwe", "fienden besegrar Afrika", [0], "en fiende besegrar Afrika")
-  , ("REPL: fienden", "ExemplumSwe", "fienden besegrar Afrika", [0], "Augustus besegrar Afrika")
-  , ("REPL: besegrar", "ExemplumSwe", "fienden besegrar Afrika", [1], "fienden är Afrika")
-  , ("REPL: Afrika", "ExemplumSwe", "fienden är Afrika", [2], "fienden är stor")
-  , ("REPL: Afrika", "ExemplumSwe", "fienden är Afrika", [2], "fienden är en vän")
-  , ("DEL: det besegrade", "ExemplumSwe", "det besegrade riket är stort", [0,1], "fienden besegrar Afrika")
+  [ ("REPL: fienden" , "ExemplumSwe", "fienden besegrar Afrika", [0], "en fiende besegrar Afrika", expectSuccess)
+  , ("REPL: fienden", "ExemplumSwe", "fienden besegrar Afrika", [0], "Augustus besegrar Afrika", expectSuccess)
+  , ("REPL: besegrar", "ExemplumSwe", "fienden besegrar Afrika", [1], "fienden är Afrika", expectSuccess)
+  , ("REPL: Afrika", "ExemplumSwe", "fienden är Afrika", [2], "fienden är stor", expectSuccess)
+  , ("REPL: Afrika", "ExemplumSwe", "fienden är Afrika", [2], "fienden är en vän", expectSuccess)
+  , ("DEL: det besegrade", "ExemplumSwe", "det besegrade riket är stort", [0,1], "fienden besegr, ar Afrika", expectSuccess)
     -- NOTE: the "selection" should really be an insertion BEFORE "fienden" -- how do we represent that?
-  , ("INS: det besegrade", "ExemplumSwe", "fienden besegrar Afrika", [], "det besegrade riket är stort")
+  , ("INS: det besegrade", "ExemplumSwe", "fienden besegrar Afrika", [], "det besegrade riket är stort", expectSuccess)
   ]
+  where
+  expectSuccess = True
 
-mkTest' ∷ (String, String, String, [Int], String) → TestTree
-mkTest' (nm, lang, src, sel, trg) = testCase nm $ do
+mkTest' ∷ (String, String, String, [Int], String, Bool) → TestTree
+mkTest' (nm, lang, src, sel, trg, isExpected) = testCase nm $ do
   sg ← getSuggestions src (Selection.fromList sel)
   let trgL = parseLin trg
-  when (not $ Set.null (Set.intersection @Linearization sg trgL))
+  let expecter = if isExpected then not else id
+  when (expecter $ Set.null (Set.intersection @Linearization sg trgL))
     (failDoc $ nest 2 $ vsep
-      [ pretty @String "Expected to find one of:"
+      [ pretty @String $ "Expected to " <> (if isExpected then "" else "*not* ") <> "find one of:"
       , prettyTruncate 8 trgL
       , pretty @String "Somewhere in:"
       , prettyTruncate 8 sg
