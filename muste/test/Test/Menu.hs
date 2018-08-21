@@ -69,9 +69,11 @@ menuLin = testGroup "Linearization" $ mkTest' <$>
   , ("DEL: det besegrade", "ExemplumSwe", "det besegrade riket är stort", [0,1], "fienden besegr, ar Afrika", expectSuccess)
     -- NOTE: the "selection" should really be an insertion BEFORE "fienden" -- how do we represent that?
   , ("INS: det besegrade", "ExemplumSwe", "fienden besegrar Afrika", [], "det besegrade riket är stort", expectSuccess)
+  , ("REPL: fienden", "ExemplumSwe", "fienden besegrar Afrika", [0,1], "Augustus besegrar Afrika", expectFailure)
   ]
   where
   expectSuccess = True
+  expectFailure = False
 
 mkTest' ∷ (String, String, String, [Int], String, Bool) → TestTree
 mkTest' (nm, lang, src, sel, trg, isExpected) = testCase nm $ do
