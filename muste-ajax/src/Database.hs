@@ -1,5 +1,5 @@
--- TODO Fix this:
-{-# OPTIONS_GHC -fno-warn-unused-top-binds -Wno-name-shadowing #-}
+-- TODO Fix name shadowing.
+{-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
 {-# Language CPP, QuasiQuotes #-}
 module Database
   ( MonadDB
@@ -15,6 +15,8 @@ module Database
   , endSession
   , verifySession
   , addUser
+  , changePassword
+  , updateActivity
   ) where
 
 import Database.SQLite.Simple
@@ -178,7 +180,7 @@ verifySession
   -> db (Maybe String)
 verifySession token = do
   -- Get potential user session(s)
-  let selectSessionQuery = [sql|SELECT LastActive FROM Session WHERE Token = ?;|] :: Query
+  let selectSessionQuery = [sql|SELECT LastActive FROM Session WHERE Token = ?;|]
   sessions <- query @(Only UTCTime) selectSessionQuery [token]
   -- from here might not be executed due to lazy evaluation...
   -- Compute the difference in time stamps
@@ -202,14 +204,11 @@ verifySession token = do
 -- | List all the lessons i.e. lesson name, description and exercise
 -- count
 listLessons
-  :: MonadIO io
-  => Connection
-  -> Text -- Token
-  -> io [(Text,Text,Int,Int,Int,NominalDiffTime,Bool,Bool)]
-listLessons conn token = liftIO $ do
-  let qry :: (ToRow q, FromRow r) => Query -> q -> IO [r]
-      qry = SQL.query conn
-  users <- qry @(Only Text) @(Only Text) [sql|SELECT User FROM Session WHERE Token = ?;|] (Only token)
+  :: MonadDB db
+  => Text -- Token
+  -> db [(Text,Text,Int,Int,Int,NominalDiffTime,Bool,Bool)]
+listLessons token = do
+  users <- query @(Only Text) [sql|SELECT User FROM Session WHERE Token = ?;|] (Only token)
   let listLessonsQuery = [sql|
       WITH userName AS (SELECT ?),
       maxRounds AS (SELECT Lesson,IFNULL(MAX(Round),0) AS Round FROM
@@ -234,7 +233,7 @@ listLessons conn token = liftIO $ do
       FROM Lesson;|]
   case users of
     []          -> throw $ DatabaseException "No user found"
-    [Only user] -> SQL.query conn listLessonsQuery [user]
+    [Only user] -> query listLessonsQuery [user]
     _usrs       -> throw $ DatabaseException "Non unique user associated with token"
 
 -- | Start a new lesson by randomly choosing the right number of

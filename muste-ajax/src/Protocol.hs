@@ -55,11 +55,8 @@ type MonadProtocol m =
   )
 
 instance MonadIO m ⇒ Database.HasConnection (ReaderT Env m) where
-  -- getConnection :: MonadIO m ⇒ m Connection
-  -- getConnection = liftIO $ open Config.db
   getConnection = asks connection
 
--- runProtocol :: ToJSON a ⇒ Protocol v w a -> Snap.Handler v w ()
 runProtocolT :: MonadSnap m ⇒ ToJSON a ⇒ String → ProtocolT m a → m ()
 runProtocolT db app = do
   Snap.modifyResponse (Snap.setContentType "application/json")
@@ -183,16 +180,12 @@ handleLoginRequest user pass = do
     <$ setLoginCookie token
   else pure $ SMLoginFail
 
-askConnection :: MonadProtocol m ⇒ m Connection
-askConnection = asks connection
-
 askContexts :: MonadProtocol m ⇒ m Contexts
 askContexts = asks contexts
 
 handleLessonsRequest :: MonadProtocol m ⇒ String -> m ServerMessage
 handleLessonsRequest token = do
-  conn <- askConnection
-  lessons <- liftIO $ Database.listLessons conn (T.pack token)
+  lessons <- Database.listLessons (T.pack token)
   verifyMessage token (SMLessonsList $ Ajax.lessonFromTuple <$> lessons)
 
 handleLessonInit
