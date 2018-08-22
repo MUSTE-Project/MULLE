@@ -67,7 +67,8 @@ tests = testGroup "Menu" [menuLin, menuTrees]
 -- * The "selection" to make.
 -- * A sentence to (alt.: not) expect to be at this position in the
 --   menu.
--- * Whether to expect success or failure.
+-- * Whether to expect the sentence to be amongst the suggestions, or
+--   expect it *not* to be there.
 type LinTestCase = (String, String, String, [Int], String, Bool)
 
 menuLin ∷ TestTree
