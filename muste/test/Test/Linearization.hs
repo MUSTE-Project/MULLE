@@ -12,6 +12,7 @@ import qualified Data.Map as Map
 
 import Muste (Grammar, Context, TTree, Linearization)
 import qualified Muste.Linearization.Internal as Linearization
+import qualified Muste.Grammar.Internal as Grammar
 
 import qualified Test.Common as Test
 
@@ -40,10 +41,17 @@ mkLin = Linearization.mkLin theCtxt Test.treeDefinite Test.treeIndefinite
 theCtxt ∷ Context
 theCtxt = latCtxt
 
+isAmbiguous :: String -> Assertion
+isAmbiguous sent = length (parseSentence theCtxt sent) > 1 @? (show (parseSentence theCtxt sent))
+
+parseSentence ∷ Context -> String → [TTree]
+parseSentence ctxt = Grammar.parseSentence grammar (Linearization.ctxtLang ctxt)
+
 tests ∷ TestTree
 tests =
   testGroup "Linearization"
     [ "The (in-)definite form in latin is ambiguous" |> ambiguities
+    , "The (in-)definite form in latin is ambiguous (v2)" |> isAmbiguous "hostis Africam vincit"
     ]
   where
   (|>) = testCase
