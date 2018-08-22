@@ -10,7 +10,16 @@ type Lesson = (String,String,String,String,String,Int,Int,Int)
 
 lessons :: [Lesson]
 lessons =
-  [ ( "Prima Pars"
+  [ ( "Exemplum Pars"
+    , "Example grammar with one exercise"
+    , "novo_modo/Prima"
+    , "PrimaLat"
+    , "PrimaSwe"
+    , 1
+    , 1
+    , 1
+    )
+  , ( "Prima Pars"
     , "Den första Lektionen fran boken \"Novo modo\""
     , "novo_modo/Prima"
     , "PrimaLat"
@@ -54,8 +63,16 @@ lessons =
 -- identified by a pair of tree/language pairs.
 exercises :: [(String, String, String, String, [(TTree, TTree)])]
 exercises =
-  [ ("novo_modo/Prima"  , "Prima Pars"  , "PrimaLat"  , "PrimaSwe"  , primaPars)
+  [ ("novo_modo/Exemplum","Exemplum Pars","ExemplumLat","ExemplumSwe",exemplumPars)
+  , ("novo_modo/Prima"  , "Prima Pars"  , "PrimaLat"  , "PrimaSwe"  , primaPars)
   , ("novo_modo/Secunda", "Secunda Pars", "SecundaLat", "SecundaSwe", secundaPars)
+  ]
+
+exemplumPars ∷ [(TTree, TTree)]
+exemplumPars =
+  [ ( ($(tree "novo_modo/Exemplum" "useS (useCl (simpleCl (detCN aSg_Det (attribCN (useA bonus_A) (useN amicus_N))) (transV copula_V (detCN aSg_Det (attribCN (useA laetus_A) (useN amicus_N))))))"))
+    , ($(tree "novo_modo/Exemplum" "useS (useCl (simpleCl (detCN theSg_Det (useN hostis_N)) (transV vincere_V (usePN Africa_PN))))"))
+    )
   ]
 
 primaPars ∷ [(TTree, TTree)]
