@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# Language OverloadedStrings, CPP #-}
+{-# Language OverloadedStrings, CPP, RecordWildCards #-}
 module Muste.Menu.Internal
   ( Menu
   , getMenu
@@ -23,7 +23,7 @@ import Control.Category ((>>>))
 #if !(MIN_VERSION_base(4,11,0))
 import Data.Semigroup (Semigroup((<>)))
 #endif
-import Data.Text.Prettyprint.Doc (Pretty(..), Doc)
+import Data.Text.Prettyprint.Doc (Pretty(..), Doc, (<+>), brackets)
 import qualified Data.Text.Prettyprint.Doc as Doc
 
 import Muste.Common
@@ -43,10 +43,15 @@ import qualified Muste.Selection as Selection
 data CostTree = CostTree
   { cost           ∷ Int
   , lin            ∷ Linearization
-  , _isInsertion   ∷ Bool
+  , ctIsInsertion   ∷ Bool
   -- TODO Add this:
   -- , changedWords   ∷ Selection
   } deriving (Show,Eq)
+
+instance Pretty CostTree where
+  pretty (CostTree { .. }) = ins <> pretty lin <+> brackets (pretty cost)
+    where
+    ins = if ctIsInsertion then pretty @String "INS: " else mempty
 
 instance FromJSON CostTree where
   parseJSON = withObject "CostTree" $ \v -> CostTree

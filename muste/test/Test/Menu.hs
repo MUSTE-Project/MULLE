@@ -148,7 +148,7 @@ getSuggestions
 getSuggestions ctxt s sl = Set.fromList . map Menu.lin
   <$> lookupFail err sl mn
   where
-  mn = getM s
+  mn = getMenuFromStringRep ctxt s
   err ∷ String
   err = prettyShow
     $ vsep
@@ -157,9 +157,10 @@ getSuggestions ctxt s sl = Set.fromList . map Menu.lin
       , pretty @String "Available selections:"
       , pretty @[Selection] $ Mono.keys mn
       ]
-  getM ∷ String → Menu
-  getM = foldMap (Menu.getMenu ctxt) . parseLin ctxt
   quotes = enclose (pretty @String "\"") (pretty @String "\"")
+
+getMenuFromStringRep ∷ Context → String → Menu
+getMenuFromStringRep ctxt = foldMap (Menu.getMenu ctxt) . parseLin ctxt
 
 prettyTruncate ∷ Pretty a ⇒ Int → Set a → Doc b
 prettyTruncate n s = vsep [truncationWarning, pretty trnc]
