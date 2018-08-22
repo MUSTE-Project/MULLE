@@ -308,10 +308,10 @@ coverNodes ctxt t
     <> "Did not expect an unsaturated tree at this point"
 
 -- | @'isInsertion' ctxt src trg@ checks if @src@ is to be considered
--- an insertion into @trg@.  A result of '[]' indicated that this is
--- *not* considered an insertion.  If the list is non-empty, then
--- @src@ is to be considered and insertion before all the tokens in
--- the 'Selection'.
+-- an insertion into @trg@.  A result of 'Nothing' indicated that this
+-- is *not* considered an insertion.  Otherwise the returned selection
+-- corresponds to a selection where the words are inserted /before/
+-- each word in the selection.
 isInsertion :: Context -> TTree -> TTree -> Maybe Selection
 isInsertion cxt src trg = Selection.fromList <$> inserted
   where

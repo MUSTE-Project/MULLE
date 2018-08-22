@@ -7,6 +7,7 @@ module Muste.Menu.Internal
   , lin
   ) where
 
+import Data.Maybe
 import Data.List
 -- FIXME I think we might need to consider switching to strict maps.
 import Data.Map.Lazy (Map)
@@ -30,11 +31,6 @@ import Muste.Tree
 import qualified Muste.Prune as Prune
 import Muste.Linearization
 import qualified Muste.Linearization.Internal as Linearization
-  ( linearizeTree
-  , sameOrder
-  , ltpath
-  , disambiguate
-  )
 import Muste.Selection (Selection)
 import qualified Muste.Selection as Selection
 
@@ -79,11 +75,11 @@ getPrunedSuggestions ctxt tree = menu
   toSel ∷ Path → Selection
   toSel p = selectionFromPath p (Linearization.linearizeTree ctxt tree)
   pathMap ∷ Map Path (Mono.MapValue Menu)
-  pathMap = go `Map.mapWithKey` replaceTrees tree
+  pathMap = go `Map.map` replaceTrees tree
   replaceTrees :: TTree -> Map Path (Set (Prune.SimTree, TTree))
   replaceTrees
     = Prune.replaceTrees (ctxtGrammar ctxt) (ctxtPrecomputed ctxt)
-  go :: Path -> Set (Prune.SimTree, TTree) -> Mono.MapValue Menu
+  go ∷ Set (Prune.SimTree, TTree) -> Mono.MapValue Menu
   go = costTrees ctxt tree
   menu = Menu $ Map.mapKeysWith (mappend @[CostTree]) toSel pathMap
 
@@ -92,11 +88,9 @@ getPrunedSuggestions ctxt tree = menu
 costTrees
   :: Context       -- ^ Context of the tree
   -> TTree         -- ^ The original tree
-  -> Path          -- ^ 'Path' in the original tree where the
-                   --   replacement is happening
   -> Set (Prune.SimTree, TTree)
   -> Mono.MapValue Menu
-costTrees ctxt t p
+costTrees ctxt t
   =   Set.toList
   -- First make a list of provisional 'CostTree's.
   >>> map go
@@ -104,7 +98,7 @@ costTrees ctxt t p
   >>> regroup
   where
   go ∷ (Prune.SimTree, TTree) → CostTree
-  go (s, u) = costTree ctxt t p s u
+  go (s, u) = costTree ctxt t s u
 
 -- | After we've found all replacement trees we want to regroup them,
 -- so that all the `TTree`s that have the same linearization gets
@@ -120,32 +114,19 @@ regroup = groupOnSingle lin
 costTree
   :: Context       -- ^ Context of the tree
   -> TTree         -- ^ The original tree
-  -> Path          -- ^ 'Path' in the original tree where the
-                   --   replacement is happening
   -> Prune.SimTree -- ^ Information regarding what the tree is replacing
   -> TTree         -- ^ The replacement tree
   -> CostTree
-costTree ctxt s p (cost, r, _, _) t
+costTree ctxt s (cost, r, _, _) t
   = CostTree cost (Linearization.linearizeTree ctxt t) ins
   where
   ins :: Bool
-  ins = isInsertion ctxt p s r
+  ins = isInsertion ctxt s r
 
 -- | @'isInsertion' ctxt p s r@ determines if the subtree @r@ is to be
 -- considered an "insertion" into the tree @s@.
-isInsertion :: Context -> Path -> TTree -> TTree -> Bool
-isInsertion ctxt p s r = coverNodesIsProperSubset && sameOrder'
-  where
-  -- Checks if the "cover nodes" of @s@ is a proper subset of those in
-  -- @r@.
-  coverNodesIsProperSubset :: Bool
-  coverNodesIsProperSubset
-    = (isSubList `on` coverNodes ctxt p) s r
-  -- Checks if the nodes in the linearization of @s@ appear in the
-  -- same order as in @r@.
-  sameOrder' :: Bool
-  sameOrder'
-    = (Linearization.sameOrder `on` Linearization.linearizeTree ctxt) s r
+isInsertion :: Context -> TTree -> TTree -> Bool
+isInsertion ctxt s r = isJust $ Linearization.isInsertion ctxt s r
 
 -- | Very similar to 'coverNodes', but in stead of saving the paths we
 -- save the index of the 'Linearization'.
@@ -157,18 +138,6 @@ selectionFromPath p
   >>> filter (snd >>> isPrefixOf p)
   >>> fmap fst
   >>> Selection.fromList
-
--- | @'coverNodes' ctxt p t@.  @p@ is the assumed to be the path to
--- @t@ in the original tree.
-coverNodes :: Context -> Path -> TTree -> [Path]
-coverNodes ctxt p
-  -- Linearize the tree.
-  =   Linearization.linearizeTree ctxt
-  -- Get the path to the originating node of all the tokens.
-  >>> otoList
-  >>> fmap Linearization.ltpath
-  -- Only keep those that @p@ is a prefix of.
-  >>> filter (isPrefixOf p)
 
 filterCostTrees :: Menu -> Menu
 filterCostTrees = removeFree >>> sortByCost >>> filterEmpty
