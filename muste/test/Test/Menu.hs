@@ -59,7 +59,7 @@ getCtxt lang = lookupFail err lang $ Linearization.readLangs grammar
 tests ∷ TestTree
 tests = testGroup "Menu" [menuLin, menuTrees]
 
--- | A test-case consists of the following (in order of appereance):
+-- | A test-case consists of the following (in order of appearance):
 --
 -- * A helpful name for the test-case.
 -- * The language that the two sentences are written in.
@@ -72,17 +72,17 @@ type LinTestCase = (String, String, String, [Int], String, Bool)
 
 menuLin ∷ TestTree
 menuLin = testGroup "Linearization" $ mkTestLinearizations <$>
-  [ ("fienden->en fiende" , "ExemplumSwe", "fienden besegrar Afrika"     , [0]  , "en fiende besegrar Afrika"     , expectSuccess)
-  , ("fienden->Augustus"  , "ExemplumSwe", "fienden besegrar Afrika"     , [0]  , "Augustus besegrar Afrika"      , expectSuccess)  -- FAILING
-  , ("besegrar->är"       , "ExemplumSwe", "fienden besegrar Afrika"     , [1]  , "fienden är Afrika"             , expectSuccess)  -- FAILING
-  , ("Afrika->stor"       , "ExemplumSwe", "fienden är Afrika"           , [2]  , "fienden är stor"               , expectSuccess)
-  , ("Afrika->en vän"     , "ExemplumSwe", "fienden är Afrika"           , [2]  , "fienden är en vän"             , expectSuccess)  -- FAILING
+  [ ("fienden->en fiende" , "ExemplumSwe", "fienden besegrar Afrika"     , [0]  , "en fiende besegrar Afrika"     , expectSuccess) -- FAIL
+  , ("fienden->Augustus"  , "ExemplumSwe", "fienden besegrar Afrika"     , [0]  , "Augustus besegrar Afrika"      , expectSuccess)
+  , ("besegrar->är"       , "ExemplumSwe", "fienden besegrar Afrika"     , [1]  , "fienden är Afrika"             , expectSuccess)
+  , ("Afrika->stor"       , "ExemplumSwe", "fienden är Afrika"           , [2]  , "fienden är stor"               , expectSuccess)  -- FAIL
+  , ("Afrika->en vän"     , "ExemplumSwe", "fienden är Afrika"           , [2]  , "fienden är en vän"             , expectSuccess)
   , ("DEL: det besegrade" , "ExemplumSwe", "det besegrade riket är stort", [0,1], "riket är stort"                , expectSuccess)
     -- NOTE: the "selection" should really be an insertion BEFORE "fienden" -- how do we represent that?
-  , ("INS: det besegrade" , "ExemplumSwe", "riket är stort"              , []   , "det besegrade riket är stort"  , expectSuccess)  -- SUCCESS: WHY?
-  , ("Augustus->en fiende", "ExemplumSwe", "Augustus besegrar Afrika"    , [0]  , "en fiende besegrar Afrika"     , expectSuccess)  -- FAILING
-  , ("INS: stor"          , "ExemplumSwe", "en fiende besegrar Afrika"   , []   , "en stor fiende besegrar Afrika", expectSuccess)  -- FAILING
-  , ("Aug.->en stor fi."  , "ExemplumSwe", "Augustus besegrar Afrika"    , [0]  , "en stor fiende besegrar Afrika", expectFailure)  -- FAILING
+  , ("INS: det besegrade" , "ExemplumSwe", "riket är stort"              , []   , "det besegrade riket är stort"  , expectSuccess)  -- FAIL
+  , ("Augustus->en fiende", "ExemplumSwe", "Augustus besegrar Afrika"    , [0]  , "en fiende besegrar Afrika"     , expectSuccess)
+  , ("INS: stor"          , "ExemplumSwe", "en fiende besegrar Afrika"   , []   , "en stor fiende besegrar Afrika", expectSuccess)  -- FAIL
+  , ("Aug.->en stor fi."  , "ExemplumSwe", "Augustus besegrar Afrika"    , [0]  , "en stor fiende besegrar Afrika", expectFailure)
     -- NOTE: the last should fail and does fail, but still it's reported as a failure??
   ]
   where
@@ -126,7 +126,7 @@ mkTestLinearizations (nm, lang, src, sel, trg, isExpected)
     where
     ctxt ∷ Context
     ctxt = unsafeGetContext lang
-    limit = 20
+    limit = maxBound
 
 parseLin ∷ Context → String → Set Linearization
 parseLin ctxt = parseTree >>> map mkL >>> Set.fromList
