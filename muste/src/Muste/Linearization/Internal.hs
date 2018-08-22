@@ -13,6 +13,7 @@ module Muste.Linearization.Internal
   , disambiguate
   -- Used in test suite:
   , readLangs
+  , stringRep
   ) where
 
 import Data.Maybe (fromMaybe)

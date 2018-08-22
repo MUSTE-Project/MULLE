@@ -80,33 +80,45 @@ menuLin = testGroup "Linearization" $ mkTest' <$>
 
 mkTest' ∷ (String, String, String, [Int], String, Bool) → TestTree
 mkTest' (nm, lang, src, sel, trg, isExpected) = testCase nm $ do
-  sg ← getSuggestions src (Selection.fromList sel)
-  let trgL = parseLin trg
-  let expecter = if isExpected then not else id
-  when (expecter $ Set.null (Set.intersection @Linearization sg trgL))
+  sg ← Set.map Linearization.stringRep
+    <$> getSuggestions ctxt src (Selection.fromList sel)
+  let trgL = Set.map Linearization.stringRep
+        $ parseLin ctxt trg
+      expecter = if isExpected then id else not
+  when (expecter $ Set.null (Set.intersection @String sg trgL))
     (failDoc $ nest 2 $ vsep
       [ pretty @String $ "Expected to " <> (if isExpected then "" else "*not* ") <> "find one of:"
-      , prettyTruncate 8 trgL
+      , prettyTruncate limit trgL
       , pretty @String "Somewhere in:"
-      , prettyTruncate 8 sg
+      , prettyTruncate limit sg
       ]
     )
   where
   ctxt ∷ Context
   ctxt = unsafeGetContext lang
-  mkL ∷ TTree → Linearization
-  mkL = mkLinSimpl ctxt
-  parseLin ∷ String → Set Linearization
-  parseLin = parseTree >>> map mkL >>> Set.fromList
+  limit = 20
+
+parseLin ∷ Context → String → Set Linearization
+parseLin ctxt = parseTree >>> map mkL >>> Set.fromList
+  where
   parseTree ∷ String → [TTree]
   parseTree = Grammar.parseSentence grammar (Linearization.ctxtLang ctxt)
-  getM ∷ String → Menu
-  getM = foldMap (Menu.getMenu ctxt) . parseLin
-  getSuggestions ∷ MonadFail m ⇒ String → Selection → m (Set Linearization)
-  getSuggestions s sl = Set.fromList . map Menu.lin
-    <$> lookupFail (err s) sl (getM s)
+  mkL ∷ TTree → Linearization
+  mkL = mkLinSimpl ctxt
+
+getSuggestions
+  ∷ MonadFail m
+  ⇒ Context
+  → String
+  → Selection
+  → m (Set Linearization)
+getSuggestions ctxt s sl = Set.fromList . map Menu.lin
+  <$> lookupFail (err s) sl (getM s)
+  where
   err ∷ String → String
   err = printf "Selection not found in menu for: \"%s\""
+  getM ∷ String → Menu
+  getM = foldMap (Menu.getMenu ctxt) . parseLin ctxt
 
 prettyTruncate ∷ Pretty a ⇒ Int → Set a → Doc b
 prettyTruncate n s = vsep [truncationWarning, pretty trnc]
