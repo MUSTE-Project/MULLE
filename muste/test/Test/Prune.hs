@@ -39,7 +39,10 @@ type PruneTest = (String, String, String, String)
 --
 tests ∷ TestTree
 tests = testGroup "Prune" $ mkTest <$>
-  [ ("nice name", "usePN Africa_PN", "(useS (useCl (simpleCl (detCN theSg_Det (useN imperium_N)) (complVA copula_V (useA magnus_A)))))", "(useS (useCl (simpleCl (detCN theSg_Det (attribCN (useA victus_A) (useN imperium_N))) (complVA copula_V (useA magnus_A)))))")
+  [ ("Africa -> imperium -> magnum imperium",
+     "(useS (useCl (simpleCl (usePN Africa_PN)                                              (complVA copula_V (useA magnus_A)))))",
+     "(useS (useCl (simpleCl (detCN theSg_Det                           (useN imperium_N))  (complVA copula_V (useA magnus_A)))))",
+     "(useS (useCl (simpleCl (detCN theSg_Det (attribCN (useA victus_A) (useN imperium_N))) (complVA copula_V (useA magnus_A)))))")
   ]
   -- [ isSuggested    short
   -- , isNotSuggested long
