@@ -120,3 +120,13 @@ delete any existing data in the database.
 No the program can be accessed in you browser.  The program should
 output the location you need to access to see it (default is
 http://localhost:8080).
+
+Documentation
+---
+
+Since most modules of the libraries are marked as internal it can be
+useful to generate documentation for these as well as a development
+aid.  Consider using this command:
+
+    stack haddock --haddock-internal --no-haddock-deps --force-dirty
+

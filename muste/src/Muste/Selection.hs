@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wall #-}
 {-# Language OverloadedStrings, CPP #-}
 -- | A 'Set' with a dfferent 'Ord' instance.
 module Muste.Selection (Selection, fromList, toList) where
