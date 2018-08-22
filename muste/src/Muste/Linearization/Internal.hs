@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wall -Wno-unused-top-binds -Wno-name-shadowing #-}
+{-# OPTIONS_GHC -Wall #-}
 {-# Language CPP, OverloadedStrings #-}
 module Muste.Linearization.Internal
   ( Context(..)
@@ -114,10 +114,10 @@ instance FromJSON LinToken where
     <*> v .: "matched"
 
 instance ToJSON LinToken where
-  toJSON (LinToken path lin matched) = object
+  toJSON (LinToken path lin m) = object
     [ "path"    .= path
     , "lin"     .= lin
-    , "matched" .= matched
+    , "matched" .= m
     ]
 
 type instance Element Linearization = LinToken
@@ -213,8 +213,8 @@ bracketsToTuples = deep
   deep ltree (PGF.Bracket _ fid _ _ _ [PGF.Leaf token]) =
     Linearization [LinToken (Tree.getPath ltree fid) token []]
   -- Meta leaf
-  deep ltree (PGF.Bracket _ fid _ _ [PGF.EMeta id] _) =
-    Linearization [LinToken (Tree.getPath ltree fid) ("?" ++ show id) []]
+  deep ltree (PGF.Bracket _ fid _ _ [PGF.EMeta i] _) =
+    Linearization [LinToken (Tree.getPath ltree fid) ("?" ++ show i) []]
   -- In the middle of the tree
   deep ltree (PGF.Bracket _ fid _ _ _ bs) =
     broad ltree fid bs mempty
@@ -251,10 +251,10 @@ mkLin
   -> TTree
   -> TTree -- ^ The actual tree to linearize
   -> Linearization
-mkLin ctxt srcTree trgTree tree
+mkLin ctxt srcTree trgTree t
   = Linearization $ matchTk srcTree trgTree <$> xs
   where
-    (Linearization xs) = linearizeTree ctxt tree
+    (Linearization xs) = linearizeTree ctxt t
 
 -- | @'sameOrder' xs ys@ checks to see if the tokens in @xs@ occurs in
 -- the same sequence in @ys@.
@@ -281,8 +281,8 @@ disambiguate ctxt = stringRep >>> parse
 type CoverNode = (Int, String, Path)
 
 coverNodes :: Context -> TTree -> [CoverNode]
-coverNodes ctxt tree
-  = tree
+coverNodes ctxt t
+  = t
   & linearizeTree ctxt
   & otoList
   & map ltpath
@@ -291,7 +291,7 @@ coverNodes ctxt tree
   where
   coverNode ∷ (Int, Path) → CoverNode
   coverNode (n, p)
-    = Tree.selectNode tree p
+    = Tree.selectNode t p
     & fromMaybe errLinCov
     & cn
     where
