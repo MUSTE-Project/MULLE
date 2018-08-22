@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wno-name-shadowing #-}
+{-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
 {-# Language OverloadedStrings, CPP #-}
 module Muste.Menu.Internal
   ( Menu
