@@ -21,7 +21,6 @@ import Data.Text.Prettyprint.Doc
   ( Pretty, Doc, pretty, layoutCompact, nest
   , vsep, sep, (<+>), brackets, enclose
   )
-import Data.Text.Prettyprint.Doc.Render.String (renderString)
 
 import Muste (Grammar, TTree, Menu, Linearization, Context, CostTree)
 import qualified Muste
@@ -32,6 +31,7 @@ import qualified Muste.Menu.Internal as Menu
 import Muste.Selection (Selection)
 import qualified Muste.Selection as Selection
 
+import Test.Common (failDoc, prettyShow)
 import qualified Test.Common as Test
 
 grammar :: Grammar
@@ -150,7 +150,7 @@ getSuggestions ctxt s sl = Set.fromList . map Menu.lin
   where
   mn = getM s
   err ∷ String
-  err = renderString . layoutCompact
+  err = prettyShow
     $ vsep
       -- [ pretty @String (printf "Selection (%s) not found in menu for: \"%s\"" sl s)
       [ pretty @String "Selection" <+> brackets (pretty sl) <+> pretty @String "not found in menu for:" <+> quotes (pretty @String s)
@@ -168,9 +168,6 @@ prettyTruncate n s = vsep [truncationWarning, pretty trnc]
   truncationWarning = case null rest of
     False → pretty @String "[RESULT TRUNCATED]:"
     True → mempty
-
-failDoc ∷ MonadFail m ⇒ Doc a → m ()
-failDoc = fail . renderString . layoutCompact
   
 mkLinSimpl ∷ Context → TTree → Linearization
 mkLinSimpl c t = Linearization.mkLin c t t t

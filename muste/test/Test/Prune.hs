@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wall #-}
 {-# Language TemplateHaskell #-}
 module Test.Prune (tests) where
 
@@ -6,11 +7,22 @@ import Test.Tasty.HUnit
 import qualified Data.Set as Set
 import Data.Foldable
 import Data.Set (Set)
+import Control.Monad
 
 import Muste
 import Muste.Prune
 import qualified Test.Common as Test
-import Muste.Grammar.TH (tree)
+import qualified Muste.Grammar.Internal as Grammar
+import Data.Text.Prettyprint.Doc (pretty, vsep)
+
+import Test.Common (failDoc)
+
+-- | Consists of a
+--
+-- * Name
+-- * A tree to expect in the suggestions
+-- * A tree to *not* expect in the suggestions
+type PruneTest = (String, String, String, String)
 
 -- | Issue #5: Should not include results that can be reached in
 -- multiple steps E.g. the suggestions for
@@ -25,30 +37,34 @@ import Muste.Grammar.TH (tree)
 --
 --     useCNdefsg (useN imperium_N)
 --
-multipleSteps ∷ TestTree
-multipleSteps = testGroup "Africa" $ mk <$> zip [0..]
-  [ isSuggested    short
-  , isNotSuggested long
+tests ∷ TestTree
+tests = testGroup "Prune" $ mkTest <$>
+  [ ("nice name", "usePN Africa_PN", "(useS (useCl (simpleCl (detCN theSg_Det (useN imperium_N)) (complVA copula_V (useA magnus_A)))))", "(useS (useCl (simpleCl (detCN theSg_Det (attribCN (useA victus_A) (useN imperium_N))) (complVA copula_V (useA magnus_A)))))")
   ]
+  -- [ isSuggested    short
+  -- , isNotSuggested long
+  -- ]
   where
-  isSuggested ∷ TTree → Assertion
-  isSuggested t = t `elem` trees @?= True
-  isNotSuggested ∷ TTree → Assertion
-  isNotSuggested t = t `elem` trees @?= False
-  mk ∷ (Int, IO ()) → TestTree
-  mk (i, a) = testCase (show i) a
+  mkTest ∷ PruneTest → TestTree
+  mkTest (nm, src, ex, nEx) = testCase nm $ do
+    let trees = replacements $ parse src
+        expect ∷ Bool → TTree → Assertion
+        expect b t = when (expecter $ t `elem` trees) $ failDoc $ vsep
+          [ pretty @String "This tree:"
+          , pretty t
+          , pretty @String $ "was " <> (if b then "not " else "") <> "found in any of the suggestions:"
+          , pretty $ Set.toList trees
+          ]
+          where expecter = if b then not else id
+    expect True $ parse ex
+    expect False $ parse nEx
 
-source ∷ TTree
-source = $(tree "novo_modo/Exemplum" "usePN Africa_PN")
+-- parseTTree :: Grammar -> String -> TTree
+parse ∷ String → TTree
+parse = Grammar.parseTTree grammar
 
-trees ∷ Set TTree
-trees = replacements source
-
-short ∷ TTree
-short = $(tree "novo_modo/Exemplum" "(useS (useCl (simpleCl (detCN theSg_Det (useN imperium_N)) (complVA copula_V (useA magnus_A)))))")
-
-long ∷ TTree
-long = $(tree "novo_modo/Exemplum" "(useS (useCl (simpleCl (detCN theSg_Det (attribCN (useA victus_A) (useN imperium_N))) (complVA copula_V (useA magnus_A)))))")
+grammar :: Grammar
+grammar = Test.grammar
 
 replacements ∷ TTree → Set TTree
 replacements source = fold ts
@@ -57,7 +73,3 @@ replacements source = fold ts
   adjTs = getAdjunctionTrees g
   m     = replaceTrees g adjTs source
   ts    = Set.map snd <$> m
-
-tests ∷ TestTree
-tests = testGroup "Prune" $ [multipleSteps]
-  -- [ testCase "Multiple steps" multipleSteps ]
