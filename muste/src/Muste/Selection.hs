@@ -1,4 +1,4 @@
-{-# Language OverloadedStrings #-}
+{-# Language OverloadedStrings, CPP #-}
 -- | A 'Set' with a dfferent 'Ord' instance.
 module Muste.Selection (Selection, fromList, toList) where
 
@@ -9,6 +9,9 @@ import qualified Data.Text.Prettyprint.Doc as Doc
 import Data.List
 import Data.IntSet (IntSet)
 import qualified Data.IntSet as IntSet
+#if !(MIN_VERSION_base(4,11,0))
+import Data.Semigroup (Semigroup((<>)))
+#endif
 
 -- | A selection represents parts of a 'Linearization' w.r.t a
 -- linearized 'TTree'.
