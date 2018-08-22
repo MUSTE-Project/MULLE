@@ -59,8 +59,19 @@ getCtxt lang = lookupFail err lang $ Linearization.readLangs grammar
 tests ∷ TestTree
 tests = testGroup "Menu" [menuLin, menuTrees]
 
+-- | A test-case consists of the following (in order of appereance):
+--
+-- * A helpful name for the test-case.
+-- * The language that the two sentences are written in.
+-- * The sentence to get suggestions from.
+-- * The "selection" to make.
+-- * A sentence to (alt.: not) expect to be at this position in the
+--   menu.
+-- * Whether to expect success or failure.
+type LinTestCase = (String, String, String, [Int], String, Bool)
+
 menuLin ∷ TestTree
-menuLin = testGroup "Linearization" $ mkTest' <$>
+menuLin = testGroup "Linearization" $ mkTestLinearizations <$>
   [ ("fienden->en fiende" , "ExemplumSwe", "fienden besegrar Afrika"     , [0]  , "en fiende besegrar Afrika"     , expectSuccess)
   , ("fienden->Augustus"  , "ExemplumSwe", "fienden besegrar Afrika"     , [0]  , "Augustus besegrar Afrika"      , expectSuccess)  -- FAILING
   , ("besegrar->är"       , "ExemplumSwe", "fienden besegrar Afrika"     , [1]  , "fienden är Afrika"             , expectSuccess)  -- FAILING
@@ -78,25 +89,44 @@ menuLin = testGroup "Linearization" $ mkTest' <$>
   expectSuccess = True
   expectFailure = False
 
-mkTest' ∷ (String, String, String, [Int], String, Bool) → TestTree
-mkTest' (nm, lang, src, sel, trg, isExpected) = testCase nm $ do
-  sg ← Set.map Linearization.stringRep
-    <$> getSuggestions ctxt src (Selection.fromList sel)
-  let trgL = Set.map Linearization.stringRep
-        $ parseLin ctxt trg
-      expecter = if isExpected then id else not
-  when (expecter $ Set.null (Set.intersection @String sg trgL))
-    (failDoc $ nest 2 $ vsep
-      [ pretty @String $ "Expected to " <> (if isExpected then "" else "*not* ") <> "find one of:"
-      , prettyTruncate limit trgL
-      , pretty @String "Somewhere in:"
-      , prettyTruncate limit sg
-      ]
-    )
-  where
-  ctxt ∷ Context
-  ctxt = unsafeGetContext lang
-  limit = 20
+-- | Makes tests for menus based on 'Linearization's (as opposed to
+-- 'mkTest' that does it based on the internal syntax for sentences).
+mkTestLinearizations ∷ LinTestCase → TestTree
+mkTestLinearizations (nm, lang, src, sel, trg, isExpected)
+  -- Create a test-case with the given name.
+  = testCase nm $ do
+    -- Look up suggestions for source tree.  Convert results to their
+    -- string-representation.
+    sg ← Set.map Linearization.stringRep
+      <$> getSuggestions ctxt src (Selection.fromList sel)
+    -- Get the string representation of the target.  We could just use
+    -- the argument passed in, but this also ensures that the grammar
+    -- understands the sentence.  Note that ambiguities may be
+    -- introduced here, so this returns a set.
+    let trgL = Set.map Linearization.stringRep
+          $ parseLin ctxt trg
+    -- Some tests are negative tests.  'expecter' reflects this.
+        expecter = if isExpected then id else not
+    -- This is where you need to "holde tungen like i munden".  We
+    -- test the interesection of the suggestions with the (alt.: not-)
+    -- expected result.  If the interesection is empty ('null') then
+    -- this is an error (alt.: a success).  However!  The following
+    -- statement will throw when the condition is *met*.
+    when (expecter $ Set.null (Set.intersection @String sg trgL))
+    -- Just some pretty-printing of the expected behaviour (shown on
+    -- failure).  'failDoc' is a helper that 'throw's and
+    -- pretty-prints some pretty-printable stuff in that case.
+      (failDoc $ nest 2 $ vsep
+        [ pretty @String $ "Expected to " <> (if isExpected then "" else "*not* ") <> "find one of:"
+        , prettyTruncate limit trgL
+        , pretty @String "Somewhere in:"
+        , prettyTruncate limit sg
+        ]
+      )
+    where
+    ctxt ∷ Context
+    ctxt = unsafeGetContext lang
+    limit = 20
 
 parseLin ∷ Context → String → Set Linearization
 parseLin ctxt = parseTree >>> map mkL >>> Set.fromList
