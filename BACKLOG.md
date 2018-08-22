@@ -1,19 +1,5 @@
 BACKLOG
 =======
-
-Better handling of build configuration options
----
-
-The configuration options described in the readme under "Configuring"
-seem quite brittle.  For one, it's annoying to have to manually edit a
-file that is being revision controlled.  Another thing is that in
-particular the option `VIRTUAL_ROOT` does not automatically also
-change the value in `muste-gui.js` (see readme) which means it's easy
-to get into an inconsistent state if you are not careful.  The
-redeeming quality is that it should not be necessary to change the
-default options when running the program locally for
-development/testing.
-
 Restore bitrotten test-cases
 ---
 
@@ -39,14 +25,6 @@ Use front end framework
 
 https://github.com/MUSTE-Project/MULLE/issues/6
 
-Better configuration support
----
-
-E.g. using `optparse-applicative`.
-
-Parser for `Pretty` version of `TTree`s
----
-
 Set expiry on session cookie
 ---
 
@@ -57,7 +35,7 @@ their session?
 Move more parameters into location or query params
 ---
 
-Improved support for insertion
+Issue #2: Improved support for insertion
 ----
 
 https://github.com/MUSTE-Project/MULLE/issues/2
@@ -65,34 +43,20 @@ https://github.com/MUSTE-Project/MULLE/issues/2
 We should now correctly be reporting which trees are to be considered
 "insertions", we now need to make the front end act on this.
 
+We need to decide is how to encode an insertion as a `Selection`.
+
 Automatically generate .pgf files
 ---
 
-The project depends on the `.pgf` files existing.  They are
-automatically generated and should not be source controlled.  There
-should be a make target that generates these files from
-`muste-ajax/data/gf/grammars/**/*.gf`.
+Make this a part of the build pipeline.  The user currently needs to
+manually call `make`.
 
-Issue #3: Change representation from single tree to sets of trees.
+Issue #10: Make client oblivious to `TTree`s
 ---
 
-https://github.com/MUSTE-Project/MULLE/issues/3
+https://github.com/MUSTE-Project/MULLE/issues/10
 
-In `Protocol.emptyMenus` and `Protocol.assembleMenus` we make use of
-`unsafeTakeTree`.  This is perhaps inelegant, but should be safe.
-Should work under the assumption that all the trees we consider have
-the same linearization, so it probably shouldn't matter which one we
-pick.  It would be nice to encapsulate this in the type somehow.  One
-low-hanging piece of fruit would be to use some representation for a
-non-empty set. Since we at least need one reference tree to linearize.
-Also there is some code-duplication in `Protocol.emptyMenus` and
-`Protocol.assembleMenus` that I haven't been able to get rid of.  This
-is because they differ ever so slightly.
-
-Most importantly perhaps we need to make the test case in `Test.Menu`
-pass.  The reason it's not passing is that the saved test case does
-not, in fact, contain an ambiguity.  There can of course be several
-reasons for this.
+Builds on #3: https://github.com/MUSTE-Project/MULLE/issues/3
 
 Wide / narrow grammar
 ---
@@ -104,14 +68,3 @@ Do we want to keep supporting `muste-cgi`?
 
 AFAIK CGI scripts just speak a different protocol from
 `application/json`.  So this should be easy to keep support for.
-
-Multiple trees
----
-
-ClientTree and ServerTree must not know about TTrees, but rather a
-single lintoken.
-
-CostTree must also not save the TTree, again just the linearization.
-
-The highlighting in the drop-down menu that the user is shown when
-clicking on a word is broken as per `1b95483`.
