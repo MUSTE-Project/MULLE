@@ -18,7 +18,9 @@ import Text.Printf
 import Data.Containers (IsMap)
 import qualified Data.Containers as Mono
 import Data.Text.Prettyprint.Doc
-  (Pretty, Doc, pretty, layoutCompact, nest, vsep, (<+>))
+  ( Pretty, Doc, pretty, layoutCompact, nest
+  , vsep, sep, (<+>), brackets, enclose
+  )
 import Data.Text.Prettyprint.Doc.Render.String (renderString)
 
 import Muste (Grammar, TTree, Menu, Linearization, Context, CostTree)
@@ -144,12 +146,20 @@ getSuggestions
   → Selection
   → m (Set Linearization)
 getSuggestions ctxt s sl = Set.fromList . map Menu.lin
-  <$> lookupFail (err s) sl (getM s)
+  <$> lookupFail err sl mn
   where
-  err ∷ String → String
-  err = printf "Selection not found in menu for: \"%s\""
+  mn = getM s
+  err ∷ String
+  err = renderString . layoutCompact
+    $ vsep
+      -- [ pretty @String (printf "Selection (%s) not found in menu for: \"%s\"" sl s)
+      [ pretty @String "Selection" <+> brackets (pretty sl) <+> pretty @String "not found in menu for:" <+> quotes (pretty @String s)
+      , pretty @String "Available selections:"
+      , pretty @[Selection] $ Mono.keys mn
+      ]
   getM ∷ String → Menu
   getM = foldMap (Menu.getMenu ctxt) . parseLin ctxt
+  quotes = enclose (pretty @String "\"") (pretty @String "\"")
 
 prettyTruncate ∷ Pretty a ⇒ Int → Set a → Doc b
 prettyTruncate n s = vsep [truncationWarning, pretty trnc]
