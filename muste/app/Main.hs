@@ -1,33 +1,26 @@
+{-# OPTIONS_GHC -Wall #-}
 {-# Language CPP, RecordWildCards, NamedFieldPuns, TemplateHaskell,
   DeriveAnyClass
 #-}
 module Main (main) where
 
 import Prelude hiding (fail)
-import Control.Monad.Fail (MonadFail(fail))
-import System.Console.Repline (HaskelineT, Command)
+import System.Console.Repline (HaskelineT)
 import qualified System.Console.Repline as Repl
-import Control.Exception (displayException)
-import System.Console.Haskeline.MonadException
-  (MonadException(controlIO), throwIO, Exception)
-    -- System.Console.Haskeline.MonadException
+import Control.Exception (Exception, displayException)
 import Control.Monad.State.Strict hiding (fail)
-import Control.Category ((>>>))
 import Data.Function ((&))
 #if !(MIN_VERSION_base(4,11,0))
 import Data.Semigroup (Semigroup((<>)))
 #endif
-import Text.Printf
-import Data.Maybe
 import Data.ByteString (ByteString)
 import Data.String.Conversions (convertString)
 import qualified Muste.Grammar.Embed as Embed
-import Data.Containers as Mono
-import Data.Text.Prettyprint.Doc (Doc, Pretty, pretty)
+import Data.Text.Prettyprint.Doc (pretty)
+import Text.Read
 
 import Muste hiding (getMenu)
 import Muste.Common
-import Muste.Selection (Selection)
 import qualified Muste.Selection as Selection
 import Muste.Util
 import qualified Muste.Grammar.Internal as Grammar
@@ -100,8 +93,7 @@ oneArg a = \case
   _   → throwOneArgErr
 
 data AppException
-  = AppException String
-  | SelectionNotFound
+  = SelectionNotFound
   | OneArgErr
   deriving (Exception)
 
@@ -112,21 +104,17 @@ instance Show AppException where
 
 -- | Throws if the string is not a haskell list of integers.
 setSel ∷ String → Repl ()
-setSel s = do
-  m ← getMenu
-  case lookupFail mempty sel m of
-    Nothing → showErr SelectionNotFound
-    Just ts → liftIO $ putDocLn $ pretty ts
-  where
-  sel ∷ Selection
-  sel = Selection.fromList $ read @[Int] s
-  errMsg = SelectionNotFound
+setSel str = do
+  case Selection.fromList <$> readMaybe @[Int] str of
+    Nothing → liftIO $ putStrLn "no parse"
+    Just sel → do
+      m ← getMenu
+      case lookupFail mempty sel m of
+        Nothing → showErr SelectionNotFound
+        Just ts → liftIO $ putDocLn $ pretty ts
 
 showErr ∷ MonadIO m ⇒ Exception e ⇒ e → m ()
 showErr = liftIO . putStrLn . displayException
-
-genericAppErr ∷ MonadIO m ⇒ String → m ()
-genericAppErr = showErr . AppException
 
 throwOneArgErr ∷ MonadIO m ⇒ m ()
 throwOneArgErr = showErr OneArgErr
