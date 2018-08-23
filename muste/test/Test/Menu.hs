@@ -30,8 +30,10 @@ import qualified Muste.Linearization.Internal as Linearization
 import qualified Muste.Menu.Internal as Menu
 import Muste.Selection (Selection)
 import qualified Muste.Selection as Selection
+import qualified Muste.Util as Util
 
-import Test.Common (failDoc, prettyShow)
+import Muste.Common (prettyShow)
+import Test.Common (failDoc, renderDoc)
 import qualified Test.Common as Test
 
 grammar :: Grammar
@@ -44,18 +46,7 @@ mkLin ∷ TTree → TTree → TTree → Linearization
 mkLin src trg = Linearization.mkLin theCtxt src trg
 
 theCtxt ∷ Context
-theCtxt = unsafeGetContext "ExemplumSwe"
-
-unsafeGetContext ∷ String → Context
-unsafeGetContext lang = fromMaybe err $ getCtxt lang
-  where
-  err = error $ printf "Can't find %s" lang
-
-getCtxt ∷ MonadFail m ⇒ String → m Context
-getCtxt lang = lookupFail err lang $ Linearization.readLangs grammar
-  where
-  err = printf "Can't find %s" lang
-
+theCtxt = Util.unsafeGetContext grammar "ExemplumSwe"
 
 -- | Checks that the
 tests ∷ TestTree
@@ -86,7 +77,6 @@ menuLin = testGroup "Linearization" $ mkTestLinearizations <$>
   , ("Augustus->en fiende", "ExemplumSwe", "Augustus besegrar Afrika"    , [0]  , "en fiende besegrar Afrika"     , expectSuccess)
   , ("INS: stor"          , "ExemplumSwe", "en fiende besegrar Afrika"   , []   , "en stor fiende besegrar Afrika", expectSuccess)  -- FAIL
   , ("Aug.->en stor fi."  , "ExemplumSwe", "Augustus besegrar Afrika"    , [0]  , "en stor fiende besegrar Afrika", expectFailure)
-    -- NOTE: the last should fail and does fail, but still it's reported as a failure??
   ]
   where
   expectSuccess = True
@@ -128,16 +118,8 @@ mkTestLinearizations (nm, lang, src, sel, trg, isExpected)
       )
     where
     ctxt ∷ Context
-    ctxt = unsafeGetContext lang
+    ctxt = Util.unsafeGetContext grammar lang
     limit = maxBound
-
-parseLin ∷ Context → String → Set Linearization
-parseLin ctxt = parseTree >>> map mkL >>> Set.fromList
-  where
-  parseTree ∷ String → [TTree]
-  parseTree = Grammar.parseSentence grammar (Linearization.ctxtLang ctxt)
-  mkL ∷ TTree → Linearization
-  mkL = mkLinSimpl ctxt
 
 getSuggestions
   ∷ MonadFail m
@@ -146,11 +128,11 @@ getSuggestions
   → Selection
   → m (Set Linearization)
 getSuggestions ctxt s sl = Set.fromList . map Menu.lin
-  <$> lookupFail err sl mn
+  <$> Common.lookupFail err sl mn
   where
-  mn = getMenuFromStringRep ctxt s
+  mn = Menu.getMenuFromStringRep ctxt s
   err ∷ String
-  err = prettyShow
+  err = renderDoc
     $ vsep
       -- [ pretty @String (printf "Selection (%s) not found in menu for: \"%s\"" sl s)
       [ pretty @String "Selection" <+> brackets (pretty sl) <+> pretty @String "not found in menu for:" <+> quotes (pretty @String s)
@@ -159,8 +141,13 @@ getSuggestions ctxt s sl = Set.fromList . map Menu.lin
       ]
   quotes = enclose (pretty @String "\"") (pretty @String "\"")
 
-getMenuFromStringRep ∷ Context → String → Menu
-getMenuFromStringRep ctxt = foldMap (Menu.getMenu ctxt) . parseLin ctxt
+parseLin ∷ Context → String → Set Linearization
+parseLin ctxt = parseTree >>> map mkL >>> Set.fromList
+  where
+  parseTree ∷ String → [TTree]
+  parseTree = Grammar.parseSentence grammar (Linearization.ctxtLang ctxt)
+  mkL ∷ TTree → Linearization
+  mkL = Linearization.mkLinSimpl ctxt
 
 prettyTruncate ∷ Pretty a ⇒ Int → Set a → Doc b
 prettyTruncate n s = vsep [truncationWarning, pretty trnc]
@@ -169,9 +156,6 @@ prettyTruncate n s = vsep [truncationWarning, pretty trnc]
   truncationWarning = case null rest of
     False → pretty @String "[RESULT TRUNCATED]:"
     True → mempty
-  
-mkLinSimpl ∷ Context → TTree → Linearization
-mkLinSimpl c t = Linearization.mkLin c t t t
 
 menuTrees :: TestTree
 menuTrees = testGroup "Trees" $ mkTests
@@ -195,19 +179,10 @@ assertThere src n trg = do
   lookupMenu ∷ ∀ m . MonadFail m ⇒ String → Menu → m (Set Linearization)
   lookupMenu s mn
     = Set.fromList . fmap Menu.lin
-    <$> lookupFail s n mn
+    <$> Common.lookupFail s n mn
   err ∷ String
   err = printf "Test.Menu.assertThere: Selection not in tree: (%s)"
     $ show $ pretty n
-
-lookupFail
-  ∷ MonadFail m
-  ⇒ IsMap map
-  ⇒ String
-  → Mono.ContainerKey map
-  → map
-  → m (Mono.MapValue map)
-lookupFail err k = Common.maybeFail err . Mono.lookup k
 
 parseTree ∷ String → TTree
 parseTree s = Grammar.parseTTree grammar s  

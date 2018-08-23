@@ -15,6 +15,7 @@ module Muste.Linearization.Internal
   , readLangs
   , stringRep
   , isInsertion
+  , mkLinSimpl
   ) where
 
 import Data.Maybe (fromMaybe)
@@ -332,3 +333,6 @@ isInsertion cxt src trg = Selection.fromList <$> inserted
 
   getInsertionPosition ((n,_,_):_) = n
   getInsertionPosition [] = length srcnodes
+
+mkLinSimpl ∷ Context → TTree → Linearization
+mkLinSimpl c t = mkLin c t t t

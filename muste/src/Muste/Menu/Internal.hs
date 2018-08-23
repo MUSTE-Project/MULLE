@@ -5,6 +5,7 @@ module Muste.Menu.Internal
   , getMenu
   , CostTree
   , lin
+  , getMenuFromStringRep
   ) where
 
 import Data.Maybe
@@ -33,6 +34,7 @@ import Muste.Linearization
 import qualified Muste.Linearization.Internal as Linearization
 import Muste.Selection (Selection)
 import qualified Muste.Selection as Selection
+import qualified Muste.Grammar.Internal as Grammar
 
 -- | A 'CostTree' is a tree associated with it's linearization and a
 -- "cost".  The cost is with reference to some "base tree".  The only
@@ -243,3 +245,15 @@ instance Mono.IsMap Menu where
 -- <https://github.com/snoyberg/mono-traversable/issues/15>
 monofilter :: Mono.IsMap map => (Mono.MapValue map -> Bool) -> map -> map
 monofilter p = Mono.mapFromList . filter (p . snd) . Mono.mapToList
+
+getMenuFromStringRep ∷ Context → String → Menu
+getMenuFromStringRep ctxt = foldMap (getMenu ctxt) . parseLin ctxt
+
+parseLin ∷ Context → String → Set Linearization
+parseLin ctxt = parseTree >>> map mkL >>> Set.fromList
+  where
+  grammar = ctxtGrammar ctxt
+  parseTree ∷ String → [TTree]
+  parseTree = Grammar.parseSentence grammar (Linearization.ctxtLang ctxt)
+  mkL ∷ TTree → Linearization
+  mkL = Linearization.mkLinSimpl ctxt

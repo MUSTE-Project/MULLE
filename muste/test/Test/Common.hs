@@ -1,6 +1,6 @@
 {-# Language TemplateHaskell #-}
 module Test.Common
-  (grammar, treeDefinite, treeIndefinite, failDoc, prettyShow)
+  (grammar, treeDefinite, treeIndefinite, failDoc, renderDoc)
   where
 
 import Prelude hiding (fail)
@@ -16,6 +16,7 @@ import Test.Tasty.HUnit (Assertion, assertFailure)
 
 import Muste (TTree)
 import Muste.Grammar.TH (tree)
+import Muste.Common
 
 grammar :: Grammar
 grammar = Grammar.parseGrammar $ LB.fromStrict $ snd grammar'
@@ -35,7 +36,4 @@ treeDefinite = $(tree "novo_modo/Exemplum"
   <>   "(transV vincere_V (usePN Africa_PN)))))")
 
 failDoc ∷ Doc a → Assertion
-failDoc = assertFailure . prettyShow
-
-prettyShow ∷ Doc a → String
-prettyShow = renderString . layoutCompact
+failDoc = assertFailure . renderDoc

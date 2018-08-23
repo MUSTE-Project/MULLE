@@ -19,20 +19,30 @@ module Muste.Common
   , maybeFail
   , binaryFromText
   , binaryToText
+  , lookupFail
+  , renderDoc
+  , putDoc
+  , putDocLn
+  , lookupFailIO
   ) where
 
+import Control.Monad.IO.Class
+import Control.Exception
 import Prelude hiding (fail)
 import qualified Data.Set as Set
 import Data.List (groupBy)
 import Data.Function (on)
-import Data.Text.Prettyprint.Doc (Pretty)
-import qualified Data.Text.Prettyprint.Doc as Doc
 import Control.Monad.Fail
 import Text.Read (readEither)
 import Data.Binary (Binary)
 import qualified Data.Binary as Binary
 import Data.ByteString.Lazy (ByteString)
 import Data.String.Conversions (ConvertibleStrings(convertString))
+import qualified Data.Containers as Mono
+import Data.Containers (IsMap)
+import Data.Text.Prettyprint.Doc (Doc, Pretty, layoutCompact)
+import qualified Data.Text.Prettyprint.Doc as Doc
+import Data.Text.Prettyprint.Doc.Render.String (renderString)
 
 import qualified Debug.Trace
 
@@ -139,6 +149,11 @@ maybeFail err = \case
   Nothing → fail err
   Just a → pure a
 
+maybeFailIO ∷ MonadIO m ⇒ Exception e ⇒ e → Maybe a → m a
+maybeFailIO err = \case
+  Nothing → liftIO $ throwIO err
+  Just a → pure a
+
 binaryToText :: Binary bin ⇒ ConvertibleStrings ByteString text ⇒ bin → text
 binaryToText = convertString . Binary.encode
 
@@ -160,7 +175,6 @@ traceShow = Debug.Trace.traceShow
 traceShowId ∷ Show a ⇒ a → a
 traceShowId = Debug.Trace.traceShowId
 
-{-# DEPRECATED prettyShow "Development aid remain in your code!!" #-}
 prettyShow ∷ Pretty a => a → String
 prettyShow = show . Doc.pretty
 
@@ -181,3 +195,31 @@ from = undefined
 {-# DEPRECATED to "Development aid remain in your code!!" #-}
 to ∷ ∀ a b . b → a
 to = undefined
+
+lookupFail
+  ∷ MonadFail m
+  ⇒ IsMap map
+  ⇒ String
+  → Mono.ContainerKey map
+  → map
+  → m (Mono.MapValue map)
+lookupFail err k = maybeFail err . Mono.lookup k
+
+lookupFailIO
+  ∷ MonadIO m
+  ⇒ IsMap map
+  ⇒ Exception e
+  ⇒ e
+  → Mono.ContainerKey map
+  → map
+  → m (Mono.MapValue map)
+lookupFailIO err k = maybeFailIO err . Mono.lookup k
+
+renderDoc ∷ Doc a → String
+renderDoc = renderString . layoutCompact
+
+putDoc ∷ Doc a → IO ()
+putDoc = putStr . renderDoc
+
+putDocLn ∷ Doc a → IO ()
+putDocLn = putStrLn . renderDoc

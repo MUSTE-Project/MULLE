@@ -54,6 +54,7 @@ default-extensions:
 - NamedWildCards
 - TypeSynonymInstances
 - FlexibleInstances
+- FlexibleContexts
 - ScopedTypeVariables
 - ViewPatterns
 - DeriveGeneric
@@ -87,6 +88,19 @@ library:
     - Muste.Selection
     - Muste.Prune
     - Muste.Feat
+    - Muste.Util
+
+executables:
+  muste-cli:
+    source-dirs:
+      - app
+
+    main: Main.hs
+
+    dependencies:
+      - muste
+      - haskeline
+      - repline
 
 tests:
   test:
