@@ -293,11 +293,20 @@ function show_lin(lang, lin) {
         .appendTo(sentence);
 }
 
+function update_menu(m) {
+    remove_selection_highlighting();
+    window.currentMenu = m;
+}
 
-
-function clear_selection() {
+function remove_selection_highlighting() {
     $('.striked').removeClass('striked');
     $('#menus').empty();
+}
+function clear_selection() {
+    remove_selection_highlighting();
+    if(window.currentMenu != null) {
+        window.currentMenu.reset();
+    }
 }
 
 
@@ -336,11 +345,11 @@ function click_word(event) {
             }
         }
         var selection = getSelection();
-        clear_selection();
+        update_menu(validMenus);
 
         // These are the valid menus.  Now we must toggle between them
         // somehow.
-        var selsnmen = validMenus.next().value;
+        var selsnmen = validMenus.next();
         selection    = selsnmen[0];
         var menus    = selsnmen[1];
         if (menus === null) throw "No menu found";
@@ -398,7 +407,20 @@ function click_word(event) {
 }
 
 function getValidMenus(idx, menu) {
-    return circular(lookupKeySet(idx, menu));
+    var a = Array.from(lookupKeySet(idx, menu));
+    // This is a bit counter-intuitive perhaps, but this is because
+    // when we call next we start by incrementing the counter.
+    var initial = -1;
+    var i = initial;
+    return {
+        next: function() {
+            i = (i+1) % a.length;
+            return a[i];
+        },
+        reset: function() {
+            i = initial;
+        }
+    }
 }
 
 function prefixOf(xs, ys) {
@@ -410,19 +432,6 @@ function prefixOf(xs, ys) {
     return true;
 }
 
-// Takes a generator and returns a circular generator.  Currently this
-// is implemented simply by making an array (by forcing the generator)
-// and then simply cycling through that..
-function* circular(gen) {
-    var xs = Array.from(gen);
-    if(xs.length == 0)
-        throw "Cannot create circular generator from an empty one";
-    var i = 0;
-    while(true) {
-        yield xs[i];
-        i = (i+1) % xs.length;
-    }
-}
 // Looks up a value in a set of keys. Returns the key and value where
 // the value is present in the key.
 
