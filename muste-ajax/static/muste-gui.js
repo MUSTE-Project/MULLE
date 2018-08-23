@@ -315,6 +315,17 @@ function click_word(event) {
     var lang = clicked.data().lang;
     var path = clicked.data().path;
     var validMenus = clicked.data("valid-menus");
+    function mark_selected_words(lin, sel) {
+        for(var i = 0 ; i < lin.length ; i++) {
+            var pword = lin[i];
+            // var marked = prefixOf(selection, pword.path);
+            var marked = sel.includes(i);
+            $('<span>').text(pword.lin)
+                .addClass(marked ? 'marked' : 'greyed')
+                .appendTo(menuitem);
+            $('<span>').text(" ").appendTo(menuitem);
+        }
+    }
     if(validMenus === undefined) {
         throw "No menu found. Probably because the user clicked a space between words, this is still not supported.";
     }
@@ -378,13 +389,7 @@ function click_word(event) {
             if (item.lin.length == 0) {
                 $('<span>').html("&empty;").appendTo(menuitem);
             } else {
-                item.lin.forEach(function(pword){
-                    var marked = prefixOf(selection, pword.path);
-                    $('<span>').text(pword.lin)
-                        .addClass(marked ? 'marked' : 'greyed')
-                        .appendTo(menuitem);
-                    $('<span>').text(" ").appendTo(menuitem);
-                });
+                mark_selected_words(item.lin, selection)
             }
             $('<li>').append(menuitem).appendTo(ul);
 
