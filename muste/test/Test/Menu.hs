@@ -111,10 +111,14 @@ mkTestLinearizations (nm, lang, src, sel, trg, isExpected)
     -- failure).  'failDoc' is a helper that 'throw's and
     -- pretty-prints some pretty-printable stuff in that case.
       (failDoc $ nest 2 $ vsep
-        [ pretty @String $ "Expected to " <> (if isExpected then "" else "*not* ") <> "find one of:"
+        [ pretty @String $ "Testing: [" <> src <> "]  -->  [" <> trg <> "]"
+        , pretty " "
+        , pretty @String $ "Expected to " <> (if isExpected then "" else "*not* ") <> "find one of:"
         , prettyTruncate limit trgL
-        , pretty @String "Somewhere in:"
+        , pretty " "
+        , pretty @String "Somewhere in the menu:"
         , prettyTruncate limit sg
+        , pretty " "
         ]
       )
     where
@@ -151,12 +155,12 @@ parseLin ctxt = parseTree >>> map mkL >>> Set.fromList
   mkL = Linearization.mkLinSimpl ctxt
 
 prettyTruncate ∷ Pretty a ⇒ Int → Set a → Doc b
-prettyTruncate n s = vsep [truncationWarning, pretty trnc]
+prettyTruncate n s = vsep $ [pretty trnc] ++ truncationWarning
   where
   (trnc, rest) = splitAt n $ Set.toList s
   truncationWarning = case null rest of
-    False → pretty @String "[RESULT TRUNCATED]:"
-    True → mempty
+    False → [pretty @String "...RESULT TRUNCATED..."]
+    True  → []
 
 menuTrees :: TestTree
 menuTrees = testGroup "Trees" $ mkTests
