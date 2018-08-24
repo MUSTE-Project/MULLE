@@ -63,15 +63,15 @@ lessons =
 -- identified by a pair of tree/language pairs.
 exercises :: [(String, String, String, String, [(TTree, TTree)])]
 exercises =
-  [ ("novo_modo/Exemplum","Exemplum Pars","ExemplumLat","ExemplumSwe",exemplumPars)
+  [ ("novo_modo/Exemplum","Exemplum Pars","ExemplumEng","ExemplumSwe",exemplumPars)
   , ("novo_modo/Prima"  , "Prima Pars"  , "PrimaLat"  , "PrimaSwe"  , primaPars)
   , ("novo_modo/Secunda", "Secunda Pars", "SecundaLat", "SecundaSwe", secundaPars)
   ]
 
 exemplumPars ∷ [(TTree, TTree)]
 exemplumPars =
-  [ ( ($(tree "novo_modo/Exemplum" "useS (useCl (simpleCl (detCN aSg_Det (attribCN (useA bonus_A) (useN amicus_N))) (transV copula_V (detCN aSg_Det (attribCN (useA laetus_A) (useN amicus_N))))))"))
-    , ($(tree "novo_modo/Exemplum" "useS (useCl (simpleCl (detCN theSg_Det (useN hostis_N)) (transV vincere_V (usePN Africa_PN))))"))
+  [ ( ($(tree "novo_modo/Exemplum" "useS (useCl (simpleCl (detCN aSg_Det (attribCN (useA good_A) (useN king_N))) (transV copula_V (detCN aSg_Det (attribCN (useA blue_A) (useN king_N))))))"))
+    , ($(tree "novo_modo/Exemplum" "useS (useCl (simpleCl (detCN theSg_Det (useN king_N)) (transV love_V (usePN paris_PN))))"))
     )
   ]
 

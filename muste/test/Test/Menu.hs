@@ -66,17 +66,18 @@ type LinTestCase = (String, String, String, [Int], String, Bool)
 
 menuLin ∷ TestTree
 menuLin = testGroup "Linearization" $ mkTestLinearizations <$>
-  [ ("fienden->en fiende" , "ExemplumSwe", "fienden besegrar Afrika"     , [0]  , "en fiende besegrar Afrika"     , expectSuccess) -- FAIL
-  , ("fienden->Augustus"  , "ExemplumSwe", "fienden besegrar Afrika"     , [0]  , "Augustus besegrar Afrika"      , expectSuccess)
-  , ("besegrar->är"       , "ExemplumSwe", "fienden besegrar Afrika"     , [1]  , "fienden är Afrika"             , expectSuccess)
-  , ("Afrika->stor"       , "ExemplumSwe", "fienden är Afrika"           , [2]  , "fienden är stor"               , expectSuccess)  -- FAIL
-  , ("Afrika->en vän"     , "ExemplumSwe", "fienden är Afrika"           , [2]  , "fienden är en vän"             , expectSuccess)
-  , ("DEL: det besegrade" , "ExemplumSwe", "det besegrade riket är stort", [0,1], "riket är stort"                , expectSuccess)
+  [ ("kungen->en kung", "ExemplumSwe", "kungen älskar Paris"     , [0]  , "en kung älskar Paris"     , expectSuccess) -- FAIL
+  , ("kungen->Johan"  , "ExemplumSwe", "kungen älskar Paris"     , [0]  , "Johan älskar Paris"       , expectSuccess)
+  , ("älskar->är"     , "ExemplumSwe", "kungen älskar Paris"     , [1]  , "kungen är Paris"          , expectSuccess)
+  , ("kungen->huset"  , "ExemplumSwe", "kungen är stor"          , [0]  , "huset är stort"           , expectSuccess) 
+  , ("Paris->stor"    , "ExemplumSwe", "kungen är Paris"         , [2]  , "kungen är stor"           , expectSuccess)  -- FAIL
+  , ("Paris->en vän"  , "ExemplumSwe", "kungen är Paris"         , [2]  , "kungen är en vän"         , expectSuccess)
+  , ("DEL: det kalla" , "ExemplumSwe", "det kalla huset är stort", [0,1], "huset är stort"           , expectSuccess)  -- FAIL
     -- NOTE: the "selection" should really be an insertion BEFORE "fienden" -- how do we represent that?
-  , ("INS: det besegrade" , "ExemplumSwe", "riket är stort"              , []   , "det besegrade riket är stort"  , expectSuccess)  -- FAIL
-  , ("Augustus->en fiende", "ExemplumSwe", "Augustus besegrar Afrika"    , [0]  , "en fiende besegrar Afrika"     , expectSuccess)
-  , ("INS: stor"          , "ExemplumSwe", "en fiende besegrar Afrika"   , []   , "en stor fiende besegrar Afrika", expectSuccess)  -- FAIL
-  , ("Aug.->en stor fi."  , "ExemplumSwe", "Augustus besegrar Afrika"    , [0]  , "en stor fiende besegrar Afrika", expectFailure)
+  , ("INS: det kalla" , "ExemplumSwe", "huset är stort"          , []   , "det kalla huset är stort" , expectSuccess)  -- FAIL
+  , ("Johan->en kung" , "ExemplumSwe", "Johan älskar Paris"      , [0]  , "en kung älskar Paris"     , expectSuccess)
+  , ("INS: stor"      , "ExemplumSwe", "en kung älskar Paris"    , []   , "en stor kung älskar Paris", expectSuccess)  -- FAIL
+  , ("Joh.->en st. k.", "ExemplumSwe", "Johan älskar Paris"      , [0]  , "en stor kung älskar Paris", expectFailure)
   ]
   where
   expectSuccess = True
@@ -159,7 +160,7 @@ prettyTruncate n s = vsep [truncationWarning, pretty trnc]
 
 menuTrees :: TestTree
 menuTrees = testGroup "Trees" $ mkTests
-  [ ("name", "source tree", [0], "target tree")
+  [ -- ("name", "source tree", [0], "target tree")
   ]
 
 mkTests ∷ [(String, String, [Int], String)] → [TestTree]

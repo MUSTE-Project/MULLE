@@ -51,7 +51,7 @@ tests ∷ TestTree
 tests =
   testGroup "Linearization"
     [ "The (in-)definite form in latin is ambiguous" |> ambiguities
-    , "The (in-)definite form in latin is ambiguous (v2)" |> isAmbiguous "hostis Africam vincit"
+    , "The (in-)definite form in latin is ambiguous (v2)" |> isAmbiguous "amicus Lutetiam amat"
     ]
   where
   (|>) = testCase

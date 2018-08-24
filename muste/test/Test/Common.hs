@@ -26,14 +26,11 @@ grammar = Grammar.parseGrammar $ LB.fromStrict $ snd grammar'
 
 treeIndefinite ∷ TTree
 treeIndefinite = $(tree "novo_modo/Exemplum"
-  $ "(useS (useCl (simpleCl (detCN aSg_Det (useN hostis_N))"
-  <>            "(transV vincere_V (usePN Africa_PN)))))")
+  $ "useS (useCl (simpleCl (detCN aSg_Det (useN friend_N)) (transV love_V (usePN paris_PN))))")
 
 treeDefinite ∷ TTree
 treeDefinite = $(tree "novo_modo/Exemplum"
-  $  "(useS (useCl (simpleCl "
-  <>   "(detCN theSg_Det (useN hostis_N)) "
-  <>   "(transV vincere_V (usePN Africa_PN)))))")
+  $  "useS (useCl (simpleCl (detCN theSg_Det (useN friend_N)) (transV love_V (usePN paris_PN))))")
 
 failDoc ∷ Doc a → Assertion
 failDoc = assertFailure . renderDoc
