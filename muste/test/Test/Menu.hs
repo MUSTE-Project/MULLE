@@ -1,28 +1,24 @@
 {-# Language UnicodeSyntax, NamedWildCards, TemplateHaskell, PartialTypeSignatures #-}
 -- TODO Still need to add test-case that uses a menu.
--- {-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall #-}
 module Test.Menu (tests) where
 
 import Prelude hiding (fail)
-import Data.Foldable
-import Data.Maybe
 import Test.Tasty
 import Test.Tasty.HUnit
-import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Control.Category ((>>>))
 import Control.Monad (when)
-import Control.Monad.Fail (MonadFail(fail))
+import Control.Monad.Fail (MonadFail)
 import Text.Printf
-import Data.Containers (IsMap)
 import qualified Data.Containers as Mono
 import Data.Text.Prettyprint.Doc
-  ( Pretty, Doc, pretty, layoutCompact, nest
-  , vsep, sep, (<+>), brackets, enclose
+  ( Pretty, Doc, pretty, nest
+  , vsep, (<+>), brackets, enclose
   )
 
-import Muste (Grammar, TTree, Menu, Linearization, Context, CostTree)
+import Muste (Grammar, TTree, Menu, Linearization, Context)
 import qualified Muste
 import qualified Muste.Common as Common
 import qualified Muste.Grammar.Internal as Grammar
@@ -32,7 +28,6 @@ import Muste.Selection (Selection)
 import qualified Muste.Selection as Selection
 import qualified Muste.Util as Util
 
-import Muste.Common (prettyShow)
 import Test.Common (failDoc, renderDoc)
 import qualified Test.Common as Test
 
@@ -151,10 +146,10 @@ getSuggestions ctxt s sl = Set.fromList . map Menu.lin
   quotes = enclose (pretty @String "\"") (pretty @String "\"")
 
 parseLin ∷ Context → String → Set Linearization
-parseLin ctxt = parseTree >>> map mkL >>> Set.fromList
+parseLin ctxt = parseTree' >>> map mkL >>> Set.fromList
   where
-  parseTree ∷ String → [TTree]
-  parseTree = Grammar.parseSentence grammar (Linearization.ctxtLang ctxt)
+  parseTree' ∷ String → [TTree]
+  parseTree' = Grammar.parseSentence grammar (Linearization.ctxtLang ctxt)
   mkL ∷ TTree → Linearization
   mkL = Linearization.mkLinSimpl ctxt
 
