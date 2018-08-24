@@ -335,6 +335,9 @@ function click_word(event) {
             $('<span>').text(" ").appendTo(menuitem);
         }
     }
+    if(validMenus === "nothing") {
+        throw "No menu for item";
+    }
     if(validMenus === undefined) {
         throw "No menu found. Probably because the user clicked a space between words, this is still not supported.";
     }
@@ -426,6 +429,7 @@ function getValidMenus(idx, menu) {
     // when we call next we start by incrementing the counter.
     var initial = -1;
     var i = initial;
+    if(a.length === 0) return "nothing";
     return {
         next: function() {
             i = (i+1) % a.length;
