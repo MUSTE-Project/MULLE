@@ -1,4 +1,3 @@
-
 var AjaxTimeout = 1000; // milliseconds
 
 var NOSPACING = "&+";
@@ -81,7 +80,7 @@ function submit_login(evt) {
 function click_body(event) {
     var prevented = $(event.target).closest('.prevent-body-click').length > 0;
     if (!prevented) {
-        clear_selection();
+        reset_selection();
     }
 }
 
@@ -262,7 +261,7 @@ function build_matching_classes(data) {
 
 
 function show_lin(lang, lin) {
-    clear_selection();
+    reset_selection();
     var sentence = $('#' + lang).empty();
     // var tree = parse_tree(DATA[lang].tree);
     for (var i=0; i<lin.length; i++) {
@@ -279,7 +278,7 @@ function show_lin(lang, lin) {
         // var subtree = lookup_subtree(path, tree);
         var validMenus = getValidMenus(i, DATA[lang].menu);
         var wordspan = $('<span>')
-            .addClass('word clickable').data({nr:i, lang:lang, path:path /* , subtree:subtree */, idx: i,"valid-menus": validMenus })
+            .addClass('word clickable').data({nr:i, lang:lang, path:path /* , subtree:subtree */,"valid-menus": validMenus })
             .html(current + '<sub class="debug">' + (match ? "=" : "") + path /* + ' ' + show_tree(subtree) */ + '</sub>')
             .click(click_word)
             .appendTo(sentence);
@@ -293,19 +292,28 @@ function show_lin(lang, lin) {
         .appendTo(sentence);
 }
 
-function update_menu(m) {
-    remove_selection_highlighting();
-    window.currentMenu = m;
+function update_menu(m, idx) {
+    var prev = window.currentMenu;
+    if(prev !== undefined && prev.idx != idx) {
+        reset_selection();
+    } else {
+        remove_selection_highlighting();
+    }
+    window.currentMenu = {
+        menu: m,
+        idx: idx
+    };
 }
 
 function remove_selection_highlighting() {
     $('.striked').removeClass('striked');
     $('#menus').empty();
 }
-function clear_selection() {
+
+function reset_selection() {
     remove_selection_highlighting();
     if(window.currentMenu != null) {
-        window.currentMenu.reset();
+        window.currentMenu.menu.reset();
     }
 }
 
@@ -315,6 +323,7 @@ function click_word(event) {
     var lang = clicked.data().lang;
     var path = clicked.data().path;
     var validMenus = clicked.data("valid-menus");
+    var idx = clicked.data("nr");
     function mark_selected_words(lin, sel) {
         for(var i = 0 ; i < lin.length ; i++) {
             var pword = lin[i];
@@ -356,7 +365,7 @@ function click_word(event) {
             }
         }
         var selection = getSelection();
-        update_menu(validMenus);
+        update_menu(validMenus, idx);
 
         // These are the valid menus.  Now we must toggle between them
         // somehow.
@@ -368,7 +377,7 @@ function click_word(event) {
         clicked.addClass('striked');
         $('#' + lang).find('.word')
             .filter(function(){
-                var idx = $(this).data("idx");
+                var idx = $(this).data("nr");
                 return selection.includes(idx);
             })
             .addClass('striked');
