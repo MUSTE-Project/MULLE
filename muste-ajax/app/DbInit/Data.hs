@@ -13,7 +13,7 @@ lessons =
   [ ( "Exemplum Pars"
     , "Example grammar with one exercise"
     , "novo_modo/Exemplum"
-    , "ExemplumSwe"
+    , "ExemplumEng"
     , "ExemplumSwe"
     , 1
     , 1
