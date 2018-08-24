@@ -177,7 +177,7 @@ instance Pretty Menu where
   pretty (Menu mp) = Doc.vsep $ map p $ Map.toList $ mp
     where
     p ∷ ∀ a . (Selection, [CostTree]) → Doc.Doc a
-    p (p, cs) = Doc.nest 2 $ Doc.vsep $ pretty p : map prettyCt cs
+    p (p, cs) = Doc.nest 2 $ Doc.vsep $ "" : ("-->" <+> pretty p) : map prettyCt cs
     prettyCt ∷ CostTree → Doc a
     prettyCt = pretty . lin
 

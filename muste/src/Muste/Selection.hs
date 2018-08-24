@@ -30,8 +30,7 @@ instance Ord Selection where
       x  → x
 
 instance Pretty Selection where
-  pretty = Doc.pretty . intercalate ","
-    . map show . IntSet.toList . runSelection
+  pretty = Doc.pretty . show . IntSet.toList . runSelection
 
 deriving instance ToJSON Selection
 deriving instance FromJSON Selection
