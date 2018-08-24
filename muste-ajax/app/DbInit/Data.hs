@@ -12,9 +12,9 @@ lessons :: [Lesson]
 lessons =
   [ ( "Exemplum Pars"
     , "Example grammar with one exercise"
-    , "novo_modo/Prima"
-    , "PrimaLat"
-    , "PrimaSwe"
+    , "novo_modo/Exemplum"
+    , "ExemplumSwe"
+    , "ExemplumSwe"
     , 1
     , 1
     , 1
