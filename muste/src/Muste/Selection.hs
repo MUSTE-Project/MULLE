@@ -7,7 +7,6 @@ import Prelude hiding (fail)
 import Data.Aeson
 import Data.Text.Prettyprint.Doc (Pretty(..))
 import qualified Data.Text.Prettyprint.Doc as Doc
-import Data.List
 import Data.IntSet (IntSet)
 import qualified Data.IntSet as IntSet
 #if !(MIN_VERSION_base(4,11,0))

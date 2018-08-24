@@ -24,7 +24,7 @@ import Database.SQLite.Simple
   , ToRow, FromRow
   )
 import Database.SQLite.Simple.QQ (sql)
-import qualified Database.SQLite.Simple as SQL (query, query_, execute)
+import qualified Database.SQLite.Simple as SQL
 
 import Crypto.Random.API (getSystemRandomGen, genRandomBytes)
 import Crypto.KDF.PBKDF2 (fastPBKDF2_SHA512, Parameters(Parameters))

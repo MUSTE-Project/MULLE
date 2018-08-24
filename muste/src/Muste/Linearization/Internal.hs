@@ -3,9 +3,8 @@
 module Muste.Linearization.Internal
   ( Context(..)
   , buildContext
-  , Linearization
-  , LinToken
-  , ltpath
+  , Linearization(Linearization)
+  , LinToken(..)
   , linearizeTree
   , langAndContext
   , mkLin
@@ -60,7 +59,7 @@ data LinToken = LinToken
   -- The path refers to the path in the 'TTree'
   { ltpath :: Path
   , ltlin :: String
-  , _ltmatched :: Path
+  , ltmatched :: Path
   }
 
 deriving instance Show LinToken

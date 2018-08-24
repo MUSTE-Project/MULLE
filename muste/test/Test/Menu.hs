@@ -116,13 +116,13 @@ mkTestLinearizations (nm, lang, src, sel, trg, isExpected)
     -- pretty-prints some pretty-printable stuff in that case.
       (failDoc $ nest 2 $ vsep
         [ pretty @String $ "Testing: [" <> src <> "]  -->  [" <> trg <> "]"
-        , pretty " "
+        , pretty @String " "
         , pretty @String $ "Expected to " <> (if isExpected then "" else "*not* ") <> "find one of:"
         , prettyTruncate limit trgL
-        , pretty " "
+        , pretty @String " "
         , pretty @String "Somewhere in the menu:"
         , prettyTruncate limit sg
-        , pretty " "
+        , pretty @String " "
         ]
       )
     where

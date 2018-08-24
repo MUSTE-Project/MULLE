@@ -52,8 +52,8 @@ type ProtocolT m a = ReaderT Env m a
 
 type MonadProtocol m =
   ( MonadReader Env m
-  , MonadSnap m
   , Database.HasConnection m
+  , MonadIO m
   )
 
 instance MonadIO m ⇒ Database.HasConnection (ReaderT Env m) where
@@ -94,7 +94,7 @@ apiRoutes db =
     err = error . printf "missing api route for `%s`"
 
 -- | Reads the data from the request and deserializes from JSON.
-getMessage :: FromJSON json ⇒ MonadProtocol m => m json
+getMessage :: FromJSON json ⇒ MonadSnap m ⇒ MonadProtocol m => m json
 getMessage = Snap.runRequestBody act
   where
     act stream = do
@@ -108,7 +108,7 @@ getMessage = Snap.runRequestBody act
 -- TODO Token should be set as an HTTP header.
 -- FIXME Use ByteString
 -- | Gets the current session token.
-getToken :: MonadProtocol m ⇒ m String
+getToken :: MonadSnap m ⇒ MonadProtocol m ⇒ m String
 -- getToken = cheatTakeToken <$> getMessage
 getToken = do
   m <- getTokenCookie
@@ -117,22 +117,22 @@ getToken = do
     Nothing -> error
       $ printf "Warning, reverting back to deprecated way of handling sesson cookies\n"
 
-getTokenCookie :: MonadProtocol m ⇒ m (Maybe Snap.Cookie)
+getTokenCookie :: MonadSnap m ⇒ MonadProtocol m ⇒ m (Maybe Snap.Cookie)
 getTokenCookie = Snap.getCookie "LOGIN_TOKEN"
 
 
 -- * Handlers
-lessonsHandler :: MonadProtocol m ⇒ m ServerMessage
+lessonsHandler :: MonadSnap m ⇒ MonadProtocol m ⇒ m ServerMessage
 lessonsHandler = do
   token <- getToken
   handleLessonsRequest token
 
-lessonHandler :: MonadProtocol m ⇒ m ServerMessage
+lessonHandler :: MonadSnap m ⇒ MonadProtocol m ⇒ m ServerMessage
 lessonHandler = Snap.pathArg $ \p → do
   t <- getToken
   handleLessonInit t p
 
-menuHandler :: MonadProtocol m ⇒ m ServerMessage
+menuHandler :: MonadSnap m ⇒ MonadProtocol m ⇒ m ServerMessage
 menuHandler = do
   req <- getMessage
   token <- getToken
@@ -141,23 +141,24 @@ menuHandler = do
       -> handleMenuRequest token lesson score time a b
     _ -> error "Wrong request"
 
-loginHandler :: MonadProtocol m ⇒ m ServerMessage
+loginHandler :: MonadSnap m ⇒ MonadProtocol m ⇒ m ServerMessage
 loginHandler = Snap.method Snap.POST $ do
   (usr, pwd) <- getUser
   handleLoginRequest usr pwd
 
-logoutHandler :: MonadProtocol m ⇒ m ServerMessage
+logoutHandler :: MonadSnap m ⇒ MonadProtocol m ⇒ m ServerMessage
 logoutHandler = Snap.method Snap.POST $ do
   tok <- getToken
   handleLogoutRequest tok
 
 -- TODO Now how this info should be retreived
 -- | Returns @(username, password)@.
-getUser :: MonadProtocol m ⇒ m (Text, Text)
+getUser :: MonadSnap m ⇒ MonadProtocol m ⇒ m (Text, Text)
 getUser = (\(CMLoginRequest usr pwd) -> (usr, pwd)) <$> getMessage
 
 setLoginCookie
-  :: MonadProtocol m
+  :: MonadSnap m
+  => MonadProtocol m
   => Text -- ^ The token
   -> m ()
 setLoginCookie tok = Snap.modifyResponse $ Snap.addResponseCookie c
@@ -170,7 +171,8 @@ setLoginCookie tok = Snap.modifyResponse $ Snap.addResponseCookie c
 -- request*.  That is, the client submits user/password on every
 -- request.  Security is handled by SSL in the transport layer.
 handleLoginRequest
-  :: MonadProtocol m
+  :: MonadSnap m
+  => MonadProtocol m
   => Text -- ^ Username
   -> Text -- ^ Password
   -> m ServerMessage
