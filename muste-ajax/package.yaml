@@ -118,6 +118,7 @@ library:
     - Config
     - Config.TH
     - Protocol
+    - Common
 
   other-modules:
     - Paths_muste_ajax

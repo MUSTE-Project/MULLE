@@ -406,7 +406,7 @@ finishExercise token lesson time clicks = do
   -- get lesson round
   [Only round] <- query @(Only Integer) lessonRoundQuery (user,lesson)
   ((sourceTree,targetTree):_)
-    <- query @(String, String) selectExerciseListQuery (lesson,user,round)
+    <- query @(Types.Linearization, Types.Linearization) selectExerciseListQuery (lesson,user,round)
   execute insertFinishedExerciseQuery
     (user, lesson, sourceTree, targetTree, time, clicks + 1, round)
   -- check if all exercises finished

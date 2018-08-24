@@ -5,7 +5,9 @@ module Protocol
 
 import Data.Aeson
 import Data.Map (Map)
-import qualified Data.Map.Lazy as M
+import qualified Data.Map.Lazy as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Control.Monad
 import Database.SQLite.Simple
 import Control.Monad.Reader
@@ -21,11 +23,11 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Data.Time
-import Data.Function (on)
+import Data.Function (on, (&))
 import Control.Monad.Catch (MonadThrow(throwM))
 import Control.Exception (Exception, throw)
 
-import Muste (Context, Linearization)
+import Muste (Context, Linearization, TTree)
 import qualified Muste
 
 import Ajax
@@ -214,12 +216,12 @@ handleLessonInit token lesson = do
 -- contain see the documentation there.
 handleMenuRequest
   :: MonadProtocol m
-  => String -- ^ Token
-  -> Text -- ^ Lesson
-  -> Integer -- ^ Clicks
+  => String          -- ^ Token
+  -> Text            -- ^ Lesson
+  -> Integer         -- ^ Clicks
   -> NominalDiffTime -- ^ Time elapsed
-  -> ClientTree -- ^ Source tree
-  -> ClientTree -- ^ Target tree
+  -> ClientTree      -- ^ Source tree
+  -> ClientTree      -- ^ Target tree
   -> m ServerMessage
 handleMenuRequest
   token lesson clicks time
@@ -228,6 +230,8 @@ handleMenuRequest
   c <- askContexts
   mErr <- verifySession token
   let authd = not $ isJust mErr
+  let finished ∷ Bool
+      finished = oneSimiliarTree c lesson ctreea ctreeb
   act <-
     if finished
     then do
@@ -238,17 +242,25 @@ handleMenuRequest
                  (srcLang, srcLin)
                  (trgLang, trgLin)
   verifyMessage token (SMMenuList lesson finished (succ clicks) a b)
-  where
-    finished :: Bool
-    finished = ctreea `sameLin` ctreeb
 
--- | Checks if two Two 'ClientTree''s have the same linearization.
-sameLin :: ClientTree -> ClientTree -> Bool
-sameLin = (==)
-  `on` thetrees
+oneSimiliarTree
+  ∷ Contexts
+  → Text
+  → ClientTree
+  → ClientTree
+  → Bool
+oneSimiliarTree cs lesson
+  = oneInCommon `on` parse
   where
-  thetrees :: ClientTree -> Linearization
-  thetrees (ClientTree _ trees) = trees
+  oneInCommon ∷ Ord a ⇒ Set a → Set a → Bool
+  oneInCommon a b = not $ Set.null $ Set.intersection a b
+  parse ∷ ClientTree → Set TTree
+  parse (ClientTree c l)
+    = l
+    & Muste.disambiguate (getC c)
+    & Set.fromList
+  getC lang = fromMaybe err $ getContext cs lesson lang
+  err = error "Lang not found for tree in grammar"
 
 handleLogoutRequest :: MonadProtocol m ⇒ String -> m ServerMessage
 handleLogoutRequest token = do
@@ -283,9 +295,9 @@ initContexts
 initContexts = mkContexts <$> Database.getLessons
 
 mkContexts ∷ [Database.Lesson] → Contexts
-mkContexts = M.fromList . map mkContext
+mkContexts = Map.fromList . map mkContext
 
-mkContext :: Database.Lesson -> (Text, M.Map String Context)
+mkContext :: Database.Lesson -> (Text, Map.Map String Context)
 mkContext (ls, _, nm, _, _, _, _, _) =
   (ls, Muste.langAndContext (T.unpack nm))
 
@@ -328,7 +340,7 @@ lookupM
   => Exception e
   => Ord k
   => e -> k -> Map k a -> m a
-lookupM err k = liftMaybe err . M.lookup k
+lookupM err k = liftMaybe err . Map.lookup k
 
 -- | Lift a 'Maybe' to any 'MonadThrow'.
 liftMaybe :: MonadThrow m => Exception e => e -> Maybe a -> m a
