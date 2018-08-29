@@ -1,7 +1,14 @@
-module Common (showPretty, tracePretty, tracePrettyId, traceShowId) where
+module Common
+  ( showPretty
+  , tracePretty
+  , tracePrettyId
+  , traceShowId
+  , throwLeft
+  ) where
 
 import Data.Text.Prettyprint.Doc (Pretty)
 import qualified Data.Text.Prettyprint.Doc as Doc
+import Control.Exception (Exception, throw)
 
 import qualified Debug.Trace as Debug
 
@@ -19,3 +26,8 @@ tracePretty a = Debug.trace (showPretty a)
 {-# DEPRECATED tracePrettyId "Development aid remain in your code!!" #-}
 tracePrettyId ∷ Pretty a ⇒ a → a
 tracePrettyId a = Debug.trace (showPretty a) a
+
+-- | Throws an exception if the it's a 'Left' (requires the left to be
+-- an exception).  This method is *unsafe*!
+throwLeft :: Exception e => Either e c -> c
+throwLeft = either throw id

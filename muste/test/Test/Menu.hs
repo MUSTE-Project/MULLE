@@ -1,4 +1,5 @@
-{-# Language UnicodeSyntax, NamedWildCards, TemplateHaskell, PartialTypeSignatures #-}
+{-# Language UnicodeSyntax, NamedWildCards, TemplateHaskell
+  , PartialTypeSignatures, OverloadedStrings #-}
 -- TODO Still need to add test-case that uses a menu.
 {-# OPTIONS_GHC -Wall #-}
 module Test.Menu (tests) where
@@ -17,13 +18,15 @@ import Data.Text.Prettyprint.Doc
   ( Pretty, Doc, pretty, nest
   , vsep, (<+>), brackets, enclose
   )
+import Data.Text (Text)
 
-import Muste (Grammar, TTree, Menu, Linearization, Context)
-import qualified Muste
+import Muste (Grammar, TTree, Linearization, Context)
+-- TODO Must test NewFancyMenu in stead.
+import Muste.Menu.Internal (Menu)
+import qualified Muste.Menu.Internal as Menu
 import qualified Muste.Common as Common
 import qualified Muste.Grammar.Internal as Grammar
 import qualified Muste.Linearization.Internal as Linearization
-import qualified Muste.Menu.Internal as Menu
 import Muste.Selection (Selection)
 import qualified Muste.Selection as Selection
 import qualified Muste.Util as Util
@@ -35,7 +38,7 @@ grammar :: Grammar
 grammar = Test.grammar
 
 getMenu ∷ TTree → TTree → TTree → Menu
-getMenu src trg = mkLin src trg >>> Muste.getMenu theCtxt
+getMenu src trg = mkLin src trg >>> Menu.getMenu theCtxt
 
 mkLin ∷ TTree → TTree → TTree → Linearization
 mkLin src trg = Linearization.mkLin theCtxt src trg
@@ -57,7 +60,7 @@ tests = testGroup "Menu" [menuLin, menuTrees]
 --   menu.
 -- * Whether to expect the sentence to be amongst the suggestions, or
 --   expect it *not* to be there.
-type LinTestCase = (String, String, String, [Int], String, Bool)
+type LinTestCase = (String, Text, String, [Int], String, Bool)
 
 menuLin ∷ TestTree
 menuLin = testGroup "Linearization" $ mkTestLinearizations <$>

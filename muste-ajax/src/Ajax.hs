@@ -1,15 +1,17 @@
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
-{-# language OverloadedStrings, DuplicateRecordFields #-}
+{-# language OverloadedStrings, DuplicateRecordFields
+  , RecordWildCards, NamedFieldPuns
+#-}
 module Ajax
   ( ServerTree
   , ServerMessage(..)
   , ClientTree(ClientTree)
   , ClientMessage(CMMenuRequest, CMLoginRequest)
-  , Menu
   , Lesson(..)
   , decodeClientMessage
-  , mkServerTree
+  , serverTree
   , lessonFromTuple
+  , unClientTree
   ) where
 
 import Data.Aeson hiding (Null,String)
@@ -18,12 +20,22 @@ import Data.Aeson.Types hiding (Null)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.ByteString.Lazy.Char8 as B
+import Data.Vector (Vector)
 import qualified Data.Vector as V
 import Data.Maybe
 import Control.Exception
 import Data.Time
+import Control.Category ((>>>))
 
-import Muste
+import Muste hiding (Menu)
+import Muste.Sentence (Sentence)
+import qualified Muste.Sentence             as Sentence
+import Muste.Sentence.Ambiguous               (Ambiguous)
+import qualified Muste.Sentence.Ambiguous   as Ambiguous
+import Muste.Sentence.Unambiguous             (Unambiguous)
+import qualified Muste.Sentence.Unambiguous as Unambiguous
+
+type Menu = NewFancyMenu
 
 data ClientMessageException = CME String deriving (Show)
 data ReadTreeException = RTE String deriving (Show)
@@ -31,21 +43,18 @@ data ReadTreeException = RTE String deriving (Show)
 instance Exception ClientMessageException
 instance Exception ReadTreeException
 
-data ClientTree = ClientTree
-  { clanguage ∷ String
-  , lin       ∷ Linearization
-  } deriving (Show)
+newtype ClientTree = ClientTree { unClientTree ∷ Ambiguous }
+
+deriving instance Show ClientTree
 
 instance FromJSON ClientTree where
   parseJSON = withObject "tree"
      $ \v -> ClientTree
-    <$> v .: "grammar"
-    <*> v .: "lin"
+    <$> v .: "sentence"
 
 instance ToJSON ClientTree where
-  toJSON (ClientTree tree language) = object
-    [ "trees"     .= tree
-    , "language"  .= language
+  toJSON (ClientTree sentence) = object
+    [ "sentence" .= sentence
     ]
 
 createMessageObject :: String -> Value -> Value
@@ -139,26 +148,23 @@ instance ToJSON ClientMessage where
 -- reason for it of course is that less information is needed by the
 -- server when receiving a request for e.g. @\/api\/menu@.
 data ServerTree = ServerTree
-  { slanguage ∷ String
-  , lin       ∷ Linearization
-  , smenu     ∷ Menu
+  { sentence  ∷ Unambiguous
+  , menu      ∷ Menu
   } deriving (Show)
 
 instance FromJSON ServerTree where
-  parseJSON = withObject "ServerTree" $ \v -> ServerTree
-    <$> v .: "grammar"
-    <*> v .: "lin"
+  parseJSON = withObject "server-tree" $ \v -> ServerTree
+    <$> v .: "sentence"
     <*> v .: "menu"
 
 instance ToJSON ServerTree where
-  toJSON (ServerTree grammar lin menu) = object
-    [ "grammar" .= grammar
-    , "lin"     .= lin
-    , "menu"    .= menu
+  toJSON (ServerTree { .. }) = object
+    [ "sentence" .= sentence
+    , "menu"     .= menu
     ]
 
-mkServerTree ∷ String → Linearization → Menu → ServerTree
-mkServerTree lang lin menu = ServerTree lang lin menu
+serverTree ∷ Unambiguous → Menu → ServerTree
+serverTree = ServerTree
 
 data Lesson = Lesson {
   lname :: Text,

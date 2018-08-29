@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language CPP, RecordWildCards, NamedFieldPuns, TemplateHaskell,
-  DeriveAnyClass
+  DeriveAnyClass, OverloadedStrings
 #-}
 module Main (main) where
 
@@ -18,18 +18,20 @@ import Data.String.Conversions (convertString)
 import qualified Muste.Grammar.Embed as Embed
 import Data.Text.Prettyprint.Doc (pretty)
 import Text.Read
+import Data.Text (Text)
 
-import Muste hiding (getMenu)
+import Muste
 import Muste.Common
 import qualified Muste.Selection as Selection
 import Muste.Util
 import qualified Muste.Grammar.Internal as Grammar
 import qualified Muste.Menu.Internal as Menu
+import qualified Muste.Menu.Internal as OldMenu
 
 grammar :: Grammar
 grammar = Grammar.parseGrammar $ convertString $ snd grammar'
   where
-  grammar' ∷ (String, ByteString)
+  grammar' ∷ (Text, ByteString)
   grammar' = $(Embed.grammar "novo_modo/Exemplum")
 
 defCtxt ∷ Context
@@ -37,7 +39,7 @@ defCtxt = unsafeGetContext grammar "ExemplumSwe"
 
 data Env = Env
   { lang ∷ String
-  , menu ∷ Menu
+  , menu ∷ OldMenu.Menu
   , ctxt ∷ Context
   }
 
@@ -65,18 +67,18 @@ updateMenu s = do
 -- | @'getMenu' s@ gets a menu for a sentence @s@.
 getMenuFor
   ∷ String -- ^ The sentence to parse
-  → Repl Menu
+  → Repl OldMenu.Menu
 getMenuFor s = do
   c ← getContext
   pure $ Menu.getMenuFromStringRep c s
 
-setMenu ∷ Menu → Repl ()
+setMenu ∷ OldMenu.Menu → Repl ()
 setMenu menu = modify $ \e → e { menu }
 
 getContext ∷ Repl Context
 getContext = gets $ \(Env { .. }) → ctxt
 
-getMenu ∷ Repl Menu
+getMenu ∷ Repl OldMenu.Menu
 getMenu = gets $ \(Env { .. }) → menu
 
 options ∷ Repl.Options (HaskelineT (StateT Env IO))

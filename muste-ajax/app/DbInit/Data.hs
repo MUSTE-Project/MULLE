@@ -1,10 +1,11 @@
-{-# Language CPP, TemplateHaskell #-}
+{-# Language CPP, TemplateHaskell, OverloadedStrings #-}
 -- | Data used for inititializing the database
 
 module DbInit.Data (exercises, lessons) where
 
 import Muste.Tree
 import Muste.Grammar (tree)
+import Data.Text (Text)
 
 type Lesson = (String,String,String,String,String,Int,Int,Int)
 
@@ -61,7 +62,7 @@ lessons =
 -- is identified by 1. an identifier for the grammar for that lesson
 -- and 2. by the name of that lesson (a PK in the DB).  Exercises are
 -- identified by a pair of tree/language pairs.
-exercises :: [(String, String, String, String, [(TTree, TTree)])]
+exercises :: [(Text, Text, Text, Text, [(TTree, TTree)])]
 exercises =
   [ ("novo_modo/Exemplum","Exemplum Pars","ExemplumEng","ExemplumSwe",exemplumPars)
   , ("novo_modo/Prima"  , "Prima Pars"  , "PrimaLat"  , "PrimaSwe"  , primaPars)

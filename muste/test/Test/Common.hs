@@ -1,4 +1,4 @@
-{-# Language TemplateHaskell #-}
+{-# Language TemplateHaskell, OverloadedStrings #-}
 module Test.Common
   (grammar, treeDefinite, treeIndefinite, failDoc, renderDoc)
   where

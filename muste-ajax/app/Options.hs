@@ -1,4 +1,4 @@
-{-# Language UnicodeSyntax, CPP #-}
+{-# Language UnicodeSyntax, CPP, TemplateHaskell #-}
 module Options (getOptions, Options, initDb) where
 
 #if !(MIN_VERSION_base(4,11,0))
@@ -7,6 +7,7 @@ import Data.Semigroup (Semigroup((<>)))
 import Options.Applicative (Parser, execParser, ParserInfo)
 import qualified Options.Applicative as O
 import Control.Applicative ((<**>))
+import qualified Development.GitRev as Dev
 
 data Options = Options
   { initDb ∷ Bool
@@ -37,3 +38,6 @@ header = "muste-ajax - REST API for the Multi Semantic Text Editor (MUSTE)"
 
 descr ∷ String
 descr = "Runs a REST endpoint for the Multi Semantic Text Editor"
+
+gitDescription ∷ String
+gitDescription = $(Dev.gitDescribe)

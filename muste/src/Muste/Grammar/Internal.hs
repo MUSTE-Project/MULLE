@@ -37,8 +37,9 @@ import qualified Data.Text.Prettyprint.Doc as Doc
 import Text.Printf
 import Control.Category ((>>>))
 import Control.Monad.Fail (MonadFail)
+import Data.Text (Text)
 
-import qualified Muste.Grammar.Grammars as Grammars (grammars)
+import qualified Muste.Grammar.Grammars as Grammars
 import Muste.Common
 import Muste.Tree
 import qualified Muste.Tree.Internal as Tree (toGfTree)
@@ -138,7 +139,7 @@ pgfToGrammar pgf
             }
 
 parseGrammar
-  :: LB.ByteString -- ^ Path to the grammar.
+  :: LB.ByteString -- ^ The grammar in binary format.
   -> Grammar
 parseGrammar = pgfToGrammar . PGF.parsePGF
 
@@ -166,17 +167,21 @@ fromGfTree g (EApp e1 e2) =
     TNode name typ (sts ++ [st2])
 fromGfTree _ _ = TMeta wildCard
 
-grammars :: Map String Grammar
+grammars :: Map Text Grammar
 grammars = Map.fromList (uncurry grm <$> Grammars.grammars)
   where
-  grm :: String -> SB.ByteString -> (String, Grammar)
+  grm :: Text -> SB.ByteString -> (Text, Grammar)
   grm idf pgf = (idf, parseGrammar $ LB.fromStrict pgf)
 
-lookupGrammar ∷ String → Maybe Grammar
+-- | Lookup a grammar amongst the ones that we know of.  The grammars
+-- that we know of are the ones linked against this binary at
+-- compile-time.  See 'Muste.Grammar.Grammars.grammars'.
+lookupGrammar ∷ Text → Maybe Grammar
 lookupGrammar s = Map.lookup s grammars
 
--- | lookup a grammar in some fallible monad.
-lookupGrammarM ∷ MonadFail m ⇒ String → String → m Grammar
+-- | Lookup a grammar in some fallible monad.  A lifted version of
+-- 'lookupGrammar'.
+lookupGrammarM ∷ MonadFail m ⇒ String → Text → m Grammar
 lookupGrammarM err = lookupGrammar >>> maybeFail err
 
 -- | Parses a linearized sentence.  Essentially a wrapper around

@@ -43,12 +43,11 @@ import Control.Monad.Reader
 #if !(MIN_VERSION_base(4,11,0))
 import Data.Semigroup ((<>))
 #endif
+import Control.Exception
 
 -- FIXME QuickCheck seems like a heavy dependency just to get access
 -- to `shuffle`.
 import qualified Test.QuickCheck as QC (shuffle, generate)
-
-import Control.Exception
 
 import qualified Database.Types as Types
 
@@ -248,7 +247,7 @@ startLesson
   => String -- ^ Token
   -> Text -- ^ Lesson name
   -- * Source- language and tree, target- langauge and tree.
-  -> db (String, Types.Linearization, String, Types.Linearization)
+  -> db (Text, Types.Unambiguous, Text, Types.Unambiguous)
 startLesson token lesson = do
   -- get user name
   Only user <- fromMaybe errUsr . listToMaybe
@@ -316,7 +315,7 @@ shuffle = liftIO . QC.generate . QC.shuffle
 getTreePairs
   :: MonadDB db
   => Text
-  -> db [(Types.Linearization, Types.Linearization)]
+  -> db [(Types.Unambiguous, Types.Unambiguous)]
 getTreePairs lesson = query exerciseQuery (Only lesson)
   where
   exerciseQuery =
@@ -325,8 +324,8 @@ getTreePairs lesson = query exerciseQuery (Only lesson)
           WHERE Lesson = ?;|]
 
 newLesson :: MonadDB db ⇒ Text -> Text -> db
-  ( String, Types.Linearization
-  , String, Types.Linearization
+  ( Text, Types.Unambiguous
+  , Text, Types.Unambiguous
   )
 newLesson user lesson = do
   -- get exercise count
@@ -346,7 +345,7 @@ newLesson user lesson = do
   mapM_ (\(sTree,tTree) -> execute insertExerciseList (lesson,user,sTree,tTree,round)) selectedTrees
   -- get languages
   let languagesQuery = [sql|SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;|]
-  langs <- query @_ @_ languagesQuery [lesson] -- :: IO [(String,String)]
+  langs <- query @_ @_ languagesQuery [lesson]
   case langs of
     [(sourceLang, targetLang)] -> do
       pure (sourceLang, sourceTree, targetLang, targetTree)
@@ -364,16 +363,16 @@ continueLesson
   => Text -- ^ Username
   -> Text -- ^ Lesson name
   -> db
-    ( String
-    , Types.Linearization
-    , String
-    , Types.Linearization
+    ( Text
+    , Types.Unambiguous
+    , Text
+    , Types.Unambiguous
     )
 continueLesson user lesson = do
   [Only round] <- query @(Only Integer)
     lessonRoundQuery (user,lesson)
   (sourceTree,targetTree) <- fromMaybe errNoExercises . listToMaybe
-    <$> query @(Types.Linearization, Types.Linearization)
+    <$> query @(Types.Unambiguous, Types.Unambiguous)
         selectExerciseListQuery (lesson,user,round)
   (sourceLang,targetLang)
     <- fromMaybe errLangs . listToMaybe
@@ -406,7 +405,7 @@ finishExercise token lesson time clicks = do
   -- get lesson round
   [Only round] <- query @(Only Integer) lessonRoundQuery (user,lesson)
   ((sourceTree,targetTree):_)
-    <- query @(Types.Linearization, Types.Linearization) selectExerciseListQuery (lesson,user,round)
+    <- query @(Types.Unambiguous, Types.Unambiguous) selectExerciseListQuery (lesson,user,round)
   execute insertFinishedExerciseQuery
     (user, lesson, sourceTree, targetTree, time, clicks + 1, round)
   -- check if all exercises finished

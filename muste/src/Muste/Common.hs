@@ -24,6 +24,7 @@ module Muste.Common
   , putDoc
   , putDocLn
   , lookupFailIO
+  , traceShowId
   ) where
 
 import Control.Monad.IO.Class

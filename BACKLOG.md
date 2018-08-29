@@ -68,3 +68,18 @@ Do we want to keep supporting `muste-cgi`?
 
 AFAIK CGI scripts just speak a different protocol from
 `application/json`.  So this should be easy to keep support for.
+
+Issue #19: New algorithm for creating menus
+---
+
+We must change the tests to now use 'NewFancyMenu' in stead.
+
+The CLI should also use the new menu.
+
+One problem with the new approach to generating menus is that some
+un-related words are highlighted, as in e.g.:
+
+    a[aSg_Det] good king[king_N] is a[aSg_Det] blue king
+    en[aSg_Det] kung[king_N] älskar Paris
+
+The current implementation is horridly sluggish.

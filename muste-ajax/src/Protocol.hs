@@ -1,3 +1,4 @@
+{-# Language RecordWildCards #-}
 {-# OPTIONS_GHC -Wall -Wno-orphans #-}
 module Protocol
   ( registerRoutes
@@ -25,10 +26,18 @@ import qualified Data.Text.Encoding as T
 import Data.Time
 import Data.Function (on, (&))
 import Control.Monad.Catch (MonadThrow(throwM))
-import Control.Exception (Exception, throw)
+import Control.Exception
+  (Exception, ErrorCall(ErrorCall))
+import Control.Category ((>>>))
 
-import Muste (Context, Linearization, TTree)
+import Muste (Context, TTree)
 import qualified Muste
+import qualified Muste.Sentence as Sentence
+import Muste.Sentence.Unambiguous (Unambiguous)
+import Muste.Sentence.Ambiguous (Ambiguous)
+import qualified Muste.Sentence.Ambiguous as Ambiguous
+
+import Common
 
 import Ajax
   ( ServerMessage(..), ClientMessage(..)
@@ -39,7 +48,9 @@ import Database (MonadDB, getConnection)
 import qualified Database
 import qualified Database.Types as Database
 
-type Contexts = Map Text (Map String Context)
+-- | Maps a lesson to a map from grammars(-identifiers) to their
+-- corresponding contexts.
+type Contexts = Map Text (Map Sentence.Language Context)
 
 -- | The data needed for responding to requests.
 data Env = Env
@@ -195,16 +206,21 @@ handleLessonsRequest token = do
 handleLessonInit
   ∷ MonadProtocol m
   ⇒ String -- ^ Token
-  → Text -- ^ Lesson
+  → Text   -- ^ Lesson
   → m ServerMessage
 handleLessonInit token lesson = do
     c <- askContexts
     (sourceLang,sourceTree,targetLang,targetTree)
       <- Database.startLesson token lesson
     let (a,b) = assembleMenus c lesson
-                (sourceLang,sourceTree)
-                (targetLang,targetTree)
+                (stce sourceLang sourceTree)
+                (stce targetLang targetTree)
     verifyMessage token (SMMenuList lesson False 0 a b)
+    where
+    stce ∷ Text → Unambiguous → Unambiguous
+    stce l t = (Sentence.sentence (Sentence.Language g l) (Sentence.linearization t))
+    g ∷ Sentence.Grammar
+    g = "STUB"
 
 -- | This request is called after the user selects a new sentence from
 -- the drop-down menu.  A request consists of two 'ClientTree's (the
@@ -225,25 +241,38 @@ handleMenuRequest
   -> ClientTree      -- ^ Source tree
   -> ClientTree      -- ^ Target tree
   -> m ServerMessage
-handleMenuRequest
-  token lesson clicks time
-  ctreea@(ClientTree srcLang srcLin)
-  ctreeb@(ClientTree trgLang trgLin) = do
+handleMenuRequest token lesson clicks time src trg = do
   c <- askContexts
   mErr <- verifySession token
   let authd = not $ isJust mErr
   let finished ∷ Bool
-      finished = oneSimiliarTree c lesson ctreea ctreeb
+      finished = oneSimiliarTree c lesson src trg
   act <-
     if finished
     then do
       when authd (Database.finishExercise token lesson time clicks)
-      pure emptyMenus
+      pure (\_ _ → emptyMenus)
     else pure assembleMenus
-  let (a , b) = act c lesson
-                 (srcLang, srcLin)
-                 (trgLang, trgLin)
+  -- Lift 'unambiguous' into 'IO' to enable throwing (IO) exceptions.
+  srcUnamb ← liftIO $ unambiguous c lesson src
+  trgUnamb ← liftIO $ unambiguous c lesson trg
+  let (a , b) = act c lesson srcUnamb trgUnamb
   verifyMessage token (SMMenuList lesson finished (succ clicks) a b)
+
+unambiguous
+  ∷ MonadThrow m
+  ⇒ Contexts
+  → Text
+  → ClientTree
+  → m Unambiguous
+unambiguous cs lesson t = Ambiguous.unambiguous
+    (ErrorCall $ "Unable to parse: " <> show s) ctxt s
+  where
+  ctxt ∷ Context
+  ctxt = fromMaybe err $ getContext cs lesson $ Sentence.language s
+  err = error "Context not found for language"
+  s ∷ Ambiguous
+  s = Ajax.unClientTree t
 
 oneSimiliarTree
   ∷ Contexts
@@ -257,12 +286,22 @@ oneSimiliarTree cs lesson
   oneInCommon ∷ Ord a ⇒ Set a → Set a → Bool
   oneInCommon a b = not $ Set.null $ Set.intersection a b
   parse ∷ ClientTree → Set TTree
-  parse (ClientTree c l)
-    = l
-    & Muste.disambiguate (getC c)
+  parse t
+    = t
+    & disambiguate cs lesson
     & Set.fromList
-  getC lang = fromMaybe err $ getContext cs lesson lang
-  err = error "Lang not found for tree in grammar"
+
+disambiguate ∷ Contexts → Text → ClientTree → [TTree]
+disambiguate cs lesson t
+  = Sentence.disambiguate (getC s) s
+    where
+    s ∷ Ambiguous
+    s = Ajax.unClientTree t
+    getC
+      =   Sentence.language
+      >>> getContext cs lesson
+      >>> fromMaybe err
+    err = error "Lang not found for tree in grammar"
 
 handleLogoutRequest :: MonadProtocol m ⇒ String -> m ServerMessage
 handleLogoutRequest token = do
@@ -299,43 +338,48 @@ initContexts = mkContexts <$> Database.getLessons
 mkContexts ∷ [Database.Lesson] → Contexts
 mkContexts = Map.fromList . map mkContext
 
-mkContext :: Database.Lesson -> (Text, Map.Map String Context)
+mkContext
+  ∷ Database.Lesson
+  → (Text, Map.Map Sentence.Language Context)
 mkContext (ls, _, nm, _, _, _, _, _) =
-  (ls, Muste.langAndContext (T.unpack nm))
+  (ls, Map.mapKeys (Sentence.Language stub) $ Muste.langAndContext nm)
+  where
+  stub ∷ Sentence.Grammar
+  stub = "STUB"
 
 -- | Gets the menus for a lesson.  This consists of a source tree and
 -- a target tree.
 assembleMenus
-  :: Contexts
-  -> Text
-  -> (String, Linearization) -- ^ Source language and tree
-  -> (String, Linearization) -- ^ Target language and tree
-  -> (ServerTree,ServerTree)
+  ∷ Contexts
+  → Text
+  → Unambiguous
+  → Unambiguous
+  → (ServerTree,ServerTree)
 assembleMenus c lesson src trg =
   ( mkTree src
   , mkTree trg
   )
   where
-  mkTree = makeTree c lesson src trg
+  mkTree = makeTree c lesson
 
 data ProtocolException
   = LessonNotFound Text
-  | LanguageNotFound String
+  | LanguageNotFound Sentence.Language
 
 deriving instance Show ProtocolException
 
 instance Exception ProtocolException where
 
 getContext
-  :: MonadThrow m
-  => Contexts
-  -> Text   -- ^ Lesson
-  -> String -- ^ Language
-  -> m Context
-getContext ctxts lesson lang
+  ∷ MonadThrow m
+  ⇒ Contexts
+  → Text              -- ^ Lesson
+  → Sentence.Language -- ^ Language
+  → m Context
+getContext ctxts lesson s
   =   pure ctxts
   >>= lookupM (LessonNotFound lesson) lesson
-  >>= lookupM (LanguageNotFound lang) lang
+  >>= lookupM (LanguageNotFound s) s
 
 lookupM
   :: MonadThrow m
@@ -354,28 +398,22 @@ liftMaybe e = \case
 -- a source trees and a target tree.  The 'Menu' is provided given
 -- @tree@.
 makeTree
-  :: Contexts -> Text
-  -> (String, Linearization)
-  -> (String, Linearization)
-  -> (String, Linearization)
-  -> ServerTree
-makeTree c lesson _ _ (lang, trees)
-  = Ajax.mkServerTree lang trees (Muste.getMenu ctxt trees)
-    where
-    ctxt    = throwLeft $ getContext c lesson lang
-
--- | Throws an exception if the it's a 'Left' (requires the left to be
--- an exception).  This method is *unsafe*!
-throwLeft :: Exception e => Either e c -> c
-throwLeft = either throw id
+  ∷ Contexts
+  → Text
+  → Unambiguous
+  → ServerTree
+makeTree c lesson s
+  = Ajax.serverTree s menu
+  where
+  menu = Muste.getNewFancyMenu ctxt (Sentence.linearization s)
+  ctxt = throwLeft $ getContext c lesson language
+  language = Sentence.language s
 
 emptyMenus
-  :: Contexts
-  -> Text
-  -> (String, Linearization) -- ^ Source language and tree
-  -> (String, Linearization) -- ^ Target language and tree
-  -> (ServerTree, ServerTree)
-emptyMenus _ _ src trg =
+  ∷ Unambiguous -- ^ Source sentence
+  → Unambiguous -- ^ Target sentence
+  → (ServerTree, ServerTree)
+emptyMenus src trg =
   ( mkTree src
   , mkTree trg
   )
@@ -383,5 +421,9 @@ emptyMenus _ _ src trg =
   -- FIXME In 'assembleMenus' we actually use the language of the tree
   -- we're building.  Investigate if this may be a bug.  Similiarly
   -- for 'lin'.  This is the reason we are not using 'makeTree' here.
-  mkTree ∷ (String, Linearization) → ServerTree
-  mkTree (lang, trees) = Ajax.mkServerTree lang trees mempty
+  mkTree ∷ Unambiguous → ServerTree
+  mkTree s
+    = Ajax.serverTree (Sentence.sentence language lin) mempty
+    where
+    lin = Sentence.linearization s
+    language = Sentence.language s

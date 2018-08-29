@@ -39,6 +39,8 @@ dependencies:
 - template-haskell   >= 2.11.1.0 && < 2.14
 - text               >= 1.2.2.2  && < 1.3
 - tostring           >= 0.2.1.1  && < 0.3
+- array
+- vector
 
 when:
   - condition: flag(dist)
@@ -48,6 +50,8 @@ when:
       - -Werr
 
 cpp-options: -DPRUNE_ALT_1D -DPRUNE_ALT_2A
+
+ghc-options: -fmax-valid-substitutions=0
 
 default-extensions:
 - UnicodeSyntax
@@ -72,6 +76,9 @@ library:
     - Muste.Grammar
     - Muste.Linearization
     - Muste.Menu
+    - Muste.Sentence
+    - Muste.Sentence.Unambiguous
+    - Muste.Sentence.Ambiguous
 
   other-modules:
     - Muste.Common
@@ -89,6 +96,12 @@ library:
     - Muste.Prune
     - Muste.Feat
     - Muste.Util
+    - Muste.Menu.New
+    - Muste.Sentence.Class
+    - Muste.Sentence.Language
+    - Muste.Sentence.Linearization
+    - Muste.Sentence.Token
+    - Muste.Sentence.Token.Class
 
 executables:
   muste-cli:

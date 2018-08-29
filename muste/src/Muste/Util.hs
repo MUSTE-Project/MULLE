@@ -9,19 +9,20 @@ module Muste.Util
 import Control.Monad.Fail (MonadFail(fail))
 import Text.Printf
 import Data.Maybe
+import Data.Text (Text)
+import qualified Data.Text as Text
 
-import Muste
+import Muste.Grammar
+import Muste.Linearization
 import Muste.Common
 import qualified Muste.Linearization.Internal as Linearization
 
-unsafeGetContext ∷ Grammar → String → Context
+unsafeGetContext ∷ Grammar → Text → Context
 unsafeGetContext g lang = fromMaybe err $ getCtxt g lang
   where
-  err = error $ printf "Can't find %s" lang
+  err = error $ printf "Can't find %s" $ Text.unpack lang
 
-getCtxt ∷ MonadFail m ⇒ Grammar → String → m Context
+getCtxt ∷ MonadFail m ⇒ Grammar → Text → m Context
 getCtxt g lang = lookupFail err lang $ Linearization.readLangs g
   where
-  err = printf "Can't find %s" lang
-
-
+  err = printf "Can't find %s" $ Text.unpack lang

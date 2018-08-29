@@ -1,4 +1,5 @@
-{-# Language UnicodeSyntax, NamedWildCards, TemplateHaskell, CPP #-}
+{-# Language UnicodeSyntax, NamedWildCards, TemplateHaskell
+  , CPP, OverloadedStrings #-}
 module Test.Linearization (tests) where
 
 #if !(MIN_VERSION_base(4,11,0))
@@ -9,6 +10,7 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Text (Text)
 
 import Muste (Grammar, Context, TTree, Linearization)
 import qualified Muste.Linearization.Internal as Linearization
@@ -19,7 +21,7 @@ import qualified Test.Common as Test
 grammar :: Grammar
 grammar = Test.grammar
 
-ctxts ∷ Map String Context
+ctxts ∷ Map Text Context
 ctxts = Linearization.readLangs grammar
 
 ambiguities ∷ Assertion

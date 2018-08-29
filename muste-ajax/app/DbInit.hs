@@ -20,8 +20,12 @@ import           Data.FileEmbed
 import qualified DbInit.Data as Data
 import qualified Config
 
-import Muste (TTree, Linearization, Context)
-import qualified Muste.Linearization as Linearization (langAndContext, mkLin)
+import Muste (TTree, Context)
+import qualified Muste.Linearization as OldLinearization (langAndContext, mkLin)
+import Muste.Sentence (Sentence)
+import qualified Muste.Sentence as Sentence
+import Muste.Sentence.Unambiguous (Unambiguous)
+import qualified Muste.Sentence.Unambiguous as Unambiguous
 
 initDb :: IO ()
 initDb = do
@@ -50,23 +54,29 @@ initDB conn = do
   mapM_ (exec insertLessonQuery)   Data.lessons
   mapM_ (exec insertExerciseQuery) exercises
 
-exercises ∷ [(Linearization, Linearization, String)]
+exercises ∷ [(Unambiguous, Unambiguous, Text)]
 exercises = Data.exercises >>= mkExercise
   where
-  mkExercise ∷ (String, String, String, String, [(TTree, TTree)])
-    → [(Linearization, Linearization, String)]
+  mkExercise ∷ (Text, Text, Text, Text, [(TTree, TTree)])
+    → [(Unambiguous, Unambiguous, Text)]
   mkExercise (idfG, idfL, srcL, trgL, xs)
     = go (lin srcL) (lin trgL) idfL <$> xs
     where
-    ctxt = Linearization.langAndContext idfG
-    lang ∷ String → Context
+    ctxt = OldLinearization.langAndContext idfG
+    lang ∷ Text → Context
     lang idf = fromMaybe (error $ printf "Lang not found: %s" idf)
       $ Map.lookup idf ctxt
-    lin ∷ String → TTree → TTree → TTree → Linearization
-    lin l = Linearization.mkLin (lang l)
-  go ∷ (TTree → TTree → TTree → Linearization) → (TTree → TTree → TTree → Linearization)
-    → String → (TTree, TTree)
-    → (Linearization, Linearization, String)
+    lin ∷ Text → TTree → TTree → TTree → Unambiguous
+    -- lin l = Unambiguous.mkLin (lang l)
+    -- lin l = Sentence.linearization (lang l)
+    -- lin l = Sentence.mkLin (lang l)
+    -- lin l = Unambiguous.unambiguous (lang l) _
+    lin l = Unambiguous.unambiguous (lang l) (Sentence.Language g l)
+    g ∷ Sentence.Grammar
+    g = "STUB"
+  go ∷ (TTree → TTree → TTree → Unambiguous) → (TTree → TTree → TTree → Unambiguous)
+    → Text → (TTree, TTree)
+    → (Unambiguous, Unambiguous, Text)
   go srcC trgC idfE (src, trg) = (srcC src trg src, trgC src trg trg, idfE)
 
 addUser ∷ Connection → (Text, Text, Bool) → IO ()

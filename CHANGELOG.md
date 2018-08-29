@@ -1,6 +1,11 @@
 Change log
 ==========
 
+HEAD
+---
+
+Issue #15: New algorithm for creating menus.
+
 0.2.3.1
 ---
 

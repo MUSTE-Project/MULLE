@@ -32,14 +32,13 @@ $(function() {
     $('#logoutbutton').click(restart_everything);
     $('#body').click(click_body);
     window.setInterval(update_timer, 100);
-    if (window.sessionStorage.getItem("LOGIN_TOKEN") == null)
-    {
-	show_page("loginpage");
+    var tok = window.sessionStorage.getItem("LOGIN_TOKEN");
+    // Show login page regardless.
+    show_page("loginpage");
+    if (tok == null) {
 	loginform.name.focus();
-    }
-    else
-    {
-	LOGIN_TOKEN = window.sessionStorage.getItem("LOGIN_TOKEN");
+    } else {
+	LOGIN_TOKEN = tok;
 	retrieve_lessons();
     }
 });
@@ -170,8 +169,7 @@ function show_exercise(parameters) {
     clean_server_data(DATA.a);
     clean_server_data(DATA.b);
     build_matching_classes(DATA);
-    show_lin('a', DATA.a.lin);
-    show_lin('b', DATA.b.lin);
+    show_sentences(DATA.a, DATA.b);
     $('#score').text(DATA.score);
     $('#lessoncounter').text(DATA.lesson + ": övning " + EXERCISES[DATA.lesson].passed + " av " + EXERCISES[DATA.lesson].total);
     if (parameters.success) {
@@ -189,6 +187,13 @@ function show_exercise(parameters) {
     }
 }
 
+// ct_linearization :: ClientTree -> Sentence.Linearization
+function ct_linearization(t) {
+    return t.sentence.linearization;
+}
+function ct_setLinearization(t, l) {
+    t.sentence.linearization = l;
+}
 
 function handle_server_response(response) {
     var message = response.message;
@@ -250,7 +255,7 @@ function build_matching_classes(data) {
     data.matching_classes = {};
     var matching_class = 0;
     ["a", "b"].forEach(function(lang) {
-        data[lang].lin.forEach(function(token) {
+        ct_linearization(data[lang]).forEach(function(token) {
             if (token.matched && token.matched.length && !data.matching_classes[token.path]) {
                 data.matching_classes[token.path] = "match-" + matching_class;
                 matching_class = (matching_class + 1) % MAX_CLASSES;
@@ -259,37 +264,108 @@ function build_matching_classes(data) {
     });
 }
 
+function show_sentences(src, trg) {
+    var srcL = ct_linearization(src)
+    var trgL = ct_linearization(trg)
+    var srcM = matchy_magic(srcL, trgL);
+    var trgM = matchy_magic(trgL, srcL);
+    show_lin('a', srcL);
+    show_lin('b', trgL);
+}
+
+function all_classes(xs) {
+    var xss = xs.map(function(x) { return x["classes"];});
+    var flattened = [].concat.apply([], xss);
+    return new Set(flattened);
+}
+
+
+function hash_array_of_string(as) {
+    var hash = 0;
+    for(var i = 0 ; i < as.length ; i++) {
+        var a = as[i];
+        hash  = ((hash << 5) - hash) + hash_string(a);
+        hash |= 0;
+    }
+    return hash;
+}
+
+function hash_string(s) {
+    var hash = 0, i, chr;
+    if (s.length === 0) return hash;
+    for (i = 0; i < s.length; i++) {
+        chr   = s.charCodeAt(i);
+        hash  = ((hash << 5) - hash) + chr;
+        hash |= 0; // Convert to 32bit integer
+    }
+    return hash;
+}
+
+function matchy_magic(src, trg) {
+    var cs = all_classes(src);
+    trg.forEach(function(x) {
+        var s = intersection(cs, new Set(x["classes"]));
+        x["matching-classes"] = s;
+    });
+}
+
+// intersection :: Set a -> Set a -> Set a
+function intersection(m, n) {
+    return new Set([...m].filter(function(x) {return n.has(x)}));
+}
 
 function show_lin(lang, lin) {
     reset_selection();
     var sentence = $('#' + lang).empty();
     // var tree = parse_tree(DATA[lang].tree);
     for (var i=0; i<lin.length; i++) {
-        var previous = i > 0 ? lin[i-1].lin : null;
-        var current = lin[i].lin;
+        var linTok = lin[i];
+        var previous = i > 0 ? lin[i-1].concrete : null;
+        var current = linTok.concrete;
         var spacing = (previous == NOSPACING || current == NOSPACING || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
             ? ' ' : ' &nbsp; ';
         $('<span>')
             .addClass('space clickable').data({nr:i, lang:lang})
             .html(spacing).click(click_word)
             .appendTo(sentence);
-        var path = lin[i].path;
-        var match = lin[i].matched && lin[i].matched.length;
-        // var subtree = lookup_subtree(path, tree);
-        var validMenus = getValidMenus(i, DATA[lang].menu);
+        var classes = linTok["classes"];
+        var matchingClasses = linTok["matching-classes"];
+        var match = matchingClasses.size > 0;
+        var menu = DATA[lang].menu
+        var validMenus = getValidMenus(i, menu);
+        var wordData = {
+            nr: i,
+            lang: lang,
+            "classes": classes,
+            /* , subtree:subtree */
+            "valid-menus": validMenus
+        }
         var wordspan = $('<span>')
-            .addClass('word clickable').data({nr:i, lang:lang, path:path /* , subtree:subtree */,"valid-menus": validMenus })
-            .html(current + '<sub class="debug">' + (match ? "=" : "") + path /* + ' ' + show_tree(subtree) */ + '</sub>')
+            .addClass('word clickable').data(wordData)
+            .html(current + '<sub class="debug">' + (match ? "=" : "") + JSON.stringify(classes) /* + ' ' + show_tree(subtree) */ + '</sub>')
             .click(click_word)
             .appendTo(sentence);
         if (match) {
-            wordspan.addClass('match').addClass(DATA.matching_classes[path]);
+            wordspan.addClass('match');
+            var h = hash_array_of_string(Array.from(matchingClasses));
+            var c = int_to_rgba(h);
+            wordspan.css({"background-color": c})
         }
     }
     $('<span>')
         .addClass('space clickable').data({nr:lin.length, lang:lang})
         .html(' &nbsp; ').click(click_word)
         .appendTo(sentence);
+}
+
+function int_to_rgba(num) {
+    num >>>= 0;
+    var b = num & 0xFF,
+        g = (num & 0xFF00) >>> 8,
+        r = (num & 0xFF0000) >>> 16,
+        // a = ( (num & 0xFF000000) >>> 24 ) / 255 ;
+        a = .5;
+    return "rgba(" + [r, g, b, a].join(",") + ")";
 }
 
 function update_menu(m, idx) {
@@ -326,10 +402,10 @@ function click_word(event) {
     var idx = clicked.data("nr");
     function mark_selected_words(lin, sel) {
         for(var i = 0 ; i < lin.length ; i++) {
-            var pword = lin[i];
+            var pword = lin[i].concrete;
             // var marked = prefixOf(selection, pword.path);
             var marked = sel.includes(i);
-            $('<span>').text(pword.lin)
+            $('<span>').text(pword)
                 .addClass(marked ? 'marked' : 'greyed')
                 .appendTo(menuitem);
             $('<span>').text(" ").appendTo(menuitem);
@@ -373,7 +449,9 @@ function click_word(event) {
         // These are the valid menus.  Now we must toggle between them
         // somehow.
         var selsnmen = validMenus.next();
-        selection    = selsnmen[0];
+        // Again we changed the selection, we can try mapping the snd
+        // component.
+        selection    = selsnmen[0].map(function(x) { return x[0] });
         var menus    = selsnmen[1];
         if (menus === null) throw "No menu found";
 
@@ -388,7 +466,8 @@ function click_word(event) {
         $('#menus').data('selection', selection);
         var ul = $('<ul>').appendTo($('#menus')).hide();
         for (var i = 0; i < menus.length; i++) {
-            var item = menus[i];
+            var pr = menus[i];
+            var item = pr[1]; // snd
             var menuitem = $('<span class="clickable">')
                 .data('item', item)
                 .data('lang', lang)
@@ -398,10 +477,11 @@ function click_word(event) {
                     var lang = $c.data('lang');
                     select_menuitem(item, lang);
                 }));
-            if (item.lin.length == 0) {
+            var lin = item;
+            if (lin.length == 0) {
                 $('<span>').html("&empty;").appendTo(menuitem);
             } else {
-                mark_selected_words(item.lin, selection)
+                mark_selected_words(lin, selection)
             }
             $('<li>').append(menuitem).appendTo(ul);
 
@@ -424,7 +504,8 @@ function click_word(event) {
 }
 
 function getValidMenus(idx, menu) {
-    var a = Array.from(lookupKeySet(idx, menu));
+    var mp = lookupKeySet(idx, menu);
+    var a = Array.from(mp);
     // This is a bit counter-intuitive perhaps, but this is because
     // when we call next we start by incrementing the counter.
     var initial = -1;
@@ -457,14 +538,19 @@ function prefixOf(xs, ys) {
 function* lookupKeySet(idx, map) {
     for(var item of map) {
         var ks = item[0];
-        if(ks.includes(idx)) {
+        // 'ks' is now a different kind of selection, namely:
+        //   type Selection = [(Int, Int)]
+        // I'm not sure what to look up here.  We can try looking in
+        // 'map fst ks' and change later if needed.
+        var kss = ks.map(function(pr) {return pr[0]});
+        if(kss.includes(idx)) {
             yield item;
         }
     }
 }
 
 function select_menuitem(item, lang) {
-    DATA[lang].lin = item.lin;
+    ct_setLinearization(DATA[lang], item);
     DATA.token = LOGIN_TOKEN;
     DATA.time = elapsed_time();
     call_server(MESSAGES.MENU, DATA);

@@ -42,6 +42,8 @@ import qualified Data.Sequences as Mono
 import Control.Category ((>>>))
 import Data.Text.Prettyprint.Doc (Pretty(..))
 import Data.Function ((&))
+import Data.Text (Text)
+import qualified Data.Text as Text
 
 import Muste.Tree
 import qualified Muste.Tree.Internal as Tree
@@ -178,11 +180,11 @@ linearizeTree (Context grammar language _) ttree =
 -- This method is unsafe and will throw if we can't find the
 -- corresponding grammar.
 langAndContext
-  ∷ String -- ^ An identitfier for a grammar.  E.g. @novo_modo/Prima@.
-  → Map String Context
+  ∷ Text -- ^ An identitfier for a grammar.  E.g. @novo_modo/Prima@.
+  → Map Text Context
 langAndContext = readLangs . getGrammar
   where
-  getGrammar ∷ String → Grammar
+  getGrammar ∷ Text → Grammar
   getGrammar s = fromMaybe (err s) $ Grammar.lookupGrammar s
   err s = error $ printf errMsg s
   errMsg
@@ -191,11 +193,11 @@ langAndContext = readLangs . getGrammar
 
 -- | Given a grammar creates a mapping from all the languages in that
 -- grammar to their respective 'Context's.
-readLangs :: Grammar -> Map String Context
+readLangs :: Grammar -> Map Text Context
 readLangs grammar
   = Map.fromList $ mkCtxt <$> PGF.languages (Grammar.pgf grammar)
   where
-  mkCtxt lang = (PGF.showCId lang, buildContext grammar lang)
+  mkCtxt lang = (Text.pack $ PGF.showCId lang, buildContext grammar lang)
 
 
 -- This part of the module knows about 'PGF' and maybe shouldn't.  The

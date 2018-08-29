@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wall #-}
 {-# language
     StandaloneDeriving
   , GeneralizedNewtypeDeriving
@@ -18,7 +19,7 @@ module Database.Types
   , FinishedLesson
   , ExerciseList
   , Muste.TTree
-  , Muste.Linearization
+  , Sentence.Unambiguous
   ) where
 
 import Data.ByteString (ByteString)
@@ -26,8 +27,9 @@ import Data.Text (Text)
 
 import Data.Time
 
-import qualified Muste (TTree, Linearization)
-import Muste (Linearization)
+import qualified Muste (TTree)
+import qualified Muste.Sentence.Unambiguous as Sentence (Unambiguous)
+import Muste.Sentence.Unambiguous (Unambiguous)
 
 type Blob = ByteString
 type Numeric = Integer
@@ -66,8 +68,8 @@ type Session =
 -- * The lesson to which the exercise belongs.
 -- * Timeout for the exercise.
 type Exercise =
-  ( Linearization   -- @sourceTree@
-  , Linearization   -- @targetTree@
+  ( Unambiguous   -- @sourceTree@
+  , Unambiguous   -- @targetTree@
   , Text            -- @lesson@
   , Numeric         -- @timeout@
   )
@@ -106,8 +108,8 @@ type Lesson =
 -- * The round it was in the lesson.
 type FinishedExercise =
   ( Text            -- @user@
-  , Linearization   -- @sourceTree@
-  , Linearization   -- @targetTree@
+  , Unambiguous   -- @sourceTree@
+  , Unambiguous   -- @targetTree@
   , Text            -- @lesson@
   , NominalDiffTime -- @time@
   , Numeric         -- @clickCount@
@@ -152,8 +154,8 @@ type FinishedLesson =
 -- * The round.
 type ExerciseList =
   ( Text            -- @user@
-  , Linearization   -- @sourceTree@
-  , Linearization   -- @targetTree@
+  , Unambiguous   -- @sourceTree@
+  , Unambiguous   -- @targetTree@
   , Text            -- @lesson@
   , Numeric         -- @round@
   )
