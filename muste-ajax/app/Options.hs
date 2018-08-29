@@ -27,11 +27,18 @@ getOptions ∷ IO Options
 getOptions = execParser opts
 
 opts ∷ ParserInfo Options
-opts = O.info (optionsParser <**> O.helper)
+opts = O.info (optionsParser <**> O.helper <**> version)
   (  O.fullDesc
   <> O.progDesc descr
   <> O.header header
   )
+
+version ∷ Parser (a → a)
+version = O.infoOption gitDescription $ mconcat
+  [ O.long "version"
+  , O.help "Output version information and exit"
+  , O.hidden
+  ]
 
 header ∷ String
 header = "muste-ajax - REST API for the Multi Semantic Text Editor (MUSTE)"
