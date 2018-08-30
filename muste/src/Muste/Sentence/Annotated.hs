@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wall -Wno-type-defaults #-}
 {-# Language NamedFieldPuns, RecordWildCards, OverloadedStrings #-}
-module Muste.Sentence.Unambiguous
-  (Unambiguous, unambiguous, merge)
+module Muste.Sentence.Annotated
+  (Annotated, annotated, merge)
   where
 
 import Data.Maybe
@@ -31,42 +31,42 @@ import qualified Muste.Tree.Internal as Tree
 import Muste.Linearization.Internal (Context)
 import qualified Muste.Linearization.Internal as OldLinearization
 
-data Unambiguous = Unambiguous
+data Annotated = Annotated
   { language      ∷ Language
-  , linearization ∷ Linearization Token.Unambiguous
+  , linearization ∷ Linearization Token.Annotated
   }
 
-deriving instance Show Unambiguous
+deriving instance Show Annotated
 
-instance ToJSON Unambiguous where
-  toJSON (Unambiguous {..}) = Aeson.object
+instance ToJSON Annotated where
+  toJSON (Annotated {..}) = Aeson.object
     [ "language"      .= language
     , "linearization" .= linearization
     ]
 
-instance FromJSON Unambiguous where
+instance FromJSON Annotated where
   parseJSON = Aeson.withObject "word"
-    $ \o → Unambiguous
+    $ \o → Annotated
     <$> o .: "language"
     <*> o .: "linearization"
 
-deriving instance Generic Unambiguous
-instance Binary Unambiguous where
+deriving instance Generic Annotated
+instance Binary Annotated where
 
-instance ToField Unambiguous where
+instance ToField Annotated where
   toField = SQL.toBlob
 
-instance FromField Unambiguous where
+instance FromField Annotated where
   fromField = SQL.fromBlob
 
-instance Sentence Unambiguous where
+instance Sentence Annotated where
   -- This is not a loop.  The 'sentence' on the RHS is defined in this
   -- module.  The other one is a class method (which happen to be
   -- imported qualified as 'Sentence.language')
-  language = Muste.Sentence.Unambiguous.language
-  type Token Unambiguous = Token.Unambiguous
-  linearization = Muste.Sentence.Unambiguous.linearization
-  sentence = Unambiguous
+  language = Muste.Sentence.Annotated.language
+  type Token Annotated = Token.Annotated
+  linearization = Muste.Sentence.Annotated.linearization
+  sentence = Annotated
 
 -- | @'mkLinearization' c src trg t@ creates a 'Linearization' of @t@
 -- from a source tree (@src@) and a target tree (@trg@).  The
@@ -84,7 +84,7 @@ mkLinearization
   → TTree
   → TTree
   → TTree -- ^ The actual tree to linearize
-  → Linearization Token.Unambiguous
+  → Linearization Token.Annotated
 mkLinearization c t0 t1 t
   -- Reuse functionality from 'Muste.OldLinearization.Internal'
   = OldLinearization.mkLin c t0 t1 t
@@ -93,9 +93,9 @@ mkLinearization c t0 t1 t
   & fmap step
   & fromList
   where
-  step ∷ OldLinearization.LinToken → Token.Unambiguous
+  step ∷ OldLinearization.LinToken → Token.Annotated
   step (OldLinearization.LinToken { .. })
-    = Token.unambiguous ltlin (fromList @[String] $ names ltpath)
+    = Token.annotated ltlin (fromList @[String] $ names ltpath)
   -- Throws if the path is not found /and/ only finds a single
   -- function name!
   names ∷ Tree.Path → [String]
@@ -115,33 +115,33 @@ mkLinearization c t0 t1 t
 -- 'Context' @c@.
 --
 -- See also the documentation for 'linearization'.
-unambiguous
+annotated
   ∷ Context
   → Language
   → TTree -- ^ The source tree
   → TTree -- ^ The target tree
   → TTree -- ^ The actual tree to linearize
-  → Unambiguous
-unambiguous c l src trg t
-  = Unambiguous l $ mkLinearization c src trg t
+  → Annotated
+annotated c l src trg t
+  = Annotated l $ mkLinearization c src trg t
 
 
 -- | Merge multiple
-merge ∷ MonadThrow m ⇒ Exception e ⇒ e → [Unambiguous] → m Unambiguous
+merge ∷ MonadThrow m ⇒ Exception e ⇒ e → [Annotated] → m Annotated
 merge e = \case
   [] → throwM e
   xs → pure $ foldl1 merge1 xs
 
 -- Merge two sentences, assuming they have the same language.
-merge1 ∷ Unambiguous → Unambiguous → Unambiguous
-merge1 a b = Unambiguous lang ((mergeL `on` linearization) a b)
+merge1 ∷ Annotated → Annotated → Annotated
+merge1 a b = Annotated lang ((mergeL `on` linearization) a b)
   where
   lang = language a
 
 mergeL
-  ∷ IsToken Token.Unambiguous
-  ⇒ Linearization Token.Unambiguous
-  → Linearization Token.Unambiguous
-  → Linearization Token.Unambiguous
+  ∷ IsToken Token.Annotated
+  ⇒ Linearization Token.Annotated
+  → Linearization Token.Annotated
+  → Linearization Token.Annotated
 mergeL (Sentence.Linearization a) (Sentence.Linearization b)
-  = Sentence.Linearization (Vector.zipWith Token.mergeUnambiguous a b)
+  = Sentence.Linearization (Vector.zipWith Token.mergeAnnotated a b)

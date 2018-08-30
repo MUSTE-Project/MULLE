@@ -1,10 +1,10 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language RecordWildCards #-}
--- | An interface for (un-)ambiguous sentences.  For the two
+-- | An interface for (un-)annotated sentences.  For the two
 -- respective implementations see:
 --
---   * "Muste.Sentence.Unambiguous"
---   * "Muste.Sentence.Ambiguous"
+--   * "Muste.Sentence.Annotated"
+--   * "Muste.Sentence.Unannotated"
 module Muste.Sentence
   ( Sentence.Sentence(..)
   , Sentence.Linearization

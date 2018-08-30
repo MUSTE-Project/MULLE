@@ -30,10 +30,10 @@ import Control.Category ((>>>))
 import Muste hiding (Menu)
 import Muste.Sentence (Sentence)
 import qualified Muste.Sentence             as Sentence
-import Muste.Sentence.Ambiguous               (Ambiguous)
-import qualified Muste.Sentence.Ambiguous   as Ambiguous
-import Muste.Sentence.Unambiguous             (Unambiguous)
-import qualified Muste.Sentence.Unambiguous as Unambiguous
+import Muste.Sentence.Unannotated               (Unannotated)
+import qualified Muste.Sentence.Unannotated   as Unannotated
+import Muste.Sentence.Annotated             (Annotated)
+import qualified Muste.Sentence.Annotated as Annotated
 
 type Menu = NewFancyMenu
 
@@ -43,7 +43,7 @@ data ReadTreeException = RTE String deriving (Show)
 instance Exception ClientMessageException
 instance Exception ReadTreeException
 
-newtype ClientTree = ClientTree { unClientTree ∷ Ambiguous }
+newtype ClientTree = ClientTree { unClientTree ∷ Unannotated }
 
 deriving instance Show ClientTree
 
@@ -148,7 +148,7 @@ instance ToJSON ClientMessage where
 -- reason for it of course is that less information is needed by the
 -- server when receiving a request for e.g. @\/api\/menu@.
 data ServerTree = ServerTree
-  { sentence  ∷ Unambiguous
+  { sentence  ∷ Annotated
   , menu      ∷ Menu
   } deriving (Show)
 
@@ -163,7 +163,7 @@ instance ToJSON ServerTree where
     , "menu"     .= menu
     ]
 
-serverTree ∷ Unambiguous → Menu → ServerTree
+serverTree ∷ Annotated → Menu → ServerTree
 serverTree = ServerTree
 
 data Lesson = Lesson {

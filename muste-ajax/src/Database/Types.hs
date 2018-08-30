@@ -19,7 +19,7 @@ module Database.Types
   , FinishedLesson
   , ExerciseList
   , Muste.TTree
-  , Sentence.Unambiguous
+  , Sentence.Annotated
   ) where
 
 import Data.ByteString (ByteString)
@@ -28,8 +28,8 @@ import Data.Text (Text)
 import Data.Time
 
 import qualified Muste (TTree)
-import qualified Muste.Sentence.Unambiguous as Sentence (Unambiguous)
-import Muste.Sentence.Unambiguous (Unambiguous)
+import qualified Muste.Sentence.Annotated as Sentence (Annotated)
+import Muste.Sentence.Annotated (Annotated)
 
 type Blob = ByteString
 type Numeric = Integer
@@ -68,10 +68,10 @@ type Session =
 -- * The lesson to which the exercise belongs.
 -- * Timeout for the exercise.
 type Exercise =
-  ( Unambiguous   -- @sourceTree@
-  , Unambiguous   -- @targetTree@
-  , Text            -- @lesson@
-  , Numeric         -- @timeout@
+  ( Annotated -- @sourceTree@
+  , Annotated -- @targetTree@
+  , Text      -- @lesson@
+  , Numeric   -- @timeout@
   )
 
 -- | Representation of a 'Leson' in the database.  Consists of:
@@ -108,8 +108,8 @@ type Lesson =
 -- * The round it was in the lesson.
 type FinishedExercise =
   ( Text            -- @user@
-  , Unambiguous   -- @sourceTree@
-  , Unambiguous   -- @targetTree@
+  , Annotated       -- @sourceTree@
+  , Annotated       -- @targetTree@
   , Text            -- @lesson@
   , NominalDiffTime -- @time@
   , Numeric         -- @clickCount@
@@ -153,9 +153,9 @@ type FinishedLesson =
 -- * The lesson it belongs to.
 -- * The round.
 type ExerciseList =
-  ( Text            -- @user@
-  , Unambiguous   -- @sourceTree@
-  , Unambiguous   -- @targetTree@
-  , Text            -- @lesson@
-  , Numeric         -- @round@
+  ( Text      -- @user@
+  , Annotated -- @sourceTree@
+  , Annotated -- @targetTree@
+  , Text      -- @lesson@
+  , Numeric   -- @round@
   )

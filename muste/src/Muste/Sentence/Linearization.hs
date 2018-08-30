@@ -39,11 +39,6 @@ instance (Binary a, Typeable a) ⇒ ToField (Linearization a) where
 instance (Binary a, Typeable a) ⇒ FromField (Linearization a) where
   fromField = SQL.fromBlob
 
--- mkLinearization ∷ [String] → (Linearization a)
--- mkLinearization
---   =   map Token.ambiguous
---   >>> fromList
-
 instance IsList (Linearization a) where
   type Item (Linearization a) = a
   fromList = Vector.fromList >>> Linearization

@@ -24,8 +24,8 @@ import Muste (TTree, Context)
 import qualified Muste.Linearization as OldLinearization (langAndContext, mkLin)
 import Muste.Sentence (Sentence)
 import qualified Muste.Sentence as Sentence
-import Muste.Sentence.Unambiguous (Unambiguous)
-import qualified Muste.Sentence.Unambiguous as Unambiguous
+import Muste.Sentence.Annotated (Annotated)
+import qualified Muste.Sentence.Annotated as Annotated
 
 initDb :: IO ()
 initDb = do
@@ -54,11 +54,11 @@ initDB conn = do
   mapM_ (exec insertLessonQuery)   Data.lessons
   mapM_ (exec insertExerciseQuery) exercises
 
-exercises ∷ [(Unambiguous, Unambiguous, Text)]
+exercises ∷ [(Annotated, Annotated, Text)]
 exercises = Data.exercises >>= mkExercise
   where
   mkExercise ∷ (Text, Text, Text, Text, [(TTree, TTree)])
-    → [(Unambiguous, Unambiguous, Text)]
+    → [(Annotated, Annotated, Text)]
   mkExercise (idfG, idfL, srcL, trgL, xs)
     = go (lin srcL) (lin trgL) idfL <$> xs
     where
@@ -66,17 +66,17 @@ exercises = Data.exercises >>= mkExercise
     lang ∷ Text → Context
     lang idf = fromMaybe (error $ printf "Lang not found: %s" idf)
       $ Map.lookup idf ctxt
-    lin ∷ Text → TTree → TTree → TTree → Unambiguous
-    -- lin l = Unambiguous.mkLin (lang l)
+    lin ∷ Text → TTree → TTree → TTree → Annotated
+    -- lin l = Annotated.mkLin (lang l)
     -- lin l = Sentence.linearization (lang l)
     -- lin l = Sentence.mkLin (lang l)
-    -- lin l = Unambiguous.unambiguous (lang l) _
-    lin l = Unambiguous.unambiguous (lang l) (Sentence.Language g l)
+    -- lin l = Annotated.annotated (lang l) _
+    lin l = Annotated.annotated (lang l) (Sentence.Language g l)
     g ∷ Sentence.Grammar
     g = "STUB"
-  go ∷ (TTree → TTree → TTree → Unambiguous) → (TTree → TTree → TTree → Unambiguous)
+  go ∷ (TTree → TTree → TTree → Annotated) → (TTree → TTree → TTree → Annotated)
     → Text → (TTree, TTree)
-    → (Unambiguous, Unambiguous, Text)
+    → (Annotated, Annotated, Text)
   go srcC trgC idfE (src, trg) = (srcC src trg src, trgC src trg trg, idfE)
 
 addUser ∷ Connection → (Text, Text, Bool) → IO ()

@@ -33,9 +33,9 @@ import Control.Category ((>>>))
 import Muste (Context, TTree)
 import qualified Muste
 import qualified Muste.Sentence as Sentence
-import Muste.Sentence.Unambiguous (Unambiguous)
-import Muste.Sentence.Ambiguous (Ambiguous)
-import qualified Muste.Sentence.Ambiguous as Ambiguous
+import Muste.Sentence.Annotated (Annotated)
+import Muste.Sentence.Unannotated (Unannotated)
+import qualified Muste.Sentence.Unannotated as Unannotated
 
 import Common
 
@@ -217,7 +217,7 @@ handleLessonInit token lesson = do
                 (stce targetLang targetTree)
     verifyMessage token (SMMenuList lesson False 0 a b)
     where
-    stce ∷ Text → Unambiguous → Unambiguous
+    stce ∷ Text → Annotated → Annotated
     stce l t = (Sentence.sentence (Sentence.Language g l) (Sentence.linearization t))
     g ∷ Sentence.Grammar
     g = "STUB"
@@ -264,14 +264,14 @@ unambiguous
   ⇒ Contexts
   → Text
   → ClientTree
-  → m Unambiguous
-unambiguous cs lesson t = Ambiguous.unambiguous
+  → m Annotated
+unambiguous cs lesson t = Unannotated.unambiguous
     (ErrorCall $ "Unable to parse: " <> show s) ctxt s
   where
   ctxt ∷ Context
   ctxt = fromMaybe err $ getContext cs lesson $ Sentence.language s
   err = error "Context not found for language"
-  s ∷ Ambiguous
+  s ∷ Unannotated
   s = Ajax.unClientTree t
 
 oneSimiliarTree
@@ -295,7 +295,7 @@ disambiguate ∷ Contexts → Text → ClientTree → [TTree]
 disambiguate cs lesson t
   = Sentence.disambiguate (getC s) s
     where
-    s ∷ Ambiguous
+    s ∷ Unannotated
     s = Ajax.unClientTree t
     getC
       =   Sentence.language
@@ -352,8 +352,8 @@ mkContext (ls, _, nm, _, _, _, _, _) =
 assembleMenus
   ∷ Contexts
   → Text
-  → Unambiguous
-  → Unambiguous
+  → Annotated
+  → Annotated
   → (ServerTree,ServerTree)
 assembleMenus c lesson src trg =
   ( mkTree src
@@ -400,7 +400,7 @@ liftMaybe e = \case
 makeTree
   ∷ Contexts
   → Text
-  → Unambiguous
+  → Annotated
   → ServerTree
 makeTree c lesson s
   = Ajax.serverTree s menu
@@ -410,8 +410,8 @@ makeTree c lesson s
   language = Sentence.language s
 
 emptyMenus
-  ∷ Unambiguous -- ^ Source sentence
-  → Unambiguous -- ^ Target sentence
+  ∷ Annotated -- ^ Source sentence
+  → Annotated -- ^ Target sentence
   → (ServerTree, ServerTree)
 emptyMenus src trg =
   ( mkTree src
@@ -421,7 +421,7 @@ emptyMenus src trg =
   -- FIXME In 'assembleMenus' we actually use the language of the tree
   -- we're building.  Investigate if this may be a bug.  Similiarly
   -- for 'lin'.  This is the reason we are not using 'makeTree' here.
-  mkTree ∷ Unambiguous → ServerTree
+  mkTree ∷ Annotated → ServerTree
   mkTree s
     = Ajax.serverTree (Sentence.sentence language lin) mempty
     where

@@ -77,8 +77,8 @@ library:
     - Muste.Linearization
     - Muste.Menu
     - Muste.Sentence
-    - Muste.Sentence.Unambiguous
-    - Muste.Sentence.Ambiguous
+    - Muste.Sentence.Annotated
+    - Muste.Sentence.Unannotated
 
   other-modules:
     - Muste.Common

@@ -3,12 +3,12 @@
   , DuplicateRecordFields
 #-}
 module Muste.Sentence.Token
-  ( Unambiguous
-  , Ambiguous
+  ( Annotated
+  , Unannotated
   , IsToken(..)
-  , unambiguous
-  , ambiguous
-  , mergeUnambiguous
+  , annotated
+  , unannotated
+  , mergeAnnotated
   )
   where
 
@@ -27,65 +27,65 @@ import Muste.Sentence.Token.Class (IsToken)
 import qualified Muste.Sentence.Token.Class as Token
 
 
--- * Unambiguous words
-data Unambiguous = Unambiguous
+-- * Annotated words
+data Annotated = Annotated
   { concrete ∷ String
   , classes  ∷ Set String
   }
 
-deriving instance Show Unambiguous
-deriving instance Generic Unambiguous
-instance Binary Unambiguous where
-instance ToField Unambiguous where
+deriving instance Show Annotated
+deriving instance Generic Annotated
+instance Binary Annotated where
+instance ToField Annotated where
   toField = SQL.toBlob
-instance FromField Unambiguous where
+instance FromField Annotated where
   fromField = SQL.fromBlob
-instance ToJSON Unambiguous where
-  toJSON (Unambiguous {..}) = Aeson.object
+instance ToJSON Annotated where
+  toJSON (Annotated {..}) = Aeson.object
     [ "concrete" .= concrete
     , "classes"  .= classes
     ]
-instance FromJSON Unambiguous where
+instance FromJSON Annotated where
   parseJSON = Aeson.withObject "token"
-    $ \o → Unambiguous
+    $ \o → Annotated
     <$> o .: "concrete"
     <*> o .: "classes"
-instance IsToken Unambiguous where
+instance IsToken Annotated where
   concrete = concrete
 
-unambiguous ∷ String → [String] → Unambiguous
-unambiguous c a = Unambiguous c (Set.fromList a)
+annotated ∷ String → [String] → Annotated
+annotated c a = Annotated c (Set.fromList a)
 
 
--- * Ambiguous words
+-- * Unannotated words
 
-newtype Ambiguous = Ambiguous { concrete ∷ String }
+newtype Unannotated = Unannotated { concrete ∷ String }
 
-deriving instance Show Ambiguous
-deriving instance Eq Ambiguous
-deriving instance Ord Ambiguous
-deriving instance Generic Ambiguous
-instance Binary Ambiguous where
-instance ToField Ambiguous where
+deriving instance Show Unannotated
+deriving instance Eq Unannotated
+deriving instance Ord Unannotated
+deriving instance Generic Unannotated
+instance Binary Unannotated where
+instance ToField Unannotated where
   toField = SQL.toBlob
-instance FromField Ambiguous where
+instance FromField Unannotated where
   fromField = SQL.fromBlob
-instance ToJSON Ambiguous where
-  toJSON (Ambiguous c) = Aeson.object
+instance ToJSON Unannotated where
+  toJSON (Unannotated c) = Aeson.object
     [ "concrete" .= c
     ]
-instance FromJSON Ambiguous where
+instance FromJSON Unannotated where
   parseJSON = Aeson.withObject "token"
-    $ \o → Ambiguous
+    $ \o → Unannotated
     <$> o .: "concrete"
-instance IsToken Ambiguous where
+instance IsToken Unannotated where
   concrete = Muste.Sentence.Token.concrete
 
-ambiguous ∷ String → Ambiguous
-ambiguous = Ambiguous
+unannotated ∷ String → Unannotated
+unannotated = Unannotated
 
-mergeUnambiguous ∷ Unambiguous → Unambiguous → Unambiguous
-mergeUnambiguous (Unambiguous a0 a1) (Unambiguous _ b1) = Unambiguous
+mergeAnnotated ∷ Annotated → Annotated → Annotated
+mergeAnnotated (Annotated a0 a1) (Annotated _ b1) = Annotated
   { concrete = a0
   , classes  = Set.union a1 b1
   }

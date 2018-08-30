@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall -Wno-type-defaults #-}
 {-# Language NamedFieldPuns, RecordWildCards, OverloadedStrings #-}
-module Muste.Sentence.Ambiguous where
+module Muste.Sentence.Unannotated where
 
 import Prelude hiding (Word)
 import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:))
@@ -18,61 +18,61 @@ import qualified Muste.Common.SQL as SQL
 import qualified Muste.Sentence.Token as Token
 import Muste.Sentence.Class (Sentence, Language, Linearization)
 import qualified Muste.Sentence.Class as Sentence
-import Muste.Sentence.Unambiguous (Unambiguous)
-import qualified Muste.Sentence.Unambiguous as Unambiguous
+import Muste.Sentence.Annotated (Annotated)
+import qualified Muste.Sentence.Annotated as Annotated
 
-data Ambiguous = Ambiguous
+data Unannotated = Unannotated
   { language      ∷ Language
-  , linearization ∷ Linearization Token.Ambiguous
+  , linearization ∷ Linearization Token.Unannotated
   }
 
-deriving instance Show Ambiguous
-deriving instance Eq Ambiguous
-deriving instance Ord Ambiguous
+deriving instance Show Unannotated
+deriving instance Eq Unannotated
+deriving instance Ord Unannotated
 
-instance ToJSON Ambiguous where
-  toJSON (Ambiguous {..}) = Aeson.object
+instance ToJSON Unannotated where
+  toJSON (Unannotated {..}) = Aeson.object
     [ "language"      .= language
     , "linearization" .= linearization
     ]
 
-instance FromJSON Ambiguous where
+instance FromJSON Unannotated where
   parseJSON = Aeson.withObject "word"
-    $ \o → Ambiguous
+    $ \o → Unannotated
     <$> o .: "language"
     <*> o .: "linearization"
 
-deriving instance Generic Ambiguous
-instance Binary Ambiguous where
+deriving instance Generic Unannotated
+instance Binary Unannotated where
 
-instance ToField Ambiguous where
+instance ToField Unannotated where
   toField = SQL.toBlob
 
-instance FromField Ambiguous where
+instance FromField Unannotated where
   fromField = SQL.fromBlob
 
-instance Sentence Ambiguous where
-  language = Muste.Sentence.Ambiguous.language
-  type Token Ambiguous = Token.Ambiguous
-  linearization = Muste.Sentence.Ambiguous.linearization
-  sentence = Ambiguous
+instance Sentence Unannotated where
+  language = Muste.Sentence.Unannotated.language
+  type Token Unannotated = Token.Unannotated
+  linearization = Muste.Sentence.Unannotated.linearization
+  sentence = Unannotated
 
 unambiguous
   ∷ MonadThrow m
   ⇒ Exception e
   ⇒ e
   → Context
-  → Ambiguous
-  → m Unambiguous
+  → Unannotated
+  → m Annotated
 unambiguous e c@(Context { .. }) s
   = linearization s
   & Sentence.stringRep
   & Grammar.parseSentence ctxtGrammar ctxtLang
   & map unambigSimpl
-  & Unambiguous.merge e
+  & Annotated.merge e
   where
-  unambigSimpl ∷ TTree → Unambiguous
+  unambigSimpl ∷ TTree → Annotated
   unambigSimpl t
-    = Unambiguous.unambiguous c l t t t
+    = Annotated.annotated c l t t t
   l ∷ Language
   l = Sentence.language s

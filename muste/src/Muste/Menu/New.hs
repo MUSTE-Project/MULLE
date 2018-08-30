@@ -51,7 +51,7 @@ similarTrees ctxt tree = [ tree' | (_path, simtrees) <- Map.toList simmap, (_, t
 -- * Exported stuff
 
 newtype NewFancyMenu
-  = NewFancyMenu (Map Selection (Set (Selection, Sentence.Linearization Token.Ambiguous)))
+  = NewFancyMenu (Map Selection (Set (Selection, Sentence.Linearization Token.Unannotated)))
 
 deriving instance Show NewFancyMenu
 deriving instance Semigroup NewFancyMenu
@@ -88,8 +88,8 @@ getMenuItems ctxt sentence
         )
       )
 
-ambigLin ∷ [Tokn] → Sentence.Linearization Token.Ambiguous
-ambigLin = fromList . map Token.ambiguous
+ambigLin ∷ [Tokn] → Sentence.Linearization Token.Unannotated
+ambigLin = fromList . map Token.unannotated
 
 
 -- * LCS
