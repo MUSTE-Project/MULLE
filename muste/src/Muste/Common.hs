@@ -41,7 +41,7 @@ import Data.ByteString.Lazy (ByteString)
 import Data.String.Conversions (ConvertibleStrings(convertString))
 import qualified Data.Containers as Mono
 import Data.Containers (IsMap)
-import Data.Text.Prettyprint.Doc (Doc, Pretty, layoutCompact)
+import Data.Text.Prettyprint.Doc (Doc, Pretty)
 import qualified Data.Text.Prettyprint.Doc as Doc
 import Data.Text.Prettyprint.Doc.Render.String (renderString)
 
@@ -217,7 +217,7 @@ lookupFailIO
 lookupFailIO err k = maybeFailIO err . Mono.lookup k
 
 renderDoc ∷ Doc a → String
-renderDoc = renderString . layoutCompact
+renderDoc = renderString . Doc.layoutPretty Doc.defaultLayoutOptions
 
 putDoc ∷ Doc a → IO ()
 putDoc = putStr . renderDoc
