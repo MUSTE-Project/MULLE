@@ -6,13 +6,13 @@ fun
   multus_Det : Det ;
 
   boy_N, girl_N, father_N, mother_N : N ;
-  friend_N, king_N, house_N, book_N : N ;
+  friend_N, king_N, house_N, book_N, computer_N : N ;
 
   paris_PN, john_PN : PN ;
 
   he_Pron, she_Pron, it_Pron, they_Pron : Pron ;
 
-  copula_V, close_V, break_V, love_V, read_V : V2 ;
+  copula_V, close_V, break_V, love_V, read_V, hit_V, switch_on_V : V2 ;
 
   in_Prep, on_Prep, to_Prep : Prep ;
 
