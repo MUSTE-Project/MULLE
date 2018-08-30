@@ -5,6 +5,8 @@ module Muste.Menu.New
   , getNewFancyMenu
   , getMenuItems
   , Selection
+  , Sentence.Linearization
+  , Token.Unannotated
   ) where
 
 import Data.Map (Map)
@@ -105,7 +107,7 @@ instance Mono.IsMap NewFancyMenu where
   deleteMap k    (NewFancyMenu m) = NewFancyMenu $ Mono.deleteMap k m
   mapToList      (NewFancyMenu m) = Mono.mapToList m
 
-instance Pretty     NewFancyMenu where
+instance Pretty NewFancyMenu where
   -- pretty = pretty . Map.toList . unNewFancyMenu
   pretty
     =   unNewFancyMenu

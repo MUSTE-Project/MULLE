@@ -16,10 +16,13 @@ import Data.Semigroup (Semigroup((<>)))
 import Data.ByteString (ByteString)
 import Data.String.Conversions (convertString)
 import qualified Muste.Grammar.Embed as Embed
-import Data.Text.Prettyprint.Doc (pretty)
+import Data.Text.Prettyprint.Doc (Doc, (<+>), pretty)
+import qualified Data.Text.Prettyprint.Doc as Doc
 import Text.Read
 import Data.Text (Text)
 import qualified Data.Set as Set
+import qualified Data.Containers as Mono
+import GHC.Exts (toList)
 
 import Muste
 import Muste.Common
@@ -61,8 +64,44 @@ updateMenu s = do
   m ← getMenuFor s
   liftIO $ do
     putStrLn $ "Sentence is now: " <> s
-    putDocLn $ pretty m
+    putDocLn $ prettyMenu s m
   setMenu m
+
+prettyMenu ∷ String → NewFancyMenu → Doc a
+prettyMenu s = Doc.vsep . fmap (uncurry go) . open
+  where
+  open = fmap @[] (fmap @((,) Menu.Selection) Set.toList)
+    . Mono.mapToList
+  go ∷ Menu.Selection
+    → [(Menu.Selection, Menu.Linearization Menu.Unannotated)]
+    → Doc a
+  go sel xs = Doc.vcat
+    [ Doc.brackets (pretty sel) <+> "<>" <+> pretty @String s
+    , Doc.vcat $ fmap gogo xs
+    ]
+
+gogo ∷ (Menu.Selection, Menu.Linearization Menu.Unannotated) → Doc a
+gogo (xs, lin) = Doc.hsep $ map go $ highlight xs (toList lin)
+  where
+  go ∷ (Bool, Menu.Unannotated) → Doc a
+  go (b, tok)
+    | b         = Doc.brackets $ pretty tok
+    | otherwise = pretty tok
+
+highlight ∷ Menu.Selection → [a] → [(Bool, a)]
+highlight sel xs = map go $ zip [0..] xs
+  where
+  go ∷ (Int, a) → (Bool, a)
+  go (n, a) = (selected n sel, a)
+  selected ∷ Int → Menu.Selection → Bool
+  selected n = \case
+    [] → False
+    (x:xss) → (n `within` x) || selected n xss
+  within ∷ Int → (Int, Int) → Bool
+  within x (a, b)
+    | x < a = False
+    | x > b = False
+    | otherwise = True
 
 -- | @'getMenu' s@ gets a menu for a sentence @s@.
 getMenuFor
