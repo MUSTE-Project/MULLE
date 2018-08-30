@@ -19,14 +19,14 @@ import qualified Muste.Grammar.Embed as Embed
 import Data.Text.Prettyprint.Doc (pretty)
 import Text.Read
 import Data.Text (Text)
+import qualified Data.Set as Set
 
 import Muste
 import Muste.Common
-import qualified Muste.Selection as Selection
 import Muste.Util
 import qualified Muste.Grammar.Internal as Grammar
-import qualified Muste.Menu.Internal as Menu
-import qualified Muste.Menu.Internal as OldMenu
+import Muste.Menu.New (NewFancyMenu)
+import qualified Muste.Menu.New      as Menu
 
 grammar :: Grammar
 grammar = Grammar.parseGrammar $ convertString $ snd grammar'
@@ -39,7 +39,7 @@ defCtxt = unsafeGetContext grammar "ExemplumSwe"
 
 data Env = Env
   { lang ∷ String
-  , menu ∷ OldMenu.Menu
+  , menu ∷ NewFancyMenu
   , ctxt ∷ Context
   }
 
@@ -67,18 +67,18 @@ updateMenu s = do
 -- | @'getMenu' s@ gets a menu for a sentence @s@.
 getMenuFor
   ∷ String -- ^ The sentence to parse
-  → Repl OldMenu.Menu
+  → Repl NewFancyMenu
 getMenuFor s = do
   c ← getContext
-  pure $ Menu.getMenuFromStringRep c s
+  pure $ Menu.getMenuItems c s
 
-setMenu ∷ OldMenu.Menu → Repl ()
+setMenu ∷ NewFancyMenu → Repl ()
 setMenu menu = modify $ \e → e { menu }
 
 getContext ∷ Repl Context
 getContext = gets $ \(Env { .. }) → ctxt
 
-getMenu ∷ Repl OldMenu.Menu
+getMenu ∷ Repl NewFancyMenu
 getMenu = gets $ \(Env { .. }) → menu
 
 options ∷ Repl.Options (HaskelineT (StateT Env IO))
@@ -104,16 +104,15 @@ instance Show AppException where
     SelectionNotFound → "ERROR: Selection not found"
     OneArgErr → "One argument plz"
 
--- | Throws if the string is not a haskell list of integers.
 setSel ∷ String → Repl ()
 setSel str = do
-  case Selection.fromList <$> readMaybe @[Int] str of
-    Nothing → liftIO $ putStrLn "no parse"
+  case readMaybe @Menu.Selection str of
+    Nothing → liftIO $ putStrLn "readMaybe @Menu.Selection: No parse"
     Just sel → do
       m ← getMenu
       case lookupFail mempty sel m of
         Nothing → showErr SelectionNotFound
-        Just ts → liftIO $ putDocLn $ pretty ts
+        Just ts → liftIO $ putDocLn $ pretty $ Set.toList ts
 
 showErr ∷ MonadIO m ⇒ Exception e ⇒ e → m ()
 showErr = liftIO . putStrLn . displayException
@@ -134,7 +133,7 @@ ini = liftIO $ putStrLn $ unlines
   , "This will set and display the \"active\" menu"
   , "You can select an entry in the active menu with e.g.:"
   , ""
-  , "    :sel [0,1,2]"
+  , "    :sel [(0,1)]"
   , ""
   , "Please note that sentences that cannot be parsed are silently ignored"
   , "An empty menu will be displayed (just newline) this is likely caused"

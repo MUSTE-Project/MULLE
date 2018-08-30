@@ -19,6 +19,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import GHC.Generics (Generic)
 import Data.Binary hiding (Word)
+import Data.Text.Prettyprint.Doc (Pretty(..))
 
 import Muste.Common.SQL (FromField, ToField)
 import qualified Muste.Common.SQL as SQL
@@ -80,6 +81,9 @@ instance FromJSON Unannotated where
     <$> o .: "concrete"
 instance IsToken Unannotated where
   concrete = Muste.Sentence.Token.concrete
+
+instance Pretty Unannotated where
+  pretty (Unannotated s) = pretty s
 
 unannotated ∷ String → Unannotated
 unannotated = Unannotated

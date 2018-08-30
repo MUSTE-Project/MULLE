@@ -1,6 +1,11 @@
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# Language TemplateHaskell #-}
-module Muste.Menu.New (NewFancyMenu, getNewFancyMenu) where
+{-# Language TemplateHaskell, UndecidableInstances #-}
+module Muste.Menu.New
+  ( NewFancyMenu
+  , getNewFancyMenu
+  , getMenuItems
+  , Selection
+  ) where
 
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -8,6 +13,9 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Array as Array
 import Data.Aeson
+import Control.Category ((>>>))
+import Data.MonoTraversable
+import qualified Data.Containers as Mono
 
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.Linearization.Internal
@@ -19,6 +27,7 @@ import Muste.Prune ()
 import qualified Muste.Prune as Prune
 import Data.Function ((&))
 import GHC.Exts (fromList)
+import Data.Text.Prettyprint.Doc (Pretty(..))
 
 import qualified Muste.Sentence as Sentence
 import qualified Muste.Sentence.Linearization as Sentence (Linearization)
@@ -50,14 +59,59 @@ similarTrees ctxt tree = [ tree' | (_path, simtrees) <- Map.toList simmap, (_, t
 
 -- * Exported stuff
 
-newtype NewFancyMenu
-  = NewFancyMenu (Map Selection (Set (Selection, Sentence.Linearization Token.Unannotated)))
+newtype NewFancyMenu = NewFancyMenu
+  { unNewFancyMenu ∷ Map Selection
+    (Set (Selection, Sentence.Linearization Token.Unannotated))
+  }
 
-deriving instance Show NewFancyMenu
-deriving instance Semigroup NewFancyMenu
-deriving instance Monoid NewFancyMenu
-deriving instance ToJSON NewFancyMenu
-deriving instance FromJSON NewFancyMenu
+deriving instance Show       NewFancyMenu
+deriving instance Semigroup  NewFancyMenu
+deriving instance Monoid     NewFancyMenu
+deriving instance ToJSON     NewFancyMenu
+deriving instance FromJSON   NewFancyMenu
+
+deriving instance MonoFunctor NewFancyMenu
+
+type instance Element NewFancyMenu
+  = (Set (Selection, Sentence.Linearization Token.Unannotated))
+
+instance MonoFoldable NewFancyMenu where
+  ofoldl'    f a (NewFancyMenu m) = ofoldl' f a m
+  ofoldr     f a (NewFancyMenu m) = ofoldr f a m
+  ofoldMap   f (NewFancyMenu m)   = ofoldMap f m
+  ofoldr1Ex  f (NewFancyMenu m)   = ofoldr1Ex f m
+  ofoldl1Ex' f (NewFancyMenu m)   = ofoldl1Ex' f m
+
+instance MonoTraversable NewFancyMenu where
+  otraverse f (NewFancyMenu m) = NewFancyMenu <$> otraverse f m
+
+instance GrowingAppend NewFancyMenu where
+
+instance Mono.SetContainer NewFancyMenu where
+  type ContainerKey NewFancyMenu                 = Selection
+  member k     (NewFancyMenu m)                  = Mono.member k m
+  notMember k  (NewFancyMenu m)                  = Mono.notMember k m
+  union        (NewFancyMenu a) (NewFancyMenu b) = NewFancyMenu $ a `Mono.union` b
+  intersection (NewFancyMenu a) (NewFancyMenu b) = NewFancyMenu $ a `Mono.intersection` b
+  difference   (NewFancyMenu a) (NewFancyMenu b) = NewFancyMenu $ a `Mono.difference` b
+  keys         (NewFancyMenu m)                  = Mono.keys m
+
+instance Mono.IsMap NewFancyMenu where
+  type MapValue NewFancyMenu      = Element NewFancyMenu
+  lookup c       (NewFancyMenu m) = Mono.lookup c m
+  singletonMap c t                = NewFancyMenu $ Mono.singletonMap c t
+  mapFromList as                  = NewFancyMenu $ Mono.mapFromList as
+  insertMap k vs (NewFancyMenu m) = NewFancyMenu $ Mono.insertMap k vs m
+  deleteMap k    (NewFancyMenu m) = NewFancyMenu $ Mono.deleteMap k m
+  mapToList      (NewFancyMenu m) = Mono.mapToList m
+
+instance Pretty     NewFancyMenu where
+  -- pretty = pretty . Map.toList . unNewFancyMenu
+  pretty
+    =   unNewFancyMenu
+    >>> Map.toList
+    >>> fmap @[] (fmap @((,) Selection) Set.toList)
+    >>> pretty
 
 -- | FIXME Change my name when we have moved the deprecated 'getMenu'.
 getNewFancyMenu

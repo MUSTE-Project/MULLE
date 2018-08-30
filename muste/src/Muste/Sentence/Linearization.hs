@@ -11,6 +11,7 @@ import Data.Binary hiding (Word)
 import Control.Category ((>>>))
 import GHC.Exts (IsList(..))
 import Data.Typeable (Typeable)
+import Data.Text.Prettyprint.Doc (Pretty(..))
 
 import Muste.Common.SQL (FromField, ToField)
 import qualified Muste.Common.SQL as SQL
@@ -43,6 +44,9 @@ instance IsList (Linearization a) where
   type Item (Linearization a) = a
   fromList = Vector.fromList >>> Linearization
   toList = unLinearization >>> Vector.toList
+
+instance IsToken a ⇒ Pretty (Linearization a) where
+  pretty = pretty . stringRep
 
 stringRep ∷ IsToken a ⇒ Linearization a → String
 stringRep
