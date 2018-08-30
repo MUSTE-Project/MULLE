@@ -94,13 +94,11 @@ highlight sel xs = map go $ zip [0..] xs
   go ∷ (Int, a) → (Bool, a)
   go (n, a) = (selected n sel, a)
   selected ∷ Int → Menu.Selection → Bool
-  selected n = \case
-    [] → False
-    (x:xss) → (n `within` x) || selected n xss
+  selected n = any (within n)
   within ∷ Int → (Int, Int) → Bool
   within x (a, b)
-    | x < a = False
-    | x > b = False
+    | x < a     = False
+    | x > b     = False
     | otherwise = True
 
 -- | @'getMenu' s@ gets a menu for a sentence @s@.
