@@ -44,6 +44,7 @@ import Data.Containers (IsMap)
 import Data.Text.Prettyprint.Doc (Doc, Pretty)
 import qualified Data.Text.Prettyprint.Doc as Doc
 import Data.Text.Prettyprint.Doc.Render.String (renderString)
+import qualified Data.Text.Prettyprint.Doc.Render.Text as Doc
 
 import qualified Debug.Trace
 
@@ -220,7 +221,7 @@ renderDoc ∷ Doc a → String
 renderDoc = renderString . Doc.layoutPretty Doc.defaultLayoutOptions
 
 putDoc ∷ Doc a → IO ()
-putDoc = putStr . renderDoc
+putDoc = Doc.putDoc
 
 putDocLn ∷ Doc a → IO ()
-putDocLn = putStrLn . renderDoc
+putDocLn = putDoc . (<> Doc.line)
