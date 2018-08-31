@@ -3,8 +3,8 @@
   , DuplicateRecordFields
 #-}
 module Muste.Sentence.Token
-  ( Annotated
-  , Unannotated
+  ( Annotated(Annotated)
+  , Unannotated(Unannotated)
   , IsToken(..)
   , annotated
   , unannotated
@@ -36,6 +36,8 @@ data Annotated = Annotated
 
 deriving instance Show Annotated
 deriving instance Generic Annotated
+deriving instance Eq Annotated
+deriving instance Ord Annotated
 instance Binary Annotated where
 instance ToField Annotated where
   toField = SQL.toBlob
