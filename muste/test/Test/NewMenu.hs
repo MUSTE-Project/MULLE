@@ -81,37 +81,21 @@ type LinTestCase = (String, Text, String, Menu.Selection, String, Bool)
 
 menuLin ∷ TestTree
 menuLin = testGroup "Linearization" $ mkTestLinearizations <$>
-  [ ("kungen->en kung", "ExemplumSwe", "kungen älskar Paris"        , [(0,0)]
-    , "en kung älskar Paris"       , expectSuccess)  -- FAIL
-  , ("kungen->Johan"  , "ExemplumSwe", "kungen älskar Paris"        , [(0,0)]
-    , "Johan älskar Paris"         , expectSuccess)
-  , ("älskar->är"     , "ExemplumSwe", "kungen älskar Paris"        , [(1,1)]
-    , "kungen är Paris"            , expectSuccess)
-  , ("kungen->huset"  , "ExemplumSwe", "kungen är stor"             , [(0,0)]
-    , "huset är stort"             , expectSuccess)
-  , ("Paris->stor"    , "ExemplumSwe", "kungen är Paris"            , [(2,2)]
-    , "kungen är stor"             , expectSuccess)  -- FAIL
-  , ("Paris->en vän"  , "ExemplumSwe", "kungen är Paris"            , [(2,2)]
-    , "kungen är en vän"           , expectSuccess)
-  , ("DEL: det kalla" , "ExemplumSwe", "det kalla huset är stort"   , [(0,0),(1,1)]
-    , "huset är stort"             , expectSuccess)  -- FAIL
-    -- NOTE: the "selection" should really be an insertion BEFORE "fienden" -- how do we represent that?
-  , ("INS: det kalla" , "ExemplumSwe", "huset är stort"             , []
-    , "det kalla huset är stort"   , expectSuccess)  -- FAIL
-  , ("Johan->en kung" , "ExemplumSwe", "Johan älskar Paris"         , [(0,0)]
-    , "en kung älskar Paris"       , expectSuccess)
-  , ("INS: stor"      , "ExemplumSwe", "en kung älskar Paris"       , []
-    , "en stor kung älskar Paris"  , expectSuccess)  -- FAIL
-  , ("Joh.->en st. k.", "ExemplumSwe", "Johan älskar Paris"         , [(0,0)]
-    , "en stor kung älskar Paris"  , expectFailure)
-  , ("INS: idag"      , "ExemplumSwe", "Johan älskar vännen"        , []
-    , "Johan älskar vännen idag"   , expectSuccess)  -- FAIL
-  , ("INS: i Paris"   , "ExemplumSwe", "Johan älskar vännen"        , []
-    , "Johan älskar vännen i Paris", expectSuccess)  -- FAIL
-  , ("DEL: idag"      , "ExemplumSwe", "Johan älskar vännen idag"   , [(3,3)]
-    , "Johan älskar vännen"        , expectSuccess)  -- FAIL
-  , ("DEL: i Paris"   , "ExemplumSwe", "Johan älskar vännen i Paris", [(3,3),(4,4)]
-    , "Johan älskar vännen"        , expectSuccess)  -- FAIL
+  [ ("kungen->en kung", "ExemplumSwe", "kungen älskar Paris"        , [(0,0)], "en kung älskar Paris"       , expectSuccess)
+  , ("kungen->Johan"  , "ExemplumSwe", "kungen älskar Paris"        , [(0,1)], "Johan älskar Paris"         , expectSuccess)
+  , ("älskar->är"     , "ExemplumSwe", "kungen älskar Paris"        , [(1,2)], "kungen är Paris"            , expectSuccess)
+  , ("kungen->huset"  , "ExemplumSwe", "kungen är stor"             , [(0,1)], "huset är stort"             , expectSuccess)
+  , ("Paris->stor"    , "ExemplumSwe", "kungen är Paris"            , [(2,3)], "kungen är stor"             , expectSuccess)  -- FAIL
+  , ("Paris->en vän"  , "ExemplumSwe", "kungen är Paris"            , [(2,3)], "kungen är en vän"           , expectSuccess)
+  , ("DEL: det kalla" , "ExemplumSwe", "det kalla huset är stort"   , [(0,2)], "huset är stort"             , expectSuccess)
+  , ("INS: det kalla" , "ExemplumSwe", "huset är stort"             , [(0,0)], "det kalla huset är stort"   , expectSuccess)
+  , ("Johan->en kung" , "ExemplumSwe", "Johan älskar Paris"         , [(0,1)], "en kung älskar Paris"       , expectSuccess)
+  , ("INS: stor"      , "ExemplumSwe", "en kung älskar Paris"       , [(1,1)], "en stor kung älskar Paris"  , expectSuccess)
+  , ("Joh.->en st. k.", "ExemplumSwe", "Johan älskar Paris"         , [(0,1)], "en stor kung älskar Paris"  , expectFailure)
+  , ("INS: idag"      , "ExemplumSwe", "Johan älskar vännen"        , [(3,3)], "Johan älskar vännen idag"   , expectSuccess)  -- FAIL
+  , ("INS: i Paris"   , "ExemplumSwe", "Johan älskar vännen"        , [(3,3)], "Johan älskar vännen i Paris", expectSuccess)  -- FAIL
+  , ("DEL: idag"      , "ExemplumSwe", "Johan älskar vännen idag"   , [(3,4)], "Johan älskar vännen"        , expectSuccess)  -- FAIL
+  , ("DEL: i Paris"   , "ExemplumSwe", "Johan älskar vännen i Paris", [(3,5)], "Johan älskar vännen"        , expectSuccess)  -- FAIL
   ]
   where
   expectSuccess = True
