@@ -104,10 +104,7 @@ highlight sel xs = map go $ zip [0..] xs
   selected ∷ Int → Menu.Selection → Bool
   selected n = any (within n)
   within ∷ Int → (Int, Int) → Bool
-  within x (a, b)
-    | x < a     = False
-    | x > b     = False
-    | otherwise = True
+  within x (a, b) = a <= x && x < b
 
 -- | @'getMenu' s@ gets a menu for a sentence @s@.
 getMenuFor
