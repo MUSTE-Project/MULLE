@@ -84,23 +84,32 @@ prettyMenu s = Doc.vsep . fmap (uncurry go) . open
     → [(Menu.Selection, Menu.Linearization Menu.Unannotated)]
     → Doc a
   go sel xs = Doc.vcat
-    [ Doc.brackets (pretty sel) <+> "<>" <+> pretty @String s
+    [ ""
+    , prettySel sel <> ":" <+> prettyLin sel (words s)
     , Doc.vcat $ fmap gogo xs
     ]
+  gogo ∷ (Menu.Selection, Menu.Linearization Menu.Unannotated) → Doc a
+  gogo (xs, lin) = prettyLin xs (toList lin)
 
-gogo ∷ (Menu.Selection, Menu.Linearization Menu.Unannotated) → Doc a
-gogo (xs, lin) = Doc.hsep $ map go $ highlight xs (toList lin)
+prettySel :: Menu.Selection -> Doc a
+prettySel sel = pretty $ map go sel
+    where go (i,j) = show i ++ "-" ++ show j
+
+prettyLin ∷ Doc.Pretty tok => Menu.Selection → [tok] → Doc a
+prettyLin xs tokens = Doc.hsep $ map go $ highlight xs tokens
   where
-  go ∷ (Bool, Menu.Unannotated) → Doc a
   go (b, tok)
     | b         = Doc.brackets $ pretty tok
     | otherwise = pretty tok
 
-highlight ∷ Menu.Selection → [a] → [(Bool, a)]
-highlight sel xs = map go $ zip [0..] xs
+highlight ∷ Menu.Selection → [a] → [(Bool, Maybe a)]
+highlight sel xs = go $ zip [0..] xs
   where
-  go ∷ (Int, a) → (Bool, a)
-  go (n, a) = (selected n sel, a)
+  go ∷ [(Int, a)] → [(Bool, Maybe a)]
+  go [] = []
+  go ((n, a) : xs) = if (n, n) `elem` sel then insertion : ys else ys 
+    where ys = (selected n sel, Just a) : go xs
+          insertion = (True, Nothing)
   selected ∷ Int → Menu.Selection → Bool
   selected n = any (within n)
   within ∷ Int → (Int, Int) → Bool
