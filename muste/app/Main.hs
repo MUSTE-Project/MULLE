@@ -5,7 +5,9 @@
 module Main (main) where
 
 import Prelude hiding (fail)
-import System.Console.Repline (HaskelineT)
+import System.Environment (getArgs)
+import System.Console.Repline (HaskelineT, runHaskelineT)
+import System.Console.Haskeline (Settings, defaultSettings)
 import qualified System.Console.Repline as Repl
 import Control.Exception (Exception, displayException)
 import Control.Monad.State.Strict hiding (fail)
@@ -55,7 +57,13 @@ defLang = "Swe"
 type Repl a = HaskelineT (StateT Env IO) a
 
 main :: IO ()
-main
+main = getArgs >>= gomain
+
+gomain :: [String] -> IO ()
+gomain [s]
+  = runHaskelineT defaultSettings (updateMenu s)
+  & flip evalStateT defEnv
+gomain []
   = Repl.evalRepl "§ " updateMenu options completer ini
   & flip evalStateT defEnv
 
