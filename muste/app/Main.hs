@@ -85,15 +85,11 @@ prettyMenu s = Doc.vsep . fmap (uncurry go) . open
     → Doc a
   go sel xs = Doc.vcat
     [ ""
-    , prettySel sel <> ":" <+> prettyLin sel (words s)
+    , Menu.prettySelection sel <> ":" <+> prettyLin sel (words s)
     , Doc.vcat $ fmap gogo xs
     ]
   gogo ∷ (Menu.Selection, Menu.Linearization Menu.Unannotated) → Doc a
   gogo (xs, lin) = prettyLin xs (toList lin)
-
-prettySel :: Menu.Selection -> Doc a
-prettySel sel = pretty $ map go sel
-    where go (i,j) = show i ++ "-" ++ show j
 
 prettyLin ∷ Doc.Pretty tok => Menu.Selection → [tok] → Doc a
 prettyLin xs tokens = Doc.hsep $ map go $ highlight xs tokens

@@ -1,10 +1,11 @@
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
 {-# Language TemplateHaskell, UndecidableInstances #-}
 module Muste.Menu.New
-  ( NewFancyMenu
+  ( NewFancyMenu(..)
   , getNewFancyMenu
   , getMenuItems
   , Selection
+  , prettySelection
   , Sentence.Linearization
   , Token.Unannotated
   ) where
@@ -29,7 +30,7 @@ import Muste.Prune ()
 import qualified Muste.Prune as Prune
 import Data.Function ((&))
 import GHC.Exts (fromList)
-import Data.Text.Prettyprint.Doc (Pretty(..))
+import Data.Text.Prettyprint.Doc (Pretty(..), Doc)
 
 import qualified Muste.Sentence as Sentence
 import qualified Muste.Sentence.Linearization as Sentence (Linearization)
@@ -39,7 +40,11 @@ type Tokn = String
 type Node = String
 type Selection = [(Int, Int)]
 
-
+-- TODO: wrap Selection in newtype, make it an instance of Pretty
+prettySelection :: Selection -> Doc a
+prettySelection sel = pretty $ map go sel
+    where go (i,j) = show i ++ "-" ++ show j
+
 -- * First, some basic functions and types:
 
 parseSentence :: Context -> String -> [TTree]
@@ -58,7 +63,6 @@ similarTrees :: Context -> TTree -> [TTree]
 similarTrees ctxt tree = [ tree' | (_path, simtrees) <- Map.toList simmap, (_, tree') <- Set.toList simtrees ]
     where simmap = Prune.replaceTrees (ctxtGrammar ctxt) (ctxtPrecomputed ctxt) tree
 
-
 -- * Exported stuff
 
 newtype NewFancyMenu = NewFancyMenu
@@ -147,7 +151,6 @@ getMenuItems ctxt sentence
 ambigLin ∷ [Tokn] → Sentence.Linearization Token.Unannotated
 ambigLin = fromList . map Token.unannotated
 
-
 -- * LCS
 
 type Edit a = (([a], Int, Int), ([a], Int, Int))
