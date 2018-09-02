@@ -166,12 +166,16 @@ alignSequences :: Eq a => [a] -> [a] -> [Edit a]
 alignSequences xs ys = mergeEdits $ snd $ a Array.! (0,0)
     where n = length xs
           m = length ys
-          a = Array.array ((0,0),(n,m)) $ l1 ++ l2 ++ l3
-          -- l1 = [((i,m), (0, [])) | i <- [0..n]]
-          l1 = [((i,m), (fromInteger @Int 0, [])) | i <- [0..n]]
-          l2 = [((n,j), (0, [])) | j <- [0..m]]
-          l3 = [((i,j), f x y i j) | (x,i) <- zip xs [0..], (y,j) <- zip ys [0..]]
-          f x y i j
+          a = Array.array ((0,0),(n,m)) $ l0 ++ l1 ++ l2 ++ l3
+          l0 = [((n,m), (fromInteger @Int 0, []))]
+          l1 = [((i,m), f1 x i) | (x,i) <- zip xs [0..n-1]]
+          f1 x i = (del, (([x],i,i+1), ([],m,m)) : dledits)
+              where (del, dledits) = a Array.! (i+1,m)
+          l2 = [((n,j), f2 y j) | (y,j) <- zip ys [0..m-1]]
+          f2 y j = (ins, (([],n,n), ([y],j,j+1)) : inedits)
+              where (ins, inedits) = a Array.! (n,j+1)
+          l3 = [((i,j), f3 x y i j) | (x,i) <- zip xs [0..], (y,j) <- zip ys [0..]]
+          f3 x y i j
               | x == y     = (eqs+1, (([x],i,i+1), ([x],j,j+1)) : eqedits)
               | ins == del = (ins,   (([x],i,i+1), ([y],j,j+1)) : eqedits)
               | ins > del  = (ins,   (([],i,i), ([y],j,j+1)) : inedits)
