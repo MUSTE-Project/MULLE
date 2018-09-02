@@ -66,7 +66,7 @@ theCtxt = Util.unsafeGetContext grammar "ExemplumSwe"
 
 -- | Checks that the
 tests ∷ TestTree
-tests = testGroup "NewFancyMenu" [menuLin, menuTrees]
+tests = testGroup "NewFancyMenu" [menuLin]
 
 -- | A test-case consists of the following (in order of appearance):
 --
@@ -165,46 +165,3 @@ prettyTruncate n s = vsep $ [pretty trnc] ++ truncationWarning
   truncationWarning = case null rest of
     False → [pretty @String "...RESULT TRUNCATED..."]
     True  → []
-
-menuTrees :: TestTree
-menuTrees = testGroup "Trees" $ mkTests
-  [ -- ("name", "source tree", [0], "target tree")
-  ]
-
-mkTests ∷ [(String, String, Menu.Selection, String)] → [TestTree]
-mkTests = map go
-  where
-  go ∷ (String, String, Menu.Selection, String) → TestTree
-  go (nm, src, n, trg) = testCase nm
-    $ assertThere (parseTree src) n (parseTree trg)
-
-forgetAnnotation
-  ∷ Linearization (Token Annotated) → Linearization (Token Unannotated)
-forgetAnnotation = fromList . map step . toList
-  where
-  step ∷ Token.Annotated → Token.Unannotated
-  step (Token.Annotated a _) = Token.Unannotated a
-
--- | @'assertThere' src n trg@ asserts that @trg@ exists in the menu
--- you get from @src@.
-assertThere ∷ TTree → Menu.Selection → TTree → Assertion
-assertThere src n trg = do
-  cts ← lookupMenu err (getMenu src trg src)
-  Mono.member (forgetAnnotation $ mkLin src trg trg) cts @?= True
-  -- Mono.member undefined cts @?= True
-  where
-  lookupMenu
-    ∷ ∀ m
-    . MonadFail m
-    ⇒ String
-    → NewFancyMenu
-    → m (Set (Linearization (Token Unannotated)))
-  lookupMenu s mn
-    =   Set.map (snd)
-    <$> Common.lookupFail s n mn
-  err ∷ String
-  err = printf "Test.Menu.assertThere: Selection not in tree: (%s)"
-    $ show $ pretty n
-
-parseTree ∷ String → TTree
-parseTree s = Grammar.parseTTree grammar s  
