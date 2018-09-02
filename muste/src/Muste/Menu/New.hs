@@ -19,6 +19,7 @@ import Data.Aeson
 import Control.Category ((>>>))
 import Data.MonoTraversable
 import qualified Data.Containers as Mono
+import Data.List (intercalate)
 
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.Linearization.Internal
@@ -31,6 +32,7 @@ import qualified Muste.Prune as Prune
 import Data.Function ((&))
 import GHC.Exts (fromList)
 import Data.Text.Prettyprint.Doc (Pretty(..), Doc)
+import qualified Data.Text.Prettyprint.Doc as Doc
 
 import qualified Muste.Sentence as Sentence
 import qualified Muste.Sentence.Linearization as Sentence (Linearization)
@@ -42,7 +44,7 @@ type Selection = [(Int, Int)]
 
 -- TODO: wrap Selection in newtype, make it an instance of Pretty
 prettySelection :: Selection -> Doc a
-prettySelection sel = pretty $ map go sel
+prettySelection sel = Doc.braces $ pretty $ intercalate "," $ map go sel
     where go (i,j) = show i ++ "-" ++ show j
 
 -- * First, some basic functions and types:
