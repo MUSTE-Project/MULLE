@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wall -Wno-type-defaults #-}
 {-# Language NamedFieldPuns, RecordWildCards, OverloadedStrings #-}
 module Muste.Sentence.Annotated
-  (Annotated, annotated, merge)
+  (Annotated, annotated, merge, mergeL, mkLinearization)
   where
 
 import Data.Maybe

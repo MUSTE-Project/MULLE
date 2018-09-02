@@ -8,6 +8,7 @@ module Muste.Menu.New
   , prettySelection
   , Sentence.Linearization
   , Token.Unannotated
+  , Token.Annotated(..)
   ) where
 
 import Data.Map (Map)
@@ -37,6 +38,7 @@ import qualified Data.Text.Prettyprint.Doc as Doc
 import qualified Muste.Sentence as Sentence
 import qualified Muste.Sentence.Linearization as Sentence (Linearization)
 import qualified Muste.Sentence.Token as Token
+import qualified Muste.Sentence.Annotated as Annotated
 
 type Tokn = String
 type Node = String
@@ -69,7 +71,7 @@ similarTrees ctxt tree = [ tree' | (_path, simtrees) <- Map.toList simmap, (_, t
 
 newtype NewFancyMenu = NewFancyMenu
   { unNewFancyMenu ∷ Map Selection
-    (Set (Selection, Sentence.Linearization Token.Unannotated))
+    (Set (Selection, Sentence.Linearization Token.Annotated))
   }
 
 deriving instance Show       NewFancyMenu
@@ -81,7 +83,7 @@ deriving instance FromJSON   NewFancyMenu
 deriving instance MonoFunctor NewFancyMenu
 
 type instance Element NewFancyMenu
-  = (Set (Selection, Sentence.Linearization Token.Unannotated))
+  = (Set (Selection, Sentence.Linearization Token.Annotated))
 
 instance MonoFoldable NewFancyMenu where
   ofoldl'    f a (NewFancyMenu m) = ofoldl' f a m
@@ -142,16 +144,12 @@ getMenuItems ctxt sentence
     let (newwords, newnodes) = linTree ctxt newtree
     let edits = alignSequences oldnodes newnodes
     let (oldselection, newselection) = splitAlignments edits
+    let allnewnodes = unwords newwords
+                      & parseSentence ctxt
+                      & map (\t -> Annotated.mkLinearization ctxt t t t)
+                      & foldl1 Annotated.mergeL
     return
-      ( oldselection
-      , Set.singleton
-        ( newselection
-        , ambigLin newwords
-        )
-      )
-
-ambigLin ∷ [Tokn] → Sentence.Linearization Token.Unannotated
-ambigLin = fromList . map Token.unannotated
+      (oldselection, Set.singleton (newselection, allnewnodes))
 
 -- * LCS
 
