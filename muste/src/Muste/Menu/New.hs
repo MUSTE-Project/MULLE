@@ -22,7 +22,7 @@ import qualified Data.Containers as Mono
 
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.Linearization.Internal
-  (Linearization(..), Context, ctxtGrammar, ctxtPrecomputed)
+  (Linearization(..), Context, ctxtGrammar, ctxtLang, ctxtPrecomputed)
 import qualified Muste.Linearization.Internal as Linearization
 import Muste.Tree.Internal (TTree(..), Path)
 import qualified Muste.Tree.Internal as Tree
@@ -48,7 +48,7 @@ prettySelection sel = pretty $ map go sel
 -- * First, some basic functions and types:
 
 parseSentence :: Context -> String -> [TTree]
-parseSentence ctxt sent = Grammar.parseSentence (ctxtGrammar ctxt) (Linearization.ctxtLang ctxt) sent
+parseSentence ctxt sent = Grammar.parseSentence (ctxtGrammar ctxt) (ctxtLang ctxt) sent
 
 linTree :: Context -> TTree -> ([Tokn], [Node])
 linTree ctxt tree = (map Linearization.ltlin lintokens, map (lookupNode tree . Linearization.ltpath) lintokens)
