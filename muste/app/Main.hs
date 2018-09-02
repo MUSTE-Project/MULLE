@@ -102,7 +102,7 @@ highlight ∷ Menu.Selection → [a] → [(Bool, Maybe a)]
 highlight sel xs = go $ zip [0..] xs
   where
   go ∷ [(Int, a)] → [(Bool, Maybe a)]
-  go [] = []
+  go [] = if (length xs, length xs) `elem` sel then [insertion] else []
   go ((n, a) : xs) = if (n, n) `elem` sel then insertion : ys else ys 
     where ys = (selected n sel, Just a) : go xs
           insertion = (True, Nothing)
