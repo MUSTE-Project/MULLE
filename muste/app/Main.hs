@@ -22,6 +22,7 @@ import Data.Text.Prettyprint.Doc (Doc, (<+>), pretty)
 import qualified Data.Text.Prettyprint.Doc as Doc
 import Text.Read
 import Data.Text (Text)
+import Data.List (intercalate)
 import qualified Data.Set as Set
 import qualified Data.Containers as Mono
 import GHC.Exts (toList)
@@ -32,6 +33,8 @@ import Muste.Util
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.Menu.New (NewFancyMenu)
 import qualified Muste.Menu.New      as Menu
+import qualified Muste.Sentence.Annotated as Annotated
+import qualified Muste.Linearization.Internal as Linearization
 
 grammar :: Grammar
 grammar = Grammar.parseGrammar $ convertString $ snd grammar'
@@ -69,30 +72,40 @@ gomain []
 
 updateMenu ∷ String → Repl ()
 updateMenu s = do
+  ctxt ← getContext
   m ← getMenuFor s
   liftIO $ do
     putStrLn $ "Sentence is now: " <> s
-    putDocLn $ prettyMenu s m
+    putDocLn $ prettyMenu ctxt s m
   setMenu m
 
-prettyMenu ∷ String → NewFancyMenu → Doc a
-prettyMenu s = Doc.vsep . fmap (uncurry go) . open
+prettyMenu ∷ Context → String → NewFancyMenu → Doc a
+prettyMenu ctxt s = Doc.vsep . fmap (uncurry go) . open
   where
   open = fmap @[] (fmap @((,) Menu.Selection) Set.toList)
     . Mono.mapToList
   go ∷ Menu.Selection
-    → [(Menu.Selection, Menu.Linearization Menu.Unannotated)]
+    → [(Menu.Selection, Menu.Linearization Menu.Annotated)]
     → Doc a
   go sel xs = Doc.vcat
     [ ""
-    , Menu.prettySelection sel <> ":" <+> prettyLin sel (words s)
+    , Doc.fill 60 (Menu.prettySelection sel <> ":" <+> prettyLin sel (words s))
+      <+> prettyLin sel annotated
     , Doc.vcat $ fmap gogo xs
     ]
-  gogo ∷ (Menu.Selection, Menu.Linearization Menu.Unannotated) → Doc a
-  gogo (xs, lin) = prettyLin xs (toList lin)
+  gogo ∷ (Menu.Selection, Menu.Linearization Menu.Annotated) → Doc a
+  gogo (sel, lin) = Doc.fill 60 (prettyLin sel (map getWord (toList lin)))
+                    <+> prettyLin sel (map getNodes (toList lin))
+  annotated = Grammar.parseSentence (Linearization.ctxtGrammar ctxt) (Linearization.ctxtLang ctxt) s
+              & map (\t -> Annotated.mkLinearization ctxt t t t)
+              & foldl1 Annotated.mergeL
+              & toList
+              & map getNodes
+  getWord (Menu.Annotated word _) = word
+  getNodes (Menu.Annotated _ nodes) = intercalate "+" (Set.toList nodes)
 
 prettyLin ∷ Doc.Pretty tok => Menu.Selection → [tok] → Doc a
-prettyLin xs tokens = Doc.hsep $ map go $ highlight xs tokens
+prettyLin sel tokens = Doc.hsep $ map go $ highlight sel tokens
   where
   go (b, tok)
     | b         = Doc.brackets $ pretty tok
@@ -105,7 +118,7 @@ highlight sel xs = go $ zip [0..] xs
   go [] = if (length xs, length xs) `elem` sel then [insertion] else []
   go ((n, a) : xs) = if (n, n) `elem` sel then insertion : ys else ys 
     where ys = (selected n sel, Just a) : go xs
-          insertion = (True, Nothing)
+  insertion = (True, Nothing)
   selected ∷ Int → Menu.Selection → Bool
   selected n = any (within n)
   within ∷ Int → (Int, Int) → Bool
