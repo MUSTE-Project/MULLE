@@ -8,15 +8,15 @@ import Prelude ()
 import Muste.Prelude
 import System.Console.Repline
   (HaskelineT, runHaskelineT)
-import qualified System.Console.Haskeline as Repl
-import qualified System.Console.Repline    as Repl
+import qualified System.Console.Haskeline     as Repl
+import qualified System.Console.Repline       as Repl
 import Data.ByteString (ByteString)
 import Data.String.Conversions (convertString)
-import qualified Muste.Grammar.Embed       as Embed
+import qualified Muste.Grammar.Embed          as Embed
 import Data.Text.Prettyprint.Doc ((<+>))
-import qualified Data.Text.Prettyprint.Doc as Doc
-import qualified Data.Set                  as Set
-import qualified Data.Containers           as Mono
+import qualified Data.Text.Prettyprint.Doc    as Doc
+import qualified Data.Set                     as Set
+import qualified Data.Containers              as Mono
 import Control.Monad.State.Strict
 import System.Environment (getArgs)
 import Data.List (intercalate)
@@ -24,10 +24,10 @@ import Data.List (intercalate)
 import Muste
 import Muste.Common
 import Muste.Util
-import qualified Muste.Grammar.Internal    as Grammar
+import qualified Muste.Grammar.Internal       as Grammar
 import Muste.Menu.New (NewFancyMenu)
-import qualified Muste.Menu.New      as Menu
-import qualified Muste.Sentence.Annotated as Annotated
+import qualified Muste.Menu.New               as Menu
+import qualified Muste.Sentence.Annotated     as Annotated
 import qualified Muste.Linearization.Internal as Linearization
 
 grammar :: Grammar

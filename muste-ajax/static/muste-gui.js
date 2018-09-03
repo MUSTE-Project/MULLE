@@ -404,7 +404,7 @@ function click_word(event) {
         for(var i = 0 ; i < lin.length ; i++) {
             var pword = lin[i].concrete;
             // var marked = prefixOf(selection, pword.path);
-            var marked = sel.includes(i);
+            var marked = is_selected(sel, i);
             $('<span>').text(pword)
                 .addClass(marked ? 'marked' : 'greyed')
                 .appendTo(menuitem);
@@ -451,7 +451,7 @@ function click_word(event) {
         var selsnmen = validMenus.next();
         // Again we changed the selection, we can try mapping the snd
         // component.
-        selection    = selsnmen[0].map(function(x) { return x[0] });
+        selection    = selsnmen[0];
         var menus    = selsnmen[1];
         if (menus === null) throw "No menu found";
 
@@ -459,7 +459,7 @@ function click_word(event) {
         $('#' + lang).find('.word')
             .filter(function(){
                 var idx = $(this).data("nr");
-                return selection.includes(idx);
+                return is_selected(selection, idx);
             })
             .addClass('striked');
 
@@ -503,6 +503,21 @@ function click_word(event) {
     }).show();
 }
 
+// is_selected :: Menu.Seleection -> Int -> Bool
+function is_selected(sel, idx) {
+    function within(intval, i) {
+        var a = intval[0];
+        var b = intval[1];
+        if(i < a) return false;
+        if(i > b) return false;
+        return true;
+    }
+    for(var intval of sel) {
+        if(within(intval, idx)) return true;
+    }
+    return false;
+}
+
 function getValidMenus(idx, menu) {
     var mp = lookupKeySet(idx, menu);
     var a = Array.from(mp);
@@ -543,7 +558,7 @@ function* lookupKeySet(idx, map) {
         // I'm not sure what to look up here.  We can try looking in
         // 'map fst ks' and change later if needed.
         var kss = ks.map(function(pr) {return pr[0]});
-        if(kss.includes(idx)) {
+        if(is_selected(ks, idx)) {
             yield item;
         }
     }
