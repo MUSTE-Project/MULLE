@@ -1,17 +1,13 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# Language OverloadedStrings, CPP #-}
+{-# Language OverloadedStrings, InstanceSigs #-}
 -- | A 'Set' with a dfferent 'Ord' instance.
 module Muste.Selection (Selection, fromList, toList) where
 
-import Prelude hiding (fail)
-import Data.Aeson
-import Data.Text.Prettyprint.Doc (Pretty(..))
+import Prelude ()
+import Muste.Prelude
 import qualified Data.Text.Prettyprint.Doc as Doc
 import Data.IntSet (IntSet)
 import qualified Data.IntSet as IntSet
-#if !(MIN_VERSION_base(4,11,0))
-import Data.Semigroup (Semigroup((<>)))
-#endif
 
 -- | A selection represents parts of a 'Linearization' w.r.t a
 -- linearized 'TTree'.
@@ -34,11 +30,14 @@ instance Pretty Selection where
 deriving instance ToJSON Selection
 deriving instance FromJSON Selection
 
--- | Generate a selection from a list of indices.  The incides must
--- correspond the index into some 'Linearization'.
-fromList ∷ [Int] → Selection
-fromList = Selection . IntSet.fromList
+instance IsList Selection where
+  type Item Selection = Int
 
--- | Convert a selection to a list of indices.
-toList ∷ Selection → [Int]
-toList = IntSet.toList . runSelection
+  -- | Generate a selection from a list of indices.  The incides must
+  -- correspond the index into some 'Linearization'.
+  fromList ∷ [Int] → Selection
+  fromList = Selection . IntSet.fromList
+
+  -- | Convert a selection to a list of indices.
+  toList ∷ Selection → [Int]
+  toList = IntSet.toList . runSelection

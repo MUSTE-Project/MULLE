@@ -17,7 +17,8 @@ module Muste.Sentence
   -- , module Sentence
   ) where
 
-import Data.Function ((&))
+import Prelude ()
+import Muste.Prelude
 
 import Muste.Linearization.Internal (Context)
 import Muste.Tree.Internal (TTree)

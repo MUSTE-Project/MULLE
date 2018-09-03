@@ -17,21 +17,16 @@ module Muste.Linearization.Internal
   , mkLinSimpl
   ) where
 
+import Prelude ()
+import Muste.Prelude
+
 import Data.Maybe (fromMaybe)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Aeson
-import GHC.Generics (Generic)
-import Data.Binary (Binary)
 -- This might be the only place we should know of PGF
 import qualified PGF
 import qualified PGF.Internal as PGF hiding (funs, cats)
-import Data.Function (on)
-import Text.Printf
-#if MIN_VERSION_base(4,11,0)
-#else
-import Data.Semigroup (Semigroup((<>)))
-#endif
 import Data.MonoTraversable
   ( Element, MonoTraversable(..), MonoFunctor
   , MonoFoldable(..), GrowingAppend, MonoPointed
@@ -39,10 +34,6 @@ import Data.MonoTraversable
 import qualified Data.MonoTraversable as Mono
 import Data.Sequences (SemiSequence, IsSequence, Index)
 import qualified Data.Sequences as Mono
-import Control.Category ((>>>))
-import Data.Text.Prettyprint.Doc (Pretty(..))
-import Data.Function ((&))
-import Data.Text (Text)
 import qualified Data.Text as Text
 
 import Muste.Tree

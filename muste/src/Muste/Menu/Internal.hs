@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# Language OverloadedStrings, CPP, RecordWildCards #-}
+{-# Language OverloadedStrings, RecordWildCards #-}
 module Muste.Menu.Internal
   ( Menu
   , getMenu
@@ -8,8 +8,11 @@ module Muste.Menu.Internal
   , getMenuFromStringRep
   ) where
 
-import Data.Maybe
-import Data.List
+import Prelude ()
+import Muste.Prelude
+
+import Data.Maybe (isJust)
+import Data.List (isPrefixOf, sortBy)
 -- FIXME I think we might need to consider switching to strict maps.
 import Data.Map.Lazy (Map)
 import qualified Data.Map.Lazy   as Map
@@ -19,12 +22,7 @@ import Data.Aeson hiding (pairs)
 import Data.Aeson.Types (Parser)
 import qualified Data.Containers as Mono
 import Data.MonoTraversable
-import Data.Function (on)
-import Control.Category ((>>>))
-#if !(MIN_VERSION_base(4,11,0))
-import Data.Semigroup (Semigroup((<>)))
-#endif
-import Data.Text.Prettyprint.Doc (Pretty(..), Doc, (<+>), brackets)
+import Data.Text.Prettyprint.Doc ((<+>), brackets)
 import qualified Data.Text.Prettyprint.Doc as Doc
 
 import Muste.Common

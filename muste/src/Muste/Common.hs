@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wno-name-shadowing #-}
+{-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
 {-# Language UnicodeSyntax, FlexibleContexts #-}
 module Muste.Common
   ( preAndSuffix
@@ -24,16 +24,18 @@ module Muste.Common
   , putDoc
   , putDocLn
   , lookupFailIO
+  , traceShow
   , traceShowId
+  , from
+  , to
   ) where
 
-import Control.Monad.IO.Class
-import Control.Exception
+import Prelude ()
+import Muste.Prelude
+
 import Prelude hiding (fail)
 import qualified Data.Set as Set
 import Data.List (groupBy)
-import Data.Function (on)
-import Control.Monad.Fail
 import Text.Read (readEither)
 import Data.Binary (Binary)
 import qualified Data.Binary as Binary
@@ -81,11 +83,9 @@ noDuplicates _ = True
 
 -- | True if the (ordered) list (without duplicated) are disjoint
 areDisjoint :: Ord a => [a] -> [a] -> Bool
-areDisjoint xs@(x:xs') ys@(y:ys')
-    | x == y = False
-    | x < y = areDisjoint xs' ys
-    | otherwise = areDisjoint xs ys'
-areDisjoint _ _ = True
+areDisjoint (Set.fromList → xs) (Set.fromList → ys)
+  = Set.intersection xs ys
+  & Set.null
 
 -- | @'isSubList' c d@ Check if all elements in @c@ also occur in @d@
 -- (in the same order).

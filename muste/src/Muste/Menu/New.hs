@@ -11,13 +11,13 @@ module Muste.Menu.New
   , Token.Annotated(..)
   ) where
 
+import Prelude ()
+import Muste.Prelude
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Array as Array
-import Data.Aeson
-import Control.Category ((>>>))
 import Data.MonoTraversable
 import qualified Data.Containers as Mono
 import Data.List (intercalate)
@@ -28,11 +28,8 @@ import Muste.Linearization.Internal
 import qualified Muste.Linearization.Internal as Linearization
 import Muste.Tree.Internal (TTree(..), Path)
 import qualified Muste.Tree.Internal as Tree
-import Muste.Prune ()
 import qualified Muste.Prune as Prune
 import Data.Function ((&))
-import GHC.Exts (fromList)
-import Data.Text.Prettyprint.Doc (Pretty(..), Doc)
 import qualified Data.Text.Prettyprint.Doc as Doc
 
 import qualified Muste.Sentence as Sentence

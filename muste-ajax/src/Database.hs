@@ -1,6 +1,6 @@
 -- TODO Fix name shadowing.
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# Language CPP, QuasiQuotes #-}
+{-# Language QuasiQuotes #-}
 module Database
   ( MonadDB
   , DB
@@ -19,6 +19,9 @@ module Database
   , updateActivity
   ) where
 
+import Prelude ()
+import Muste.Prelude
+
 import Database.SQLite.Simple
   ( Query, Connection, Only(Only), fromOnly
   , ToRow, FromRow
@@ -31,19 +34,13 @@ import Crypto.KDF.PBKDF2 (fastPBKDF2_SHA512, Parameters(Parameters))
 import Crypto.Hash (Digest,SHA3_512(..),hash)
 
 import Data.ByteString (ByteString)
-import qualified Data.ByteString.Char8 as Char8
-import Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
-import Data.Maybe
+import qualified Data.ByteString.Char8  as Char8
+import qualified Data.Text              as T
+import qualified Data.Text.Encoding     as T
 import Data.Time.Clock (NominalDiffTime, UTCTime)
-import qualified Data.Time.Clock as Time
+import qualified Data.Time.Clock        as Time
 import Data.Time.Format
 import Control.Monad.Reader
-#if !(MIN_VERSION_base(4,11,0))
-import Data.Semigroup ((<>))
-#endif
-import Control.Exception
 
 -- FIXME QuickCheck seems like a heavy dependency just to get access
 -- to `shuffle`.

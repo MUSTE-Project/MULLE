@@ -1,9 +1,10 @@
-{-# LANGUAGE OverloadedStrings, CPP, UnicodeSyntax, TemplateHaskell, QuasiQuotes, TypeApplications #-}
+{-# LANGUAGE OverloadedStrings, UnicodeSyntax, TemplateHaskell, QuasiQuotes, TypeApplications #-}
 module DbInit (initDb) where
 
+import           Prelude ()
+import           Muste.Prelude
 import           Data.ByteString (ByteString)
 import           Data.FileEmbed (embedFile)
-import           Data.Text (Text)
 import           Data.Text.Encoding (decodeUtf8)
 import qualified Database
 import           Database.SQLite.Simple (Connection(Connection), Query)
@@ -12,18 +13,17 @@ import           Database.SQLite.Simple.QQ (sql)
 import qualified Database.SQLite3 as SQL
 import           System.Directory (createDirectoryIfMissing)
 import           System.FilePath (takeDirectory)
-import           Text.Printf
 import qualified Data.Map as Map
-import           Data.Maybe (fromMaybe)
 import           Data.FileEmbed
 
 import qualified DbInit.Data as Data
 import qualified Config
 
 import Muste (TTree, Context)
-import qualified Muste.Linearization as OldLinearization (langAndContext, mkLin)
+import qualified Muste.Linearization      as OldLinearization
+  (langAndContext, mkLin)
 import Muste.Sentence (Sentence)
-import qualified Muste.Sentence as Sentence
+import qualified Muste.Sentence           as Sentence
 import Muste.Sentence.Annotated (Annotated)
 import qualified Muste.Sentence.Annotated as Annotated
 

@@ -1,13 +1,11 @@
-{-# OPTIONS_GHC -Wno-name-shadowing #-}
+{-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
 {-# language OverloadedStrings, TypeApplications, UnicodeSyntax #-}
 {- | This Module is the internal implementation behind the module 'Muste.Grammar' -}
 module Muste.Grammar.Internal
   ( Grammar(..)
   , Rule(..)
   -- Used internally
-  , pgfToGrammar
   , isEmptyGrammar
-  , getFunType
   , getAllRules
   , getRuleType
   , brackets
@@ -18,7 +16,8 @@ module Muste.Grammar.Internal
   , parseSentence
   ) where
 
-import Prelude hiding (id)
+import Prelude ()
+import Muste.Prelude
 
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -31,13 +30,9 @@ import qualified PGF
   , bracketedLinearize, parse
   )
 import PGF.Internal as PGF hiding (funs, cats)
-import Data.List
+import Data.List (union, partition)
 import Data.Text.Prettyprint.Doc (Pretty(..))
 import qualified Data.Text.Prettyprint.Doc as Doc
-import Text.Printf
-import Control.Category ((>>>))
-import Control.Monad.Fail (MonadFail)
-import Data.Text (Text)
 
 import qualified Muste.Grammar.Grammars as Grammars
 import Muste.Common

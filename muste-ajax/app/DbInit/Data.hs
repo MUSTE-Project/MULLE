@@ -1,4 +1,4 @@
-{-# Language CPP, TemplateHaskell, OverloadedStrings #-}
+{-# Language TemplateHaskell, OverloadedStrings #-}
 -- | Data used for inititializing the database
 
 module DbInit.Data (exercises, lessons) where

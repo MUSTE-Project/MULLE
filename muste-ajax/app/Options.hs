@@ -1,9 +1,9 @@
-{-# Language UnicodeSyntax, CPP, TemplateHaskell #-}
+{-# OPTIONS_GHC -Wall #-}
+{-# Language UnicodeSyntax, TemplateHaskell #-}
 module Options (getOptions, Options, initDb) where
 
-#if !(MIN_VERSION_base(4,11,0))
-import Data.Semigroup (Semigroup((<>)))
-#endif
+import Prelude ()
+import Muste.Prelude
 import Options.Applicative (Parser, execParser, ParserInfo)
 import qualified Options.Applicative as O
 import Control.Applicative ((<**>))

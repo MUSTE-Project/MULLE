@@ -1,5 +1,5 @@
 {-# Language CPP #-}
-{-# OPTIONS_GHC -Wno-unused-top-binds -Wno-name-shadowing #-}
+{-# OPTIONS_GHC -Wall -Wno-unused-top-binds -Wno-name-shadowing #-}
 -- FIXME Should this be an internal module? It's not currently used in
 -- @muste-ajax@.
 module Muste.Prune
@@ -8,17 +8,13 @@ module Muste.Prune
   , SimTree
   ) where
 
-import Control.Applicative
-import Control.Monad
+import Prelude ()
+import Muste.Prelude
 import Data.List (sort)
 import qualified Data.Containers as Mono
-import Data.Maybe
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Set (Set)
-#if !(MIN_VERSION_base(4,11,0))
-import Data.Semigroup ((<>))
-#endif
 import qualified Data.Set as Set
 
 import Muste.Common

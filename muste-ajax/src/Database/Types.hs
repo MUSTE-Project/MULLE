@@ -22,8 +22,10 @@ module Database.Types
   , Sentence.Annotated
   ) where
 
+import Prelude ()
+import Muste.Prelude
+
 import Data.ByteString (ByteString)
-import Data.Text (Text)
 
 import Data.Time
 

@@ -1,8 +1,6 @@
+{-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE
-    CPP
-  , UnicodeSyntax
-  , NamedWildCards
-  , OverloadedStrings
+    OverloadedStrings
   , DeriveLift
   , RecordWildCards
   , DuplicateRecordFields
@@ -10,23 +8,19 @@
 #-}
 module Config.TH (Config(..), config, AppConfig(..)) where
 
+import Prelude ()
+import Muste.Prelude
 import System.FilePath
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (Lift(lift))
-import Control.Exception (throwIO)
-import Control.Monad.IO.Class (MonadIO(liftIO))
 import Data.Yaml
   ( FromJSON(parseJSON), withObject
   , ToJSON(toJSON), object
   , (.:?), (.!=), (.=)
   )
-#if MIN_VERSION_yaml(0,8,31)
-import qualified Data.Yaml as Yaml
-#else
-import qualified Data.Yaml as Yaml (decodeFileEither)
-#endif
 import Paths_muste_ajax
 import Data.FileEmbed
+import Common (decodeFileThrow)
 
 data Config = Config
   { port          ∷ Int
@@ -66,14 +60,6 @@ instance FromJSON Config where
     <*> v .:? "virtual-root"          .!= defaultVirtualRoot
     <*> v .:? "data-dir"              .!= defaultDataDir
     <*> v .:? "log-dir"               .!= defaultLogDir
-
-decodeFileThrow ∷ MonadIO m ⇒ FromJSON a ⇒ FilePath → m a
-#if MIN_VERSION_yaml(0,8,31)
-decodeFileThrow = Yaml.decodeFileThrow
-#else
-decodeFileThrow f
-  = liftIO $ Yaml.decodeFileEither f >>= either throwIO return
-#endif
 
 decodeConfig ∷ Q Exp
 decodeConfig = do

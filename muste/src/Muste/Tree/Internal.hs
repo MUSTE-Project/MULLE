@@ -1,5 +1,5 @@
-{-# OPTIONS_GHC -Wno-name-shadowing #-}
-{-# language DeriveGeneric, LambdaCase, UnicodeSyntax, DeriveLift #-}
+{-# OPTIONS_GHC -Wall -Wno-name-shadowing -Wno-incomplete-patterns #-}
+{-# language DeriveGeneric, DeriveLift #-}
 {- | This Module is the internal implementation behind the module 'Muste.Tree' -}
 module Muste.Tree.Internal
   ( Path
@@ -24,17 +24,12 @@ module Muste.Tree.Internal
 import qualified PGF
   (CId, mkCId, Tree, wildCId, mkMeta, mkApp, showExpr)
 
-import Data.Maybe
+import Prelude ()
+import Muste.Prelude
 import Data.Aeson
-import Data.Binary (Binary)
 import qualified Data.Text as Text
-import GHC.Generics
-import Data.String
+import Data.String (fromString)
 import Data.String.ToString
-import Control.Monad.Fail hiding (fail)
-import Text.Read (readEither)
-import Data.Text.Prettyprint.Doc (Pretty(pretty))
-import Text.Printf
 import Language.Haskell.TH.Syntax (Lift)
 
 import Muste.Common.SQL (FromField, ToField)

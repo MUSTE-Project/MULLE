@@ -1,36 +1,30 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# Language CPP, RecordWildCards, NamedFieldPuns, TemplateHaskell,
+{-# Language RecordWildCards, NamedFieldPuns, TemplateHaskell,
   DeriveAnyClass, OverloadedStrings
 #-}
 module Main (main) where
 
-import Prelude hiding (fail)
-import System.Environment (getArgs)
-import System.Console.Repline (HaskelineT, runHaskelineT)
-import System.Console.Haskeline (Settings, defaultSettings)
-import qualified System.Console.Repline as Repl
-import Control.Exception (Exception, displayException)
-import Control.Monad.State.Strict hiding (fail)
-import Data.Function ((&))
-#if !(MIN_VERSION_base(4,11,0))
-import Data.Semigroup (Semigroup((<>)))
-#endif
+import Prelude ()
+import Muste.Prelude
+import System.Console.Repline
+  (HaskelineT, runHaskelineT)
+import qualified System.Console.Haskeline as Repl
+import qualified System.Console.Repline    as Repl
 import Data.ByteString (ByteString)
 import Data.String.Conversions (convertString)
-import qualified Muste.Grammar.Embed as Embed
-import Data.Text.Prettyprint.Doc (Doc, (<+>), pretty)
+import qualified Muste.Grammar.Embed       as Embed
+import Data.Text.Prettyprint.Doc ((<+>))
 import qualified Data.Text.Prettyprint.Doc as Doc
-import Text.Read
-import Data.Text (Text)
+import qualified Data.Set                  as Set
+import qualified Data.Containers           as Mono
+import Control.Monad.State.Strict
+import System.Environment (getArgs)
 import Data.List (intercalate)
-import qualified Data.Set as Set
-import qualified Data.Containers as Mono
-import GHC.Exts (toList)
 
 import Muste
 import Muste.Common
 import Muste.Util
-import qualified Muste.Grammar.Internal as Grammar
+import qualified Muste.Grammar.Internal    as Grammar
 import Muste.Menu.New (NewFancyMenu)
 import qualified Muste.Menu.New      as Menu
 import qualified Muste.Sentence.Annotated as Annotated
@@ -60,13 +54,17 @@ defLang = "Swe"
 type Repl a = HaskelineT (StateT Env IO) a
 
 main :: IO ()
-main = getArgs >>= gomain
+main = getArgs >>= \case
+  [] → repl
+  xs → mapM_ nonInteractive xs
 
-gomain :: [String] -> IO ()
-gomain [s]
-  = runHaskelineT defaultSettings (updateMenu s)
+nonInteractive :: String -> IO ()
+nonInteractive s
+  = runHaskelineT Repl.defaultSettings (updateMenu s)
   & flip evalStateT defEnv
-gomain []
+
+repl ∷ IO ()
+repl
   = Repl.evalRepl "§ " updateMenu options completer ini
   & flip evalStateT defEnv
 
@@ -116,8 +114,8 @@ highlight sel xs = go $ zip [0..] xs
   where
   go ∷ [(Int, a)] → [(Bool, Maybe a)]
   go [] = if (length xs, length xs) `elem` sel then [insertion] else []
-  go ((n, a) : xs) = if (n, n) `elem` sel then insertion : ys else ys 
-    where ys = (selected n sel, Just a) : go xs
+  go ((n, a) : xs') = if (n, n) `elem` sel then insertion : ys else ys 
+    where ys = (selected n sel, Just a) : go xs'
   insertion = (True, Nothing)
   selected ∷ Int → Menu.Selection → Bool
   selected n = any (within n)

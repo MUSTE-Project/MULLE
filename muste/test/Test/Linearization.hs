@@ -1,16 +1,13 @@
-{-# Language UnicodeSyntax, NamedWildCards, TemplateHaskell
-  , CPP, OverloadedStrings #-}
+{-# Language UnicodeSyntax, NamedWildCards, TemplateHaskell,
+  OverloadedStrings #-}
 module Test.Linearization (tests) where
 
-#if !(MIN_VERSION_base(4,11,0))
-import Data.Semigroup ((<>))
-#endif
-import Data.Maybe
+import Prelude ()
+import Muste.Prelude
 import Test.Tasty
 import Test.Tasty.HUnit
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Text (Text)
 
 import Muste (Grammar, Context, TTree, Linearization)
 import qualified Muste.Linearization.Internal as Linearization

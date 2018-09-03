@@ -14,14 +14,17 @@ module Ajax
   , unClientTree
   ) where
 
+import Prelude ()
+import Muste.Prelude
+
 import Data.Aeson hiding (Null,String)
-import qualified Data.Aeson as A
+import qualified Data.Aeson                  as A
 import Data.Aeson.Types hiding (Null)
 import Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.ByteString.Lazy.Char8 as B
+import qualified Data.Text                   as T
+import qualified Data.ByteString.Lazy.Char8  as B
 import Data.Vector (Vector)
-import qualified Data.Vector as V
+import qualified Data.Vector                 as V
 import Data.Maybe
 import Control.Exception
 import Data.Time
@@ -29,11 +32,11 @@ import Control.Category ((>>>))
 
 import Muste hiding (Menu)
 import Muste.Sentence (Sentence)
-import qualified Muste.Sentence             as Sentence
-import Muste.Sentence.Unannotated               (Unannotated)
-import qualified Muste.Sentence.Unannotated   as Unannotated
-import Muste.Sentence.Annotated             (Annotated)
-import qualified Muste.Sentence.Annotated as Annotated
+import qualified Muste.Sentence              as Sentence
+import Muste.Sentence.Unannotated (Unannotated)
+import qualified Muste.Sentence.Unannotated  as Unannotated
+import Muste.Sentence.Annotated (Annotated)
+import qualified Muste.Sentence.Annotated    as Annotated
 
 type Menu = NewFancyMenu
 
@@ -310,4 +313,4 @@ decodeClientMessage :: B.ByteString -> ClientMessage
 decodeClientMessage s =
   let rcm = eitherDecode @ClientMessage s
   in
-    either (throw . CME) id rcm
+    either (throw . CME) identity rcm

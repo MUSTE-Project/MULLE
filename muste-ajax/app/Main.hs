@@ -1,18 +1,19 @@
+{-# OPTIONS_GHC -Wall #-}
 {-# language OverloadedStrings, UnicodeSyntax #-}
 module Main (main) where
 
-import Control.Monad
-import Text.Printf
+import Prelude ()
+import Muste.Prelude
+
 import Snap
   ( SnapletInit, makeSnaplet, nestSnaplet, addRoutes
   , ConfigLog(ConfigFileLog)
   )
 import qualified Snap as Snap
 import qualified Snap.Util.FileServe as Snap (serveDirectory)
-import System.IO.Error
+import System.IO.Error (catchIOError)
 import System.FilePath (takeDirectory)
 import System.Directory (createDirectoryIfMissing)
-import Data.String
 import Snap.Util.CORS
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as ByteString

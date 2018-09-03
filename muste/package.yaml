@@ -79,6 +79,7 @@ library:
     - Muste.Sentence
     - Muste.Sentence.Annotated
     - Muste.Sentence.Unannotated
+    - Muste.Prelude
 
   other-modules:
     - Muste.Common
