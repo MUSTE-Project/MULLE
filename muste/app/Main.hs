@@ -102,25 +102,31 @@ prettyMenu ctxt s = Doc.vsep . fmap (uncurry go) . open
   getWord (Menu.Annotated word _) = word
   getNodes (Menu.Annotated _ nodes) = intercalate "+" (Set.toList nodes)
 
-prettyLin ∷ Doc.Pretty tok => Menu.Selection → [tok] → Doc a
+prettyLin ∷ ∀ tok a . Pretty tok => Menu.Selection → [tok] → Doc a
 prettyLin sel tokens = Doc.hsep $ map go $ highlight sel tokens
   where
-  go (b, tok)
-    | b         = Doc.brackets $ pretty tok
-    | otherwise = pretty tok
+  go ∷ Either Bool tok → Doc a
+  go = \case
+    Left a     → hl a
+    Right tok  → pretty tok
+  hl ∷ Bool → Doc a
+  hl = bool "[" "]" >>> pretty @String
 
-highlight ∷ Menu.Selection → [a] → [(Bool, Maybe a)]
-highlight sel xs = go $ zip [0..] xs
+highlight ∷ Menu.Selection → [a] → [Either Bool a]
+highlight xs (zip [0..] . map pure → ys)
+  = snd <$> closes `weave` opens `weave` ys
   where
-  go ∷ [(Int, a)] → [(Bool, Maybe a)]
-  go [] = if (length xs, length xs) `elem` sel then [insertion] else []
-  go ((n, a) : xs') = if (n, n) `elem` sel then insertion : ys else ys 
-    where ys = (selected n sel, Just a) : go xs'
-  insertion = (True, Nothing)
-  selected ∷ Int → Menu.Selection → Bool
-  selected n = any (within n)
-  within ∷ Int → (Int, Int) → Bool
-  within x (a, b) = a <= x && x < b
+  opens  ∷ [(Int, Either Bool a)]
+  opens  = zip (map (pred . fst) xs) (repeat (Left False))
+  closes ∷ [(Int, Either Bool a)]
+  closes  = zip (map (pred . snd) xs) (repeat (Left True))
+
+weave ∷ [(Int, a)] → [(Int, a)] → [(Int, a)]
+weave [] ys = ys
+weave xs [] = xs
+weave xs@(x@(n, _):xss) ys@(y@(m, _):yss)
+  | n < m     = x : weave xss ys
+  | otherwise = y : weave xs  yss
 
 -- | @'getMenu' s@ gets a menu for a sentence @s@.
 getMenuFor

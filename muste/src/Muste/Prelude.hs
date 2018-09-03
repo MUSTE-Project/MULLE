@@ -22,7 +22,8 @@ import Prelude as X
   zipWith, zip, fst, snd, all, any, reverse, maximum,
   minimum, max, min, sum, unwords, words, lines, unlines, or, and,
   notElem, elem, (<*>), foldMap, putStrLn, putStr, flip, const,
-  sequence, take, mapM_, mapM, ioError, error)
+  sequence, take, mapM_, mapM, ioError, error, repeat)
+import Data.Bool                 as X (bool)
 import Data.Function             as X ((&), on)
 import Control.Monad             as X ((>=>), void, when, guard)
 import Control.Monad.IO.Class    as X (MonadIO(liftIO))
