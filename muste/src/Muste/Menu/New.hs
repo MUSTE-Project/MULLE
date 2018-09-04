@@ -50,13 +50,13 @@ deriving instance FromJSON Interval
 deriving instance Show Interval
 deriving instance Eq Interval
 instance Ord Interval where
-  a `compare` b = case size a `compare` size b of
+  a `compare` b = case sizeInterval a `compare` sizeInterval b of
     EQ → runInterval a `compare` runInterval b
     x  → x
-    where
-    size ∷ Interval → Int
-    size (Interval (i, j)) = j - i
 deriving instance Read Interval
+
+sizeInterval ∷ Interval → Int
+sizeInterval (Interval (i, j)) = j - i
 
 newtype Selection = Selection { runSelection ∷ [Interval] }
 
@@ -70,8 +70,15 @@ instance IsList Selection where
   type Item Selection = Interval
   fromList = Selection
   toList = runSelection
-deriving instance Eq  Selection
-deriving instance Ord Selection
+deriving instance Eq Selection
+instance Ord Selection where
+  a `compare` b = case size a `compare` size b of
+    EQ → runSelection a `compare` runSelection b
+    x  → x
+    where
+    size ∷ Selection → Int
+    size = runSelection >>> fmap sizeInterval >>> sum
+
 deriving instance Semigroup Selection
 deriving instance Monoid Selection
 
