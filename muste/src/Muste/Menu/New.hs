@@ -55,7 +55,7 @@ instance Ord Interval where
     x  → x
     where
     size ∷ Interval → Int
-    size (Interval (i, j)) = i - j
+    size (Interval (i, j)) = j - i
 deriving instance Read Interval
 
 newtype Selection = Selection { runSelection ∷ [Interval] }
