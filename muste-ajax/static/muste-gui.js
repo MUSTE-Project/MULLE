@@ -509,7 +509,7 @@ function is_selected(sel, idx) {
         var a = intval[0];
         var b = intval[1];
         if(i < a) return false;
-        if(i > b) return false;
+        if(i >= b) return false;
         return true;
     }
     for(var intval of sel) {
