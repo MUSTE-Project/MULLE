@@ -481,7 +481,7 @@ function click_word(event) {
             if (lin.length == 0) {
                 $('<span>').html("&empty;").appendTo(menuitem);
             } else {
-                mark_selected_words(lin, selection)
+                mark_selected_words(lin, pr[0])
             }
             $('<li>').append(menuitem).appendTo(ul);
 
