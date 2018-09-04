@@ -322,16 +322,21 @@ function show_lin(lang, lin) {
         var linTok = lin[i];
         var previous = i > 0 ? lin[i-1].concrete : null;
         var current = linTok.concrete;
+        var menu = DATA[lang].menu
         var spacing = (previous == NOSPACING || current == NOSPACING || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
             ? ' ' : ' &nbsp; ';
+        var spacyData = {
+            nr: i,
+            lang: lang,
+            "valid-menus": getValidMenusEmpty(i, menu)
+        };
         $('<span>')
-            .addClass('space clickable').data({nr:i, lang:lang})
+            .addClass('space clickable').data(spacyData)
             .html(spacing).click(click_word)
             .appendTo(sentence);
         var classes = linTok["classes"];
         var matchingClasses = linTok["matching-classes"];
         var match = matchingClasses.size > 0;
-        var menu = DATA[lang].menu
         var validMenus = getValidMenus(i, menu);
         var wordData = {
             nr: i,
@@ -519,7 +524,16 @@ function is_selected(sel, idx) {
 }
 
 function getValidMenus(idx, menu) {
-    var mp = lookupKeySet(idx, menu);
+    var mp = lookupKeySetRange(idx, menu);
+    return iterateMenu(idx, mp);
+}
+
+function getValidMenusEmpty(idx, menu) {
+    var mp = lookupKeySetEmptyRange(idx, menu);
+    return iterateMenu(idx, mp);
+}
+
+function iterateMenu(idx, mp) {
     var a = Array.from(mp);
     // This is a bit counter-intuitive perhaps, but this is because
     // when we call next we start by incrementing the counter.
@@ -549,16 +563,31 @@ function prefixOf(xs, ys) {
 // Looks up a value in a set of keys. Returns the key and value where
 // the value is present in the key.
 
-// lookupKeySet :: a -> Map [a] v -> [([a], v)]
-function* lookupKeySet(idx, map) {
+// lookupKeySet :: Int -> Map [(Int, Int)] v -> [([(Int, Int)], v)]
+function lookupKeySetRange(idx, map) {
+    return lookupKeySetWith(idx, map, is_selected);
+}
+
+function is_selected_empty(sel, idx) {
+    function within(intval, i) {
+        var a = intval[0];
+        var b = intval[1];
+        if(a !== b) return false;
+        return i === a;
+    }
+    for(var intval of sel) {
+        if(within(intval, idx)) return true;
+    }
+    return false;
+}
+
+function lookupKeySetEmptyRange(idx, map) {
+    return lookupKeySetWith(idx, map, is_selected_empty);
+}
+function* lookupKeySetWith(idx, map, f) {
     for(var item of map) {
         var ks = item[0];
-        // 'ks' is now a different kind of selection, namely:
-        //   type Selection = [(Int, Int)]
-        // I'm not sure what to look up here.  We can try looking in
-        // 'map fst ks' and change later if needed.
-        var kss = ks.map(function(pr) {return pr[0]});
-        if(is_selected(ks, idx)) {
+        if(f(ks, idx)) {
             yield item;
         }
     }
