@@ -1,14 +1,14 @@
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# Language TemplateHaskell, UndecidableInstances #-}
+{-# Language TemplateHaskell, UndecidableInstances, OverloadedLists #-}
 module Muste.Menu.New
   ( NewFancyMenu(..)
   , getNewFancyMenu
   , getMenuItems
   , Selection
-  , prettySelection
   , Sentence.Linearization
   , Token.Unannotated
   , Token.Annotated(..)
+  , Interval(Interval, runInterval)
   ) where
 
 import Prelude ()
@@ -21,6 +21,7 @@ import qualified Data.Array as Array
 import Data.MonoTraversable
 import qualified Data.Containers as Mono
 import Data.List (intercalate)
+import Data.Aeson (ToJSONKey, FromJSONKey)
 
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.Linearization.Internal
@@ -39,12 +40,44 @@ import qualified Muste.Sentence.Annotated as Annotated
 
 type Tokn = String
 type Node = String
-type Selection = [(Int, Int)]
 
--- TODO: wrap Selection in newtype, make it an instance of Pretty
-prettySelection :: Selection -> Doc a
-prettySelection sel = Doc.braces $ pretty $ intercalate "," $ map go sel
-    where go (i,j) = show i ++ "-" ++ show j
+newtype Interval = Interval { runInterval ∷ (Int, Int) }
+
+deriving instance ToJSONKey Interval
+deriving instance FromJSONKey Interval
+deriving instance ToJSON Interval
+deriving instance FromJSON Interval
+deriving instance Show Interval
+deriving instance Eq Interval
+instance Ord Interval where
+  a `compare` b = case size a `compare` size b of
+    EQ → runInterval a `compare` runInterval b
+    x  → x
+    where
+    size ∷ Interval → Int
+    size (Interval (i, j)) = i - j
+deriving instance Read Interval
+
+newtype Selection = Selection { runSelection ∷ [Interval] }
+
+deriving instance Read Selection
+deriving instance ToJSONKey Selection
+deriving instance FromJSONKey Selection
+deriving instance Show Selection
+deriving instance ToJSON Selection
+deriving instance FromJSON Selection
+instance IsList Selection where
+  type Item Selection = Interval
+  fromList = Selection
+  toList = runSelection
+deriving instance Eq  Selection
+deriving instance Ord Selection
+deriving instance Semigroup Selection
+deriving instance Monoid Selection
+
+instance Pretty Selection where
+  pretty (Selection sel) = Doc.braces $ pretty $ intercalate "," $ map go sel
+    where go (Interval (i,j)) = show i ++ "-" ++ show j
 
 -- * First, some basic functions and types:
 
@@ -153,9 +186,10 @@ getMenuItems ctxt sentence
 type Edit a = (([a], Int, Int), ([a], Int, Int))
 
 splitAlignments :: [Edit a] -> (Selection, Selection)
-splitAlignments [] = ([], [])
-splitAlignments (((_,i,j), (_,k,l)) : edits) = ((i,j):oldselection, (k,l):newselection)
-    where (oldselection, newselection) = splitAlignments edits
+splitAlignments [] = mempty
+splitAlignments (((_,i,j), (_,k,l)) : edits)
+  = ([Interval (i, j)] <> oldselection, [Interval (k, l)] <> newselection)
+  where (oldselection, newselection) = splitAlignments edits
 
 alignSequences :: Eq a => [a] -> [a] -> [Edit a]
 alignSequences xs ys = mergeEdits $ snd $ a Array.! (0,0)

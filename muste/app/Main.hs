@@ -87,7 +87,7 @@ prettyMenu ctxt s = Doc.vsep . fmap (uncurry go) . open
     → Doc a
   go sel xs = Doc.vcat
     [ ""
-    , Doc.fill 60 (Menu.prettySelection sel <> ":" <+> prettyLin sel (words s))
+    , Doc.fill 60 (pretty sel <> ":" <+> prettyLin sel (words s))
       <+> prettyLin sel annotated
     , Doc.vcat $ fmap gogo xs
     ]
@@ -113,13 +113,13 @@ prettyLin sel tokens = Doc.hsep $ map go $ highlight sel tokens
   hl = bool "[" "]" >>> pretty @String
 
 highlight ∷ Menu.Selection → [a] → [Either Bool a]
-highlight xs (zip [0..] . map pure → ys)
+highlight (toList → xs) (zip [0..] . map pure → ys)
   = snd <$> closes `weave` opens `weave` ys
   where
   opens  ∷ [(Int, Either Bool a)]
-  opens  = zip (map (pred . fst) xs) (repeat (Left False))
+  opens  = zip (map (pred . fst . Menu.runInterval) xs) (repeat (Left False))
   closes ∷ [(Int, Either Bool a)]
-  closes  = zip (map (pred . snd) xs) (repeat (Left True))
+  closes  = zip (map (pred . snd . Menu.runInterval) xs) (repeat (Left True))
 
 weave ∷ [(Int, a)] → [(Int, a)] → [(Int, a)]
 weave [] ys = ys

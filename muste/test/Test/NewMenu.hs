@@ -70,23 +70,24 @@ mkTestLinearizations ∷ LinTestCase → TestTree
 mkTestLinearizations (lang, src, tests) = testGroup src $ map mkTestCase tests
     where ctxt = Util.unsafeGetContext grammar lang
           allMenuItems = getAllSuggestions ctxt src
+          mkTestCase ∷ (Menu.Selection, String) → TestTree
           mkTestCase (sel, trg)
               = testCase name $
-                if null sel then
+                if null $ toList sel then
                     when (not (null testSelections)) $
                     testFailure [ "Expected to *not* find the target."
-                                , "But found it here:" <+> hsep (map Menu.prettySelection testSelections)
+                                , "But found it here:" <+> hsep (map pretty testSelections)
                                 ]
                 else if sel `elem` testSelections then
                     when (length testSelections > 1) $
-                    testFailure [ "Did find the target in menu:" <+> Menu.prettySelection sel
-                                , "But also found it here:" <+> hsep (map Menu.prettySelection testSelections)
+                    testFailure [ "Did find the target in menu:" <+> pretty sel
+                                , "But also found it here:" <+> hsep (map pretty testSelections)
                                 ]
                 else 
-                    testFailure [ "Expected to find the target in menu:" <+> Menu.prettySelection sel
+                    testFailure [ "Expected to find the target in menu:" <+> pretty sel
                                 , if null testSelections
                                   then "But did not find it anywhere"
-                                  else "But found it here instead:" <+> hsep (map Menu.prettySelection testSelections)
+                                  else "But found it here instead:" <+> hsep (map pretty testSelections)
                                 ]
               where testSelections = [ sel' | (sel', item) <- allMenuItems, item == trg ]
                     testFailure explanation = failDoc $ vsep explanation
