@@ -89,7 +89,8 @@ instance Pretty Selection where
 -- * First, some basic functions and types:
 
 parseSentence :: Context -> String -> [TTree]
-parseSentence ctxt sent = Grammar.parseSentence (ctxtGrammar ctxt) (ctxtLang ctxt) sent
+parseSentence ctxt sent
+  = Grammar.parseSentence (ctxtGrammar ctxt) (ctxtLang ctxt) sent
 
 linTree :: Context -> TTree -> ([Tokn], [Node])
 linTree ctxt tree = (map Linearization.ltlin lintokens, map (lookupNode tree . Linearization.ltpath) lintokens)

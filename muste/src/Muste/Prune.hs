@@ -70,7 +70,7 @@ type SimTree = (Int, TTree, TTree, TTree)
 -- possible replacements are given by 'replacements'.
 type ReplacementTree = (Path, TTree, Set SimTree)
 
--- FIXME We are not using the grammar. Is this a mistake
+-- FIXME We are not using the grammar.  Is this a mistake?
 -- | @'collectSimilarTrees' grammar adjTrees baseTree@ grammar
 -- adjTrees baseTree@ collects all similar trees of a given
 -- @baseTree@, according to a 'Grammar' @grammar@, by first pruning
@@ -277,7 +277,7 @@ getMetas tree = sort (getMetas' tree)
 -- given depth". There is no parameter so surely it should be "up to a
 -- fixed depth". I can't verify that this is the case either though
 -- from quickly glancing at the implementation.
--- | Calculates all possible pruned trees up to a given depth. A
+-- | Calculates all possible pruned trees up to a given depth.  A
 -- pruned tree consists of a tree with metavariables and a list of all
 -- the pruned branches (subtrees).
 pruneTree :: TTree -> [(TTree, [TTree])]

@@ -43,7 +43,7 @@ import qualified Muste.Grammar.Internal as Grammar
 data CostTree = CostTree
   { cost           ∷ Int
   , lin            ∷ Linearization
-  , ctIsInsertion   ∷ Bool
+  , ctIsInsertion  ∷ Bool
   -- TODO Add this:
   -- , changedWords   ∷ Selection
   } deriving (Show,Eq)
