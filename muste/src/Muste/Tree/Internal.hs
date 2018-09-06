@@ -1,4 +1,5 @@
-{-# language DeriveGeneric, LambdaCase, UnicodeSyntax #-}
+{-# OPTIONS_GHC -Wall -Wno-name-shadowing -Wno-incomplete-patterns #-}
+{-# language DeriveGeneric, DeriveLift #-}
 {- | This Module is the internal implementation behind the module 'Muste.Tree' -}
 module Muste.Tree.Internal
   ( Path
@@ -21,31 +22,18 @@ module Muste.Tree.Internal
 
 -- TODO Do not depend on PGF
 import qualified PGF
-  (CId, mkCId, Tree, wildCId, mkMeta, mkApp, showExpr, readExpr)
+  (CId, mkCId, Tree, wildCId, mkMeta, mkApp, showExpr)
 
-import Data.Maybe
+import Prelude ()
+import Muste.Prelude
 import Data.Aeson
-import Data.Binary (Binary)
 import qualified Data.Text as Text
-import qualified Data.Text.Encoding as Text
-import qualified Data.Text.Lazy as LText
-import qualified Data.Text.Lazy.Encoding as LText
-import qualified Data.Binary as Binary
-import qualified Data.ByteString.Lazy as LBS
-import GHC.Generics
-import Data.String
+import Data.String (fromString)
 import Data.String.ToString
-import Control.Monad.Fail hiding (fail)
-import Text.Read (readEither)
-import Data.Text.Prettyprint.Doc (Pretty(pretty))
-import Text.Printf
+import Language.Haskell.TH.Syntax (Lift)
 
-import qualified Database.SQLite.Simple as SQL
-import qualified Database.SQLite.Simple.FromField as SQL (returnError)
-import Database.SQLite.Simple.ToField (ToField)
-import qualified Database.SQLite.Simple.ToField as SQL
-import Database.SQLite.Simple.FromField (FromField(fromField))
-import qualified Database.SQLite.Simple.FromField as SQL
+import Muste.Common.SQL (FromField, ToField)
+import qualified Muste.Common.SQL as SQL
 
 import Muste.Common
 
@@ -57,11 +45,12 @@ import Muste.Common
 -- | A semantic category
 type Category = String
 
--- | = Typed Trees
+-- * = Typed Trees
 --
 -- This is a representation of gramatically structured natural
 -- languages sentences.  The representation lends ideas from type
 -- theory (hence the name 'TTree' @~@ /Typed Trees/).
+
 -- | A generic tree with types
 data TTree
    -- Regular node consisting of a function name, function type and
@@ -72,6 +61,8 @@ data TTree
    -- read is broken at the moment, most likely because of the
    -- read/show instances for @CId@
   deriving (Ord, Eq, Show, Read, Generic)
+
+deriving instance Lift TTree
 
 instance Binary TTree
 
@@ -97,10 +88,10 @@ prettyTree = PGF.showExpr mempty . toGfTree
 -- @TTree@ has the guarantee that the leafs only contain a string and
 -- the internal nodes contain a @Sring@ and a `FunType`.
 
-foldlTTree :: (b -> Either (String, FunType) Category -> b) -> b -> TTree -> b
-foldlTTree f x t = case t of
-  TNode nm tp xs -> f (foldl (foldlTTree f) x xs) (Left (nm, tp))
-  TMeta cat      -> f x (Right cat)
+-- foldlTTree :: (b -> Either (String, FunType) Category -> b) -> b -> TTree -> b
+-- foldlTTree f x t = case t of
+--   TNode nm tp xs -> f (foldl (foldlTTree f) x xs) (Left (nm, tp))
+--   TMeta cat      -> f x (Right cat)
 
 parseString :: MonadFail m => String -> (Text.Text -> m p) -> Value -> m p
 parseString errMsg f = \case
@@ -130,31 +121,21 @@ instance FromJSON TTree where
 instance ToJSON TTree where
   toJSON = String . fromString . show
 
--- FIXME Do I really need to do two three steps of encoding?  Is it
--- not possible to jump directly from binary to a 'Text.Text' (the
--- strict variant).
-binaryToText :: Binary a => a -> Text.Text
-binaryToText = LText.toStrict . LText.decodeUtf8 . Binary.encode
-
--- FIXME Similiar issue as for 'binaryToJSON'.
-binaryFromText :: Binary c => Text.Text -> c
-binaryFromText = Binary.decode . LBS.fromStrict . Text.encodeUtf8
-
 instance FromField TTree where
-  fromField fld = case SQL.fieldData fld of
-    SQL.SQLText t -> pure $ binaryFromText t
-    _ -> SQL.returnError SQL.ConversionFailed fld mempty
+  fromField = SQL.fromBlob
 
 instance ToField TTree where
-  toField = SQL.SQLText . binaryToText
+  toField = SQL.toBlob
 
 -- | The basic type of sentences and sentence formers.
 data FunType
-  = Fun
-    Category   -- ^ The resulting category
-    [Category] -- ^ The categories of the parameters.
+  = Fun Category [Category]
+  -- ^ Contains the resulting category and the categories of the
+  -- parameters.
   | NoType
   deriving (Ord, Eq, Show, Read, Generic)
+
+deriving instance Lift FunType
 
 instance Binary FunType
 
@@ -171,8 +152,12 @@ class Show t => TreeC t where
 -- | Position in a path
 type Pos = Int
 
--- FIXME Consider making abstract.
+-- FIXME Make this abstract so we can override the {To,From}JSON
+-- instance for this type and avoid using this `clean_lin` function
+-- which is defined in `muste-gui.js`.
+
 -- FIXME Another idea for indexing into a tree would be to a graph.
+
 -- | A path in a tree.  Used by e.g. linearization for indexing into
 -- the tree.
 type Path = [Pos]
@@ -222,16 +207,16 @@ isValid t =
         vs = map (\(p,t) -> check t (p:path)) $ zip [0..] c
         brokenPath = filter (not . fst) vs
       in
-        if (t == ccats) && (and $ map fst vs)then (True,Nothing) 
-        else if null brokenPath then (False, Just $ reverse path) else (False, Just $ reverse $ fromJust $ snd $ head $ brokenPath)
+        if (t == ccats) && all fst vs then (True,Nothing)
+        else if null brokenPath then (False, Just $ reverse path) else (False, Just $ reverse $ fromJust $ snd $ head brokenPath)
     check _ path = (False, Just $ reverse path)
   in
     check t []
-    
+
 -- | The function 'getTreeCat' gives the root category of a 'TTree',
 -- returns 'wildCId' on missing type
 getTreeCat :: TTree -> Category
-getTreeCat (TNode id typ _) =
+getTreeCat (TNode _id typ _) =
   case typ of {
     (Fun cat _) -> cat ;
     NoType -> wildCard
@@ -252,7 +237,7 @@ instance TreeC LTree where
         Just b -> selectNode b tl ;
         Nothing -> Nothing
       }
-  selectBranch (LLeaf) _ = Nothing
+  selectBranch LLeaf _ = Nothing
   selectBranch (LNode _ _ [] ) _ = Nothing
   selectBranch (LNode _ _ trees) i
     | i < 0 || i >= length trees = Nothing
@@ -271,8 +256,8 @@ ttreeToLTree tree =
     -- Update the labels in a tree
     update :: Int -> LTree -> (Int, LTree)
     update pos LLeaf = (pos, LLeaf)
-    update pos (LNode cat id []) = (pos + 1, LNode cat pos [])
-    update pos (LNode cat id ns) =
+    update pos (LNode cat _id []) = (pos + 1, LNode cat pos [])
+    update pos (LNode cat _id ns) =
       let
         (npos,ults) = updates pos ns
       in
@@ -286,7 +271,7 @@ ttreeToLTree tree =
         (npos,ults) = updates npos1 lts
       in
         (npos, ult:ults)
-    
+
   in
     snd $ update 0 $ convert tree
 
@@ -295,11 +280,11 @@ ttreeToLTree tree =
 -- list is used as an out of bounds value.
 --- | The function 'getPath' finds a path to a node with a given label in a labeled tree
 getPath :: TTree -> Int -> Path
-getPath ltree id = 
+getPath ltree id =
   let
     deep :: LTree -> Int -> Path -> Path
     deep LLeaf _ _ = []
-    deep (LNode cid fid ns) id path = if fid == id then path else broad ns id path 0
+    deep (LNode _cid fid ns) _id path = if fid == id then path else broad ns id path 0
     broad :: [LTree] -> Int -> Path -> Pos -> Path
     broad [] _ _ _ = []
     broad (n:ns) id path pos =
@@ -339,15 +324,15 @@ maxDepth (TNode _ _ trees) =
 -- | The function 'getAllPaths' returns all paths in a 'TTree'
 getAllPaths :: TTree -> [Path]
 getAllPaths t =
-  let 
+  let
     paths (TMeta _) = []
     paths (TNode _ _ []) = []
     paths (TNode _ _ cs) =
       let zips = zip [0..] cs in
-      [[c]|(c,_) <- zips] ++ (concat $ map (\(p,c) -> map (p:) $ paths c) $ zips)
+      [[c]|(c,_) <- zips] ++ concatMap (\(p,c) -> map (p:) $ paths c) zips
   in
     []:paths t
-         
+
 -- | The function 'replaceBranch' replaces a branch in a 'TTree' by a new 'TTree' if a subtree at the position exists
 replaceBranch :: TTree -> Pos -> TTree  -> TTree
 replaceBranch (TNode id typ trees) pos newTree =
@@ -359,14 +344,14 @@ replaceBranch tree _ _ = tree
 
 -- | The function 'replaceNode' replaces a subtree given by 'Path' in a 'TTree'
 replaceNode :: TTree -> Path -> TTree -> TTree
-replaceNode oldTree@(TNode _ _ trees) path@(pos:ps) newTree
+replaceNode oldTree@(TNode _ _ trees) (pos:ps) newTree
   | pos >= 0 && pos < length trees =  -- subtree must exist
     let
       branch = fromJust $ selectBranch oldTree pos
     in
       replaceBranch oldTree pos (replaceNode branch ps newTree)
   | otherwise = oldTree -- if branch does not exist just do nothing
-replaceNode oldTree [] newTree =
+replaceNode _oldTree [] newTree =
   newTree -- at the end of the path just give the new tree to be inserted
 replaceNode oldTree _ _ =
   oldTree -- No more subtrees, cancel search
@@ -375,7 +360,7 @@ replaceNode oldTree _ _ =
 countNodes :: TTree -> Int
 countNodes (TMeta _) = 1
 countNodes (TNode _ _ []) = 1
-countNodes (TNode _ _ ts) = 1 + (sum $ map countNodes ts)
+countNodes (TNode _ _ ts) = 1 + sum (map countNodes ts)
 
 countMatchedNodes :: TTree -> TTree -> Int
 countMatchedNodes tree1 tree2 =

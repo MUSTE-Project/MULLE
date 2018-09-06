@@ -1,36 +1,44 @@
-{-# language
-    OverloadedStrings
-  , TypeApplications
-  , LambdaCase
-  , StandaloneDeriving
-  , GeneralizedNewtypeDeriving
+{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
+{-# language OverloadedStrings, DuplicateRecordFields
+  , RecordWildCards, NamedFieldPuns
 #-}
 module Ajax
   ( ServerTree
   , ServerMessage(..)
-  , ClientTree(..)
-  , ClientMessage(..)
-  , Menu(..)
+  , ClientTree(ClientTree)
+  , ClientMessage(CMMenuRequest, CMLoginRequest)
   , Lesson(..)
   , decodeClientMessage
-  , mkServerTree
+  , serverTree
   , lessonFromTuple
+  , unClientTree
   ) where
 
+import Prelude ()
+import Muste.Prelude
+
 import Data.Aeson hiding (Null,String)
-import qualified Data.Aeson as A
+import qualified Data.Aeson                  as A
 import Data.Aeson.Types hiding (Null)
-import Data.Text (Text(..),pack)
-import qualified Data.Text as T
-import qualified Data.ByteString.Lazy.Char8 as B
-import Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
-import qualified Data.Vector as V
+import Data.Text (Text)
+import qualified Data.Text                   as T
+import qualified Data.ByteString.Lazy.Char8  as B
+import Data.Vector (Vector)
+import qualified Data.Vector                 as V
 import Data.Maybe
 import Control.Exception
 import Data.Time
+import Control.Category ((>>>))
 
-import Muste
+import Muste hiding (Menu)
+import Muste.Sentence (Sentence)
+import qualified Muste.Sentence              as Sentence
+import Muste.Sentence.Unannotated (Unannotated)
+import qualified Muste.Sentence.Unannotated  as Unannotated
+import Muste.Sentence.Annotated (Annotated)
+import qualified Muste.Sentence.Annotated    as Annotated
+
+type Menu = NewFancyMenu
 
 data ClientMessageException = CME String deriving (Show)
 data ReadTreeException = RTE String deriving (Show)
@@ -38,20 +46,18 @@ data ReadTreeException = RTE String deriving (Show)
 instance Exception ClientMessageException
 instance Exception ReadTreeException
 
-data ClientTree = ClientTree {
-  clanguage :: String,
-  ctrees :: [TTree]
-  } deriving (Show) ;
+newtype ClientTree = ClientTree { unClientTree ∷ Unannotated }
+
+deriving instance Show ClientTree
 
 instance FromJSON ClientTree where
-  parseJSON = withObject "ClientTree" $ \v -> ClientTree
-    <$> v .: "grammar"
-    <*> v .: "trees"
+  parseJSON = withObject "tree"
+     $ \v -> ClientTree
+    <$> v .: "sentence"
 
 instance ToJSON ClientTree where
-  toJSON (ClientTree tree language) = object
-    [ "trees"     .= tree
-    , "language"  .= language
+  toJSON (ClientTree sentence) = object
+    [ "sentence" .= sentence
     ]
 
 createMessageObject :: String -> Value -> Value
@@ -131,12 +137,10 @@ instance ToJSON ClientMessage where
       , "a"      .= a
       , "b"      .= b
       ]
+    _ → error "Ajax.toJSON @ClientMessage: Non-exhaustive pattern-match"
     where
       (|>) = createMessageObject
 
--- TODO One linearization can originate from multiple trees.  We
--- probably still want the ability to lookup the linearization
--- belonging to tree efficiently though.
 -- | 'ServerTree's represent the data needed to display a sentence in
 -- the GUI.  The naming is maybe not the best, but the reason it is
 -- called like that is simply because it is the data that the client
@@ -147,29 +151,23 @@ instance ToJSON ClientMessage where
 -- reason for it of course is that less information is needed by the
 -- server when receiving a request for e.g. @\/api\/menu@.
 data ServerTree = ServerTree
-  { slanguage :: String
-  , trees :: [TTree]
-  , lin   :: Linearization
-  , smenu :: Menu
-  } deriving (Show) ;
+  { sentence  ∷ Annotated
+  , menu      ∷ Menu
+  } deriving (Show)
 
 instance FromJSON ServerTree where
-  parseJSON = withObject "ServerTree" $ \v -> ServerTree
-    <$> v .: "grammar"
-    <*> v .: "trees"
-    <*> v .: "lin"
+  parseJSON = withObject "server-tree" $ \v -> ServerTree
+    <$> v .: "sentence"
     <*> v .: "menu"
 
 instance ToJSON ServerTree where
-  toJSON (ServerTree grammar trees lin menu) = object
-    [ "grammar" .= grammar
-    , "trees"   .= trees
-    , "lin"     .= lin
-    , "menu"    .= menu
+  toJSON (ServerTree { .. }) = object
+    [ "sentence" .= sentence
+    , "menu"     .= menu
     ]
 
-mkServerTree :: String -> [TTree] -> Linearization -> Menu -> ServerTree
-mkServerTree lang trees lin menu = ServerTree lang trees lin menu
+serverTree ∷ Annotated → Menu → ServerTree
+serverTree = ServerTree
 
 data Lesson = Lesson {
   lname :: Text,
@@ -252,6 +250,7 @@ instance FromJSON ServerMessage where
         "SMDataInvalid" ->
             SMDataInvalid <$> fromJust params .: "error" ;
         "SMLogoutResponse" -> return SMLogoutResponse ;
+        _ → error "Ajax.parseJSON @ServerMessage: Non-exhaustive pattern match"
         }
 
 instance ToJSON Lesson where
@@ -306,6 +305,7 @@ instance ToJSON ServerMessage where
     ]
   toJSON SMLogoutResponse =
     createMessageObject "SMLogoutResponse" A.Null
+  toJSON _ = error "Ajax.toJSON @ServerMessage: Non-exhaustive pattern match"
 
 -- FIXME Indicate in type signature that we can fail (e.g. `IO
 -- ClientMessage`)
@@ -313,4 +313,4 @@ decodeClientMessage :: B.ByteString -> ClientMessage
 decodeClientMessage s =
   let rcm = eitherDecode @ClientMessage s
   in
-    either (throw . CME) id rcm
+    either (throw . CME) identity rcm

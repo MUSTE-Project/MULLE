@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wall #-}
 module Muste.Grammar.Embed (grammar) where
 
 import Language.Haskell.TH (Q, Exp(TupE, LitE), Lit(StringL))

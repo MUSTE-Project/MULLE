@@ -4,6 +4,7 @@ module Muste.Linearization
   , buildContext
   , langAndContext
   , mkLin
+  , disambiguate
   ) where
 
 import Muste.Linearization.Internal

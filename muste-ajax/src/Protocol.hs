@@ -1,28 +1,21 @@
-{-# language
-    LambdaCase
-  , OverloadedStrings
-  , TypeApplications
-  , ViewPatterns
-  , FlexibleContexts
-  , StandaloneDeriving
-  , TupleSections
-  , UnicodeSyntax
-#-}
+{-# Language RecordWildCards #-}
+{-# OPTIONS_GHC -Wall -Wno-orphans #-}
 module Protocol
-  ( apiRoutes
+  ( registerRoutes
   ) where
 
 import Data.Aeson
-import Data.Set (Set)
-import qualified Data.Set as S
 import Data.Map (Map)
-import qualified Data.Map.Lazy as M
+import qualified Data.Map.Lazy as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Control.Monad
 import Database.SQLite.Simple
 import Control.Monad.Reader
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C8
+import Snap (MonadSnap)
 import qualified Snap
 import qualified System.IO.Streams as Streams
 import Text.Printf
@@ -31,25 +24,33 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Data.Time
-import Data.Function (on)
+import Data.Function (on, (&))
 import Control.Monad.Catch (MonadThrow(throwM))
-import Control.Exception (Exception, throw)
+import Control.Exception
+  (Exception, ErrorCall(ErrorCall))
+import Control.Category ((>>>))
 
-import Muste (Context, Path, TTree, Linearization)
+import Muste (Context, TTree)
 import qualified Muste
+import qualified Muste.Sentence as Sentence
+import Muste.Sentence.Annotated (Annotated)
+import Muste.Sentence.Unannotated (Unannotated)
+import qualified Muste.Sentence.Unannotated as Unannotated
+
+import Common
 
 import Ajax
   ( ServerMessage(..), ClientMessage(..)
-  , ClientTree(..), ServerTree(..)
+  , ClientTree(..), ServerTree
   )
 import qualified Ajax
+import Database (MonadDB, getConnection)
 import qualified Database
 import qualified Database.Types as Database
 
--- FIXME Do not import this
-import qualified Config
-
-type Contexts = Map Text (Map String Context)
+-- | Maps a lesson to a map from grammars(-identifiers) to their
+-- corresponding contexts.
+type Contexts = Map Text (Map Sentence.Language Context)
 
 -- | The data needed for responding to requests.
 data Env = Env
@@ -57,44 +58,54 @@ data Env = Env
   , contexts   :: Contexts
   }
 
--- | A simple monad for handling responding to requests.
-type Protocol v w a = ReaderT Env (Snap.Handler v w) a
+-- | A simple monad transformer for handling responding to requests.
+type ProtocolT m a = ReaderT Env m a
 
-instance MonadThrow (Snap.Handler v w) where
-  throwM = liftIO . throwM
+type MonadProtocol m =
+  ( MonadReader Env m
+  , Database.HasConnection m
+  , MonadIO m
+  )
 
-runProtocol :: Protocol v w a -> Snap.Handler v w a
-runProtocol app = do
-  env <- getEnv
-  app `runReaderT` env
+instance MonadIO m ⇒ Database.HasConnection (ReaderT Env m) where
+  getConnection = asks connection
 
-getEnv :: MonadIO m => m Env
-getEnv = liftIO $ do
-  conn <- getConnection
-  ctxts <- initContexts conn
+runProtocolT :: MonadSnap m ⇒ ToJSON a ⇒ String → ProtocolT m a → m ()
+runProtocolT db app = do
+  Snap.modifyResponse (Snap.setContentType "application/json")
+  conn ← liftIO $ open db
+  env <- getEnv conn
+  res ← app `runReaderT` env
+  Snap.writeLBS $ encode res
+
+getEnv :: MonadIO io => Connection → io Env
+getEnv conn = do
+  ctxts <- liftIO $ Database.runDB initContexts conn
   pure $ Env conn ctxts
 
+registerRoutes ∷ String → Snap.Initializer v w ()
+registerRoutes db = Snap.addRoutes (apiRoutes db)
+
 -- | Map requests to various handlers.
-apiRoutes :: [(B.ByteString, Snap.Handler v w ())]
-apiRoutes =
-  [ "login"        |> wrap (Snap.method Snap.POST loginHandler)
-  , "logout"       |> wrap (Snap.method Snap.POST logoutHandler)
-  , "lessons"      |> wrap lessonsHandler
-  , "lesson"       |> wrap (Snap.pathArg lessonHandler)
-  , "menu"         |> wrap menuHandler
+apiRoutes :: ∀ v w . String → [(B.ByteString, Snap.Handler v w ())]
+apiRoutes db =
+  [ "login"        |> run loginHandler
+  , "logout"       |> run logoutHandler
+  , "lessons"      |> run lessonsHandler
+  , "lesson"       |> run lessonHandler
+  , "menu"         |> run menuHandler
   -- TODO What are these requests?
   , "MOTDRequest"  |> err "MOTDRequest"
   , "DataResponse" |> err "DataResponse"
   ]
   where
-    wrap :: ToJSON a => Protocol v w a -> Snap.Handler v w ()
-    wrap act = runProtocol $ act >>= Snap.writeLBS . encode
+    run = runProtocolT @(Snap.Handler v w) db
     (|>) = (,)
     err :: String -> a
     err = error . printf "missing api route for `%s`"
 
 -- | Reads the data from the request and deserializes from JSON.
-getMessage :: FromJSON json => Protocol v w json
+getMessage :: FromJSON json ⇒ MonadSnap m ⇒ MonadProtocol m => m json
 getMessage = Snap.runRequestBody act
   where
     act stream = do
@@ -108,7 +119,7 @@ getMessage = Snap.runRequestBody act
 -- TODO Token should be set as an HTTP header.
 -- FIXME Use ByteString
 -- | Gets the current session token.
-getToken :: Protocol v w String
+getToken :: MonadSnap m ⇒ MonadProtocol m ⇒ m String
 -- getToken = cheatTakeToken <$> getMessage
 getToken = do
   m <- getTokenCookie
@@ -117,22 +128,22 @@ getToken = do
     Nothing -> error
       $ printf "Warning, reverting back to deprecated way of handling sesson cookies\n"
 
-getTokenCookie :: Protocol v w (Maybe Snap.Cookie)
+getTokenCookie :: MonadSnap m ⇒ MonadProtocol m ⇒ m (Maybe Snap.Cookie)
 getTokenCookie = Snap.getCookie "LOGIN_TOKEN"
 
 
 -- * Handlers
-lessonsHandler :: Protocol v w ServerMessage
+lessonsHandler :: MonadSnap m ⇒ MonadProtocol m ⇒ m ServerMessage
 lessonsHandler = do
   token <- getToken
   handleLessonsRequest token
 
-lessonHandler :: Text -> Protocol v w ServerMessage
-lessonHandler p = do
+lessonHandler :: MonadSnap m ⇒ MonadProtocol m ⇒ m ServerMessage
+lessonHandler = Snap.pathArg $ \p → do
   t <- getToken
   handleLessonInit t p
 
-menuHandler :: Protocol v w ServerMessage
+menuHandler :: MonadSnap m ⇒ MonadProtocol m ⇒ m ServerMessage
 menuHandler = do
   req <- getMessage
   token <- getToken
@@ -141,27 +152,26 @@ menuHandler = do
       -> handleMenuRequest token lesson score time a b
     _ -> error "Wrong request"
 
-loginHandler :: Protocol v w ServerMessage
-loginHandler = do
+loginHandler :: MonadSnap m ⇒ MonadProtocol m ⇒ m ServerMessage
+loginHandler = Snap.method Snap.POST $ do
   (usr, pwd) <- getUser
   handleLoginRequest usr pwd
 
-logoutHandler :: Protocol v w ServerMessage
-logoutHandler = do
+logoutHandler :: MonadSnap m ⇒ MonadProtocol m ⇒ m ServerMessage
+logoutHandler = Snap.method Snap.POST $ do
   tok <- getToken
   handleLogoutRequest tok
 
 -- TODO Now how this info should be retreived
 -- | Returns @(username, password)@.
-getUser :: Protocol v w (Text, Text)
+getUser :: MonadSnap m ⇒ MonadProtocol m ⇒ m (Text, Text)
 getUser = (\(CMLoginRequest usr pwd) -> (usr, pwd)) <$> getMessage
 
-getConnection :: IO Connection
-getConnection = Config.getDB >>= open
-
 setLoginCookie
-  :: Text -- ^ The token
-  -> Protocol v w ()
+  :: MonadSnap m
+  => MonadProtocol m
+  => Text -- ^ The token
+  -> m ()
 setLoginCookie tok = Snap.modifyResponse $ Snap.addResponseCookie c
   where
     c = Snap.Cookie "LOGIN_TOKEN" (T.encodeUtf8 tok)
@@ -170,45 +180,47 @@ setLoginCookie tok = Snap.modifyResponse $ Snap.addResponseCookie c
 -- TODO I think we shouldn't be using sessions for this.  I think the
 -- way to go is to use the basic http authentication *on every
 -- request*.  That is, the client submits user/password on every
--- request.  Security is handled by SSl in the transport layer.
+-- request.  Security is handled by SSL in the transport layer.
 handleLoginRequest
-  :: Text -- ^ Username
+  :: MonadSnap m
+  => MonadProtocol m
+  => Text -- ^ Username
   -> Text -- ^ Password
-  -> Protocol v w ServerMessage
+  -> m ServerMessage
 handleLoginRequest user pass = do
-  c <- askConnection
-  authed <- liftIO $ Database.authUser c user pass
-  token  <- liftIO $ Database.startSession c user
+  authed <- Database.authUser user pass
+  token  <- Database.startSession user
   if authed
   then SMLoginSuccess token
     <$ setLoginCookie token
   else pure $ SMLoginFail
 
-askConnection :: Protocol v w Connection
-askConnection = asks connection
-
-askContexts :: Protocol v w Contexts
+askContexts :: MonadProtocol m ⇒ m Contexts
 askContexts = asks contexts
 
-handleLessonsRequest :: String -> Protocol v w ServerMessage
+handleLessonsRequest :: MonadProtocol m ⇒ String -> m ServerMessage
 handleLessonsRequest token = do
-  conn <- askConnection
-  lessons <- liftIO $ Database.listLessons conn (T.pack token)
+  lessons <- Database.listLessons (T.pack token)
   verifyMessage token (SMLessonsList $ Ajax.lessonFromTuple <$> lessons)
 
 handleLessonInit
-  :: String -- ^ Token
-  -> Text -- ^ Lesson
-  -> Protocol v w ServerMessage
+  ∷ MonadProtocol m
+  ⇒ String -- ^ Token
+  → Text   -- ^ Lesson
+  → m ServerMessage
 handleLessonInit token lesson = do
-    contexts <- askContexts
-    conn <- askConnection
+    c <- askContexts
     (sourceLang,sourceTree,targetLang,targetTree)
-      <- Database.startLesson conn token lesson
-    let (a,b) = assembleMenus contexts lesson
-                (sourceLang,pure sourceTree)
-                (targetLang,pure targetTree)
+      <- Database.startLesson token lesson
+    let (a,b) = assembleMenus c lesson
+                (stce sourceLang sourceTree)
+                (stce targetLang targetTree)
     verifyMessage token (SMMenuList lesson False 0 a b)
+    where
+    stce ∷ Text → Annotated → Annotated
+    stce l t = (Sentence.sentence (Sentence.Language g l) (Sentence.linearization t))
+    g ∷ Sentence.Grammar
+    g = "STUB"
 
 -- | This request is called after the user selects a new sentence from
 -- the drop-down menu.  A request consists of two 'ClientTree's (the
@@ -221,136 +233,160 @@ handleLessonInit token lesson = do
 -- if the exercise continues.  For more information about what these
 -- contain see the documentation there.
 handleMenuRequest
-  :: String -- ^ Token
-  -> Text -- ^ Lesson
-  -> Integer -- ^ Clicks
+  :: MonadProtocol m
+  => String          -- ^ Token
+  -> Text            -- ^ Lesson
+  -> Integer         -- ^ Clicks
   -> NominalDiffTime -- ^ Time elapsed
-  -> ClientTree -- ^ Source tree
-  -> ClientTree -- ^ Target tree
-  -> Protocol v w ServerMessage
-handleMenuRequest
-  token lesson clicks time
-  ctreea@(ClientTree langa srcTrees)
-  ctreeb@(ClientTree langb trgTrees) = do
-  contexts <- askContexts
-  conn <- askConnection
+  -> ClientTree      -- ^ Source tree
+  -> ClientTree      -- ^ Target tree
+  -> m ServerMessage
+handleMenuRequest token lesson clicks time src trg = do
+  c <- askContexts
   mErr <- verifySession token
   let authd = not $ isJust mErr
+  let finished ∷ Bool
+      finished = oneSimiliarTree c lesson src trg
   act <-
     if finished
     then do
-      when authd (liftIO $ Database.finishExercise conn token lesson time clicks)
-      pure emptyMenus
+      when authd (Database.finishExercise token lesson time clicks)
+      pure (\_ _ → emptyMenus)
     else pure assembleMenus
-  let (a , b) = act contexts lesson
-                 (langa, srcTrees)
-                 (langb, trgTrees)
+  -- Lift 'unambiguous' into 'IO' to enable throwing (IO) exceptions.
+  srcUnamb ← liftIO $ unambiguous c lesson src
+  trgUnamb ← liftIO $ unambiguous c lesson trg
+  let (a , b) = act c lesson srcUnamb trgUnamb
   verifyMessage token (SMMenuList lesson finished (succ clicks) a b)
-  where
-    finished :: Bool
-    finished = ctreea `same` ctreeb
 
--- | Two 'ClientTree''s are considered the same if they have just one
--- 'TTree' in common.  This uses the 'Eq' instance for 'TTree' (so
--- that better work).
-same :: ClientTree -> ClientTree -> Bool
-same = oneSame `on` thetrees
+unambiguous
+  ∷ MonadThrow m
+  ⇒ Contexts
+  → Text
+  → ClientTree
+  → m Annotated
+unambiguous cs lesson t = Unannotated.unambiguous
+    (ErrorCall $ "Unable to parse: " <> show s) ctxt s
   where
-  thetrees :: ClientTree -> Set TTree
-  thetrees (ClientTree _ trees) = S.fromList trees
-  oneSame :: Set TTree -> Set TTree -> Bool
-  oneSame a b = not $ S.null $ S.intersection a b
+  ctxt ∷ Context
+  ctxt = fromMaybe err $ getContext cs lesson $ Sentence.language s
+  err = error "Context not found for language"
+  s ∷ Unannotated
+  s = Ajax.unClientTree t
 
-handleLogoutRequest :: String -> Protocol v w ServerMessage
+oneSimiliarTree
+  ∷ Contexts
+  → Text
+  → ClientTree
+  → ClientTree
+  → Bool
+oneSimiliarTree cs lesson
+  = oneInCommon `on` parse
+  where
+  oneInCommon ∷ Ord a ⇒ Set a → Set a → Bool
+  oneInCommon a b = not $ Set.null $ Set.intersection a b
+  parse ∷ ClientTree → Set TTree
+  parse t
+    = t
+    & disambiguate cs lesson
+    & Set.fromList
+
+disambiguate ∷ Contexts → Text → ClientTree → [TTree]
+disambiguate cs lesson t
+  = Sentence.disambiguate (getC s) s
+    where
+    s ∷ Unannotated
+    s = Ajax.unClientTree t
+    getC
+      =   Sentence.language
+      >>> getContext cs lesson
+      >>> fromMaybe err
+    err = error "Lang not found for tree in grammar"
+
+handleLogoutRequest :: MonadProtocol m ⇒ String -> m ServerMessage
 handleLogoutRequest token = do
-  conn <- askConnection
-  liftIO $ Database.endSession conn token
+  Database.endSession token
   pure $ SMLogoutResponse
 
 -- | @'verifySession' tok@ verifies the user identified by
 -- @tok@. Returns 'Nothing' if authentication is successfull and @Just
 -- err@ if not. @err@ is a message describing what went wrong.
 verifySession
-  :: String -- ^ The token of the logged in user
-  -> Protocol v w (Maybe String)
-verifySession tok = do
-  conn <- askConnection
-  liftIO $ Database.verifySession conn tok
+  :: MonadProtocol m
+  => String -- ^ The token of the logged in user
+  -> m (Maybe String)
+verifySession tok = Database.verifySession tok
 
 -- | Returns the same message unmodified if the user is authenticated,
 -- otherwise return 'SMSessionInvalid'.
 verifyMessage
-  :: String -- ^ The logged in users session id.
+  :: MonadProtocol m
+  => String -- ^ The logged in users session id.
   -> ServerMessage     -- ^ The message to verify
-  -> Protocol v w ServerMessage
+  -> m ServerMessage
 verifyMessage tok msg = do
-  conn <- askConnection
   m <- verifySession tok
   pure $ case m of
     Nothing  -> msg
     Just err -> SMSessionInvalid err
 
 initContexts
-  :: MonadIO io
-  => Connection
-  -> io Contexts
-initContexts conn = liftIO $ mkContexts <$> Database.getLessons conn
+  :: Database.MonadDB db
+  => db Contexts
+initContexts = mkContexts <$> Database.getLessons
 
 mkContexts ∷ [Database.Lesson] → Contexts
-mkContexts = M.fromList . map mkContext
+mkContexts = Map.fromList . map mkContext
 
-mkContext :: Database.Lesson -> (Text, M.Map String Context)
+mkContext
+  ∷ Database.Lesson
+  → (Text, Map.Map Sentence.Language Context)
 mkContext (ls, _, nm, _, _, _, _, _) =
-  (ls, Muste.langAndContext (T.unpack nm))
+  (ls, Map.mapKeys (Sentence.Language stub) $ Muste.langAndContext nm)
+  where
+  stub ∷ Sentence.Grammar
+  stub = "STUB"
 
 -- | Gets the menus for a lesson.  This consists of a source tree and
 -- a target tree.
 assembleMenus
-  :: Contexts
-  -> Text
-  -> (String, [TTree]) -- ^ Source language and tree
-  -> (String, [TTree]) -- ^ Target language and tree
-  -> (ServerTree,ServerTree)
-assembleMenus contexts lesson src@(srcLang, srcTree) trg@(_, trgTree) =
+  ∷ Contexts
+  → Text
+  → Annotated
+  → Annotated
+  → (ServerTree,ServerTree)
+assembleMenus c lesson src trg =
   ( mkTree src
   , mkTree trg
   )
   where
-  mkTree = makeTree contexts lesson src trg
-
-getContextM
-  :: Text   -- ^ The lesson
-  -> String -- ^ The language
-  -> Protocol v w Context
-getContextM lesson lang = do
-  ctxts <- askContexts
-  getContext ctxts lesson lang
+  mkTree = makeTree c lesson
 
 data ProtocolException
   = LessonNotFound Text
-  | LanguageNotFound String
+  | LanguageNotFound Sentence.Language
 
 deriving instance Show ProtocolException
 
 instance Exception ProtocolException where
 
 getContext
-  :: MonadThrow m
-  => Contexts
-  -> Text   -- ^ Lesson
-  -> String -- ^ Language
-  -> m Context
-getContext ctxts lesson lang
+  ∷ MonadThrow m
+  ⇒ Contexts
+  → Text              -- ^ Lesson
+  → Sentence.Language -- ^ Language
+  → m Context
+getContext ctxts lesson s
   =   pure ctxts
   >>= lookupM (LessonNotFound lesson) lesson
-  >>= lookupM (LanguageNotFound lang) lang
+  >>= lookupM (LanguageNotFound s) s
 
 lookupM
   :: MonadThrow m
   => Exception e
   => Ord k
   => e -> k -> Map k a -> m a
-lookupM err k = liftMaybe err . M.lookup k
+lookupM err k = liftMaybe err . Map.lookup k
 
 -- | Lift a 'Maybe' to any 'MonadThrow'.
 liftMaybe :: MonadThrow m => Exception e => e -> Maybe a -> m a
@@ -362,33 +398,22 @@ liftMaybe e = \case
 -- a source trees and a target tree.  The 'Menu' is provided given
 -- @tree@.
 makeTree
-  :: Contexts -> Text
-  -> (String, [TTree])
-  -> (String, [TTree])
-  -> (String, [TTree])
-  -> ServerTree
-makeTree contexts lesson (srcLang, srcTrees) (trgLang, trgTrees) (lang, trees)
-  = Ajax.mkServerTree lang trees lin (Muste.getCleanMenu ctxt tree)
-    where
-    grammar = throwLeft $ getContext contexts lesson srcLang
-    ctxt    = throwLeft $ getContext contexts lesson lang
-    lin     = Muste.mkLin ctxt srcTree trgTree tree
-    srcTree = unsafeTakeTree srcTrees
-    trgTree = unsafeTakeTree trgTrees
-    tree    = unsafeTakeTree trees
-
--- | Throws an exception if the it's a 'Left' (requires the left to be
--- an exception).  This method is *unsafe*!
-throwLeft :: Exception e => Either e c -> c
-throwLeft = either throw id
+  ∷ Contexts
+  → Text
+  → Annotated
+  → ServerTree
+makeTree c lesson s
+  = Ajax.serverTree s menu
+  where
+  menu = Muste.getNewFancyMenu ctxt (Sentence.linearization s)
+  ctxt = throwLeft $ getContext c lesson language
+  language = Sentence.language s
 
 emptyMenus
-  :: Contexts
-  -> Text
-  -> (String, [TTree]) -- ^ Source language and tree
-  -> (String, [TTree]) -- ^ Target language and tree
-  -> (ServerTree, ServerTree)
-emptyMenus contexts lesson src@(srcLang, srcTrees) trg@(_, trgTrees) =
+  ∷ Annotated -- ^ Source sentence
+  → Annotated -- ^ Target sentence
+  → (ServerTree, ServerTree)
+emptyMenus src trg =
   ( mkTree src
   , mkTree trg
   )
@@ -396,18 +421,9 @@ emptyMenus contexts lesson src@(srcLang, srcTrees) trg@(_, trgTrees) =
   -- FIXME In 'assembleMenus' we actually use the language of the tree
   -- we're building.  Investigate if this may be a bug.  Similiarly
   -- for 'lin'.  This is the reason we are not using 'makeTree' here.
-  ctxt = throwLeft $ getContext contexts lesson srcLang
-  grammar = Muste.ctxtGrammar ctxt
-  srcTree = unsafeTakeTree srcTrees
-  trgTree = unsafeTakeTree trgTrees
-  lin = Muste.mkLin ctxt srcTree trgTree
-  mkTree (lang, trees) = Ajax.mkServerTree
-    lang trees (lin tree) mempty
+  mkTree ∷ Annotated → ServerTree
+  mkTree s
+    = Ajax.serverTree (Sentence.sentence language lin) mempty
     where
-    tree = unsafeTakeTree trees
-
--- TODO Both unsafe and a dirty hack!
-unsafeTakeTree :: [TTree] -> TTree
-unsafeTakeTree = fromMaybe err . listToMaybe
-  where
-  err = error "Protocol.unsafeTakeTree: A hack shows its true colors."
+    lin = Sentence.linearization s
+    language = Sentence.language s

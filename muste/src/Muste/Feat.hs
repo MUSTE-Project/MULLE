@@ -16,14 +16,14 @@ module Muste.Feat
 
 import Data.List
 
-import Muste.Grammar
-import Muste.Grammar.Internal (Rule(Function))
+import Muste.Grammar.Internal
+  (Rule(Function), getAllRules, Grammar, getRuleType)
 import Muste.Tree
 
 type FEAT = String -> Int -> (Integer, Integer -> TTree)
 
 emptyFeat :: String -> Int -> (Integer, Integer -> TTree)
-emptyFeat = \_ _ -> (-1, \_ -> TMeta "*empty*")
+emptyFeat _ _ = (-1, \_ -> TMeta "*empty*")
              
 -- | Compute how many trees there are of a given size and type.
 featCard :: FEAT -> String -> Int -> Integer
@@ -31,7 +31,7 @@ featCard f c n = fst (f c n)
 
 -- | Generate the i-th tree of a given size and type.
 featIth :: FEAT -> String -> Int -> Integer -> TTree
-featIth f c n i = snd (f c n) i
+featIth f c n = snd (f c n)
 
 mkFEAT :: Grammar -> FEAT
 mkFEAT gr =
@@ -81,6 +81,6 @@ generateTrees f cat =
   let
     feats = map (\d -> (featCard f cat d,featIth f cat d)) [0..]
   in
-    map (\(max,fs) -> map fs [0..max-1]) feats
+    map (\(m,fs) -> map fs [0..m-1]) feats
 
 

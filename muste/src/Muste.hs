@@ -1,4 +1,4 @@
--- | High level api to the muste backend
+-- | High level API to the muste backend.
 module Muste
   ( -- * Trees
     module Muste.Tree

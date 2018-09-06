@@ -1,0 +1,42 @@
+resolver: lts-12.7
+
+packages:
+- ./muste/
+- ./muste-ajax/
+
+extra-deps:
+# - ../libs/GF/src/runtime/haskell/
+- git: git@github.com:GrammaticalFramework/gf-core.git
+  commit: e89e5f13bf50767665507aa7ffe0ccd813cb70f4
+  subdirs:
+  # Just list all directories with cabal files.
+  - ./
+  - src/example-based/        # gf-exb.cabal
+  - src/pgf-binary/           # pgf-binary.cabal
+  - src/runtime/haskell-bind/ # pgf2.cabal
+  - src/runtime/haskell/      # pgf.cabal
+  - src/server/               # gf-server.cabal
+  - src/tools/                # gf-tools.cabal
+- git: git@github.com:MUSTE-Project/haskell-cgi.git
+  commit: b45aabe6ccfd5aa81c5883b25fef019d60e9d9d0
+# Needed to satisfy `snap`
+- snap-1.1.1.0
+- heist-1.1
+- map-syntax-0.3
+- pwstore-fast-2.4.4
+- xmlhtml-0.2.5.2
+# User goal `snap-extra`
+# We need a version of `snap-extras` with relaxed version bounds.
+- git: git@github.com:MUSTE-Project/snap-extras.git
+  commit: 3faf1af4ec2acbc379aa8dc71b64d5ff73f729d0
+# We need a version of `digest-functors` supporting the new version of
+# `base`.  This just hasn't been uploaded to Hackage yet.
+- git: git@github.com:jaspervdj/digestive-functors.git
+  commit: 525b022f7b8cef46d044cb6a62683875ddbd1a25
+  subdirs:
+    - digestive-functors
+    - digestive-functors-heist
+    - digestive-functors-snap
+# User goal `sqlite-simple`
+- git: git@github.com:MUSTE-Project/sqlite-simple.git
+  commit: 403524ac7448bfeaa68c5a54ca067be53e762c73

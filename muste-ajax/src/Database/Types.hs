@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wall #-}
 {-# language
     StandaloneDeriving
   , GeneralizedNewtypeDeriving
@@ -18,15 +19,19 @@ module Database.Types
   , FinishedLesson
   , ExerciseList
   , Muste.TTree
-  , Muste.Linearization
+  , Sentence.Annotated
   ) where
 
+import Prelude ()
+import Muste.Prelude
+
 import Data.ByteString (ByteString)
-import Data.Text (Text)
 
 import Data.Time
 
-import qualified Muste (TTree, Linearization)
+import qualified Muste (TTree)
+import qualified Muste.Sentence.Annotated as Sentence (Annotated)
+import Muste.Sentence.Annotated (Annotated)
 
 type Blob = ByteString
 type Numeric = Integer
@@ -65,10 +70,10 @@ type Session =
 -- * The lesson to which the exercise belongs.
 -- * Timeout for the exercise.
 type Exercise =
-  ( Text            -- @sourceTree@
-  , Text            -- @targetTree@
-  , Text            -- @lesson@
-  , Numeric         -- @timeout@
+  ( Annotated -- @sourceTree@
+  , Annotated -- @targetTree@
+  , Text      -- @lesson@
+  , Numeric   -- @timeout@
   )
 
 -- | Representation of a 'Leson' in the database.  Consists of:
@@ -105,8 +110,8 @@ type Lesson =
 -- * The round it was in the lesson.
 type FinishedExercise =
   ( Text            -- @user@
-  , Text            -- @sourceTree@
-  , Text            -- @targetTree@
+  , Annotated       -- @sourceTree@
+  , Annotated       -- @targetTree@
   , Text            -- @lesson@
   , NominalDiffTime -- @time@
   , Numeric         -- @clickCount@
@@ -150,9 +155,9 @@ type FinishedLesson =
 -- * The lesson it belongs to.
 -- * The round.
 type ExerciseList =
-  ( Text            -- @user@
-  , Text            -- @sourceTree@
-  , Text            -- @targetTree@
-  , Text            -- @lesson@
-  , Numeric         -- @round@
+  ( Text      -- @user@
+  , Annotated -- @sourceTree@
+  , Annotated -- @targetTree@
+  , Text      -- @lesson@
+  , Numeric   -- @round@
   )

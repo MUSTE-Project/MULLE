@@ -7,16 +7,6 @@ module Muste.Tree
   , FunType(Fun, NoType)
   , Path
   , Pos
-  , getPath
-  , getAllPaths
-  -- , maxDepth
-  , getTreeCat
-  -- , generateTrees
-  , selectNode
-  , replaceNode
-  , isValid
-  , countNodes
-  -- , countMatchedNodes
   , Category
   ) where
 

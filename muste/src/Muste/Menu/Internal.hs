@@ -1,52 +1,38 @@
-{-# Language
-    OverloadedStrings
-  , StandaloneDeriving
-  , GeneralizedNewtypeDeriving
-  , TypeFamilies
-  , CPP
-  , TypeApplications
-  , UnicodeSyntax
-  , RankNTypes
-#-}
+{-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
+{-# Language OverloadedStrings, RecordWildCards #-}
 module Muste.Menu.Internal
   ( Menu
-  , getCleanMenu
+  , getMenu
   , CostTree
-  -- Used in Test.Menu
-  , trees
+  , lin
+  , getMenuFromStringRep
   ) where
 
-import Data.List
+import Prelude ()
+import Muste.Prelude
+
+import Data.Maybe (isJust)
+import Data.List (isPrefixOf, sortBy)
 -- FIXME I think we might need to consider switching to strict maps.
 import Data.Map.Lazy (Map)
 import qualified Data.Map.Lazy   as Map
 import Data.Set (Set)
 import qualified Data.Set        as Set
-import Data.Aeson
-import qualified Data.Text as Text
+import Data.Aeson hiding (pairs)
+import Data.Aeson.Types (Parser)
 import qualified Data.Containers as Mono
-import qualified Data.Sequences  as Mono
 import Data.MonoTraversable
-import Data.Function (on)
-import Control.Category ((>>>))
-#if MIN_VERSION_base(4,11,0)
-#else
-import Data.Semigroup (Semigroup((<>)))
-#endif
-import Data.Text.Prettyprint.Doc (Pretty(..), (<+>), Doc)
+import Data.Text.Prettyprint.Doc ((<+>), brackets)
 import qualified Data.Text.Prettyprint.Doc as Doc
 
 import Muste.Common
 import Muste.Tree
-import qualified Muste.Tree.Internal as Tree (toGfTree)
 import qualified Muste.Prune as Prune
 import Muste.Linearization
 import qualified Muste.Linearization.Internal as Linearization
-  ( linearizeTree
-  , sameOrder
-  , ltpath
-  , LinToken
-  )
+import Muste.Selection (Selection)
+import qualified Muste.Selection as Selection
+import qualified Muste.Grammar.Internal as Grammar
 
 -- | A 'CostTree' is a tree associated with it's linearization and a
 -- "cost".  The cost is with reference to some "base tree".  The only
@@ -55,24 +41,28 @@ import qualified Muste.Linearization.Internal as Linearization
 --
 -- [^1]: Here's to hoping this documentation will be kept up-to-date.
 data CostTree = CostTree
-  { cost           :: Int
-  , lin            :: Linearization
-  , trees          :: Set TTree
-  , _isInsertion   :: Bool
+  { cost           ∷ Int
+  , lin            ∷ Linearization
+  , ctIsInsertion  ∷ Bool
+  -- TODO Add this:
+  -- , changedWords   ∷ Selection
   } deriving (Show,Eq)
+
+instance Pretty CostTree where
+  pretty (CostTree { .. }) = ins <> pretty lin <+> brackets (pretty cost)
+    where
+    ins = if ctIsInsertion then pretty @String "INS: " else mempty
 
 instance FromJSON CostTree where
   parseJSON = withObject "CostTree" $ \v -> CostTree
     <$> v .: "cost"
     <*> v .: "lin"
-    <*> v .: "trees"
     <*> v .: "insertion"
 
 instance ToJSON CostTree where
-  toJSON (CostTree score lin trees repl) = object
+  toJSON (CostTree score lin repl) = object
     [ "score"       .= score
     , "lin"         .= lin
-    , "trees"       .= trees
     , "insertion"   .= repl
     ]
 
@@ -85,24 +75,27 @@ instance ToJSON CostTree where
 -- remember what the idea with this is, but currently the outermost
 -- list is always a singleton.
 getPrunedSuggestions :: Context -> TTree -> Menu
-getPrunedSuggestions ctxt tree = Menu $ go `Map.mapWithKey` replaceTrees tree
+getPrunedSuggestions ctxt tree = menu
   where
+  toSel ∷ Path → Selection
+  toSel p = selectionFromPath p (Linearization.linearizeTree ctxt tree)
+  pathMap ∷ Map Path (Mono.MapValue Menu)
+  pathMap = go `Map.map` replaceTrees tree
   replaceTrees :: TTree -> Map Path (Set (Prune.SimTree, TTree))
   replaceTrees
     = Prune.replaceTrees (ctxtGrammar ctxt) (ctxtPrecomputed ctxt)
-  go :: Path -> Set (Prune.SimTree, TTree) -> Mono.MapValue Menu
+  go ∷ Set (Prune.SimTree, TTree) -> Mono.MapValue Menu
   go = costTrees ctxt tree
+  menu = Menu $ Map.mapKeysWith (mappend @[CostTree]) toSel pathMap
 
 -- | Creates a 'CostTree' from a tree and its cost.  Since the cost is
 -- already calculated, it basically just linearizes the tree.
 costTrees
   :: Context       -- ^ Context of the tree
   -> TTree         -- ^ The original tree
-  -> Path          -- ^ 'Path' in the original tree where the
-                   --   replacement is happening
   -> Set (Prune.SimTree, TTree)
   -> Mono.MapValue Menu
-costTrees ctxt t p
+costTrees ctxt t
   =   Set.toList
   -- First make a list of provisional 'CostTree's.
   >>> map go
@@ -110,7 +103,7 @@ costTrees ctxt t p
   >>> regroup
   where
   go ∷ (Prune.SimTree, TTree) → CostTree
-  go (s, u) = costTree ctxt t p s u
+  go (s, u) = costTree ctxt t s u
 
 -- | After we've found all replacement trees we want to regroup them,
 -- so that all the `TTree`s that have the same linearization gets
@@ -126,57 +119,30 @@ regroup = groupOnSingle lin
 costTree
   :: Context       -- ^ Context of the tree
   -> TTree         -- ^ The original tree
-  -> Path          -- ^ 'Path' in the original tree where the
-                   --   replacement is happening
   -> Prune.SimTree -- ^ Information regarding what the tree is replacing
   -> TTree         -- ^ The replacement tree
   -> CostTree
-costTree ctxt s p (cost, r, _, _) t
-  = CostTree cost (Linearization.linearizeTree ctxt t) (Set.singleton t) ins
+costTree ctxt s (cost, r, _, _) t
+  = CostTree cost (Linearization.linearizeTree ctxt t) ins
   where
   ins :: Bool
-  ins = isInsertion ctxt p s r
+  ins = isInsertion ctxt s r
 
--- Assume we’re building the suggestions for subtree s somewhere
--- inside the tree. For simplicity, let s cover the words w_j...w_k in
--- the linearisation (w_1...w_n). Every word w_j...w_k are introduced
--- by some node s_j, ..., s_k (all s_i are in subtree s, and s_i and
--- s_i’ can be the same node (but doesn’t have to))
---
--- Now, collect all replacement subtrees for s (Prune.replaceTrees)
--- and look through them. Given a replacement r, let its linearisation
--- cover be u_p...u_q, and their corresponding nodes be r_p, ..., r_q:
---
--- IF all cover nodes of s (s_j, ..., s_k) are included in r_p, ..., r_q;
--- AND the linearisation order between s_j, ..., s_k are kept the same as in w_j...w_k;
--- AND there are some additional new cover nodes r_i, ..., r_i’ which are not in s_j, ..., s_k;
--- THEN r should be an insertion (at the corresponding positions of r_i, ..., r_i’);
--- OTHERWISE r is a normal replacement
-isInsertion :: Context -> Path -> TTree -> TTree -> Bool
-isInsertion ctxt p s r = coverNodesIsProperSubset && sameOrder'
-  where
-  -- Checks if the "cover nodes" of @s@ is a proper subset of those in
-  -- @r@.
-  coverNodesIsProperSubset :: Bool
-  coverNodesIsProperSubset
-    = (isSubList `on` coverNodes ctxt p) s r
-  -- Checks if the nodes in the linearization of @s@ appear in the
-  -- same order as in @r@.
-  sameOrder' :: Bool
-  sameOrder'
-    = (Linearization.sameOrder `on` Linearization.linearizeTree ctxt) s r
+-- | @'isInsertion' ctxt p s r@ determines if the subtree @r@ is to be
+-- considered an "insertion" into the tree @s@.
+isInsertion :: Context -> TTree -> TTree -> Bool
+isInsertion ctxt s r = isJust $ Linearization.isInsertion ctxt s r
 
--- | @'coverNodes' ctxt p t@.  @p@ is the assumed to be the path to
--- @t@ in the original tree.
-coverNodes :: Context -> Path -> TTree -> [Path]
-coverNodes ctxt p
-  -- Linearize the tree.
-  =   Linearization.linearizeTree ctxt
-  -- Get the path to the originating node of all the tokens.
-  >>> otoList
+-- | Very similar to 'coverNodes', but in stead of saving the paths we
+-- save the index of the 'Linearization'.
+selectionFromPath ∷ Path → Linearization → Selection
+selectionFromPath p
+  =   otoList
   >>> fmap Linearization.ltpath
-  -- Only keep those that @p@ is a prefix of.
-  >>> filter (isPrefixOf p)
+  >>> enumerate
+  >>> filter (snd >>> isPrefixOf p)
+  >>> fmap fst
+  >>> Selection.fromList
 
 filterCostTrees :: Menu -> Menu
 filterCostTrees = removeFree >>> sortByCost >>> filterEmpty
@@ -194,34 +160,49 @@ getCleanMenu context tree
   = filterCostTrees
   $ getPrunedSuggestions context tree
 
+-- | Generate a 'Menu' from a linearization.
+getMenu ∷ Context → Linearization → Menu
+getMenu ctxt
+  =   Linearization.disambiguate ctxt
+  >>> foldMap (getCleanMenu ctxt)
+
 -- If we had an ordering on `CostTree`s we could also use `Set` here
 -- in stead of `[]`.
--- | A 'Menu' maps paths to 'CostTree's.
-newtype Menu = Menu (Map Path [CostTree]) deriving (Show)
+-- | A 'Menu' maps 'Selection's to 'CostTree's.
+newtype Menu = Menu (Map Selection [CostTree]) deriving (Show)
 
 instance Pretty Menu where
   pretty (Menu mp) = Doc.vsep $ map p $ Map.toList $ mp
     where
-    p ∷ ∀ a . (Path, [CostTree]) → Doc.Doc a
-    p (p, cs) = Doc.vsep [ (prettyPath p), Doc.nest 2 $ Doc.vsep $ prettyCt <$> cs]
-    prettyPath ∷ Path → Doc a
-    prettyPath = Doc.pretty . intercalate "," . map show
+    p ∷ ∀ a . (Selection, [CostTree]) → Doc.Doc a
+    p (p, cs) = Doc.nest 2 $ Doc.vsep $ "" : ("-->" <+> pretty p) : map prettyCt cs
     prettyCt ∷ CostTree → Doc a
-    prettyCt
-      = Doc.hsep . map (Doc.pretty . show . Tree.toGfTree)
-      . Set.toList . trees
+    prettyCt = pretty . lin
 
 instance FromJSON Menu where
-  parseJSON = withObject "CostTree" $ \v -> Menu
-    <$> v .: "menu"
+  -- parseJSON = withObject "menu" (parseJSON' . Object)
+  parseJSON = parseJSON'
+    where
+    parseJSON' ∷ Value → Parser Menu
+    parseJSON'
+      = fmap Mono.mapFromList
+      . parseJSON @[(Selection, [CostTree])]
 
 instance ToJSON Menu where
-    toJSON (Menu map) =
-      object [ (Text.pack $ show k) .= (Map.!) map  k | k <- Map.keys map]
+  -- toJSON m = object [ "menu" .= toJSON' m ]
+  toJSON = toJSON'
+    where
+    toJSON' ∷ Menu → Value
+    toJSON' = toJSON @[(Selection, [CostTree])] . Mono.mapToList
 
-deriving instance Semigroup Menu
+instance Semigroup Menu where
+  -- | When 'Menu's are combined, if they share a key, then the
+  -- '[CostTree]' they map to are 'mappend'ed together.
+  Menu a <> Menu b = Menu $ Map.unionWith (mappend @[CostTree]) a b
 
-deriving instance Monoid Menu
+instance Monoid Menu where
+  mempty = Menu mempty
+  mappend = (<>)
 
 deriving instance MonoFunctor Menu
 
@@ -240,7 +221,7 @@ instance MonoTraversable Menu where
 instance GrowingAppend Menu where
 
 instance Mono.SetContainer Menu where
-  type ContainerKey Menu = Path
+  type ContainerKey Menu = Selection
   member k     (Menu m) = Mono.member k m
   notMember k  (Menu m) = Mono.notMember k m
   union        (Menu a) (Menu b) = Menu $ a `Mono.union` b
@@ -262,3 +243,15 @@ instance Mono.IsMap Menu where
 -- <https://github.com/snoyberg/mono-traversable/issues/15>
 monofilter :: Mono.IsMap map => (Mono.MapValue map -> Bool) -> map -> map
 monofilter p = Mono.mapFromList . filter (p . snd) . Mono.mapToList
+
+getMenuFromStringRep ∷ Context → String → Menu
+getMenuFromStringRep ctxt = foldMap (getMenu ctxt) . parseLin ctxt
+
+parseLin ∷ Context → String → Set Linearization
+parseLin ctxt = parseTree >>> map mkL >>> Set.fromList
+  where
+  grammar = ctxtGrammar ctxt
+  parseTree ∷ String → [TTree]
+  parseTree = Grammar.parseSentence grammar (Linearization.ctxtLang ctxt)
+  mkL ∷ TTree → Linearization
+  mkL = Linearization.mkLinSimpl ctxt

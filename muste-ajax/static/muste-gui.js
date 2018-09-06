@@ -1,4 +1,3 @@
-
 var AjaxTimeout = 1000; // milliseconds
 
 var NOSPACING = "&+";
@@ -10,7 +9,8 @@ var LOGIN_TOKEN = null;
 var TIMER_START = null;
 
 var EXERCISES = [];
-var SERVER = "/api/"
+var VIRTUAL_ROOT = "/";
+var SERVER = VIRTUAL_ROOT + "api/";
 
 var MESSAGES =
   { LOGOUT: "logout"
@@ -32,14 +32,13 @@ $(function() {
     $('#logoutbutton').click(restart_everything);
     $('#body').click(click_body);
     window.setInterval(update_timer, 100);
-    if (window.sessionStorage.getItem("LOGIN_TOKEN") == null)
-    {
-	show_page("loginpage");
+    var tok = window.sessionStorage.getItem("LOGIN_TOKEN");
+    // Show login page regardless.
+    show_page("loginpage");
+    if (tok == null) {
 	loginform.name.focus();
-    }
-    else
-    {
-	LOGIN_TOKEN = window.sessionStorage.getItem("LOGIN_TOKEN");
+    } else {
+	LOGIN_TOKEN = tok;
 	retrieve_lessons();
     }
 });
@@ -80,7 +79,7 @@ function submit_login(evt) {
 function click_body(event) {
     var prevented = $(event.target).closest('.prevent-body-click').length > 0;
     if (!prevented) {
-        clear_selection();
+        reset_selection();
     }
 }
 
@@ -164,15 +163,13 @@ function start_lesson(lesson) {
     call_server_new(MESSAGES.LESSON, {token: LOGIN_TOKEN, lesson: lesson}, MESSAGES.LESSON + "/" + lesson);
 }
 
-
 function show_exercise(parameters) {
     show_page("exercisepage");
     DATA = parameters;
     clean_server_data(DATA.a);
     clean_server_data(DATA.b);
     build_matching_classes(DATA);
-    show_lin('a', DATA.a.lin);
-    show_lin('b', DATA.b.lin);
+    show_sentences(DATA.a, DATA.b);
     $('#score').text(DATA.score);
     $('#lessoncounter').text(DATA.lesson + ": övning " + EXERCISES[DATA.lesson].passed + " av " + EXERCISES[DATA.lesson].total);
     if (parameters.success) {
@@ -190,6 +187,13 @@ function show_exercise(parameters) {
     }
 }
 
+// ct_linearization :: ClientTree -> Sentence.Linearization
+function ct_linearization(t) {
+    return t.sentence.linearization;
+}
+function ct_setLinearization(t, l) {
+    t.sentence.linearization = l;
+}
 
 function handle_server_response(response) {
     var message = response.message;
@@ -240,15 +244,8 @@ function clean_server_data(data) {
             pword.path = convert_path(pword.path)
         });
     }
-    clean_lin(data.lin);
-    var oldmenu = data.menu;
-    data.menu = {};
-    for (var path in oldmenu) {
-        oldmenu[path].forEach(function(item){
-            clean_lin(item.lin);
-        });
-	data.menu[convert_path(path)] = oldmenu[path];
-    }
+    // clean_lin(data.lin);
+    data.menu = new Map(data.menu);
 }
 
 
@@ -258,7 +255,7 @@ function build_matching_classes(data) {
     data.matching_classes = {};
     var matching_class = 0;
     ["a", "b"].forEach(function(lang) {
-        data[lang].lin.forEach(function(token) {
+        ct_linearization(data[lang]).forEach(function(token) {
             if (token.matched && token.matched.length && !data.matching_classes[token.path]) {
                 data.matching_classes[token.path] = "match-" + matching_class;
                 matching_class = (matching_class + 1) % MAX_CLASSES;
@@ -267,30 +264,97 @@ function build_matching_classes(data) {
     });
 }
 
+function show_sentences(src, trg) {
+    var srcL = ct_linearization(src)
+    var trgL = ct_linearization(trg)
+    var srcM = matchy_magic(srcL, trgL);
+    var trgM = matchy_magic(trgL, srcL);
+    show_lin('a', srcL);
+    show_lin('b', trgL);
+}
+
+function all_classes(xs) {
+    var xss = xs.map(function(x) { return x["classes"];});
+    var flattened = [].concat.apply([], xss);
+    return new Set(flattened);
+}
+
+
+function hash_array_of_string(as) {
+    var hash = 0;
+    for(var i = 0 ; i < as.length ; i++) {
+        var a = as[i];
+        hash  = ((hash << 5) - hash) + hash_string(a);
+        hash |= 0;
+    }
+    return hash;
+}
+
+function hash_string(s) {
+    var hash = 0, i, chr;
+    if (s.length === 0) return hash;
+    for (i = 0; i < s.length; i++) {
+        chr   = s.charCodeAt(i);
+        hash  = ((hash << 5) - hash) + chr;
+        hash |= 0; // Convert to 32bit integer
+    }
+    return hash;
+}
+
+function matchy_magic(src, trg) {
+    var cs = all_classes(src);
+    trg.forEach(function(x) {
+        var s = intersection(cs, new Set(x["classes"]));
+        x["matching-classes"] = s;
+    });
+}
+
+// intersection :: Set a -> Set a -> Set a
+function intersection(m, n) {
+    return new Set([...m].filter(function(x) {return n.has(x)}));
+}
 
 function show_lin(lang, lin) {
-    clear_selection();
+    reset_selection();
     var sentence = $('#' + lang).empty();
     // var tree = parse_tree(DATA[lang].tree);
     for (var i=0; i<lin.length; i++) {
-        var previous = i > 0 ? lin[i-1].lin : null;
-        var current = lin[i].lin;
+        var linTok = lin[i];
+        var previous = i > 0 ? lin[i-1].concrete : null;
+        var current = linTok.concrete;
+        var menu = DATA[lang].menu
         var spacing = (previous == NOSPACING || current == NOSPACING || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
             ? ' ' : ' &nbsp; ';
+        var spacyData = {
+            nr: i,
+            lang: lang,
+            "valid-menus": getValidMenusEmpty(i, menu)
+        };
         $('<span>')
-            .addClass('space clickable').data({nr:i, lang:lang})
+            .addClass('space clickable').data(spacyData)
             .html(spacing).click(click_word)
             .appendTo(sentence);
-        var path = lin[i].path;
-        var match = lin[i].matched && lin[i].matched.length;
-        // var subtree = lookup_subtree(path, tree);
+        var classes = linTok["classes"];
+        var matchingClasses = linTok["matching-classes"];
+        var match = matchingClasses.size > 0;
+        var validMenus = getValidMenus(i, menu);
+        var wordData = {
+            nr: i,
+            lang: lang,
+            "classes": classes,
+            /* , subtree:subtree */
+            "valid-menus": validMenus
+        }
         var wordspan = $('<span>')
-            .addClass('word clickable').data({nr:i, lang:lang, path:path /* , subtree:subtree */ })
-            .html(current + '<sub class="debug">' + (match ? "=" : "") + path /* + ' ' + show_tree(subtree) */ + '</sub>')
+            .addClass('word clickable').data(wordData)
+            .html(current + '<sub class="debug">' + (match ? "=" : "") + JSON.stringify(classes) /* + ' ' + show_tree(subtree) */ + '</sub>')
             .click(click_word)
             .appendTo(sentence);
         if (match) {
-            wordspan.addClass('match').addClass(DATA.matching_classes[path]);
+            wordspan.addClass('match');
+            var h = hash_array_of_string(Array.from(matchingClasses));
+            var c = int_to_rgba(h);
+            wordspan.css({"background-color": c})
         }
     }
     $('<span>')
@@ -299,11 +363,39 @@ function show_lin(lang, lin) {
         .appendTo(sentence);
 }
 
+function int_to_rgba(num) {
+    num >>>= 0;
+    var b = num & 0xFF,
+        g = (num & 0xFF00) >>> 8,
+        r = (num & 0xFF0000) >>> 16,
+        // a = ( (num & 0xFF000000) >>> 24 ) / 255 ;
+        a = .5;
+    return "rgba(" + [r, g, b, a].join(",") + ")";
+}
 
+function update_menu(m, idx) {
+    var prev = window.currentMenu;
+    if(prev !== undefined && prev.idx != idx) {
+        reset_selection();
+    } else {
+        remove_selection_highlighting();
+    }
+    window.currentMenu = {
+        menu: m,
+        idx: idx
+    };
+}
 
-function clear_selection() {
+function remove_selection_highlighting() {
     $('.striked').removeClass('striked');
     $('#menus').empty();
+}
+
+function reset_selection() {
+    remove_selection_highlighting();
+    if(window.currentMenu != null) {
+        window.currentMenu.menu.reset();
+    }
 }
 
 
@@ -311,6 +403,25 @@ function click_word(event) {
     var clicked = $(event.target).closest('.clickable');
     var lang = clicked.data().lang;
     var path = clicked.data().path;
+    var validMenus = clicked.data("valid-menus");
+    var idx = clicked.data("nr");
+    function mark_selected_words(lin, sel) {
+        for(var i = 0 ; i < lin.length ; i++) {
+            var pword = lin[i].concrete;
+            // var marked = prefixOf(selection, pword.path);
+            var marked = is_selected(sel, i);
+            $('<span>').text(pword)
+                .addClass(marked ? 'marked' : 'greyed')
+                .appendTo(menuitem);
+            $('<span>').text(" ").appendTo(menuitem);
+        }
+    }
+    if(validMenus === "nothing") {
+        throw "No menu for item";
+    }
+    if(validMenus === undefined) {
+        throw "No menu found. Probably because the user clicked a space between words, this is still not supported.";
+    }
 
     if (clicked.hasClass('striked') && $('#menus ul').length > 1) {
         $('#menus ul').first().remove();
@@ -338,63 +449,44 @@ function click_word(event) {
             }
         }
         var selection = getSelection();
-        clear_selection();
+        update_menu(validMenus, idx);
 
-        // A given `.clickable` have multiple menus associated with
-        // it.  By clicking multiple times on the same `.clickable`
-        // the user is presented with these different menus.  Return
-        // values mean:
-        //
-        //     null      -> Do not make a selection
-        //     string    -> Path to node.
-        //
-        // Also modifies `selection` from closure.
-        function getMenus(data) {
-            var menus = data[lang].menu[selection];
-            while (!(menus && menus.length)) {
-                selection = next_selection(selection);
-                if (selection == null) return null;
-                menus = data[lang].menu[selection];
-            }
-            return menus;
-        }
-        var menus = getMenus(DATA);
-        console.info(menus);
-        if (menus === null) return;
+        // These are the valid menus.  Now we must toggle between them
+        // somehow.
+        var selsnmen = validMenus.next();
+        // Again we changed the selection, we can try mapping the snd
+        // component.
+        selection    = selsnmen[0];
+        var menus    = selsnmen[1];
+        if (menus === null) throw "No menu found";
 
         clicked.addClass('striked');
         $('#' + lang).find('.word')
             .filter(function(){
-                return $(this).data().path.startsWith(selection);
+                var idx = $(this).data("nr");
+                return is_selected(selection, idx);
             })
             .addClass('striked');
-        // $('#' + lang).find('.space')
-        //     .filter(function(){
-        //         var nr = $(this).data().nr;
-        //         return lin[nr] ? path.startsWith(selection) : false;
-        //     })
-        //     .addClass('striked');
 
         $('#menus').data('selection', selection);
         var ul = $('<ul>').appendTo($('#menus')).hide();
         for (var i = 0; i < menus.length; i++) {
-
-            var item = menus[i];
+            var pr = menus[i];
+            var item = pr[1]; // snd
             var menuitem = $('<span class="clickable">')
-                .data({'trees': item.trees, 'lang': lang})
+                .data('item', item)
+                .data('lang', lang)
                 .click(BUSY(function(c){
-                    select_menuitem($(c).data());
+                    var $c = $(c);
+                    var item = $c.data('item');
+                    var lang = $c.data('lang');
+                    select_menuitem(item, lang);
                 }));
-            if (item.lin.length == 0) {
+            var lin = item;
+            if (lin.length == 0) {
                 $('<span>').html("&empty;").appendTo(menuitem);
             } else {
-                item.lin.forEach(function(pword){
-                    var marked = pword.path.startsWith(selection);
-                    $('<span>').text(pword.lin)
-                        .addClass(marked ? 'marked' : 'greyed')
-                        .appendTo(menuitem);
-                    $('<span>').text(" ").appendTo(menuitem);
-                });
+                mark_selected_words(lin, pr[0])
             }
             $('<li>').append(menuitem).appendTo(ul);
 
@@ -416,9 +508,93 @@ function click_word(event) {
     }).show();
 }
 
+// is_selected :: Menu.Seleection -> Int -> Bool
+function is_selected(sel, idx) {
+    function within(intval, i) {
+        var a = intval[0];
+        var b = intval[1];
+        if(i < a) return false;
+        if(i >= b) return false;
+        return true;
+    }
+    for(var intval of sel) {
+        if(within(intval, idx)) return true;
+    }
+    return false;
+}
 
-function select_menuitem(item) {
-    DATA[item.lang].trees = item.trees;
+function getValidMenus(idx, menu) {
+    var mp = lookupKeySetRange(idx, menu);
+    return iterateMenu(idx, mp);
+}
+
+function getValidMenusEmpty(idx, menu) {
+    var mp = lookupKeySetEmptyRange(idx, menu);
+    return iterateMenu(idx, mp);
+}
+
+function iterateMenu(idx, mp) {
+    var a = Array.from(mp);
+    // This is a bit counter-intuitive perhaps, but this is because
+    // when we call next we start by incrementing the counter.
+    var initial = -1;
+    var i = initial;
+    if(a.length === 0) return "nothing";
+    return {
+        next: function() {
+            i = (i+1) % a.length;
+            return a[i];
+        },
+        reset: function() {
+            i = initial;
+        }
+    }
+}
+
+function prefixOf(xs, ys) {
+    for(var i = 0 ; i < xs.length ; i ++) {
+        var x = xs[i];
+        var y = xs[i];
+        if(x != y) return false;
+    }
+    return true;
+}
+
+// Looks up a value in a set of keys. Returns the key and value where
+// the value is present in the key.
+
+// lookupKeySet :: Int -> Map [(Int, Int)] v -> [([(Int, Int)], v)]
+function lookupKeySetRange(idx, map) {
+    return lookupKeySetWith(idx, map, is_selected);
+}
+
+function is_selected_empty(sel, idx) {
+    function within(intval, i) {
+        var a = intval[0];
+        var b = intval[1];
+        if(a !== b) return false;
+        return i === a;
+    }
+    for(var intval of sel) {
+        if(within(intval, idx)) return true;
+    }
+    return false;
+}
+
+function lookupKeySetEmptyRange(idx, map) {
+    return lookupKeySetWith(idx, map, is_selected_empty);
+}
+function* lookupKeySetWith(idx, map, f) {
+    for(var item of map) {
+        var ks = item[0];
+        if(f(ks, idx)) {
+            yield item;
+        }
+    }
+}
+
+function select_menuitem(item, lang) {
+    ct_setLinearization(DATA[lang], item);
     DATA.token = LOGIN_TOKEN;
     DATA.time = elapsed_time();
     call_server(MESSAGES.MENU, DATA);

@@ -1,6 +1,5 @@
 BACKLOG
 =======
-
 Restore bitrotten test-cases
 ---
 
@@ -26,18 +25,6 @@ Use front end framework
 
 https://github.com/MUSTE-Project/MULLE/issues/6
 
-Better configuration support
----
-
-E.g. using `optparse-applicative`.
-
-Pretty- print/parse for `TTree`?
----
-
-It might make sense to have an instance of `Pretty` for `TTree` based
-on PGF parser/printer.  This will require us to make the grammar a
-field of `TTree`.  Perhaps we can do something similar for parsing?
-
 Set expiry on session cookie
 ---
 
@@ -48,34 +35,28 @@ their session?
 Move more parameters into location or query params
 ---
 
-Improved support for insertion
+Issue #2: Improved support for insertion
 ----
 
 https://github.com/MUSTE-Project/MULLE/issues/2
 
+We should now correctly be reporting which trees are to be considered
+"insertions", we now need to make the front end act on this.
+
+We need to decide is how to encode an insertion as a `Selection`.
+
 Automatically generate .pgf files
 ---
 
-The project depends on the `.pgf` files existing.  They are
-automatically generated and should not be source controlled.  There
-should be a make target that generates these files from
-`muste-ajax/data/gf/grammars/**/*.gf`.
+Make this a part of the build pipeline.  The user currently needs to
+manually call `make`.
 
-Issue #3: Change representation from single tree to sets of trees.
+Issue #10: Make client oblivious to `TTree`s
 ---
 
-https://github.com/MUSTE-Project/MULLE/issues/3
+https://github.com/MUSTE-Project/MULLE/issues/10
 
-Inn `Protocol.emptyMenus` and `Protocol.assembleMenus` we make use of
-`unsafeTakeTree`.  This is perhaps inelegant, but should be safe.
-Should work under the assumption that all the trees we consider have
-the same linearization, so it probably shouldn't matter which one we
-pick.  It would be nice to encapsulate this in the type somehow.  One
-low-hanging piece of fruit would be to use some representation for a
-non-empty set. Since we at least need one reference tree to linearize.
-Also there is some code-duplication in `Protocol.emptyMenus` and
-`Protocol.assembleMenus` that I haven't been able to get rid of.  This
-is because they differ ever so slightly.
+Builds on #3: https://github.com/MUSTE-Project/MULLE/issues/3
 
 Wide / narrow grammar
 ---
@@ -87,3 +68,18 @@ Do we want to keep supporting `muste-cgi`?
 
 AFAIK CGI scripts just speak a different protocol from
 `application/json`.  So this should be easy to keep support for.
+
+Issue #19: New algorithm for creating menus
+---
+
+We must change the tests to now use 'NewFancyMenu' in stead.
+
+The CLI should also use the new menu.
+
+One problem with the new approach to generating menus is that some
+un-related words are highlighted, as in e.g.:
+
+    a[aSg_Det] good king[king_N] is a[aSg_Det] blue king
+    en[aSg_Det] kung[king_N] älskar Paris
+
+The current implementation is horridly sluggish.

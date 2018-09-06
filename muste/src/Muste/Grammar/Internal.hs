@@ -1,21 +1,23 @@
+{-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
 {-# language OverloadedStrings, TypeApplications, UnicodeSyntax #-}
 {- | This Module is the internal implementation behind the module 'Muste.Grammar' -}
 module Muste.Grammar.Internal
   ( Grammar(..)
   , Rule(..)
-  , pgfToGrammar
+  -- Used internally
   , isEmptyGrammar
-  , getFunType
   , getAllRules
   , getRuleType
   , brackets
-  -- Used in test module
   , parseTTree
   , lookupGrammar
+  , lookupGrammarM
   , parseGrammar
-  )  where
+  , parseSentence
+  ) where
 
-import Prelude hiding (id)
+import Prelude ()
+import Muste.Prelude
 
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -23,17 +25,16 @@ import Data.ByteString as SB (ByteString)
 import qualified Data.ByteString.Lazy as LB
 -- This might be the only place we should know of PGF
 import qualified PGF
-  ( Tree(..), wildCId, mkCId, functions
+  ( Tree, wildCId, functions
   , showCId, startCat, functionType, parsePGF
-  , bracketedLinearize
+  , bracketedLinearize, parse
   )
 import PGF.Internal as PGF hiding (funs, cats)
-import Data.List
+import Data.List (union, partition)
 import Data.Text.Prettyprint.Doc (Pretty(..))
 import qualified Data.Text.Prettyprint.Doc as Doc
-import Text.Printf
 
-import qualified Muste.Grammar.Grammars as Grammars (grammars)
+import qualified Muste.Grammar.Grammars as Grammars
 import Muste.Common
 import Muste.Tree
 import qualified Muste.Tree.Internal as Tree (toGfTree)
@@ -43,12 +44,13 @@ import qualified Muste.Tree.Internal as Tree (toGfTree)
 data Rule = Function String FunType deriving (Ord,Eq,Show,Read)
 
 -- | Type 'Grammar' consists of a start category and a list of rules.
-data Grammar = Grammar {
-  startcat :: String,
-  synrules :: [Rule],
-  lexrules :: [Rule],
-  pgf :: PGF
+data Grammar = Grammar
+  { startcat :: String
+  , synrules :: [Rule]
+  , lexrules :: [Rule]
+  , pgf :: PGF
   }
+
 
 instance Pretty Grammar where
   pretty (Grammar sCat srules lrules _) = Doc.sep
@@ -57,16 +59,13 @@ instance Pretty Grammar where
     , p "Lexical Rules: %s" (s lrules)
     ]
     where
-    s = unwords . (map (\r -> "\t" ++ show r ++ "\n"))
+    s = unwords . map (\r -> "\t" ++ show r ++ "\n")
     p :: String -> String -> Doc.Doc ann
     p frmt s = Doc.pretty @String $ printf frmt s
 
--- | Rename GF abstract syntax tree (from PGF)
-type GFAbsTree = PGF.Tree
-
 -- | The function 'getRules' returns the union of syntactic and lexical rules of a grammar
 getAllRules :: Grammar -> [Rule]
-getAllRules g = union (synrules g) (lexrules g)
+getAllRules g = synrules g `union` lexrules g
 
 -- | The function 'getRuleType' extracts the full type of a rule
 getRuleType :: Rule -> FunType
@@ -135,7 +134,7 @@ pgfToGrammar pgf
             }
 
 parseGrammar
-  :: LB.ByteString -- ^ Path to the grammar.
+  :: LB.ByteString -- ^ The grammar in binary format.
   -> Grammar
 parseGrammar = pgfToGrammar . PGF.parsePGF
 
@@ -144,30 +143,50 @@ brackets grammar language ttree
   = PGF.bracketedLinearize (pgf grammar) language (Tree.toGfTree ttree)
 
 parseTTree :: Grammar -> String -> TTree
-parseTTree g = gfAbsTreeToTTree g . read
+parseTTree g = fromGfTree g . read
 
--- | The function 'gfAbsTreeToTTree' creates a 'TTree' from an
--- 'GFAbsTree' and a 'Grammar'. Othewise similar to
--- 'gfAbsTreeToTTreeWithPGF'
-gfAbsTreeToTTree :: Grammar -> GFAbsTree -> TTree
-gfAbsTreeToTTree g (EFun f) =
+-- | The function 'fromGfTree' creates a 'TTree' from an
+-- 'PGF.Tree' and a 'Grammar'. Othewise similar to
+-- 'fromGfTreeWithPGF'
+fromGfTree :: Grammar -> PGF.Tree -> TTree
+fromGfTree g (EFun f) =
   let
     typ = getFunType g (PGF.showCId f)
   in
     TNode (PGF.showCId f) typ []
-gfAbsTreeToTTree g (EApp e1 e2) =
+fromGfTree g (EApp e1 e2) =
   let
-    (TNode name typ sts) = gfAbsTreeToTTree g e1
-    st2 = gfAbsTreeToTTree g e2
+    (TNode name typ sts) = fromGfTree g e1
+    st2 = fromGfTree g e2
   in
     TNode name typ (sts ++ [st2])
-gfAbsTreeToTTree _ _ = TMeta wildCard
+fromGfTree _ _ = TMeta wildCard
 
-grammars :: Map String Grammar
+grammars :: Map Text Grammar
 grammars = Map.fromList (uncurry grm <$> Grammars.grammars)
   where
-  grm :: String -> SB.ByteString -> (String, Grammar)
+  grm :: Text -> SB.ByteString -> (Text, Grammar)
   grm idf pgf = (idf, parseGrammar $ LB.fromStrict pgf)
 
-lookupGrammar ∷ String → Maybe Grammar
+-- | Lookup a grammar amongst the ones that we know of.  The grammars
+-- that we know of are the ones linked against this binary at
+-- compile-time.  See 'Muste.Grammar.Grammars.grammars'.
+lookupGrammar ∷ Text → Maybe Grammar
 lookupGrammar s = Map.lookup s grammars
+
+-- | Lookup a grammar in some fallible monad.  A lifted version of
+-- 'lookupGrammar'.
+lookupGrammarM ∷ MonadFail m ⇒ String → Text → m Grammar
+lookupGrammarM err = lookupGrammar >>> maybeFail err
+
+-- | Parses a linearized sentence.  Essentially a wrapper around
+-- 'PGF.parse'.
+parseSentence ∷ Grammar → Language → String → [TTree]
+parseSentence grammar lang = pgfIfy >>> fmap musteIfy
+  where
+  pgfIfy ∷ String → [PGF.Tree]
+  pgfIfy = PGF.parse (pgf grammar) lang (PGF.startCat p)
+  musteIfy ∷ PGF.Tree → TTree
+  musteIfy = fromGfTree grammar
+  p ∷ PGF.PGF
+  p = pgf grammar

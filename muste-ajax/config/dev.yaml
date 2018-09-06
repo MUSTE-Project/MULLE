@@ -1,0 +1,3 @@
+static-dir: ./muste-ajax/static/
+port: 8080
+log-dir: .

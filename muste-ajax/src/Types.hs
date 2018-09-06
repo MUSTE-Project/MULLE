@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wall #-}
 -- | One type per table
 module Database.Types
   ( User

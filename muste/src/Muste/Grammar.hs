@@ -2,11 +2,8 @@
 module Muste.Grammar
   ( Grammar
   , Rule
-  , pgfToGrammar
-  , isEmptyGrammar
-  , getFunType
-  , getAllRules
-  , getRuleType
+  , Muste.Grammar.TH.tree
   ) where
 
 import Muste.Grammar.Internal
+import qualified Muste.Grammar.TH

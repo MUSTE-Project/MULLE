@@ -1,7 +1,7 @@
+{-# OPTIONS_GHC -Wall #-}
 module Muste.Menu
-  ( Menu
-  , getCleanMenu
-  , CostTree
+  ( NewFancyMenu
+  , getNewFancyMenu
   ) where
 
-import Muste.Menu.Internal
+import Muste.Menu.New

@@ -1,5 +1,5 @@
 name:                muste-ajax
-version:             0.2.2.0
+version:             0.2.4.0
 license-file:        LICENSE
 author:              Herbert Lange
 maintainer:          herbert.lange@cse.gu.se
@@ -12,17 +12,21 @@ flags:
     manual: true
     default: false
 
-# ghc-options: -fmax-valid-substitutions=0
+ghc-options: -fmax-valid-substitutions=0
+
+default-extensions:
+- LambdaCase
+- OverloadedStrings
+- TypeApplications
+- ViewPatterns
+- FlexibleContexts
+- StandaloneDeriving
+- TupleSections
+- UnicodeSyntax
+- ConstraintKinds
 
 data-files:
-  - ./log/*.log
   - ./static/index.html
-  - ./static/muste.html
-  - ./static/cgi-simulation/muste-backend.js
-  - ./static/cgi-simulation/prima.js
-  - ./static/cgi-simulation/GF.js
-  - ./static/muste-haste.css
-  - ./static/muste-haste.html
   - ./static/img/menu.jpg
   - ./static/img/menu2.jpg
   - ./static/img/menu1.jpg
@@ -40,41 +44,70 @@ data-files:
   - ./static/favicon.ico
   - ./static/muste.css
 
-# Relative paths disables Haskell's resource file mechanism. All paths
-# are resolved locally to where the `stack exec` command is executed.
-# See module `Config`.
-cpp-options: -DRELATIVE_PATHS
+default-extensions:
+- UnicodeSyntax
+- NamedWildCards
+- TypeSynonymInstances
+- FlexibleInstances
+- ScopedTypeVariables
+- ViewPatterns
+- DeriveGeneric
+- LambdaCase
+- TypeApplications
+- StandaloneDeriving
+- GADTs
+- GeneralizedNewtypeDeriving
+- TypeFamilies
 
 dependencies:
-  - base >= 4.8 && < 4.12
-  - aeson >=1.0
-  - text
-  - bytestring
-  - containers
-  - muste
-  - pgf
-  - mtl
-  - network-uri
-  - filepath
-  - vector
-  - time
-  - base64-bytestring
-  - cryptonite
-  - crypto-random-api
-  - wai
-  - warp
-  - http-types
-  - sqlite-simple >= 0.4.16.1
-  - QuickCheck
-  - snap
-  - snap-core
-  - snap-server
-  - snap-extras
-  - lens
-  - io-streams
-  - exceptions
+- QuickCheck           >= 2.9.2    && < 2.12
+- aeson                >= 1.1.2.0  && < 1.4
+- base                 >= 4.9.1.0  && < 4.12
+- base64-bytestring    >= 1.0.0.1  && < 1.1
+- bytestring           >= 0.10.8.1 && < 0.11
+- containers           >= 0.5.7.1  && < 0.6
+- crypto-random-api    >= 0.2.0    && < 0.3
+- cryptonite           >= 0.23     && < 0.26
+- direct-sqlite        >= 2.3.21   && < 2.4
+- directory            >= 1.3.0.0  && < 1.4
+- exceptions           >= 0.8.3    && < 0.11
+- file-embed           >= 0.0.10   && < 0.1
+- filepath             >= 1.4.1.1  && < 1.5
+- http-types           >= 0.9.1    && < 0.13
+- io-streams           >= 1.4.1.0  && < 1.6
+- lens                 >= 4.15.4   && < 4.17
+- mtl                  >= 2.2.1    && < 2.3
+- muste                >= 0.2.3.1  && < 0.3
+- network-uri          >= 2.6.1.0  && < 2.7
+- optparse-applicative >= 0.13.2.0 && < 0.15
+- pgf                  >= 3.9.1    && < 3.10
+- prettyprinter        >= 1.1.1    && < 1.3
+- snap                 >= 1.1.1.0  && < 1.2
+- snap-core            >= 1.0.3.1  && < 1.1
+- snap-extras          >= 0.12.2.0 && < 0.13
+- snap-server          >= 1.0.3.3  && < 1.2
+- sqlite-simple        >= 0.4.16.1 && < 0.5
+- template-haskell     >= 2.11.1.0 && < 2.14
+- text                 >= 1.2.2.2  && < 1.3
+- time                 >= 1.6.0.1  && < 1.9
+- vector               >= 0.12.0.1 && < 0.13
+- wai                  >= 3.2.1.1  && < 3.3
+- warp                 >= 3.2.13   && < 3.3
+- yaml                 >= 0.8.25   && < 0.9
+- gitrev
 
 library:
+  default-extensions:
+  - LambdaCase
+  - ScopedTypeVariables
+  - OverloadedStrings
+  - TypeApplications
+  - ViewPatterns
+  - FlexibleContexts
+  - StandaloneDeriving
+  - TupleSections
+  - UnicodeSyntax
+  - ConstraintKinds
 
   source-dirs:
     - src
@@ -84,55 +117,18 @@ library:
     - Database
     - Database.Types
     - Config
+    - Config.TH
     - Protocol
+    - Common
 
   other-modules:
     - Paths_muste_ajax
 
-executables:
-  muste-ajax:
-    source-dirs:
-      - muste-ajax
+executable:
+  source-dirs:
+    - app
 
-    main: Main.hs
+  main: Main.hs
 
-    # when:
-    #   - condtion: flag(CGI)
-    #     then:
-    #       main:             Main-CGI.hs
-    #     else:
-    #       main:             Main-Standalone.hs
-
-    # when:
-    #   - condition: flag(CGI)
-    #     then:
-    #       dependencies:       cgi >= 3001.3.0.2
-    #     else:
-
-    dependencies:
-      - muste-ajax
-
-  # Commented out because cgi is currently incompatible with lts-12.0
-
-  muste-cgi:
-    source-dirs:
-      - muste-cgi
-
-    main: Main.hs
-
-    dependencies:
-      - muste-ajax
-      - cgi >= 3001.3.0.2
-
-  db-init:
-    source-dirs:
-      - db-init
-
-    main: Main.hs
-
-    other-modules:
-      - Data
-      - Paths_muste_ajax
-
-    dependencies:
-      - muste-ajax
+  dependencies:
+    - muste-ajax

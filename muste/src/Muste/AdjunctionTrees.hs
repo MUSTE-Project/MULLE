@@ -1,22 +1,15 @@
-{-# Language
-    GeneralizedNewtypeDeriving
-  , TypeFamilies
-  , StandaloneDeriving
-  , CPP
-#-}
+{-# OPTIONS_GHC -Wall #-}
 -- | Adjunction trees
 --
 -- Interfacint with 'AdjunctionTrees' is done using the interface for
 -- monomorphic map containers.
 module Muste.AdjunctionTrees (AdjunctionTrees) where
 
+import Prelude ()
+import Muste.Prelude
 import qualified Data.Containers      as Mono
 import Data.MonoTraversable
 import qualified Data.Map.Strict      as M
-#if MIN_VERSION_base(4,11,0)
-#else
-import Data.Semigroup (Semigroup)
-#endif
 
 import Muste.Tree
 

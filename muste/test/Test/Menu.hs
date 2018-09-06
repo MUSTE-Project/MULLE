@@ -1,88 +1,195 @@
-{-# Language UnicodeSyntax, NamedWildCards, TemplateHaskell #-}
+{-# Language UnicodeSyntax, NamedWildCards, TemplateHaskell
+  , PartialTypeSignatures, OverloadedStrings #-}
+-- TODO Still need to add test-case that uses a menu.
+{-# OPTIONS_GHC -Wall #-}
 module Test.Menu (tests) where
 
-import Data.Semigroup
-import Data.Maybe
-import Data.Functor
-import Control.Monad (void)
+import Prelude hiding (fail)
 import Test.Tasty
 import Test.Tasty.HUnit
-import Data.Map (Map)
-import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.Foldable
+import Control.Category ((>>>))
+import Control.Monad (when)
+import Control.Monad.Fail (MonadFail)
 import Text.Printf
 import qualified Data.Containers as Mono
-import Data.ByteString (ByteString)
-import qualified Data.ByteString.Lazy as LB
-import Data.Text.Prettyprint.Doc (Pretty)
-import qualified Data.Text.Prettyprint.Doc as Doc
+import Data.Text.Prettyprint.Doc
+  ( Pretty, Doc, pretty, nest
+  , vsep, (<+>), brackets, enclose
+  )
+import Data.Text (Text)
 
-import Muste.Common
-import Muste
-import Muste.Menu
-import qualified Muste.Tree.Internal as Tree
-import qualified Muste.Grammar.Internal as Grammar
+import Muste (Grammar, TTree, Linearization, Context)
+-- TODO Must test NewFancyMenu in stead.
+import Muste.Menu.Internal (Menu)
 import qualified Muste.Menu.Internal as Menu
+import qualified Muste.Common as Common
+import qualified Muste.Grammar.Internal as Grammar
 import qualified Muste.Linearization.Internal as Linearization
-import qualified Muste.Grammar.Embed as Embed
+import Muste.Selection (Selection)
+import qualified Muste.Selection as Selection
+import qualified Muste.Util as Util
 
-resource :: Applicative m ⇒ m Grammar
-resource = pure grammar
+import Test.Common (failDoc, renderDoc)
+import qualified Test.Common as Test
+
+grammar :: Grammar
+grammar = Test.grammar
+
+getMenu ∷ TTree → TTree → TTree → Menu
+getMenu src trg = mkLin src trg >>> Menu.getMenu theCtxt
+
+mkLin ∷ TTree → TTree → TTree → Linearization
+mkLin src trg = Linearization.mkLin theCtxt src trg
+
+theCtxt ∷ Context
+theCtxt = Util.unsafeGetContext grammar "ExemplumSwe"
+
+-- | Checks that the
+tests ∷ TestTree
+tests = testGroup "Menu" [menuLin, menuTrees]
+
+-- | A test-case consists of the following (in order of appearance):
+--
+-- * A helpful name for the test-case.
+-- * The language that the two sentences are written in.
+-- * The sentence to get suggestions from.
+-- * The "selection" to make.
+-- * A sentence to (alt.: not) expect to be at this position in the
+--   menu.
+-- * Whether to expect the sentence to be amongst the suggestions, or
+--   expect it *not* to be there.
+type LinTestCase = (String, Text, String, [Int], String, Bool)
+
+menuLin ∷ TestTree
+menuLin = testGroup "Linearization" $ mkTestLinearizations <$>
+  [ ("kungen->en kung", "ExemplumSwe", "kungen älskar Paris"        , [0]  , "en kung älskar Paris"       , expectSuccess)  -- FAIL
+  , ("kungen->Johan"  , "ExemplumSwe", "kungen älskar Paris"        , [0]  , "Johan älskar Paris"         , expectSuccess)
+  , ("älskar->är"     , "ExemplumSwe", "kungen älskar Paris"        , [1]  , "kungen är Paris"            , expectSuccess)
+  , ("kungen->huset"  , "ExemplumSwe", "kungen är stor"             , [0]  , "huset är stort"             , expectSuccess) 
+  , ("Paris->stor"    , "ExemplumSwe", "kungen är Paris"            , [2]  , "kungen är stor"             , expectSuccess)  -- FAIL
+  , ("Paris->en vän"  , "ExemplumSwe", "kungen är Paris"            , [2]  , "kungen är en vän"           , expectSuccess)
+  , ("DEL: det kalla" , "ExemplumSwe", "det kalla huset är stort"   , [0,1], "huset är stort"             , expectSuccess)  -- FAIL
+    -- NOTE: the "selection" should really be an insertion BEFORE "fienden" -- how do we represent that?
+  , ("INS: det kalla" , "ExemplumSwe", "huset är stort"             , []   , "det kalla huset är stort"   , expectSuccess)  -- FAIL
+  , ("Johan->en kung" , "ExemplumSwe", "Johan älskar Paris"         , [0]  , "en kung älskar Paris"       , expectSuccess)
+  , ("INS: stor"      , "ExemplumSwe", "en kung älskar Paris"       , []   , "en stor kung älskar Paris"  , expectSuccess)  -- FAIL
+  , ("Joh.->en st. k.", "ExemplumSwe", "Johan älskar Paris"         , [0]  , "en stor kung älskar Paris"  , expectFailure)
+  , ("INS: idag"      , "ExemplumSwe", "Johan älskar vännen"        , []   , "Johan älskar vännen idag"   , expectSuccess)  -- FAIL
+  , ("INS: i Paris"   , "ExemplumSwe", "Johan älskar vännen"        , []   , "Johan älskar vännen i Paris", expectSuccess)  -- FAIL
+  , ("DEL: idag"      , "ExemplumSwe", "Johan älskar vännen idag"   , [3]  , "Johan älskar vännen"        , expectSuccess)  -- FAIL
+  , ("DEL: i Paris"   , "ExemplumSwe", "Johan älskar vännen i Paris", [3,4], "Johan älskar vännen"        , expectSuccess)  -- FAIL
+  ]
   where
-  g = "novo-modo-test/Prima"
-  err = error "Can't find grammar"
-  grammar' ∷ (String, ByteString)
-  grammar' = $(Embed.grammar "novo_modo/Prima")
-  grammar ∷ Grammar
-  grammar = Grammar.parseGrammar $ LB.fromStrict $ snd grammar'
+  expectSuccess = True
+  expectFailure = False
 
-ambiguities ∷ Grammar → Assertion
-ambiguities grammar = (menu `contains` both) @?= True
+-- | Makes tests for menus based on 'Linearization's (as opposed to
+-- 'mkTest' that does it based on the internal syntax for sentences).
+mkTestLinearizations ∷ LinTestCase → TestTree
+mkTestLinearizations (nm, lang, src, sel, trg, isExpected)
+  -- Create a test-case with the given name.
+  = testCase nm $ do
+    -- Look up suggestions for source tree.  Convert results to their
+    -- string-representation.
+    sg ← Set.map Linearization.stringRep
+      <$> getSuggestions ctxt src (Selection.fromList sel)
+    -- Get the string representation of the target.  We could just use
+    -- the argument passed in, but this also ensures that the grammar
+    -- understands the sentence.  Note that ambiguities may be
+    -- introduced here, so this returns a set.
+    let trgL = Set.map Linearization.stringRep
+          $ parseLin ctxt trg
+    -- Some tests are negative tests.  'expecter' reflects this.
+        expecter = if isExpected then id else not
+    -- This is where you need to "holde tungen like i munden".  We
+    -- test the interesection of the suggestions with the (alt.: not-)
+    -- expected result.  If the interesection is empty ('null') then
+    -- this is an error (alt.: a success).  However!  The following
+    -- statement will throw when the condition is *met*.
+    when (expecter $ Set.null (Set.intersection @String sg trgL))
+    -- Just some pretty-printing of the expected behaviour (shown on
+    -- failure).  'failDoc' is a helper that 'throw's and
+    -- pretty-prints some pretty-printable stuff in that case.
+      (failDoc $ nest 2 $ vsep
+        [ pretty @String $ "Testing: [" <> src <> "]  -->  [" <> trg <> "]"
+        , pretty @String " "
+        , pretty @String $ "Expected to " <> (if isExpected then "" else "*not* ") <> "find one of:"
+        , prettyTruncate limit trgL
+        , pretty @String " "
+        , pretty @String "Somewhere in the menu:"
+        , prettyTruncate limit sg
+        , pretty @String " "
+        ]
+      )
+    where
+    ctxt ∷ Context
+    ctxt = Util.unsafeGetContext grammar lang
+    limit = maxBound
+
+getSuggestions
+  ∷ MonadFail m
+  ⇒ Context
+  → String
+  → Selection
+  → m (Set Linearization)
+getSuggestions ctxt s sl = Set.fromList . map Menu.lin
+  <$> Common.lookupFail err sl mn
   where
-  ctxts ∷ Map String Context
-  ctxts = Linearization.readLangs grammar
-  treeDefinite ∷ TTree
-  treeDefinite = parse
-    $ "useS (useCl (simpleCl (useCNdefsg   (useN hostis_N)) "
-    <>            "(transV vincere_V2 (usePN Africa_PN))))"
-  treeIndefinite ∷ TTree
-  treeIndefinite = parse
-    $ "useS (useCl (simpleCl (useCNindefsg (useN hostis_N)) "
-    <>            "(transV vincere_V2 (usePN Africa_PN))))"
-  both ∷ [TTree]
-  both = [treeDefinite, treeIndefinite]
-  contains ∷ Menu → [TTree] → Bool
-  contains mn ts
-    = contains' ts
-    $ groupsOfTrees mn
-  groupsOfTrees ∷ Menu → [[TTree]]
-  groupsOfTrees mn
-    = map (Set.toList . Menu.trees)
-    $ fromMaybe (error "Path not found")
-    $ Mono.lookup [0,0,0] mn
-  contains' ∷ [TTree] → [[TTree]] → Bool
-  contains' ts = any (isSubListOf ts)
-  menu = getMenu ctxts treeDefinite
-  parse ∷ String → TTree
-  parse = Grammar.parseTTree grammar
+  mn = Menu.getMenuFromStringRep ctxt s
+  err ∷ String
+  err = renderDoc
+    $ vsep
+      -- [ pretty @String (printf "Selection (%s) not found in menu for: \"%s\"" sl s)
+      [ pretty @String "Selection" <+> brackets (pretty sl) <+> pretty @String "not found in menu for:" <+> quotes (pretty @String s)
+      , pretty @String "Available selections:"
+      , pretty @[Selection] $ Mono.keys mn
+      ]
+  quotes = enclose (pretty @String "\"") (pretty @String "\"")
 
-getMenu ∷ Map String Context → TTree → Menu
-getMenu ctxts = getCleanMenu latinCtxt
+parseLin ∷ Context → String → Set Linearization
+parseLin ctxt = parseTree' >>> map mkL >>> Set.fromList
   where
-  latinCtxt ∷ Context
-  latinCtxt = fromMaybe (error "Can't find Latin context")
-    $ Map.lookup "PrimaLat" ctxts
+  parseTree' ∷ String → [TTree]
+  parseTree' = Grammar.parseSentence grammar (Linearization.ctxtLang ctxt)
+  mkL ∷ TTree → Linearization
+  mkL = Linearization.mkLinSimpl ctxt
 
-theTests ∷ IO Grammar → TestTree
-theTests act = 
-  testGroup "Prune"
-    [ "ambiguities" |> ambiguities
-    ]
+prettyTruncate ∷ Pretty a ⇒ Int → Set a → Doc b
+prettyTruncate n s = vsep $ [pretty trnc] ++ truncationWarning
   where
-  (|>) ∷ TestName → (Grammar → Assertion) → TestTree
-  tn |> asrt = testCase tn $ act >>= asrt
+  (trnc, rest) = splitAt n $ Set.toList s
+  truncationWarning = case null rest of
+    False → [pretty @String "...RESULT TRUNCATED..."]
+    True  → []
 
-tests :: TestTree
-tests = withResource resource mempty theTests
+menuTrees :: TestTree
+menuTrees = testGroup "Trees" $ mkTests
+  [ -- ("name", "source tree", [0], "target tree")
+  ]
+
+mkTests ∷ [(String, String, [Int], String)] → [TestTree]
+mkTests = map go
+  where
+  go ∷ (String, String, [Int], String) → TestTree
+  go (nm, src, n, trg) = testCase nm
+    $ assertThere (parseTree src) (Selection.fromList n) (parseTree trg)
+
+-- | @'assertThere' src n trg@ asserts that @trg@ exists in the menu
+-- you get from @src@.
+assertThere ∷ TTree → Selection → TTree → Assertion
+assertThere src n trg = do
+  cts ← lookupMenu err (getMenu src trg src)
+  Mono.member (mkLin src trg trg) cts @?= True
+  where
+  lookupMenu ∷ ∀ m . MonadFail m ⇒ String → Menu → m (Set Linearization)
+  lookupMenu s mn
+    = Set.fromList . fmap Menu.lin
+    <$> Common.lookupFail s n mn
+  err ∷ String
+  err = printf "Test.Menu.assertThere: Selection not in tree: (%s)"
+    $ show $ pretty n
+
+parseTree ∷ String → TTree
+parseTree s = Grammar.parseTTree grammar s  

@@ -1,53 +1,63 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE
+    UnicodeSyntax
+  , NamedWildCards
+  , TemplateHaskell
+  , RecordWildCards
+  , DuplicateRecordFields
+#-}
 module Config
-  ( getDB
-  , getStaticDir
-  , getErrorLog
-  , getAccessLog
-  , loggingEnabled
-  , webPrefix
-  , port
+  ( App.AppConfig
+  , appConfig
+  , Config.db
+  , Config.accessLog
+  , Config.errorLog
+  , Config.port
+  , Config.staticDir
+  , Config.wwwRoot
+  , Config.virtualRoot
   ) where
 
-import System.FilePath
+import qualified Config.TH as CFG hiding (AppConfig(..))
+import Config.TH as App (AppConfig(..))
+import System.FilePath ((</>), (<.>))
 
-import qualified Paths_muste_ajax as Paths
+cfg ∷ CFG.Config
+cfg = $( CFG.config )
 
-staticDir :: FilePath
-staticDir = "./static/"
+appConfig ∷ AppConfig
+appConfig = fromConfig cfg
 
-getStaticDir :: IO FilePath
-#ifdef RELATIVE_PATHS
-getStaticDir = pure staticDir
-#else
-getStaticDir = Paths.getDataFileName staticDir
-#endif
+fromConfig ∷ CFG.Config → AppConfig
+fromConfig (CFG.Config { .. }) = AppConfig
+  { db          = dataDir </> "muste"  <.> "sqlite3"
+  , accessLog   = logDir  </> "access" <.> "log"
+  , errorLog    = logDir  </> "error"  <.> "log"
+  , port        = port
+  , staticDir   = staticDir
+  , wwwRoot     = wwwRoot
+  , virtualRoot = virtualRoot
+  }
+  where
+  logDir  = CFG.logDir cfg
+  dataDir = CFG.dataDir cfg
 
-getDB :: IO FilePath
-getDB = Paths.getDataFileName $ "muste.db"
+staticDir     ∷ FilePath
+staticDir     = App.staticDir appConfig
 
--- FIXME Should we maybe log to the current dir (rather than the
--- shared resource returned by Haskells data-files construct) or to
--- /var/log/?
-logDir :: FilePath
-logDir = "./log/"
+port          ∷ Int
+port          = App.port appConfig
 
-getLogDir :: IO FilePath
-getLogDir = Paths.getDataFileName logDir
+wwwRoot       ∷ FilePath
+wwwRoot       = App.wwwRoot appConfig
 
-getAccessLog :: IO FilePath
-getAccessLog = (</> "access.log") <$> getLogDir
+virtualRoot   ∷ FilePath
+virtualRoot   = App.virtualRoot appConfig
 
-getErrorLog :: IO FilePath
-getErrorLog = (</> "error.log") <$> getLogDir
+db            ∷ FilePath
+db            = App.db appConfig
 
--- FIXME Handle this with CPP
--- | Switch loggin on/off
-loggingEnabled :: Bool
-loggingEnabled = True
+accessLog     ∷ FilePath
+accessLog     = App.accessLog appConfig
 
-webPrefix :: FilePath
-webPrefix = "/"
-
-port :: Int
-port = 8080
+errorLog      ∷ FilePath
+errorLog      = App.errorLog appConfig

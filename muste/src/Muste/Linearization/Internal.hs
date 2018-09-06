@@ -1,25 +1,24 @@
-{-# Language OverloadedStrings
-, GeneralizedNewtypeDeriving
-, CPP
-, StandaloneDeriving
-, FlexibleContexts
-, TypeFamilies
-, UnicodeSyntax
-, NamedWildCards
-#-}
+{-# OPTIONS_GHC -Wall #-}
+{-# Language CPP, OverloadedStrings #-}
 module Muste.Linearization.Internal
-  ( Context(ctxtGrammar, ctxtPrecomputed)
+  ( Context(..)
   , buildContext
-  , Linearization
-  , LinToken
-  , ltpath
+  , Linearization(Linearization)
+  , LinToken(..)
   , linearizeTree
   , langAndContext
   , mkLin
   , sameOrder
+  , disambiguate
   -- Used in test suite:
   , readLangs
+  , stringRep
+  , isInsertion
+  , mkLinSimpl
   ) where
+
+import Prelude ()
+import Muste.Prelude
 
 import Data.Maybe (fromMaybe)
 import Data.Map (Map)
@@ -28,62 +27,76 @@ import Data.Aeson
 -- This might be the only place we should know of PGF
 import qualified PGF
 import qualified PGF.Internal as PGF hiding (funs, cats)
-import Data.Function (on)
-import Text.Printf
-#if MIN_VERSION_base(4,11,0)
-#else
-import Data.Semigroup (Semigroup((<>)))
-#endif
 import Data.MonoTraversable
   ( Element, MonoTraversable(..), MonoFunctor
   , MonoFoldable(..), GrowingAppend, MonoPointed
   )
 import qualified Data.MonoTraversable as Mono
-import qualified Data.MonoTraversable.Unprefixed as Mono
 import Data.Sequences (SemiSequence, IsSequence, Index)
 import qualified Data.Sequences as Mono
+import qualified Data.Text as Text
 
 import Muste.Tree
+import qualified Muste.Tree.Internal as Tree
 import Muste.Grammar
-import Muste.Grammar.Grammars (grammars)
-import Muste.Grammar.Internal (pgf)
 import qualified Muste.Grammar.Internal as Grammar
-  ( brackets
-  , lookupGrammar
-  )
 import Muste.AdjunctionTrees
-
 import Muste.Prune
+import Muste.Common (enumerate)
+import Muste.Common.SQL (FromField, ToField)
+import qualified Muste.Common.SQL as SQL
+import Muste.Selection (Selection)
+import qualified Muste.Selection as Selection
 
 data LinToken = LinToken
+  -- The path refers to the path in the 'TTree'
   { ltpath :: Path
-  , _ltlin :: String
-  , _ltmatched :: Path
-  } deriving (Show)
+  , ltlin :: String
+  , ltmatched :: Path
+  }
+
+deriving instance Show LinToken
+
+deriving instance Generic LinToken
+
+instance Binary LinToken where
 
 instance Eq LinToken where
-  (==) = (==) `on` _ltlin
+  (==) = (==) `on` ltlin
 
 instance Ord LinToken where
-  compare = compare `on` _ltlin
+  compare = compare `on` ltlin
 
-instance FromJSONKey LinToken
-
-instance ToJSONKey LinToken
-
--- FIXME Better name
--- TODO Merge with `OldL`.
-newtype Linearization = Linearization { runLinearization:: [LinToken] }
+newtype Linearization = Linearization { runLinearization :: [LinToken] }
   deriving
-  ( Show, FromJSON, ToJSON, Semigroup, Monoid
-  , Ord, Eq, FromJSONKey, ToJSONKey
+  ( Semigroup, Monoid
+  , Ord, Eq, Binary
+  , FromJSON, ToJSON
   )
+
+stringRep ∷ Linearization → String
+stringRep = otoList >>> fmap ltlin >>> unwords
+
+deriving instance Show Linearization
+
+instance Pretty Linearization where
+  pretty = pretty . stringRep
+
+-- This is not a valid show instance
+-- instance Show Linearization where
+--   show = show . stringRep
+
+instance ToField Linearization where
+  toField = SQL.toBlob
+
+instance FromField Linearization where
+  fromField = SQL.fromBlob
 
 -- | Remember all 'AdjunctionTrees' in a certain 'PGF.Language' for a
 -- certain 'Grammar'.
 data Context = Context
   { ctxtGrammar :: Grammar
-  , _ctxtLang   :: PGF.Language
+  , ctxtLang   :: PGF.Language
   , ctxtPrecomputed :: AdjunctionTrees
   }
 
@@ -94,10 +107,10 @@ instance FromJSON LinToken where
     <*> v .: "matched"
 
 instance ToJSON LinToken where
-  toJSON (LinToken path lin matched) = object
+  toJSON (LinToken path lin m) = object
     [ "path"    .= path
     , "lin"     .= lin
-    , "matched" .= matched
+    , "matched" .= m
     ]
 
 type instance Element Linearization = LinToken
@@ -145,11 +158,11 @@ linearizeTree (Context grammar language _) ttree =
   let
     brackets = Grammar.brackets grammar language ttree
   in
-    if not (isEmptyGrammar grammar)
-      && language `elem` PGF.languages (pgf grammar)
+    if not (Grammar.isEmptyGrammar grammar)
+      && language `elem` PGF.languages (Grammar.pgf grammar)
       && not (null brackets)
     then bracketsToTuples ttree $ head brackets
-    else Linearization $ [LinToken [] "?0" []]
+    else Linearization [LinToken [] "?0" []]
 
 -- | Given an identifier for a grammar, looks up that grammar and then
 -- creates a mapping from all the languages in that grammar to their
@@ -158,11 +171,11 @@ linearizeTree (Context grammar language _) ttree =
 -- This method is unsafe and will throw if we can't find the
 -- corresponding grammar.
 langAndContext
-  ∷ String -- ^ An identitfier for a grammar.  E.g. @novo_modo/Prima@.
-  → Map String Context
+  ∷ Text -- ^ An identitfier for a grammar.  E.g. @novo_modo/Prima@.
+  → Map Text Context
 langAndContext = readLangs . getGrammar
   where
-  getGrammar ∷ String → Grammar
+  getGrammar ∷ Text → Grammar
   getGrammar s = fromMaybe (err s) $ Grammar.lookupGrammar s
   err s = error $ printf errMsg s
   errMsg
@@ -171,10 +184,11 @@ langAndContext = readLangs . getGrammar
 
 -- | Given a grammar creates a mapping from all the languages in that
 -- grammar to their respective 'Context's.
-readLangs :: Grammar -> Map String Context
-readLangs grammar = Map.fromList $ mkCtxt <$> PGF.languages (pgf grammar)
+readLangs :: Grammar -> Map Text Context
+readLangs grammar
+  = Map.fromList $ mkCtxt <$> PGF.languages (Grammar.pgf grammar)
   where
-  mkCtxt lang = (PGF.showCId lang, buildContext grammar lang)
+  mkCtxt lang = (Text.pack $ PGF.showCId lang, buildContext grammar lang)
 
 
 -- This part of the module knows about 'PGF' and maybe shouldn't.  The
@@ -184,16 +198,16 @@ readLangs grammar = Map.fromList $ mkCtxt <$> PGF.languages (pgf grammar)
 
 -- | Convert a 'PGF.BracketedString' to a list of string/path tuples.
 bracketsToTuples :: TTree -> PGF.BracketedString -> Linearization
-bracketsToTuples tree bs = deep tree bs
+bracketsToTuples = deep
   where
   deep :: TTree -> PGF.BracketedString -> Linearization
   deep _     (PGF.Bracket _ _   _ _ _ []) = mempty
   -- Ordinary leaf
   deep ltree (PGF.Bracket _ fid _ _ _ [PGF.Leaf token]) =
-    Linearization $ [LinToken (getPath ltree fid) token []]
+    Linearization [LinToken (Tree.getPath ltree fid) token []]
   -- Meta leaf
-  deep ltree (PGF.Bracket _ fid _ _ [PGF.EMeta id] _) =
-    Linearization $ [LinToken (getPath ltree fid) ("?" ++ show id) []]
+  deep ltree (PGF.Bracket _ fid _ _ [PGF.EMeta i] _) =
+    Linearization [LinToken (Tree.getPath ltree fid) ("?" ++ show i) []]
   -- In the middle of the tree
   deep ltree (PGF.Bracket _ fid _ _ _ bs) =
     broad ltree fid bs mempty
@@ -204,7 +218,7 @@ bracketsToTuples tree bs = deep tree bs
   -- Syncategorial word
   broad ltree fid (PGF.Leaf token:bss) ts = Linearization (x:xs)
     where
-    x = LinToken (getPath ltree fid) token []
+    x = LinToken (Tree.getPath ltree fid) token []
     Linearization xs = broad ltree fid bss ts
   -- In the middle of the nodes
   broad ltree fid (bs:bss)
@@ -219,7 +233,10 @@ matchTk srcTree trgTree (LinToken path lin _)
 -- | Checks if a linearization token matches in both trees.  If they
 -- don't match, then the empty path is returned.
 matched :: Path -> TTree -> TTree -> Path
-matched p t1 t2 = if selectNode t1 p == selectNode t2 p then p else []
+matched p t1 t2 =
+  if Tree.selectNode t1 p == Tree.selectNode t2 p
+  then p
+  else mempty
 
 mkLin
   :: Context
@@ -227,10 +244,10 @@ mkLin
   -> TTree
   -> TTree -- ^ The actual tree to linearize
   -> Linearization
-mkLin ctxt srcTree trgTree tree
+mkLin ctxt srcTree trgTree t
   = Linearization $ matchTk srcTree trgTree <$> xs
   where
-    (Linearization xs) = linearizeTree ctxt tree
+    (Linearization xs) = linearizeTree ctxt t
 
 -- | @'sameOrder' xs ys@ checks to see if the tokens in @xs@ occurs in
 -- the same sequence in @ys@.
@@ -247,3 +264,67 @@ sameOrder' _ [] = False
 sameOrder' (x:xs) yss@(y:ys)
   | x == y    = sameOrder' xs ys
   | otherwise = sameOrder' xs yss
+
+disambiguate ∷ Context → Linearization → [TTree]
+disambiguate ctxt = stringRep >>> parse
+  where
+  parse ∷ String → [TTree]
+  parse = Grammar.parseSentence (ctxtGrammar ctxt) (ctxtLang ctxt)
+
+type CoverNode = (Int, String, Path)
+
+coverNodes :: Context -> TTree -> [CoverNode]
+coverNodes ctxt t
+  = t
+  & linearizeTree ctxt
+  & otoList
+  & map ltpath
+  & enumerate
+  & map coverNode
+  where
+  coverNode ∷ (Int, Path) → CoverNode
+  coverNode (n, p)
+    = Tree.selectNode t p
+    & fromMaybe errLinCov
+    & cn
+    where
+    cn ∷ TTree → CoverNode
+    cn (TNode fun _ _) = (n, fun, p)
+    cn TMeta{} = errNoMeta
+  -- It's an invariante that 'Linearization.linearizeTree' should only
+  -- return 'LinToken's that we can later look up in the same tree.
+  errLinCov = error
+    $  "Muste.Linearization.Internal.coverNodes: "
+    <> "Linearizations returned a path that does not exist in the tree."
+  errNoMeta = error
+    $  "Muste.Linearization.Internal.coverNodes: "
+    <> "Did not expect an unsaturated tree at this point"
+
+-- | @'isInsertion' ctxt src trg@ checks if @src@ is to be considered
+-- an insertion into @trg@.  A result of 'Nothing' indicated that this
+-- is *not* considered an insertion.  Otherwise the returned selection
+-- corresponds to a selection where the words are inserted /before/
+-- each word in the selection.
+isInsertion :: Context -> TTree -> TTree -> Maybe Selection
+isInsertion cxt src trg = Selection.fromList <$> inserted
+  where
+  srcnodes = coverNodes cxt src
+  trgnodes = coverNodes cxt trg
+  inserted ∷ Maybe [Int]
+  inserted = map fst <$> getInsertedNodes srcnodes trgnodes
+
+  getInsertedNodes :: [CoverNode] -> [CoverNode] -> Maybe [(Int, CoverNode)]
+  getInsertedNodes [] [] = Just []
+  getInsertedNodes _ [] = Nothing
+  getInsertedNodes srcs@((_,f,_):_) ((_,g,p):trgs@((_,g',p'):_))
+      | f == g && g == g' && p == p'  = getInsertedNodes srcs trgs
+  getInsertedNodes ((_,f,_):srcs) ((_,g,_):trgs)
+      | f == g  = getInsertedNodes srcs trgs
+  getInsertedNodes srcs (node:trgs)
+      = fmap ((getInsertionPosition srcs,node) : ) (getInsertedNodes srcs trgs)
+
+  getInsertionPosition ((n,_,_):_) = n
+  getInsertionPosition [] = length srcnodes
+
+mkLinSimpl ∷ Context → TTree → Linearization
+mkLinSimpl c t = mkLin c t t t

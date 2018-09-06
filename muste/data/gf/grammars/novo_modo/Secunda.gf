@@ -1,3 +1,3 @@
 abstract Secunda = SecundaLex, SecundaRules ** {
-  flags startcat=CS;
-  } ;
+flags startcat=CS;
+}

@@ -199,12 +199,6 @@ input:checked + label {
     padding: 0 0.4em;
 }
 
-.match-0 { background-color: #cfc }
-.match-1 { background-color: #fdd }
-.match-2 { background-color: #ffc }
-.match-3 { background-color: #cff }
-.match-4 { background-color: #eef }
-
 .correct { background-color: #cfc }
 
 .correct, .match {
@@ -269,3 +263,7 @@ img {
 .rightspace { background-color: #ddd }
 img { border: 1px dotted blue }
 */
+
+.sentence {
+    user-select: none;
+}
