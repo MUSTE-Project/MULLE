@@ -89,6 +89,7 @@ library:
     - Muste.Grammar.TH
     - Muste.Linearization.Internal
     - Muste.AdjunctionTrees
+    - Muste.AdjunctionTrees.Internal
     - Muste.Data
     - Muste.Grammar.Embed
     - Muste.Grammar.Grammars

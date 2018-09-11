@@ -14,6 +14,8 @@ module Muste.Grammar.Internal
   , lookupGrammarM
   , parseGrammar
   , parseSentence
+  , getMetas
+  , getFunctions
   ) where
 
 import Prelude ()
@@ -190,3 +192,16 @@ parseSentence grammar lang = pgfIfy >>> fmap musteIfy
   musteIfy = fromGfTree grammar
   p ∷ PGF.PGF
   p = pgf grammar
+
+-- | Calculates a sorted list of the categories of all metavariables
+-- in a tree. Note that the list may contain duplicates
+getMetas :: TTree -> [Category]
+getMetas tree = sort (getMetas' tree)
+    where getMetas' (TMeta cat) = [cat]
+          getMetas' (TNode _ _ children) = concatMap getMetas' children
+
+-- | Returns an ordered list with all functions in a tree.
+getFunctions :: TTree -> [Rule]
+getFunctions tree = sort (getF tree)
+    where getF (TNode fun typ children) = Function fun typ : concatMap getF children
+          getF _ = []

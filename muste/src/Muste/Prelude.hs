@@ -23,6 +23,7 @@ import Prelude as X
   minimum, max, min, sum, unwords, words, lines, unlines, or, and,
   notElem, elem, (<*>), foldMap, putStrLn, putStr, flip, const,
   sequence, take, mapM_, mapM, ioError, error, repeat)
+import Data.List                 as X (sort)
 import Data.Bool                 as X (bool)
 import Data.Function             as X ((&), on)
 import Control.Monad             as X ((>=>), void, when, guard)
