@@ -172,22 +172,40 @@ getNewFancyMenu c l
   & getMenuItems c
 
 getMenuItems :: Context -> String -> NewFancyMenu
-getMenuItems ctxt sentence
-  = NewFancyMenu
-  $ Map.fromListWith Set.union
-  $ do
-    oldtree <- parseSentence ctxt sentence
-    let (_oldwords, oldnodes) = linTree ctxt oldtree
-    newtree <- similarTrees ctxt oldtree
-    let (newwords, newnodes) = linTree ctxt newtree
-    let edits = alignSequences oldnodes newnodes
-    let (oldselection, newselection) = splitAlignments edits
-    let allnewnodes = unwords newwords
-                      & parseSentence ctxt
-                      & map (\t -> Annotated.mkLinearization ctxt t t t)
-                      & foldl1 Annotated.mergeL
-    return
-      (oldselection, Set.singleton (newselection, allnewnodes))
+getMenuItems ctxt str =
+    collectTreeSubstitutions ctxt str &
+    filterTreeSubstitutions &
+    collectMenuItems ctxt
+
+
+type TreeSubst = (XTree, XTree)
+type XTree = (TTree, [Tokn], [Node])
+
+collectTreeSubstitutions :: Context -> String -> [TreeSubst]
+collectTreeSubstitutions ctxt sentence = do
+  oldtree <- parseSentence ctxt sentence
+  let (oldwords, oldnodes) = linTree ctxt oldtree
+  newtree <- similarTrees ctxt oldtree
+  let (newwords, newnodes) = linTree ctxt newtree
+  return ((oldtree, oldwords, oldnodes), (newtree, newwords, newnodes))
+
+collectMenuItems :: Context -> [TreeSubst] -> NewFancyMenu
+collectMenuItems ctxt substs =
+    map go substs & Map.fromListWith Set.union & NewFancyMenu
+    where go ((oldtree, oldwords, oldnodes), (newtree, newwords, newnodes)) =
+              (oldselection, Set.singleton (newselection, allnewnodes))
+              where edits = alignSequences oldnodes newnodes
+                    (oldselection, newselection) = splitAlignments edits
+                    allnewnodes = unwords newwords &
+                                  parseSentence ctxt &
+                                  map (\t -> Annotated.mkLinearization ctxt t t t) &
+                                  foldl1 Annotated.mergeL
+
+
+
+filterTreeSubstitutions :: [TreeSubst] -> [TreeSubst]
+filterTreeSubstitutions substs = substs
+
 
 -- * LCS
 
