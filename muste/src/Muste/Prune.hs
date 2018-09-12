@@ -136,24 +136,36 @@ directMoreExpensive (cost, t, _, _) (cost', t', _, _)
 
 -- Profiling has shown me that this function is really heavy.  Quoting
 -- the relevant bits:
---
--- COST CENTRE                            entries  %time %alloc   %time %alloc
---
---     similarTreesForSubtree                  10    0.7    0.9    42.9   72.2
---      areDisjoint                       3813390    6.0    2.3    10.9    2.3
---       ==                               3752120    2.5    0.0     3.7    0.0
---        ==                               568487    1.1    0.0     1.1    0.0
---       <                                3183633    1.3    0.0     1.3    0.0
---      similarTreesForSubtree.funs'       569826    0.1    0.0    30.0   66.0
---       getFunctions                      569826   12.8   29.1    29.9   66.0
---        compare                         9820790    5.2    0.0     5.2    0.0
---        getFunctions.getF               6681507   11.9   36.9    11.9   36.9
---      getMetas                            61270    0.6    1.0     1.2    2.9
---       getMetas.getMetas'                695042    0.6    1.9     0.6    1.9
---      insertBranches                        136    0.0    0.0     0.0    0.0
---       insertBranches.ins                   178    0.0    0.0     0.0    0.0
---        insertBranches.inslist               81    0.0    0.0     0.0    0.0
---        insertBranches.selectBranch          48    0.0    0.0     0.0    0.0
+--                                                                                                                             individual      inherited
+-- COST CENTRE                     MODULE                 SRC                                             no.       entries  %time %alloc   %time %alloc
+-- collectSimilarTrees.go.simtrees Muste.Prune            src/Muste/Prune.hs:94:7-72                      30643        156    0.0    0.0    46.7   26.9
+--  similarTreesForSubtree         Muste.Prune            src/Muste/Prune.hs:(161,1)-(172,39)             30646        156    0.0    0.0    46.6   26.6
+--   simTrees                      Muste.Prune            src/Muste/Prune.hs:(177,1)-(181,54)             30647        156    0.0    0.0    46.6   26.6
+--    treeDiff                     Muste.Prune            src/Muste/Prune.hs:(300,1)-(303,69)             30698       7172    0.0    0.0     0.0    0.0
+--     treeDiff.getNodes           Muste.Prune            src/Muste/Prune.hs:(302,3)-(303,69)             30699     125031    0.0    0.0     0.0    0.0
+--     editDistance                Muste.Common           src/Muste/Common.hs:(101,1)-(119,51)            30700       7171    0.0    0.0     0.0    0.0
+--      ...
+--    insertBranches               Muste.Prune            src/Muste/Prune.hs:(249,1)-(262,89)             30695       7168    0.0    0.0     0.0    0.0
+--     ...
+--    filterTrees                  Muste.Prune            src/Muste/Prune.hs:(185,1)-(189,14)             30656        597    0.3    0.4    46.6   26.6
+--     guardHeuristics             Muste.Prune            src/Muste/Prune.hs:(193,1)-(224,38)             30680   15890368    0.5    0.2    46.2   26.2
+--      areDisjoint                Muste.Common           src/Muste/Common.hs:(86,1)-(88,12)              30681   15927504   10.3    6.2    13.9    6.2
+--       ...
+--      guardHeuristics.funs'      Muste.Prune            src/Muste/Prune.hs:224:3-38                     30685   14407183    0.2    0.0    31.2   18.4
+--       getFunctions              Muste.Grammar.Internal src/Muste/Grammar/Internal.hs:(205,1)-(207,21)  30686   14367382   18.4    8.4    31.0   18.4
+--        compare                  Muste.Grammar.Internal src/Muste/Grammar/Internal.hs:46:47-49          30863  286693647    1.1    0.0     1.1    0.0
+--        getFunctions.getF        Muste.Grammar.Internal src/Muste/Grammar/Internal.hs:(206,11)-(207,21) 30687  143924686   11.5   10.0    11.5   10.0
+--      getMetas                   Muste.Grammar.Internal src/Muste/Grammar/Internal.hs:(199,1)-(201,71)  30688    2734008    0.2    0.5     0.6    1.3
+--       getMetas.getMetas'        Muste.Grammar.Internal src/Muste/Grammar/Internal.hs:(200,11)-(201,71) 30689   31552618    0.4    0.9     0.4    0.9
+--      guardHeuristics.funs       Muste.Prune            src/Muste/Prune.hs:223:3-37                     30682        597    0.0    0.0     0.0    0.0
+--       ...
+--    pruneTree                    Muste.Prune            src/Muste/Prune.hs:(272,1)-(293,7)              30648        156    0.0    0.0     0.0    0.0
+--     ...
+--   similarTreesForSubtree.cat    Muste.Prune            src/Muste/Prune.hs:(164,5)-(166,20)             30662        156    0.0    0.0     0.0    0.0
+--   similarTreesForSubtree.trees  Muste.Prune            src/Muste/Prune.hs:163:5-57                     30663        156    0.0    0.0     0.0    0.0
+--    ...
+--  onlyKeepCheapest               Muste.Prune            src/Muste/Prune.hs:119:1-47                     30644          0    0.0    0.0     0.1    0.2
+--   ...
 similarTreesForSubtree
   :: TTree
   -> AdjunctionTrees
