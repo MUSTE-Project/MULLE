@@ -218,6 +218,9 @@ filterTreeSubstitutions substs =
     --           and [ mid `xtreeDiff` new >= cost |
     --                 cheaper <- cheapergroups,
     --                 (_cost, old', mid) <- cheaper, old == old' ]
+    --       split :: [a] -> [([a], a, [a])]
+    --       split [] = []
+    --       split (x:yzws) = ([], x, yzws) : [ (x:ys, z, ws) | (ys, z, ws) <- split yzws ]
 
 
 keepWith :: (a → a → Bool) -> [a] -> [a]
@@ -228,9 +231,7 @@ directMoreExpensive (cost, _, xtree) (cost', _, xtree')
     = cost' < cost && xtree' `xtreeDiff` xtree < cost
 
 xtreeDiff :: XTree -> XTree -> Int
-xtreeDiff (t,_,_) (t',_,_) = getNodes t `editDistance` getNodes t'
-    where getNodes (TMeta cat) = ["?" ++ cat]
-          getNodes (TNode fun _ children) = fun : concatMap getNodes children
+xtreeDiff (t,_,_) (t',_,_) = Tree.flatten t `editDistance` Tree.flatten t'
 
 
 -- * LCS
