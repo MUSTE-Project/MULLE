@@ -35,6 +35,7 @@ import PGF.Internal as PGF hiding (funs, cats)
 import Data.List (union, partition)
 import Data.Text.Prettyprint.Doc (Pretty(..))
 import qualified Data.Text.Prettyprint.Doc as Doc
+import Control.DeepSeq
 
 import qualified Muste.Grammar.Grammars as Grammars
 import Muste.Common
@@ -135,10 +136,15 @@ pgfToGrammar pgf
               Fun (PGF.showCId typeid) (map PGF.showCId cats)
             }
 
+-- | Although the parameter to 'parseGrammar' is a lazy stream it's
+-- contents will be forced.
 parseGrammar
   :: LB.ByteString -- ^ The grammar in binary format.
   -> Grammar
-parseGrammar = pgfToGrammar . PGF.parsePGF
+-- 'PGF.parsePGF' seems to consume the lazy bytestring in an
+-- inconvenient manner.  The problem does not appear to be there if we
+-- force the bytestring.
+parseGrammar = pgfToGrammar . PGF.parsePGF . force
 
 brackets :: Grammar -> PGF.Language -> TTree -> [PGF.BracketedString]
 brackets grammar language ttree

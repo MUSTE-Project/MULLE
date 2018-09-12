@@ -147,12 +147,12 @@ directMoreExpensive (cost, t, _, _) (cost', t', _, _)
 --      ...
 --    insertBranches               Muste.Prune            src/Muste/Prune.hs:(249,1)-(262,89)             30695       7168    0.0    0.0     0.0    0.0
 --     ...
---    filterTrees                  Muste.Prune            src/Muste/Prune.hs:(185,1)-(189,14)             30656        597    0.3    0.4    46.6   26.6 *******
+--    filterTrees                  Muste.Prune            src/Muste/Prune.hs:(185,1)-(189,14)             30656        597    0.3    0.4    46.6   26.6
 --     guardHeuristics             Muste.Prune            src/Muste/Prune.hs:(193,1)-(224,38)             30680   15890368    0.5    0.2    46.2   26.2
 --      areDisjoint                Muste.Common           src/Muste/Common.hs:(86,1)-(88,12)              30681   15927504   10.3    6.2    13.9    6.2
 --       ...
 --      guardHeuristics.funs'      Muste.Prune            src/Muste/Prune.hs:224:3-38                     30685   14407183    0.2    0.0    31.2   18.4
---       getFunctions              Muste.Grammar.Internal src/Muste/Grammar/Internal.hs:(205,1)-(207,21)  30686   14367382   18.4    8.4    31.0   18.4 *******
+--       getFunctions              Muste.Grammar.Internal src/Muste/Grammar/Internal.hs:(205,1)-(207,21)  30686   14367382   18.4    8.4    31.0   18.4
 --        compare                  Muste.Grammar.Internal src/Muste/Grammar/Internal.hs:46:47-49          30863  286693647    1.1    0.0     1.1    0.0
 --        getFunctions.getF        Muste.Grammar.Internal src/Muste/Grammar/Internal.hs:(206,11)-(207,21) 30687  143924686   11.5   10.0    11.5   10.0
 --      getMetas                   Muste.Grammar.Internal src/Muste/Grammar/Internal.hs:(199,1)-(201,71)  30688    2734008    0.2    0.5     0.6    1.3
