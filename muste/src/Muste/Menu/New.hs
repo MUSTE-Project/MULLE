@@ -22,7 +22,9 @@ import Data.MonoTraversable
 import qualified Data.Containers as Mono
 import Data.List (intercalate)
 import Data.Aeson (ToJSONKey, FromJSONKey)
+import GHC.Exts (groupWith)
 
+import Muste.Common
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.Linearization.Internal
   (Linearization(..), Context, ctxtGrammar, ctxtLang, ctxtPrecomputed)
@@ -178,33 +180,39 @@ getMenuItems ctxt str =
     collectMenuItems ctxt
 
 
-type TreeSubst = (XTree, XTree)
+type TreeSubst = (Int, XTree, XTree)
 type XTree = (TTree, [Tokn], [Node])
 
 collectTreeSubstitutions :: Context -> String -> [TreeSubst]
-collectTreeSubstitutions ctxt sentence = do
-  oldtree <- parseSentence ctxt sentence
-  let (oldwords, oldnodes) = linTree ctxt oldtree
-  newtree <- similarTrees ctxt oldtree
-  let (newwords, newnodes) = linTree ctxt newtree
-  return ((oldtree, oldwords, oldnodes), (newtree, newwords, newnodes))
+collectTreeSubstitutions ctxt sentence =
+    do oldtree <- parseSentence ctxt sentence
+       let (oldwords, oldnodes) = linTree ctxt oldtree
+       let old = (oldtree, oldwords, oldnodes)
+       newtree <- similarTrees ctxt oldtree
+       let (newwords, newnodes) = linTree ctxt newtree
+       let new = (newtree, newwords, newnodes)
+       return (old `xtreeDiff` new, old, new)
 
 collectMenuItems :: Context -> [TreeSubst] -> NewFancyMenu
 collectMenuItems ctxt substs =
-    map go substs & Map.fromListWith Set.union & NewFancyMenu
-    where go ((oldtree, oldwords, oldnodes), (newtree, newwords, newnodes)) =
-              (oldselection, Set.singleton (newselection, allnewnodes))
-              where edits = alignSequences oldnodes newnodes
-                    (oldselection, newselection) = splitAlignments edits
-                    allnewnodes = unwords newwords &
-                                  parseSentence ctxt &
-                                  map (\t -> Annotated.mkLinearization ctxt t t t) &
-                                  foldl1 Annotated.mergeL
-
+    NewFancyMenu $ Map.fromListWith Set.union $
+    do (_cost, (oldtree, oldwords, oldnodes), (newtree, newwords, newnodes)) <- substs
+       let edits = alignSequences oldnodes newnodes
+       let (oldselection, newselection) = splitAlignments edits
+       let allnewnodes = foldl1 Annotated.mergeL 
+                         [ Annotated.mkLinearization ctxt t t t |
+                           t <- parseSentence ctxt (unwords newwords) ]
+       return (oldselection, Set.singleton (newselection, allnewnodes)) 
 
 
 filterTreeSubstitutions :: [TreeSubst] -> [TreeSubst]
 filterTreeSubstitutions substs = substs
+
+
+xtreeDiff :: XTree -> XTree -> Int
+xtreeDiff (t,_,_) (t',_,_) = getNodes t `editDistance` getNodes t'
+    where getNodes (TMeta cat) = ["?" ++ cat]
+          getNodes (TNode fun _ children) = fun : concatMap getNodes children
 
 
 -- * LCS
