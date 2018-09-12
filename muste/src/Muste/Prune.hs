@@ -14,6 +14,8 @@ import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.MultiSet (MultiSet)
+import qualified Data.MultiSet as MultiSet
 
 import Muste.Common
 
@@ -220,7 +222,7 @@ heuristics pruned pruned' = and
   -- This is really heavy!  The call to 'Grammar.getFunctions' force
   -- us to traverse the whole structure.  Perhaps if we could build up
   -- the results and do some clever memoization.
-  , funs `areDisjoint` funs'
+  , funs `disjoint` funs'
 #endif
 #ifdef PRUNE_ALT_2A
   ---- Alternative 2a: all branches are put back into the new tree.
@@ -240,6 +242,9 @@ sameRoot :: TTree -> TTree -> Bool
 sameRoot (TNode fun _ _) (TNode fun' _ _) | fun == fun' = True
 sameRoot (TMeta cat) (TMeta cat') | cat == cat' = True
 sameRoot _ _ = False
+
+disjoint ∷ Ord a ⇒ MultiSet a → MultiSet a → Bool
+disjoint a b = MultiSet.null $ MultiSet.intersection a b
 
 -- | @True@ if two trees have the same root, and exactly one child
 -- differs.
