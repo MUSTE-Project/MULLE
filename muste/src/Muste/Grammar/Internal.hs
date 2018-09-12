@@ -201,14 +201,13 @@ parseSentence grammar lang = pgfIfy >>> fmap musteIfy
   p ∷ PGF.PGF
   p = pgf grammar
 
--- | Calculates a sorted list of the categories of all metavariables
--- in a tree. Note that the list may contain duplicates
+-- | Returns a bag of all meta-variables in a tree.
 getMetas :: TTree -> MultiSet Category
 getMetas = \case
   TMeta cat → MultiSet.singleton cat
   TNode _ _ ts → mconcat $ getMetas <$> ts
 
--- | Returns an ordered list with all functions in a tree.
+-- | Returns a bag of all functions in a tree.
 getFunctions :: TTree -> MultiSet Rule
 getFunctions = \case
   TNode fun typ ts → mconcat
