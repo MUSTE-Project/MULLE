@@ -17,7 +17,7 @@ import qualified Data.Set as Set
 
 import Muste.Common
 
-import Muste.Tree (TTree(..), Path, FunType(..))
+import Muste.Tree (TTree(..), Path, FunType(..), Category)
 import qualified Muste.Tree.Internal as Tree
 import Muste.Grammar
 import qualified Muste.Grammar.Internal as Grammar
@@ -269,20 +269,28 @@ insertBranches branches tree = map fst (ins branches tree)
 -- pruned tree consists of a tree with metavariables and a list of all
 -- the pruned branches (subtrees).
 pruneTree :: TTree -> [(TTree, [TTree])]
-pruneTree tree = [(t, bs) | (t, bs, _) <- pt [] tree]
-    where pt visited tree@(TNode _ _ []) = [(tree, [], visited)]
-          pt visited tree@(TNode fun typ@(Fun cat _) children)
-              = (TMeta cat, [tree], visited) :
-                [ (tree', branches', visited') |
-                  cat `notElem` visited,
-                  (children', branches', visited') <- pc (cat:visited) children,
-                  let tree' = TNode fun typ children'
-                ]
-          pt _ _ = error "Muste.Prune.pruneTree: Incomplete pattern match"
-          pc visited [] = [([], [], visited)]
-          pc visited (t:ts) = [ (t':ts', bs' ++ bs'', visited'') |
-                                (t', bs', _visited') <- pt visited t,
-                                (ts', bs'', visited'') <- pc visited ts ]
+pruneTree tree = [(t, bs) | (t, bs, _) <- pt mempty tree]
+  where
+  pt ∷ Set Category → TTree → [(TTree, [TTree], Set Category)]
+  pt visited = \case
+    tree@(TNode _ _ []) → [(tree, [], visited)]
+    tree@(TNode fun typ@(Fun cat _) children)
+      → (TMeta cat, [tree], visited) :
+        [ (TNode fun typ children', branches', visited')
+        | cat `notElem` visited
+        , (children', branches', visited') ← pc (Set.insert cat visited) children
+        ]
+    _ → error "Muste.Prune.pruneTree: Incomplete pattern match"
+  pc ∷ Set Category → [TTree] → [([TTree], [TTree], Set Category)]
+  pc visited = \case
+    []     → [([], [], visited)]
+    (t:ts) →
+      [ (t'  : ts' , bs' <> bs'', visited'')
+      | (t'  , bs' , _visited') ← pt visited t
+      -- Should visited be visited'? Or perhaps visited'' above should
+      -- be the union of the two?
+      , (ts' , bs'', visited'') ← pc visited ts
+      ]
 
 -- | Edit distance between trees.
 --
