@@ -26,6 +26,7 @@ import Prelude as X
 import Data.List                 as X (sort)
 import Data.Bool                 as X (bool)
 import Data.Function             as X ((&), on)
+import Data.Traversable          as X (Traversable(..))
 import Control.Monad             as X ((>=>), void, when, guard)
 import Control.Monad.IO.Class    as X (MonadIO(liftIO))
 import Control.Exception         as X

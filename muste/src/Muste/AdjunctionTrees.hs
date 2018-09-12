@@ -1,4 +1,5 @@
-{-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
+{-# OPTIONS_GHC -Wall #-}
+{-# Language ConstraintKinds #-}
 -- | Adjunction trees
 --
 -- Interfacint with 'AdjunctionTrees' is done using the interface for
@@ -10,9 +11,11 @@ import Muste.Prelude
 import qualified Data.Containers      as Mono
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Control.Monad.Reader
+import Data.Functor.Identity
 
 import Muste.Tree
-import Muste.Grammar
+import Muste.Grammar hiding (tree)
 import Muste.Grammar.Internal (Rule(Function))
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees.Internal
@@ -41,7 +44,7 @@ getAdjunctionTrees grammar = Mono.mapFromList
   $ go <$> allCats
   where
   go ∷ Category → (Category, [TTree])
-  go cat = (cat, map fst (adjTrees getRulesFor cat []))
+  go cat = (cat, fst <$> runBuilderI (adjTrees cat []) ruleGen)
   allRules :: Map String [Rule]
   allRules = Map.fromListWith mappend $ catRule <$> Grammar.getAllRules grammar
   catRule ∷ Rule → (String, [Rule])
@@ -49,24 +52,50 @@ getAdjunctionTrees grammar = Mono.mapFromList
   catRule _ = error "Non-exhaustive pattern match"
   allCats :: [String]
   allCats = Map.keys allRules
-  getRulesFor :: String -> [Rule]
-  getRulesFor cat = Map.findWithDefault mempty cat allRules
+  ruleGen :: RuleGen
+  ruleGen cat = Map.findWithDefault mempty cat allRules
+
+type RuleGen = Category → [Rule]
+
+type Builder m = MonadReader RuleGen m
+
+type BuilderT m a = ReaderT RuleGen m a
+
+type BuilderI a = BuilderT Identity a
+
+runBuilderI ∷ BuilderI a → RuleGen → a
+runBuilderI = runReader
+
+getRulesFor ∷ Builder m ⇒ Category → m [Rule]
+getRulesFor c = ($ c) <$> ask
 
 -- The next two functions are mutually recursive.
-adjTrees :: (Category → [Rule]) → String -> [String] -> [(TTree, [String])]
-adjTrees getRulesFor cat visited = (TMeta cat, visited) : do
-  guard $ cat `notElem` visited
-  (Function fun typ@(Fun _ childcats)) <- getRulesFor cat
-  (children, visited') <- adjChildren getRulesFor childcats (cat:visited)
-  pure (TNode fun typ children, visited')
+adjTrees :: ∀ m . Builder m ⇒ String -> [String] -> m [(TTree, [String])]
+adjTrees cat visited = do
+  rules ← getRulesFor cat
+  let
+    step ∷ Rule → m [(TTree, [Category])]
+    step (Function fun typ@(Fun _ childcats)) = do
+      adjCs ← adjChildren childcats (cat : visited)
+      pure $ do
+        (children, visited') ← adjCs
+        pure $ (TNode fun typ children, visited')
+    step _ = error "AdjunctionTrees.adjTrees: Non-exhaustive pattern match"
+  children ← join <$> traverse step rules
+  pure $ (TMeta cat, visited) : do
+    guard $ cat `notElem` visited
+    children
 
-adjChildren :: (Category → [Rule]) → [String] -> [String] -> [([TTree], [String])]
-adjChildren _getRulesFor [] visited = [([], visited)]
-adjChildren getRulesFor (cat:cats) visited = do
-  (tree, visited') <- adjTrees getRulesFor cat visited
-  guard $ not $ treeIsRecursive tree
-  (trees, visited'') <- adjChildren getRulesFor cats visited'
-  pure (tree:trees, visited'')
+adjChildren :: Builder m ⇒ [Category] -> [Category] -> m [([TTree], [Category])]
+adjChildren [] visited = pure [([], visited)]
+adjChildren (cat:cats) visited = do
+  adjCs ← adjTrees cat visited
+  join <$> adjCs `forM` \(tree, visited') → do
+    let
+      step ∷ ([TTree], [Category]) → ([TTree], [Category])
+      step (trees, visited'') = (tree : trees , visited'')
+      go xs = do { guard $ not $ treeIsRecursive tree ; step <$> xs }
+    go <$> adjChildren cats visited'
 
 treeIsRecursive :: TTree -> Bool
 treeIsRecursive tree@(TNode _ (Fun cat _) children) =
