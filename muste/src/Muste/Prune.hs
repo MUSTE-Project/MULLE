@@ -197,12 +197,12 @@ filterTrees ∷ Monad m ⇒ Alternative m ⇒ m TTree → TTree → m TTree
 filterTrees trees pruned = do
   -- guard $ noDuplicates funs
   pruned' ← trees
-  guardHeuristics pruned pruned'
+  guard $ heuristics pruned pruned'
   pure pruned'
 
 -- | Various heuristics used for filtering out results.
-guardHeuristics ∷ Alternative f ⇒ TTree → TTree → f ()
-guardHeuristics pruned pruned' = guard $ and
+heuristics ∷ TTree → TTree → Bool
+heuristics pruned pruned' = and
   [ True
 #ifdef PRUNE_ALT_1A
   ---- Alternative 1a: the root must change.

@@ -36,6 +36,8 @@ import Data.List (union, partition)
 import Data.Text.Prettyprint.Doc (Pretty(..))
 import qualified Data.Text.Prettyprint.Doc as Doc
 import Control.DeepSeq
+import Data.MultiSet (MultiSet)
+import qualified Data.MultiSet as MultiSet
 
 import qualified Muste.Grammar.Grammars as Grammars
 import Muste.Common
@@ -201,10 +203,13 @@ parseSentence grammar lang = pgfIfy >>> fmap musteIfy
 
 -- | Calculates a sorted list of the categories of all metavariables
 -- in a tree. Note that the list may contain duplicates
-getMetas :: TTree -> [Category]
-getMetas tree = sort (getMetas' tree)
-    where getMetas' (TMeta cat) = [cat]
-          getMetas' (TNode _ _ children) = concatMap getMetas' children
+getMetas :: TTree -> MultiSet Category
+-- getMetas tree = sort (getMetas' tree)
+--     where getMetas' (TMeta cat) = [cat]
+--           getMetas' (TNode _ _ children) = concatMap getMetas' children
+getMetas = \case
+  TMeta cat → MultiSet.singleton cat
+  TNode _ _ ts → mconcat $ getMetas <$> ts
 
 -- | Returns an ordered list with all functions in a tree.
 getFunctions :: TTree -> [Rule]

@@ -42,6 +42,7 @@ dependencies:
 - array
 - vector
 - deepseq
+- multiset
 
 when:
   - condition: flag(dist)

@@ -13,6 +13,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Monad.Reader
 import Data.Functor.Identity
+import qualified Data.MultiSet as MultiSet
 
 import Muste.Tree
 import Muste.Grammar hiding (tree)
@@ -98,10 +99,17 @@ adjChildren (cat:cats) visited = do
     go <$> adjChildren cats visited'
 
 treeIsRecursive :: TTree -> Bool
-treeIsRecursive tree@(TNode _ (Fun cat _) children) =
-    case Grammar.getMetas tree of
-      [] -> cat `elem` [cat' | Function _ (Fun cat' _) <- concatMap Grammar.getFunctions children]
-      [cat'] -> cat == cat'
-      _ -> False
+treeIsRecursive tree@(TNode _ (Fun cat _) children)
+  -- Given the lazy nature of lists it's probably not a problem to
+  -- case on the result of 'toList'.  What's worse is that 'MultiSet'
+  -- uses strict maps internally.  So 'metas' will be fully
+  -- materialized.
+  = case MultiSet.toList metas of
+    []     → cat `elem` cats
+    [cat'] → cat == cat'
+    _      → False
+  where
+  metas = Grammar.getMetas tree
+  cats  = [cat' | Function _ (Fun cat' _) <- concatMap Grammar.getFunctions children]
 treeIsRecursive _ = False
 
