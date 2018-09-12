@@ -204,15 +204,14 @@ parseSentence grammar lang = pgfIfy >>> fmap musteIfy
 -- | Calculates a sorted list of the categories of all metavariables
 -- in a tree. Note that the list may contain duplicates
 getMetas :: TTree -> MultiSet Category
--- getMetas tree = sort (getMetas' tree)
---     where getMetas' (TMeta cat) = [cat]
---           getMetas' (TNode _ _ children) = concatMap getMetas' children
 getMetas = \case
   TMeta cat → MultiSet.singleton cat
   TNode _ _ ts → mconcat $ getMetas <$> ts
 
 -- | Returns an ordered list with all functions in a tree.
-getFunctions :: TTree -> [Rule]
-getFunctions tree = sort (getF tree)
-    where getF (TNode fun typ children) = Function fun typ : concatMap getF children
-          getF _ = []
+getFunctions :: TTree -> MultiSet Rule
+getFunctions = \case
+  TNode fun typ ts → mconcat
+    $ MultiSet.singleton (Function fun typ)
+    : fmap getFunctions ts
+  _                → mempty

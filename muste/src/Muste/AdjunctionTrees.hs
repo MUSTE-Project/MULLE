@@ -13,6 +13,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Monad.Reader
 import Data.Functor.Identity
+import Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as MultiSet
 
 import Muste.Tree
@@ -110,6 +111,13 @@ treeIsRecursive tree@(TNode _ (Fun cat _) children)
     _      → False
   where
   metas = Grammar.getMetas tree
-  cats  = [cat' | Function _ (Fun cat' _) <- concatMap Grammar.getFunctions children]
+  cats
+    =   MultiSet.map ruleCat
+    $   mconcat @(MultiSet _)
+    $   Grammar.getFunctions
+    <$> children
+  ruleCat = \case
+    Function _ (Fun c _) → c
+    _ → error "Muste.AdjunctionTrees.treeIsRecursive: Non-exhaustive pattern match"
 treeIsRecursive _ = False
 
