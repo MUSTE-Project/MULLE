@@ -22,7 +22,9 @@ import Data.MonoTraversable
 import qualified Data.Containers as Mono
 import Data.List (intercalate)
 import Data.Aeson (ToJSONKey, FromJSONKey)
+import GHC.Exts (groupWith)
 
+import Muste.Common
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.Linearization.Internal
   (Linearization(..), Context, ctxtGrammar, ctxtLang, ctxtPrecomputed)
@@ -172,22 +174,70 @@ getNewFancyMenu c l
   & getMenuItems c
 
 getMenuItems :: Context -> String -> NewFancyMenu
-getMenuItems ctxt sentence
-  = NewFancyMenu
-  $ Map.fromListWith Set.union
-  $ do
-    oldtree <- parseSentence ctxt sentence
-    let (_oldwords, oldnodes) = linTree ctxt oldtree
-    newtree <- similarTrees ctxt oldtree
-    let (newwords, newnodes) = linTree ctxt newtree
-    let edits = alignSequences oldnodes newnodes
-    let (oldselection, newselection) = splitAlignments edits
-    let allnewnodes = unwords newwords
-                      & parseSentence ctxt
-                      & map (\t -> Annotated.mkLinearization ctxt t t t)
-                      & foldl1 Annotated.mergeL
-    return
-      (oldselection, Set.singleton (newselection, allnewnodes))
+getMenuItems ctxt str =
+    collectTreeSubstitutions ctxt str &
+    filterTreeSubstitutions &
+    collectMenuItems ctxt
+
+
+type TreeSubst = (Int, XTree, XTree)
+type XTree = (TTree, [Tokn], [Node])
+
+collectTreeSubstitutions :: Context -> String -> [TreeSubst]
+collectTreeSubstitutions ctxt sentence =
+    do oldtree <- parseSentence ctxt sentence
+       let (oldwords, oldnodes) = linTree ctxt oldtree
+       let old = (oldtree, oldwords, oldnodes)
+       newtree <- similarTrees ctxt oldtree
+       let (newwords, newnodes) = linTree ctxt newtree
+       let new = (newtree, newwords, newnodes)
+       return (old `xtreeDiff` new, old, new)
+
+collectMenuItems :: Context -> [TreeSubst] -> NewFancyMenu
+collectMenuItems ctxt substs =
+    NewFancyMenu $ Map.fromListWith Set.union $
+    do (_cost, (oldtree, oldwords, oldnodes), (newtree, newwords, newnodes)) <- substs
+       let edits = alignSequences oldnodes newnodes
+       let (oldselection, newselection) = splitAlignments edits
+       let allnewnodes = foldl1 Annotated.mergeL 
+                         [ Annotated.mkLinearization ctxt t t t |
+                           t <- parseSentence ctxt (unwords newwords) ]
+       return (oldselection, Set.singleton (newselection, allnewnodes)) 
+
+
+filterTreeSubstitutions :: [TreeSubst] -> [TreeSubst]
+filterTreeSubstitutions substs =
+    ---- simple, quadratic variant:
+    keepWith directMoreExpensive substs
+    ---- more optimised, only compares with substitutions with lower cost:
+    ---- (1/2 the nr of comparisons, but makes no real difference in the end)
+    -- do let groups = groupWith (\(cost,_,_) -> cost) substs
+    --    (cheapergroups, group, _expensiver) <- split groups
+    --    subst <- group
+    --    guard $ isCheapest cheapergroups subst
+    --    return subst
+    -- where isCheapest cheapergroups (cost, old, new) =
+    --           and [ mid `xtreeDiff` new >= cost |
+    --                 cheaper <- cheapergroups, 
+    --                 (_cost, old', mid) <- cheaper, old == old' ]
+
+
+split :: [a] -> [([a], a, [a])]
+split [] = []
+split (x:yzws) = ([], x, yzws) : [ (x:ys, z, ws) | (ys, z, ws) <- split yzws ]
+
+keepWith :: (a → a → Bool) -> [a] -> [a]
+keepWith p xs = [ x | x <- xs, not (any (p x) xs) ]
+
+directMoreExpensive :: TreeSubst -> TreeSubst -> Bool
+directMoreExpensive (cost, _, xtree) (cost', _, xtree')
+    = cost' < cost && xtree' `xtreeDiff` xtree < cost
+
+xtreeDiff :: XTree -> XTree -> Int
+xtreeDiff (t,_,_) (t',_,_) = getNodes t `editDistance` getNodes t'
+    where getNodes (TMeta cat) = ["?" ++ cat]
+          getNodes (TNode fun _ children) = fun : concatMap getNodes children
+
 
 -- * LCS
 
