@@ -22,7 +22,6 @@ import Data.MonoTraversable
 import qualified Data.Containers as Mono
 import Data.List (intercalate)
 import Data.Aeson (ToJSONKey, FromJSONKey)
-import GHC.Exts (groupWith)
 
 import Muste.Common
 import qualified Muste.Grammar.Internal as Grammar
@@ -194,15 +193,14 @@ collectTreeSubstitutions ctxt sentence =
        return (old `xtreeDiff` new, old, new)
 
 collectMenuItems :: Context -> [TreeSubst] -> NewFancyMenu
-collectMenuItems ctxt substs =
-    NewFancyMenu $ Map.fromListWith Set.union $
-    do (_cost, (oldtree, oldwords, oldnodes), (newtree, newwords, newnodes)) <- substs
-       let edits = alignSequences oldnodes newnodes
-       let (oldselection, newselection) = splitAlignments edits
-       let allnewnodes = foldl1 Annotated.mergeL 
-                         [ Annotated.mkLinearization ctxt t t t |
-                           t <- parseSentence ctxt (unwords newwords) ]
-       return (oldselection, Set.singleton (newselection, allnewnodes)) 
+collectMenuItems ctxt substs = NewFancyMenu $ Map.fromListWith Set.union $ do
+  (_cost, (_oldtree, _oldwords, oldnodes), (_newtree, newwords, newnodes)) ← substs
+  let edits = alignSequences oldnodes newnodes
+  let (oldselection, newselection) = splitAlignments edits
+  let allnewnodes = foldl1 Annotated.mergeL
+                    [ Annotated.mkLinearization ctxt t t t |
+                      t <- parseSentence ctxt (unwords newwords) ]
+  return (oldselection, Set.singleton (newselection, allnewnodes))
 
 
 filterTreeSubstitutions :: [TreeSubst] -> [TreeSubst]
@@ -218,13 +216,9 @@ filterTreeSubstitutions substs =
     --    return subst
     -- where isCheapest cheapergroups (cost, old, new) =
     --           and [ mid `xtreeDiff` new >= cost |
-    --                 cheaper <- cheapergroups, 
+    --                 cheaper <- cheapergroups,
     --                 (_cost, old', mid) <- cheaper, old == old' ]
 
-
-split :: [a] -> [([a], a, [a])]
-split [] = []
-split (x:yzws) = ([], x, yzws) : [ (x:ys, z, ws) | (ys, z, ws) <- split yzws ]
 
 keepWith :: (a → a → Bool) -> [a] -> [a]
 keepWith p xs = [ x | x <- xs, not (any (p x) xs) ]

@@ -205,6 +205,9 @@ guardHeuristics pruned pruned' = guard $ and
   , noDuplicates funs' -- ***
 #endif
 #ifdef PRUNE_ALT_1D
+  -- This is really heavy!  The call to 'Grammar.getFunctions' force
+  -- us to traverse the whole structure.  Perhaps if we could build up
+  -- the results and do some clever memoization.
   , funs `areDisjoint` funs'
 #endif
 #ifdef PRUNE_ALT_2A
