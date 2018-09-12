@@ -18,6 +18,7 @@ module Muste.Tree.Internal
   , TTree(TNode,TMeta)
   , FunType(Fun, NoType)
   , toGfTree
+  , flatten
   ) where
 
 -- TODO Do not depend on PGF
@@ -71,6 +72,15 @@ instance Pretty TTree where
 
 prettyTree ∷ TTree → String
 prettyTree = PGF.showExpr mempty . toGfTree
+
+-- | Flattening a 'TTree' into a list of its function nodes.
+-- This is reversable, if the grammar is known.
+-- TODO: merge with 'Muste.Grammar.Internal.getFunction.getF'?
+-- TODO: this should use an accumulator, right?
+flatten :: TTree -> [String]
+flatten (TMeta cat) = ["?" ++ cat]
+flatten (TNode x _ ts) = x : concatMap flatten ts
+
 
 -- parseTree ∷ MonadFail fail ⇒ String → fail TTree
 -- parseTree = do
