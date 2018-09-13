@@ -201,7 +201,7 @@ collectMenuItems ctxt substs = NewFancyMenu $ Map.fromListWith Set.union $ do
                       t <- parseSentence ctxt (unwords newwords) ]
   let allnewnodes = case lins of
         []       → error "Muste.Menu.New.collectMenuItems: No linearizations."
-        xs@(x:_) → foldl Annotated.mergeL x xs
+        (x:xs) → foldl Annotated.mergeL x xs
   return (oldselection, Set.singleton (newselection, allnewnodes))
 
 
