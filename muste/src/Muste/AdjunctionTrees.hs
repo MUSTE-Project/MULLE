@@ -23,20 +23,49 @@ import Muste.AdjunctionTrees.Internal
 
 -- * Creating adjunction trees.
 
--- Profiling has shown me that this function is really heavy.  Quoting the relevant bits:
+-- Profiling reveals that this function is really heavy.  Quoting the
+-- relevant bits:
 --
--- COST CENTRE                                                               entries  %time %alloc   %time %alloc
---     getAdjunctionTrees                                                    1        0.0    0.0     4.6   10.2
---      getAdjunctionTrees.\                                                 29       0.0    0.2     4.6   10.2
---       getAdjunctionTrees.adjTrees                                         54085    0.6    1.1     4.6   10.0
---        getAdjunctionTrees.adjChildren                                     341021   0.9    2.4     3.1    8.8
---         treeIsRecursive                                                   281519   0.3    0.2     2.3    6.3
---          getMetas                                                         227463   0.8    2.6     1.7    5.1
---           getMetas.getMetas'                                              1184075  1.0    2.6     1.0    2.6
---          getFunctions                                                     62894    0.2    0.6     0.2    1.0
---           getFunctions.getF                                               98140    0.0    0.3     0.0    0.3
---           compare                                                         57024    0.0    0.0     0.0    0.0
---        getAdjunctionTrees.getRulesFor                                     18947    0.9    0.1     0.9    0.1
+--                                                                                                                                          individual      inherited
+--     COST CENTRE                             MODULE                  SRC                                             no.       entries  %time %alloc   %time %alloc
+--     getAdjunctionTrees                      Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:(44,1)-(68,55)     20735          1    1.5    1.8    21.9   36.9
+--      compare                                Data.MultiSet           Data/MultiSet.hs:631:3-45                       20767     901887    3.5    8.6     3.5    8.6
+--       unMS                                  Data.MultiSet           Data/MultiSet.hs:187:27-30                      20768    1803774    0.0    0.0     0.0    0.0
+--      getAdjunctionTrees.treesByMeta         Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:57:3-46            20761     117914    0.0    0.0     2.3    2.6
+--       getMetas                              Muste.Grammar.Internal  src/Muste/Grammar/Internal.hs:(206,1)-(208,42)  20770          0    0.3    0.0     2.3    2.6
+--        ...
+--      getAdjunctionTrees.regroup             Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:55:3-52            20760         16    0.1    0.3     0.1    0.3
+--       getAdjunctionTrees.regroup.\          Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:55:33-44           20762     117914    0.0    0.0     0.0    0.0
+--      getAdjunctionTrees.treesByCat          Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:59:3-71            20757         16    0.1    0.2    14.5   23.6
+--       adjTrees                              Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:(86,1)-(99,12)     20759      58951    0.4    0.3    14.4   23.5
+--        adjTrees.step                        Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:(90,5)-(95,75)     20765     125518    0.2    1.2    14.0   23.2
+--         adjChildren                         Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:(102,1)-(110,36)   20766     705674    1.4    4.2    13.8   22.0
+--          adjChildren.\                      Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:(105,45)-(110,36)  20778     587776    0.4    0.5    12.2   17.8
+--           adjChildren.\.go                  Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:109:7-69           20779     587776    0.9    2.1    11.9   17.2
+--            adjChildren.\.step               Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:108:7-58           20781     879254    0.2    0.7     0.2    0.7
+--            treeIsRecursive                  Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:(113,1)-(132,25)   20780     587776    0.8    0.8    10.7   14.5
+--             treeIsRecursive.metas           Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:123:3-31           20793     528841    0.0    0.0     3.2    3.7
+--              ...
+--             fold                            Data.MultiSet           Data/MultiSet.hs:(511,1)-(512,15)               20800     280847    0.1    0.0     1.3    1.7
+--              ...
+--             treeIsRecursive.cats            Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:(124,3)-(128,16)   20803     280847    0.3    0.4     4.8    7.5
+--              map                            Data.MultiSet           Data/MultiSet.hs:453:1-41                       20807     280847    1.3    2.7     1.3    2.7
+--               unMS                          Data.MultiSet           Data/MultiSet.hs:187:27-30                      20808     280847    0.0    0.0     0.0    0.0
+--              mconcat                        Data.MultiSet           Data/MultiSet.hs:196:5-20                       20804     280847    0.0    0.0     0.6    0.7
+--               ...
+--              getFunctions                   Muste.Grammar.Internal  src/Muste/Grammar/Internal.hs:(212,1)-(216,27)  20817          0    0.1    0.0     2.7    3.8
+--               ...
+--             toAscList                       Data.MultiSet           Data/MultiSet.hs:546:1-24                       20790          0    0.0    0.0     0.5    0.7
+--              ...
+--             treeIsRecursive.ruleCat         Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:(129,3)-(131,83)   20830          0    0.1    0.0     0.1    0.0
+--              treeIsRecursive.ruleCat.\      Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:130:28             20831     585243    0.0    0.0     0.0    0.0
+--          getRulesFor                        Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:82:1-29            20785          0    0.0    0.0     0.1    0.0
+--           getAdjunctionTrees.ruleGen        Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:68:3-55            20786      34341    0.1    0.0     0.1    0.0
+--        getRulesFor                          Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:82:1-29            20763      34357    0.0    0.0     0.0    0.0
+--         getAdjunctionTrees.ruleGen          Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:68:3-55            20764         16    0.0    0.0     0.0    0.0
+--      getAdjunctionTrees.allCats             Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:66:3-29            20756          1    0.0    0.0     0.0    0.0
+--      getAdjunctionTrees.allRules            Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:61:3-79            20736          1    0.0    0.0     0.0    0.0
+--       ...
 -- | Finds all 'AdjunctionTrees' from a specified 'Grammar'.  That is;
 -- a mapping from a 'Category' to all trees in the specified 'Grammar'
 -- that have this type.
