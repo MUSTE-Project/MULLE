@@ -1,8 +1,8 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language TemplateHaskell, UndecidableInstances, OverloadedLists #-}
-module Muste.Menu.New
-  ( NewFancyMenu(..)
-  , getNewFancyMenu
+module Muste.Menu.Internal
+  ( Menu(..)
+  , getMenu
   , getMenuItems
   , Selection
   , Sentence.Linearization
@@ -108,70 +108,70 @@ similarTrees ctxt tree = [ tree' | (_path, simtrees) <- Map.toList simmap, (_, t
 
 -- * Exported stuff
 
-newtype NewFancyMenu = NewFancyMenu
-  { unNewFancyMenu ∷ Map Selection
+newtype Menu = Menu
+  { unMenu ∷ Map Selection
     (Set (Selection, Sentence.Linearization Token.Annotated))
   }
 
-deriving instance Show       NewFancyMenu
-deriving instance Semigroup  NewFancyMenu
-deriving instance Monoid     NewFancyMenu
-deriving instance ToJSON     NewFancyMenu
-deriving instance FromJSON   NewFancyMenu
+deriving instance Show       Menu
+deriving instance Semigroup  Menu
+deriving instance Monoid     Menu
+deriving instance ToJSON     Menu
+deriving instance FromJSON   Menu
 
-deriving instance MonoFunctor NewFancyMenu
+deriving instance MonoFunctor Menu
 
-type instance Element NewFancyMenu
+type instance Element Menu
   = (Set (Selection, Sentence.Linearization Token.Annotated))
 
-instance MonoFoldable NewFancyMenu where
-  ofoldl'    f a (NewFancyMenu m) = ofoldl' f a m
-  ofoldr     f a (NewFancyMenu m) = ofoldr f a m
-  ofoldMap   f (NewFancyMenu m)   = ofoldMap f m
-  ofoldr1Ex  f (NewFancyMenu m)   = ofoldr1Ex f m
-  ofoldl1Ex' f (NewFancyMenu m)   = ofoldl1Ex' f m
+instance MonoFoldable Menu where
+  ofoldl'    f a (Menu m) = ofoldl' f a m
+  ofoldr     f a (Menu m) = ofoldr f a m
+  ofoldMap   f (Menu m)   = ofoldMap f m
+  ofoldr1Ex  f (Menu m)   = ofoldr1Ex f m
+  ofoldl1Ex' f (Menu m)   = ofoldl1Ex' f m
 
-instance MonoTraversable NewFancyMenu where
-  otraverse f (NewFancyMenu m) = NewFancyMenu <$> otraverse f m
+instance MonoTraversable Menu where
+  otraverse f (Menu m) = Menu <$> otraverse f m
 
-instance GrowingAppend NewFancyMenu where
+instance GrowingAppend Menu where
 
-instance Mono.SetContainer NewFancyMenu where
-  type ContainerKey NewFancyMenu                 = Selection
-  member k     (NewFancyMenu m)                  = Mono.member k m
-  notMember k  (NewFancyMenu m)                  = Mono.notMember k m
-  union        (NewFancyMenu a) (NewFancyMenu b) = NewFancyMenu $ a `Mono.union` b
-  intersection (NewFancyMenu a) (NewFancyMenu b) = NewFancyMenu $ a `Mono.intersection` b
-  difference   (NewFancyMenu a) (NewFancyMenu b) = NewFancyMenu $ a `Mono.difference` b
-  keys         (NewFancyMenu m)                  = Mono.keys m
+instance Mono.SetContainer Menu where
+  type ContainerKey Menu         = Selection
+  member k     (Menu m)          = Mono.member k m
+  notMember k  (Menu m)          = Mono.notMember k m
+  union        (Menu a) (Menu b) = Menu $ a `Mono.union` b
+  intersection (Menu a) (Menu b) = Menu $ a `Mono.intersection` b
+  difference   (Menu a) (Menu b) = Menu $ a `Mono.difference` b
+  keys         (Menu m)          = Mono.keys m
 
-instance Mono.IsMap NewFancyMenu where
-  type MapValue NewFancyMenu      = Element NewFancyMenu
-  lookup c       (NewFancyMenu m) = Mono.lookup c m
-  singletonMap c t                = NewFancyMenu $ Mono.singletonMap c t
-  mapFromList as                  = NewFancyMenu $ Mono.mapFromList as
-  insertMap k vs (NewFancyMenu m) = NewFancyMenu $ Mono.insertMap k vs m
-  deleteMap k    (NewFancyMenu m) = NewFancyMenu $ Mono.deleteMap k m
-  mapToList      (NewFancyMenu m) = Mono.mapToList m
+instance Mono.IsMap Menu where
+  type MapValue Menu      = Element Menu
+  lookup c       (Menu m) = Mono.lookup c m
+  singletonMap c t        = Menu $ Mono.singletonMap c t
+  mapFromList as          = Menu $ Mono.mapFromList as
+  insertMap k vs (Menu m) = Menu $ Mono.insertMap k vs m
+  deleteMap k    (Menu m) = Menu $ Mono.deleteMap k m
+  mapToList      (Menu m) = Mono.mapToList m
 
-instance Pretty NewFancyMenu where
+instance Pretty Menu where
   pretty
-    =   unNewFancyMenu
+    =   unMenu
     >>> Map.toList
     >>> fmap @[] (fmap @((,) Selection) Set.toList)
     >>> pretty
 
 -- | FIXME Change my name when we have moved the deprecated 'getMenu'.
-getNewFancyMenu
+getMenu
   ∷ Sentence.IsToken a
   ⇒ Context
   → Sentence.Linearization a
-  → NewFancyMenu
-getNewFancyMenu c l
+  → Menu
+getMenu c l
   = Sentence.stringRep l
   & getMenuItems c
 
-getMenuItems :: Context -> String -> NewFancyMenu
+getMenuItems :: Context -> String -> Menu
 getMenuItems ctxt str =
     collectTreeSubstitutions ctxt str &
     filterTreeSubstitutions &
@@ -191,8 +191,8 @@ collectTreeSubstitutions ctxt sentence =
        let new = (newtree, newwords, newnodes)
        return (old `xtreeDiff` new, old, new)
 
-collectMenuItems :: Context -> [TreeSubst] -> NewFancyMenu
-collectMenuItems ctxt substs = NewFancyMenu $ Map.fromListWith Set.union $ do
+collectMenuItems :: Context -> [TreeSubst] -> Menu
+collectMenuItems ctxt substs = Menu $ Map.fromListWith Set.union $ do
   (_cost, (_oldtree, _oldwords, oldnodes), (_newtree, newwords, newnodes)) ← substs
   let edits = alignSequences oldnodes newnodes
   let (oldselection, newselection) = splitAlignments edits

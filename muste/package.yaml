@@ -95,11 +95,11 @@ library:
     - Muste.Data
     - Muste.Grammar.Embed
     - Muste.Grammar.Grammars
+    - Muste.Menu.Internal
     - Muste.Selection
     - Muste.Prune
     - Muste.Feat
     - Muste.Util
-    - Muste.Menu.New
     - Muste.Sentence.Class
     - Muste.Sentence.Language
     - Muste.Sentence.Linearization
