@@ -9,8 +9,8 @@ module Muste.Prune
 
 import Prelude ()
 import Muste.Prelude
-import qualified Data.Containers as Mono
 import Data.Map (Map)
+import qualified Data.Containers as Mono
 import qualified Data.Map as M
 import Data.Set (Set)
 import qualified Data.Set as Set
@@ -172,23 +172,26 @@ similarTreesForSubtree
   :: TTree
   -> AdjunctionTrees
   -> [SimTree]
-similarTreesForSubtree tree adjTrees = simTrees trees tree
+similarTreesForSubtree tree adjTrees = similiarTrees trees tree
   where
-    trees = fromMaybe errNoCat $ Mono.lookup cat adjTrees
+    trees ∷ [TTree]
+    trees = fromMaybe errNoCat $ do
+      Mono.lookup (cat, metas) adjTrees
     cat = case tree of
       (TNode _ (Fun c _) _) → c
       _ → errNotNode
+    metas = Grammar.getMetas tree
     errNoCat = error
       $  "Muste.Prune.similarTreesForSubtree: "
-      <> "The given category does not exist in the adjunction tree"
+      <> "The tree with the given category and/or metas does not exist."
     errNotNode = error
       $  "Muste.Prune.similarTreesForSubtree: "
       <> "Non-exhaustive pattern match"
 
 -- O(n^3) !!!! I don't think this can be avoided though since the
 -- output is bounded by Ω(n^3).
-simTrees ∷ [TTree] → TTree → [SimTree]
-simTrees adjTreesForCat tree = do
+similiarTrees ∷ [TTree] → TTree → [SimTree]
+similiarTrees adjTreesForCat tree = do
   (pruned, branches) ← pruneTree tree
   pruned'            ← filterTrees adjTreesForCat pruned
   tree'              ← insertBranches branches pruned'

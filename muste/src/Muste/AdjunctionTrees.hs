@@ -8,7 +8,6 @@ module Muste.AdjunctionTrees (AdjunctionTrees, getAdjunctionTrees) where
 
 import Prelude ()
 import Muste.Prelude
-import qualified Data.Containers      as Mono
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Monad.Reader
@@ -42,17 +41,28 @@ import Muste.AdjunctionTrees.Internal
 -- a mapping from a 'Category' to all trees in the specified 'Grammar'
 -- that have this type.
 getAdjunctionTrees :: Grammar -> AdjunctionTrees
-getAdjunctionTrees grammar = Mono.mapFromList
-  $ go <$> allCats
+getAdjunctionTrees grammar
+  =   AdjunctionTrees
+  $   Map.fromListWith mappend
+  $   (>>= regroup)
+  $   fmap (fmap treesByMeta)
+  <$> treesByCat
+  <$> allCats
   where
-  go ∷ Category → (Category, [TTree])
-  go cat = (cat, fst <$> runBuilderI (adjTrees cat []) ruleGen)
-  allRules :: Map String [Rule]
+  regroup
+    ∷ (Category                     ,  [(MultiSet Category, [TTree])])
+    → [((Category, MultiSet Category), [TTree])]
+  regroup (c, xs) = (\(s, ts) → ((c, s), ts)) <$> xs
+  treesByMeta ∷ TTree → (MultiSet Category, [TTree])
+  treesByMeta t = (Grammar.getMetas t, pure t)
+  treesByCat ∷ Category → (Category, [TTree])
+  treesByCat cat = (cat, fst <$> runBuilderI (adjTrees cat []) ruleGen)
+  allRules :: Map Category [Rule]
   allRules = Map.fromListWith mappend $ catRule <$> Grammar.getAllRules grammar
-  catRule ∷ Rule → (String, [Rule])
+  catRule ∷ Rule → (Category, [Rule])
   catRule r@(Function _ (Fun c _)) = (c, pure r)
   catRule _ = error "Non-exhaustive pattern match"
-  allCats :: [String]
+  allCats :: [Category]
   allCats = Map.keys allRules
   ruleGen :: RuleGen
   ruleGen cat = Map.findWithDefault mempty cat allRules

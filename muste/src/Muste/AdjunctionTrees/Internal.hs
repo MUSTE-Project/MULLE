@@ -3,20 +3,21 @@
 --
 -- Interfacint with 'AdjunctionTrees' is done using the interface for
 -- monomorphic map containers.
-module Muste.AdjunctionTrees.Internal (AdjunctionTrees) where
+module Muste.AdjunctionTrees.Internal (AdjunctionTrees(AdjunctionTrees)) where
 
 import Prelude ()
 import Muste.Prelude
 import qualified Data.Containers      as Mono
 import Data.MonoTraversable
 import qualified Data.Map.Strict      as M
+import Data.MultiSet (MultiSet)
 
 import Muste.Tree
 
 -- | @AdjunctionTrees@ really is a map from a @Category@ to a set of
 -- trees that have this category.
 newtype AdjunctionTrees
-  = AdjunctionTrees (M.Map Category [TTree])
+  = AdjunctionTrees (M.Map (Category, MultiSet Category) [TTree])
   deriving (Show, MonoFunctor)
 
 type instance Element AdjunctionTrees = [TTree]
@@ -38,7 +39,7 @@ deriving instance Monoid AdjunctionTrees
 instance GrowingAppend AdjunctionTrees where
 
 instance Mono.SetContainer AdjunctionTrees where
-  type ContainerKey AdjunctionTrees = Category
+  type ContainerKey AdjunctionTrees = (Category, MultiSet Category)
   member k     (AdjunctionTrees m) = Mono.member k m
   notMember k  (AdjunctionTrees m) = Mono.notMember k m
   union        (AdjunctionTrees a) (AdjunctionTrees b) = AdjunctionTrees $ a `Mono.union` b
