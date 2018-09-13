@@ -4,6 +4,10 @@ Change log
 HEAD
 ---
 
+Drop support for old menu.
+
+Performance improvements when generating trees.
+
 0.2.4.0
 ---
 
