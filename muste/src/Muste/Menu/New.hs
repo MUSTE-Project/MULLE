@@ -197,9 +197,11 @@ collectMenuItems ctxt substs = NewFancyMenu $ Map.fromListWith Set.union $ do
   (_cost, (_oldtree, _oldwords, oldnodes), (_newtree, newwords, newnodes)) ← substs
   let edits = alignSequences oldnodes newnodes
   let (oldselection, newselection) = splitAlignments edits
-  let allnewnodes = foldl1 Annotated.mergeL
-                    [ Annotated.mkLinearization ctxt t t t |
+  let lins = [ Annotated.mkLinearization ctxt t t t |
                       t <- parseSentence ctxt (unwords newwords) ]
+  let allnewnodes = case lins of
+        []       → error "Muste.Menu.New.collectMenuItems: No linearizations."
+        xs@(x:_) → foldl Annotated.mergeL x xs
   return (oldselection, Set.singleton (newselection, allnewnodes))
 
 
