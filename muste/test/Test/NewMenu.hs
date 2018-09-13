@@ -1,46 +1,30 @@
 {-# Language UnicodeSyntax, NamedWildCards, TemplateHaskell
   , PartialTypeSignatures, OverloadedStrings, RecordWildCards #-}
--- TODO Still need to add test-case that uses a menu.
--- {-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall -Wno-unused-top-binds #-}
 module Test.NewMenu (tests) where
 
-import Prelude hiding (fail)
+import Prelude ()
+import Muste.Prelude
+
 import Test.Tasty
 import Test.Tasty.HUnit
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Map as Map
-import Control.Category ((>>>))
-import Control.Monad (when)
-import Control.Monad.Fail (MonadFail)
-import Text.Printf
-import qualified Data.Containers as Mono
 import Data.Text.Prettyprint.Doc
-  ( Pretty, Doc, pretty, nest
-  , vsep, (<+>), brackets, enclose, hsep
+  ( Pretty, Doc, pretty , vsep, (<+>), hsep
   )
-import Data.Text (Text)
-import Data.Function ((&))
-import GHC.Exts (fromList, toList)
 
 import Muste (Grammar, TTree, Context)
--- TODO Must test NewFancyMenu in stead.
--- import Muste.Menu.Internal (Menu)
--- import qualified Muste.Menu.Internal as Menu
-import qualified Muste.Linearization.Internal as Linearization (ctxtLang)
 import Muste.Menu.New (NewFancyMenu, Linearization)
 import qualified Muste.Menu.New as Menu
 import Muste.Sentence (Token)
-import qualified Muste.Sentence.Token as Token
 import qualified Muste.Sentence as Sentence
 import Muste.Sentence.Annotated (Annotated)
 import qualified Muste.Sentence.Annotated as Sentence
-import Muste.Sentence.Unannotated (Unannotated)
-import qualified Muste.Common as Common
-import qualified Muste.Grammar.Internal as Grammar
 import qualified Muste.Util as Util
 
-import Test.Common (failDoc, renderDoc)
+import Test.Common (failDoc)
 import qualified Test.Common as Test
 import Test.NewMenuTestCases (LinTestCase, linTestCases)
 
@@ -67,7 +51,7 @@ tests = testGroup "NewFancyMenu" $
 -- | Makes tests for menus based on 'Linearization's (as opposed to
 -- 'mkTest' that does it based on the internal syntax for sentences).
 mkTestLinearizations ∷ LinTestCase → TestTree
-mkTestLinearizations (lang, src, tests) = testGroup src $ map mkTestCase tests
+mkTestLinearizations (lang, src, theTests) = testGroup src $ map mkTestCase theTests
     where ctxt = Util.unsafeGetContext grammar lang
           allMenuItems = getAllSuggestions ctxt src
           mkTestCase ∷ (Menu.Selection, String) → TestTree

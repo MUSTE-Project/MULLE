@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
+{-# OPTIONS_GHC -Wall #-}
 {-# Language TemplateHaskell, UndecidableInstances, OverloadedLists #-}
 module Muste.Menu.New
   ( NewFancyMenu(..)
@@ -155,7 +155,6 @@ instance Mono.IsMap NewFancyMenu where
   mapToList      (NewFancyMenu m) = Mono.mapToList m
 
 instance Pretty NewFancyMenu where
-  -- pretty = pretty . Map.toList . unNewFancyMenu
   pretty
     =   unNewFancyMenu
     >>> Map.toList
@@ -273,7 +272,8 @@ mergeEdits [] = []
 mergeEdits (edit@((xs,_,_), (xs',_,_)) : edits)
     | xs == xs' = mergeEdits edits
     | otherwise = merge edit edits
-    where merge edit [] = [edit]
-          merge edit@((xs,i,_j), (xs',i',_j')) (((ys,_k,l), (ys',_k',l')) : edits)
-              | ys == ys' = edit : mergeEdits edits
-              | otherwise = merge ((xs++ys,i,l), (xs'++ys',i',l')) edits
+    where
+    merge e [] = [e]
+    merge e@((xs0,i,_j), (xs0',i',_j')) (((ys,_k,l), (ys',_k',l')) : edits')
+        | ys == ys' = e : mergeEdits edits
+        | otherwise = merge ((xs0++ys,i,l), (xs0'++ys',i',l')) edits'

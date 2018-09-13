@@ -95,7 +95,6 @@ library:
     - Muste.Data
     - Muste.Grammar.Embed
     - Muste.Grammar.Grammars
-    - Muste.Menu.Internal
     - Muste.Selection
     - Muste.Prune
     - Muste.Feat
