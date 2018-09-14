@@ -19,6 +19,7 @@ module Muste.Tree.Internal
   , FunType(Fun, NoType)
   , toGfTree
   , flatten
+  , foldMapTTree
   ) where
 
 -- TODO Do not depend on PGF
@@ -404,3 +405,15 @@ toGfTree tree =
         if name == wildCard then (nid,PGF.mkApp PGF.wildCId nts) else (nid,PGF.mkApp (PGF.mkCId name) nts)
   in
     snd $ convert tree 0
+
+{-# INLINE foldMapTTree #-}
+-- | If 'TTree' was an instance of 'Foldable' then 'foldMap' would look
+-- something like this.
+foldMapTTree
+  ∷ Monoid w
+  ⇒ (String → FunType → w)
+  → TTree
+  → w
+foldMapTTree f = \case
+  TMeta{} → mempty
+  TNode s t ts → f s t <> foldMap (foldMapTTree f) ts

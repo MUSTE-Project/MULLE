@@ -42,7 +42,7 @@ import qualified Data.MultiSet as MultiSet
 import qualified Muste.Grammar.Grammars as Grammars
 import Muste.Common
 import Muste.Tree
-import qualified Muste.Tree.Internal as Tree (toGfTree)
+import qualified Muste.Tree.Internal as Tree
 
 -- | Type 'Rule' consists of a 'String' representing the function name
 -- and a 'FunType' representing its type.
@@ -209,8 +209,6 @@ getMetas = \case
 
 -- | Returns a bag of all functions in a tree.
 getFunctions :: TTree -> MultiSet Rule
-getFunctions = \case
-  TNode fun typ ts → mconcat
-    $ MultiSet.singleton (Function fun typ)
-    : fmap getFunctions ts
-  _                → mempty
+getFunctions = Tree.foldMapTTree step
+  where
+  step fun typ = MultiSet.singleton $ Function fun typ

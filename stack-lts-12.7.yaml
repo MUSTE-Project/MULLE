@@ -41,4 +41,5 @@ extra-deps:
 - git: git@github.com:MUSTE-Project/sqlite-simple.git
   commit: 403524ac7448bfeaa68c5a54ca067be53e762c73
 # User goal `multiset`
-- multiset-0.3.4
+- git: git@github.com:MUSTE-Project/multiset.git
+  commit: 04a6f2e035b0d39ea9c14317a7fcead45e56dc06
