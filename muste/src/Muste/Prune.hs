@@ -1,4 +1,3 @@
-{-# Language CPP #-}
 {-# OPTIONS_GHC -Wall -Wno-unused-top-binds -Wno-name-shadowing #-}
 -- FIXME Should this be an internal module? It's not currently used in
 -- @muste-ajax@.
@@ -226,32 +225,13 @@ filterTrees trees pruned = do
 heuristics ∷ TTree → TTree → Bool
 heuristics pruned pruned' = and
   [ True
-#ifdef PRUNE_ALT_1A
-  ---- Alternative 1a: the root must change.
-  , not (sameRoot pruned pruned') --- ***
-#endif
-#ifdef PRUNE_ALT_1B
-  ---- Alternative 1b: it's ok if two different children change.
-  , not (exactlyOneChildDiffers pruned pruned') -- ***
-#endif
-#ifdef PRUNE_ALT_1C
-  ---- Alternative 1c: the pruned trees should not share any functions.
-  , noDuplicates funs' -- ***
-#endif
-#ifdef PRUNE_ALT_1D
   -- This is really heavy!  The call to 'Grammar.getFunctions' force
   -- us to traverse the whole structure.  Perhaps if we could build up
   -- the results and do some clever memoization.
+
   , funs `disjoint` funs'
-#endif
-#ifdef PRUNE_ALT_2A
   ---- Alternative 2a: all branches are put back into the new tree.
   , Grammar.getMetas pruned == Grammar.getMetas pruned'
-#endif
-#ifdef PRUNE_ALT_2B
-  ---- Alternative 2b: some branches may be removed from the new tree.
-  , isSubList metas (getMetas pruned') -- ***
-#endif
   ]
   where
   funs  = Grammar.getFunctions pruned

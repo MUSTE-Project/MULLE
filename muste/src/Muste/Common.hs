@@ -26,6 +26,7 @@ module Muste.Common
   , putDocLn
   , lookupFailIO
   , lookupThrow
+  , trace
   , traceShow
   , traceShowId
   , from

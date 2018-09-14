@@ -51,8 +51,6 @@ when:
       - -Wno-name-shadowing
       - -Werr
 
-cpp-options: -DPRUNE_ALT_1D -DPRUNE_ALT_2A
-
 ghc-options: -fmax-valid-substitutions=0
 
 default-extensions:
