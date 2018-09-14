@@ -215,10 +215,9 @@ similiarTrees adjTreesForCat tree = do
   tree'              ← insertBranches branches pruned'
   pure (tree `treeDiff` tree', tree', pruned, pruned')
 
--- O(n)
+-- m ~ [] ⇒ runtime = O(n)
 filterTrees ∷ Monad m ⇒ Alternative m ⇒ m TTree → TTree → m TTree
 filterTrees trees pruned = do
-  -- guard $ noDuplicates funs
   pruned' ← trees
   guard $ heuristics pruned pruned'
   pure pruned'

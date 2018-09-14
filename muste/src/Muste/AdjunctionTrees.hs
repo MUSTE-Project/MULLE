@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# Language ConstraintKinds #-}
+{-# Language ConstraintKinds, CPP, OverloadedStrings #-}
 -- | Adjunction trees
 --
 -- Interfacint with 'AdjunctionTrees' is done using the interface for
@@ -20,6 +20,14 @@ import Muste.Grammar hiding (tree)
 import Muste.Grammar.Internal (Rule(Function))
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees.Internal
+
+#ifdef DIAGNOSTICS
+import Muste.Common
+import qualified Data.Text.Prettyprint.Doc as Doc
+import System.IO.Unsafe
+
+import qualified Muste.Tree.Internal as Tree
+#endif
 
 -- * Creating adjunction trees.
 
@@ -71,7 +79,8 @@ import Muste.AdjunctionTrees.Internal
 -- that have this type.
 getAdjunctionTrees :: Grammar -> AdjunctionTrees
 getAdjunctionTrees grammar
-  =   AdjunctionTrees
+  =   dbg diagnose
+  $   AdjunctionTrees
   $   Map.fromListWith mappend
   $   (>>= regroup)
   $   fmap (fmap treesByMeta)
@@ -95,6 +104,39 @@ getAdjunctionTrees grammar
   allCats = Map.keys allRules
   ruleGen :: RuleGen
   ruleGen cat = Map.findWithDefault mempty cat allRules
+
+dbg ∷ (a → IO b) → a → a
+#ifdef DIAGNOSTICS
+dbg f a = unsafePerformIO (f a) `seq` a
+#else
+dbg _ = identity
+#endif
+
+diagnose ∷ AdjunctionTrees → IO ()
+#ifdef DIAGNOSTICS
+diagnose (AdjunctionTrees t) = putDocLn $ Doc.sep
+  [ pretty @Text "Occurences:"
+  , indent $ pretty occurs
+  , pretty @Text "Tree sizes:"
+  , indent $ pretty sizes
+  ]
+  where
+  l ∷ [((Category, MultiSet Category), [TTree])]
+  l = Map.toList t
+  occurs ∷ [((Category, [(Category, Int)]), Int)]
+  occurs = (\((c, m), ts) → ((c, Map.toList $ MultiSet.toMap m), length ts)) <$> l
+  trees ∷ [TTree]
+  trees = l >>= \(_, ts) → ts
+  sizes ∷ [(Int, Int)]
+  sizes
+    =   Map.toList
+    $   Map.fromListWith (+)
+    $   (\t0 → (Tree.countNodes t0, 1))
+    <$> trees
+  indent = Doc.indent 2
+#else
+diagnose = error "Not diagnosing"
+#endif
 
 type RuleGen = Category → [Rule]
 

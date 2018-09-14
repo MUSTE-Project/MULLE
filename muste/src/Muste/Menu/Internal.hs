@@ -161,7 +161,6 @@ instance Pretty Menu where
     >>> fmap @[] (fmap @((,) Selection) Set.toList)
     >>> pretty
 
--- | FIXME Change my name when we have moved the deprecated 'getMenu'.
 getMenu
   ∷ Sentence.IsToken a
   ⇒ Context
@@ -172,11 +171,10 @@ getMenu c l
   & getMenuItems c
 
 getMenuItems :: Context -> String -> Menu
-getMenuItems ctxt str =
-    collectTreeSubstitutions ctxt str &
-    filterTreeSubstitutions &
-    collectMenuItems ctxt
-
+getMenuItems ctxt str
+  = collectTreeSubstitutions ctxt str
+  & filterTreeSubstitutions
+  & collectMenuItems ctxt
 
 type TreeSubst = (Int, XTree, XTree)
 type XTree = (TTree, [Tokn], [Node])

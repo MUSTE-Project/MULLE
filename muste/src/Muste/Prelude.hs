@@ -19,10 +19,10 @@ import Prelude as X
 
   (.), ($), ($!), either, pure, (||), (&&), length, otherwise,
   splitAt, (<$>), fromInteger, uncurry, curry, not, null, filter,
-  zipWith, zip, fst, snd, all, any, reverse, maximum,
-  minimum, max, min, sum, unwords, words, lines, unlines, or, and,
-  notElem, elem, (<*>), foldMap, putStrLn, putStr, flip, const,
-  sequence, take, mapM_, mapM, ioError, error, repeat, foldl)
+  zipWith, zip, fst, snd, all, any, reverse, maximum, minimum, max,
+  min, sum, unwords, words, lines, unlines, or, and, notElem, elem,
+  (<*>), foldMap, putStrLn, putStr, flip, const, sequence, take,
+  mapM_, mapM, ioError, error, repeat, foldl, seq)
 import Data.List                 as X (sort)
 import Data.Bool                 as X (bool)
 import Data.Function             as X ((&), on)
