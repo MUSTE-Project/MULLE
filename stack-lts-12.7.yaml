@@ -42,4 +42,4 @@ extra-deps:
   commit: 403524ac7448bfeaa68c5a54ca067be53e762c73
 # User goal `multiset`
 - git: git@github.com:MUSTE-Project/multiset.git
-  commit: 04a6f2e035b0d39ea9c14317a7fcead45e56dc06
+  commit: 50cb284ded048c7e9d176fb4dc665af177d88b71
