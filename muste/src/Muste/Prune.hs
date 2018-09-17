@@ -191,9 +191,12 @@ similarTreesForSubtree
   -> [SimTree]
 similarTreesForSubtree tree adjTrees = similiarTrees trees tree
   where
-    trees ∷ [TTree]
-    trees = fromMaybe errNoCat $ do
-      Mono.lookup (cat, metas) adjTrees
+    trees ∷ Map (MultiSet Category) [(TTree, MultiSet Rule)]
+    trees
+      = M.fromListWith mappend
+      $ fmap (\t → (Grammar.getMetas t, pure (t, Grammar.getFunctions t)))
+      $ fromMaybe errNoCat
+      $ Mono.lookup (cat, metas) adjTrees
     cat = case tree of
       (TNode _ (Fun c _) _) → c
       _ → errNotNode
@@ -207,35 +210,34 @@ similarTreesForSubtree tree adjTrees = similiarTrees trees tree
 
 -- O(n^3) !!!! I don't think this can be avoided though since the
 -- output is bounded by Ω(n^3).
-similiarTrees ∷ [TTree] → TTree → [SimTree]
-similiarTrees adjTreesForCat tree = do
+similiarTrees
+  ∷ Map (MultiSet Category) [(TTree, MultiSet Rule)]
+  → TTree
+  → [SimTree]
+similiarTrees byMetas tree = do
   (pruned, branches) ← pruneTree tree
-  pruned'            ← filterTrees adjTreesForCat pruned
+  pruned'            ← filterTrees byMetas pruned
   tree'              ← insertBranches branches pruned'
   pure (tree `treeDiff` tree', tree', pruned, pruned')
 
 -- m ~ [] ⇒ runtime = O(n)
-filterTrees ∷ Monad m ⇒ Alternative m ⇒ m TTree → TTree → m TTree
-filterTrees trees pruned = do
-  pruned' ← trees
-  guard $ heuristics pruned pruned'
-  pure pruned'
+filterTrees
+  ∷ Monad m
+  ⇒ Alternative m
+  ⇒ Map (MultiSet Category) (m (TTree, MultiSet Rule))
+  → TTree
+  → m TTree
+filterTrees byMetas pruned = do
+  case M.lookup (Grammar.getMetas pruned) byMetas of
+    Nothing → empty
+    Just xs → do
+      (pruned', funs) ← xs
+      guard $ heuristics pruned funs
+      pure pruned'
 
 -- | Various heuristics used for filtering out results.
-heuristics ∷ TTree → TTree → Bool
-heuristics pruned pruned' = and
-  [ True
-  -- This is really heavy!  The call to 'Grammar.getFunctions' force
-  -- us to traverse the whole structure.  Perhaps if we could build up
-  -- the results and do some clever memoization.
-
-  , funs `disjoint` funs'
-  ---- Alternative 2a: all branches are put back into the new tree.
-  , Grammar.getMetas pruned == Grammar.getMetas pruned'
-  ]
-  where
-  funs  = Grammar.getFunctions pruned
-  funs' = Grammar.getFunctions pruned'
+heuristics ∷ TTree → MultiSet Rule → Bool
+heuristics pruned funs = Grammar.getFunctions pruned `disjoint` funs
 
 -- | @True@ if two trees have the same root.
 sameRoot :: TTree -> TTree -> Bool

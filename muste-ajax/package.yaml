@@ -15,15 +15,23 @@ flags:
 ghc-options: -fmax-valid-substitutions=0
 
 default-extensions:
-- LambdaCase
-- OverloadedStrings
-- TypeApplications
-- ViewPatterns
+- ConstraintKinds
+- DeriveGeneric
 - FlexibleContexts
+- FlexibleInstances
+- GADTs
+- GeneralizedNewtypeDeriving
+- LambdaCase
+- NamedWildCards
+- OverloadedStrings
+- ScopedTypeVariables
 - StandaloneDeriving
 - TupleSections
+- TypeApplications
+- TypeFamilies
+- TypeSynonymInstances
 - UnicodeSyntax
-- ConstraintKinds
+- ViewPatterns
 
 data-files:
   - ./static/index.html
@@ -43,21 +51,6 @@ data-files:
   - ./static/instructions.html
   - ./static/favicon.ico
   - ./static/muste.css
-
-default-extensions:
-- UnicodeSyntax
-- NamedWildCards
-- TypeSynonymInstances
-- FlexibleInstances
-- ScopedTypeVariables
-- ViewPatterns
-- DeriveGeneric
-- LambdaCase
-- TypeApplications
-- StandaloneDeriving
-- GADTs
-- GeneralizedNewtypeDeriving
-- TypeFamilies
 
 dependencies:
 - QuickCheck           >= 2.9.2    && < 2.12
