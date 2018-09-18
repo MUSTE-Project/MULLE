@@ -134,3 +134,15 @@ tests:
     - HUnit
     - tasty-hunit
     - tasty-quickcheck
+
+benchmarks:
+  benchmark:
+    main: Main.hs
+    source-dirs: benchmark/
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - muste
+      - criterion

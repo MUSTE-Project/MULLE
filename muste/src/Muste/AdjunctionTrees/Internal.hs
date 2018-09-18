@@ -11,6 +11,8 @@ import qualified Data.Containers      as Mono
 import Data.MonoTraversable
 import qualified Data.Map.Strict      as M
 import Data.MultiSet (MultiSet)
+import GHC.Generics (Generic)
+import Control.DeepSeq (NFData)
 
 import Muste.Tree
 
@@ -18,7 +20,7 @@ import Muste.Tree
 -- trees that have this category.
 newtype AdjunctionTrees
   = AdjunctionTrees (M.Map (Category, MultiSet Category) [TTree])
-  deriving (Show, MonoFunctor)
+  deriving (Show, MonoFunctor, Generic, NFData)
 
 type instance Element AdjunctionTrees = [TTree]
 

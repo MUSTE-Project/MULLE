@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# Language CPP, OverloadedStrings #-}
+{-# Language CPP, OverloadedStrings, DeriveGeneric #-}
 module Muste.Linearization.Internal
   ( Context(..)
   , buildContext

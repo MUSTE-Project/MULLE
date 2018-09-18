@@ -33,6 +33,7 @@ import qualified Data.Text as Text
 import Data.String (fromString)
 import Data.String.ToString
 import Language.Haskell.TH.Syntax (Lift)
+import Control.DeepSeq (NFData)
 
 import Muste.Common.SQL (FromField, ToField)
 import qualified Muste.Common.SQL as SQL
@@ -63,6 +64,8 @@ data TTree
    -- read is broken at the moment, most likely because of the
    -- read/show instances for @CId@
   deriving (Ord, Eq, Show, Read, Generic)
+
+instance NFData TTree where
 
 deriving instance Lift TTree
 
@@ -149,6 +152,9 @@ data FunType
 deriving instance Lift FunType
 
 instance Binary FunType
+
+instance NFData FunType where
+  -- Generic derivation
 
 -- | Generic class for trees
 class Show t => TreeC t where

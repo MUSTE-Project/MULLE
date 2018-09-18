@@ -20,6 +20,7 @@ import qualified Data.Set as Set
 import GHC.Generics (Generic)
 import Data.Binary hiding (Word)
 import Data.Text.Prettyprint.Doc (Pretty(..))
+import Control.DeepSeq (NFData)
 
 import Muste.Common.SQL (FromField, ToField)
 import qualified Muste.Common.SQL as SQL
@@ -55,6 +56,7 @@ instance FromJSON Annotated where
     <*> o .: "classes"
 instance IsToken Annotated where
   concrete = concrete
+instance NFData Annotated where
 
 annotated ∷ String → [String] → Annotated
 annotated c a = Annotated c (Set.fromList a)

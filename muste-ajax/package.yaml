@@ -1,5 +1,6 @@
 name:                muste-ajax
 version:             0.2.4.0
+license:             OtherLicense
 license-file:        LICENSE
 author:              Herbert Lange
 maintainer:          herbert.lange@cse.gu.se

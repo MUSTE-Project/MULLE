@@ -4,6 +4,8 @@ Change log
 HEAD
 ---
 
+Add benchmarking suite for generating menus.
+
 Move grammar files.  This requires the grammar files to be re-built
 (with `make`).  First subsequent built may also issue a warning about
 missing files.  This warning should dissapear on subsequent builds.

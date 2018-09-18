@@ -42,3 +42,9 @@ Do we want to keep supporting `muste-cgi`?
 
 AFAIK CGI scripts just speak a different protocol from
 `application/json`.  So this should be easy to keep support for.
+
+Add `NFData` instance for `Grammar`.
+---
+
+This will allow for better benchmarking, but unfortunately require an
+`NFData` instance for `PGF`.

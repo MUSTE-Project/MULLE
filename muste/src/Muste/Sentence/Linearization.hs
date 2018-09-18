@@ -12,6 +12,7 @@ import Control.Category ((>>>))
 import GHC.Exts (IsList(..))
 import Data.Typeable (Typeable)
 import Data.Text.Prettyprint.Doc (Pretty(..))
+import Control.DeepSeq (NFData)
 
 import Muste.Common.SQL (FromField, ToField)
 import qualified Muste.Common.SQL as SQL
@@ -26,8 +27,8 @@ deriving instance FromJSON a ⇒ FromJSON (Linearization a)
 deriving instance ToJSON a ⇒ ToJSON (Linearization a)
 deriving instance Eq a ⇒ Eq (Linearization a)
 deriving instance Ord a ⇒ Ord (Linearization a)
-
 deriving instance Generic a ⇒ Generic (Linearization a)
+instance (Generic a, NFData a) ⇒ NFData (Linearization a) where
 
 -- There is no 'Binary' instance for 'Vector', so we go via '[]'.
 instance Binary a ⇒ Binary (Linearization a) where

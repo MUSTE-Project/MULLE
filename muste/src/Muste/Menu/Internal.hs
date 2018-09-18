@@ -22,6 +22,7 @@ import Data.MonoTraversable
 import qualified Data.Containers as Mono
 import Data.List (intercalate)
 import Data.Aeson (ToJSONKey, FromJSONKey)
+import Control.DeepSeq (NFData)
 
 import Muste.Common
 import qualified Muste.Grammar.Internal as Grammar
@@ -55,6 +56,8 @@ instance Ord Interval where
     EQ → runInterval a `compare` runInterval b
     x  → x
 deriving instance Read Interval
+deriving instance Generic Interval
+instance NFData Interval where
 
 sizeInterval ∷ Interval → Int
 sizeInterval (Interval (i, j)) = j - i
@@ -79,6 +82,8 @@ instance Ord Selection where
     where
     size ∷ Selection → Int
     size = runSelection >>> fmap sizeInterval >>> sum
+deriving instance Generic Selection
+instance NFData Selection where
 
 deriving instance Semigroup Selection
 deriving instance Monoid Selection
@@ -118,6 +123,8 @@ deriving instance Semigroup  Menu
 deriving instance Monoid     Menu
 deriving instance ToJSON     Menu
 deriving instance FromJSON   Menu
+deriving instance Generic    Menu
+instance NFData Menu where
 
 deriving instance MonoFunctor Menu
 

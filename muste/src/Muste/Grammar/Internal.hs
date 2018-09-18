@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# language OverloadedStrings, TypeApplications, UnicodeSyntax #-}
+{-# language DeriveGeneric #-}
 {- | This Module is the internal implementation behind the module 'Muste.Grammar' -}
 module Muste.Grammar.Internal
   ( Grammar(..)
@@ -38,6 +38,7 @@ import qualified Data.Text.Prettyprint.Doc as Doc
 import Control.DeepSeq
 import Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as MultiSet
+import Control.DeepSeq (NFData)
 
 import qualified Muste.Grammar.Grammars as Grammars
 import Muste.Common
@@ -48,6 +49,11 @@ import qualified Muste.Tree.Internal as Tree
 -- and a 'FunType' representing its type.
 data Rule = Function String FunType deriving (Ord,Eq,Show,Read)
 
+deriving instance Generic Rule
+
+instance NFData Rule where
+  -- Generic derivation
+
 -- | Type 'Grammar' consists of a start category and a list of rules.
 data Grammar = Grammar
   { startcat :: String
@@ -55,7 +61,6 @@ data Grammar = Grammar
   , lexrules :: [Rule]
   , pgf :: PGF
   }
-
 
 instance Pretty Grammar where
   pretty (Grammar sCat srules lrules _) = Doc.sep
