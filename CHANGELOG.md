@@ -4,6 +4,10 @@ Change log
 HEAD
 ---
 
+Move grammar files.  This requires the grammar files to be re-built
+(with `make`).  First subsequent built may also issue a warning about
+missing files.  This warning should dissapear on subsequent builds.
+
 Drop support for old menu.
 
 Performance improvements when generating trees.
