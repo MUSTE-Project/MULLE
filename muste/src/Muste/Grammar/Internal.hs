@@ -177,7 +177,7 @@ grammars = Map.fromList (uncurry grm <$> Grammars.grammars)
   where
   {-# INLINE grm #-}
   grm :: Text -> SB.ByteString -> (Text, Grammar)
-  grm idf pgf = (idf, (parseGrammar . trace "parsing grammar") $ LB.fromStrict pgf)
+  grm idf pgf = (idf, parseGrammar $ LB.fromStrict pgf)
 
 -- | Lookup a grammar amongst the ones that we know of.  The grammars
 -- that we know of are the ones linked against this binary at

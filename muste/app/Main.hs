@@ -148,7 +148,7 @@ getMenu = gets $ \(Env { .. }) → menu
 options ∷ Repl.Options (HaskelineT (StateT Env IO))
 options =
   [ "lang" |> oneArg setLang
-  , "sel"  |> oneArg setSel
+  , "sel"  |> setSel
   ]
   where
   (|>) = (,)
@@ -168,15 +168,21 @@ instance Show AppException where
     SelectionNotFound → "ERROR: Selection not found"
     OneArgErr → "One argument plz"
 
-setSel ∷ String → Repl ()
-setSel str = do
-  case readMaybe @Menu.Selection str of
-    Nothing → liftIO $ putStrLn "readMaybe @Menu.Selection: No parse"
+setSel ∷ [String] → Repl ()
+setSel args = do
+  -- case readMaybe @[(Int, Int)] str of
+  case traverse (readMaybe @(Int, Int)) args of
+    Nothing → liftIO $ putStrLn
+      $  "Expecting a space-seperated list of pairs of numbers.  "
+      <> "Like so: \"(0,1) (2,3)\""
     Just sel → do
       m ← getMenu
-      case lookupFail mempty sel m of
+      case lookupFail mempty (fromL sel) m of
         Nothing → showErr SelectionNotFound
         Just ts → liftIO $ putDocLn $ pretty $ Set.toList ts
+  where
+  fromL ∷ [(Int, Int)] → Menu.Selection
+  fromL = Menu.Selection . fmap Menu.Interval
 
 showErr ∷ MonadIO m ⇒ Exception e ⇒ e → m ()
 showErr = liftIO . putStrLn . displayException

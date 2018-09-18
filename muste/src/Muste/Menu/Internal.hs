@@ -4,7 +4,7 @@ module Muste.Menu.Internal
   ( Menu(..)
   , getMenu
   , getMenuItems
-  , Selection
+  , Selection(Selection)
   , Sentence.Linearization
   , Token.Unannotated
   , Token.Annotated(..)
