@@ -4,6 +4,9 @@ Change log
 HEAD
 ---
 
+0.2.5.0
+---
+
 Add benchmarking suite for generating menus.
 
 Move grammar files.  This requires the grammar files to be re-built
