@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# Language CPP, OverloadedStrings #-}
+{-# Language CPP, OverloadedStrings, DeriveGeneric #-}
 module Muste.Linearization.Internal
   ( Context(..)
   , buildContext
@@ -41,7 +41,6 @@ import qualified Muste.Tree.Internal as Tree
 import Muste.Grammar
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees
-import Muste.Prune
 import Muste.Common (enumerate)
 import Muste.Common.SQL (FromField, ToField)
 import qualified Muste.Common.SQL as SQL

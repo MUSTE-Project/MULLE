@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# language OverloadedStrings, TypeApplications, UnicodeSyntax #-}
+{-# language DeriveGeneric #-}
 {- | This Module is the internal implementation behind the module 'Muste.Grammar' -}
 module Muste.Grammar.Internal
   ( Grammar(..)
@@ -14,6 +14,8 @@ module Muste.Grammar.Internal
   , lookupGrammarM
   , parseGrammar
   , parseSentence
+  , getMetas
+  , getFunctions
   ) where
 
 import Prelude ()
@@ -33,15 +35,24 @@ import PGF.Internal as PGF hiding (funs, cats)
 import Data.List (union, partition)
 import Data.Text.Prettyprint.Doc (Pretty(..))
 import qualified Data.Text.Prettyprint.Doc as Doc
+import Control.DeepSeq
+import Data.MultiSet (MultiSet)
+import qualified Data.MultiSet as MultiSet
+import Control.DeepSeq (NFData)
 
 import qualified Muste.Grammar.Grammars as Grammars
 import Muste.Common
 import Muste.Tree
-import qualified Muste.Tree.Internal as Tree (toGfTree)
+import qualified Muste.Tree.Internal as Tree
 
 -- | Type 'Rule' consists of a 'String' representing the function name
 -- and a 'FunType' representing its type.
 data Rule = Function String FunType deriving (Ord,Eq,Show,Read)
+
+deriving instance Generic Rule
+
+instance NFData Rule where
+  -- Generic derivation
 
 -- | Type 'Grammar' consists of a start category and a list of rules.
 data Grammar = Grammar
@@ -50,7 +61,6 @@ data Grammar = Grammar
   , lexrules :: [Rule]
   , pgf :: PGF
   }
-
 
 instance Pretty Grammar where
   pretty (Grammar sCat srules lrules _) = Doc.sep
@@ -133,10 +143,15 @@ pgfToGrammar pgf
               Fun (PGF.showCId typeid) (map PGF.showCId cats)
             }
 
+-- | Although the parameter to 'parseGrammar' is a lazy stream it's
+-- contents will be forced.
 parseGrammar
   :: LB.ByteString -- ^ The grammar in binary format.
   -> Grammar
-parseGrammar = pgfToGrammar . PGF.parsePGF
+-- 'PGF.parsePGF' seems to consume the lazy bytestring in an
+-- inconvenient manner.  The problem does not appear to be there if we
+-- force the bytestring.
+parseGrammar = pgfToGrammar . PGF.parsePGF . force
 
 brackets :: Grammar -> PGF.Language -> TTree -> [PGF.BracketedString]
 brackets grammar language ttree
@@ -165,6 +180,7 @@ fromGfTree _ _ = TMeta wildCard
 grammars :: Map Text Grammar
 grammars = Map.fromList (uncurry grm <$> Grammars.grammars)
   where
+  {-# INLINE grm #-}
   grm :: Text -> SB.ByteString -> (Text, Grammar)
   grm idf pgf = (idf, parseGrammar $ LB.fromStrict pgf)
 
@@ -190,3 +206,15 @@ parseSentence grammar lang = pgfIfy >>> fmap musteIfy
   musteIfy = fromGfTree grammar
   p ∷ PGF.PGF
   p = pgf grammar
+
+-- | Returns a bag of all meta-variables in a tree.
+getMetas :: TTree -> MultiSet Category
+getMetas = \case
+  TMeta cat → MultiSet.singleton cat
+  TNode _ _ ts → mconcat $ getMetas <$> ts
+
+-- | Returns a bag of all functions in a tree.
+getFunctions :: TTree -> MultiSet Rule
+getFunctions = Tree.foldMapTTree step
+  where
+  step fun typ = MultiSet.singleton $ Function fun typ

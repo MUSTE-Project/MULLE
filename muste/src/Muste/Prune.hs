@@ -1,27 +1,26 @@
-{-# Language CPP #-}
 {-# OPTIONS_GHC -Wall -Wno-unused-top-binds -Wno-name-shadowing #-}
 -- FIXME Should this be an internal module? It's not currently used in
 -- @muste-ajax@.
 module Muste.Prune
-  ( getAdjunctionTrees
-  , replaceTrees
+  ( replaceTrees
   , SimTree
   ) where
 
 import Prelude ()
 import Muste.Prelude
-import Data.List (sort)
-import qualified Data.Containers as Mono
 import Data.Map (Map)
+import qualified Data.Containers as Mono
 import qualified Data.Map as M
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.MultiSet (MultiSet)
+import qualified Data.MultiSet as MultiSet
 
 import Muste.Common
+
 import Muste.Tree (TTree(..), Path, FunType(..), Category)
 import qualified Muste.Tree.Internal as Tree
 import Muste.Grammar
-import Muste.Grammar.Internal (Rule(Function))
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees
 
@@ -136,103 +135,118 @@ directMoreExpensive ∷ SimTree → SimTree → Bool
 directMoreExpensive (cost, t, _, _) (cost', t', _, _)
   = cost' < cost && t' `treeDiff` t < cost
 
--- Profiling has shown me that this function is really heavy.  Quoting
--- the relevant bits:
+-- Profiling reveals that this function is really heavy.  Quoting the
+-- relevant bits:
 --
--- COST CENTRE                            entries  %time %alloc   %time %alloc
---
---     similarTreesForSubtree                  10    0.7    0.9    42.9   72.2
---      areDisjoint                       3813390    6.0    2.3    10.9    2.3
---       ==                               3752120    2.5    0.0     3.7    0.0
---        ==                               568487    1.1    0.0     1.1    0.0
---       <                                3183633    1.3    0.0     1.3    0.0
---      similarTreesForSubtree.funs'       569826    0.1    0.0    30.0   66.0
---       getFunctions                      569826   12.8   29.1    29.9   66.0
---        compare                         9820790    5.2    0.0     5.2    0.0
---        getFunctions.getF               6681507   11.9   36.9    11.9   36.9
---      getMetas                            61270    0.6    1.0     1.2    2.9
---       getMetas.getMetas'                695042    0.6    1.9     0.6    1.9
---      insertBranches                        136    0.0    0.0     0.0    0.0
---       insertBranches.ins                   178    0.0    0.0     0.0    0.0
---        insertBranches.inslist               81    0.0    0.0     0.0    0.0
---        insertBranches.selectBranch          48    0.0    0.0     0.0    0.0
+--                                                                                                     individual      inherited
+--     COST CENTRE                                 MODULE                         no.       entries  %time %alloc   %time %alloc
+--     collectSimilarTrees                         Muste.Prune                    20648          2    0.0    0.0    32.6   45.3
+--      collectSimilarTrees.go                     Muste.Prune                    20651         29    0.0    0.0    32.5   45.3
+--       compare                                   Muste.Tree.Internal            20955        437    0.0    0.0     0.0    0.0
+--        compare                                  Muste.Tree.Internal            20956        264    0.0    0.0     0.0    0.0
+--       collectSimilarTrees.go.simtrees           Muste.Prune                    20664         29    0.0    0.0    32.5   45.3
+--        similarTreesForSubtree                   Muste.Prune                    20668         29    0.0    0.0    32.2   44.8
+--         similarTreesForSubtree.cat              Muste.Prune                    20835         29    0.0    0.0     0.0    0.0
+--         similarTreesForSubtree.metas            Muste.Prune                    20838         29    0.0    0.0     0.0    0.0
+--          ...
+--         similarTreesForSubtree.trees            Muste.Prune                    20731         29    0.0    0.0     0.0    0.0
+--          ...
+--         similiarTrees                           Muste.Prune                    20669         29    0.0    0.0    32.2   44.8
+--          insertBranches                         Muste.Prune                    20920        461    0.0    0.0     0.0    0.0
+--           insertBranches.ins                    Muste.Prune                    20921        461    0.0    0.0     0.0    0.0
+--          treeDiff                               Muste.Prune                    20923        461    0.0    0.0     0.0    0.0
+--           ...
+--          filterTrees                            Muste.Prune                    20730        139    0.1    0.0    32.2   44.7
+--           heuristics                            Muste.Prune                    20846     417034    0.2    0.2    32.1   44.7
+--            disjoint                             Muste.Prune                    20847     417034    0.1    0.2     8.7    6.6
+--             ...
+--            heuristics.funs'                     Muste.Prune                    20887     389737    0.1    0.0    22.6   37.3
+--             getFunctions                        Muste.Grammar.Internal         20888          0    1.2    0.0    22.5   37.3
+--              getFunctions.\                     Muste.Grammar.Internal         20889    4065372    3.8   15.4    21.3   37.3
+--               mconcat                           Data.MultiSet                  20890    4065372    0.4    0.0    17.4   21.9
+--                unions                           Data.MultiSet                  20891    4065372    0.3    0.0    17.0   21.9
+--                 foldlStrict                     Data.MultiSet                  20892   11806379    1.9    0.0    16.7   21.9
+--                  foldlStrict.z'                 Data.MultiSet                  20893    7741007    0.7    0.0    14.9   21.9
+--                   union                         Data.MultiSet                  20894    7741007   11.1   21.9    14.2   21.9
+--                    compare                      Muste.Grammar.Internal         20896    9833223    3.1    0.0     3.1    0.0
+--               singleton                         Data.MultiSet                  20895    4065372    0.0    0.0     0.0    0.0
+--            ==                                   Data.MultiSet                  20857      41678    0.0    0.0     0.0    0.0
+--             unMS                                Data.MultiSet                  20867      83356    0.0    0.0     0.0    0.0
+--            heuristics.funs                      Muste.Prune                    20852        139    0.0    0.0     0.0    0.0
+--             ...
+--            getMetas                             Muste.Grammar.Internal         20868          0    0.1    0.0     0.6    0.6
+--             ...
+--          pruneTree                              Muste.Prune                    20670         29    0.0    0.0     0.0    0.0
+--           ...
+--        onlyKeepCheapest                         Muste.Prune                    20666          0    0.0    0.0     0.3    0.6
+--         ...
+--       collectSimilarTrees.go.tree               Muste.Prune                    20672         29    0.0    0.0     0.0    0.0
+--        ...
+--      getAllPaths                                Muste.Tree.Internal            20649          2    0.0    0.0     0.0    0.0
+--       ...
+
 similarTreesForSubtree
   :: TTree
   -> AdjunctionTrees
   -> [SimTree]
-similarTreesForSubtree tree adjTrees = simTrees trees tree
+similarTreesForSubtree tree adjTrees = similiarTrees trees tree
   where
-    trees = fromMaybe errNoCat $ Mono.lookup cat adjTrees
+    trees ∷ Map (MultiSet Category) [(TTree, MultiSet Rule)]
+    trees
+      = M.fromListWith mappend
+      $ fmap (\t → (Grammar.getMetas t, pure (t, Grammar.getFunctions t)))
+      $ fromMaybe errNoCat
+      $ Mono.lookup (cat, metas) adjTrees
     cat = case tree of
       (TNode _ (Fun c _) _) → c
       _ → errNotNode
+    metas = Grammar.getMetas tree
     errNoCat = error
       $  "Muste.Prune.similarTreesForSubtree: "
-      <> "The given category does not exist in the adjunction tree"
+      <> "The tree with the given category and/or metas does not exist."
     errNotNode = error
       $  "Muste.Prune.similarTreesForSubtree: "
       <> "Non-exhaustive pattern match"
 
 -- O(n^3) !!!! I don't think this can be avoided though since the
 -- output is bounded by Ω(n^3).
-simTrees ∷ [TTree] → TTree → [SimTree]
-simTrees adjTreesForCat tree = do
+similiarTrees
+  ∷ Map (MultiSet Category) [(TTree, MultiSet Rule)]
+  → TTree
+  → [SimTree]
+similiarTrees byMetas tree = do
   (pruned, branches) ← pruneTree tree
-  pruned'            ← filterTrees adjTreesForCat pruned
+  pruned'            ← filterTrees byMetas pruned
   tree'              ← insertBranches branches pruned'
   pure (tree `treeDiff` tree', tree', pruned, pruned')
 
--- O(n)
-filterTrees ∷ Monad m ⇒ Alternative m ⇒ m TTree → TTree → m TTree
-filterTrees trees pruned = do
-  -- guard $ noDuplicates funs
-  pruned' ← trees
-  guardHeuristics pruned pruned'
-  pure pruned'
+-- m ~ [] ⇒ runtime = O(n)
+filterTrees
+  ∷ Monad m
+  ⇒ Alternative m
+  ⇒ Map (MultiSet Category) (m (TTree, MultiSet Rule))
+  → TTree
+  → m TTree
+filterTrees byMetas pruned = do
+  case M.lookup (Grammar.getMetas pruned) byMetas of
+    Nothing → empty
+    Just xs → do
+      (pruned', funs) ← xs
+      guard $ heuristics pruned funs
+      pure pruned'
 
 -- | Various heuristics used for filtering out results.
-guardHeuristics ∷ Alternative f ⇒ TTree → TTree → f ()
-guardHeuristics pruned pruned' = guard $ and
-  [ True
-#ifdef PRUNE_ALT_1A
-  ---- Alternative 1a: the root must change.
-  , not (sameRoot pruned pruned') --- ***
-#endif
-#ifdef PRUNE_ALT_1B
-  ---- Alternative 1b: it's ok if two different children change.
-  , not (exactlyOneChildDiffers pruned pruned') -- ***
-#endif
-#ifdef PRUNE_ALT_1C
-  ---- Alternative 1c: the pruned trees should not share any functions.
-  , noDuplicates funs' -- ***
-#endif
-#ifdef PRUNE_ALT_1D
-  , funs `areDisjoint` funs'
-#endif
-#ifdef PRUNE_ALT_2A
-  ---- Alternative 2a: all branches are put back into the new tree.
-  , getMetas pruned == getMetas pruned'
-#endif
-#ifdef PRUNE_ALT_2B
-  ---- Alternative 2b: some branches may be removed from the new tree.
-  , isSubList metas (getMetas pruned') -- ***
-#endif
-  ]
-  where
-  funs  = getFunctions pruned
-  funs' = getFunctions pruned'
-
--- | Returns an ordered list with all functions in a tree.
-getFunctions :: TTree -> [Rule]
-getFunctions tree = sort (getF tree)
-    where getF (TNode fun typ children) = Function fun typ : concatMap getF children
-          getF _ = []
+heuristics ∷ TTree → MultiSet Rule → Bool
+heuristics pruned funs = Grammar.getFunctions pruned `disjoint` funs
 
 -- | @True@ if two trees have the same root.
 sameRoot :: TTree -> TTree -> Bool
 sameRoot (TNode fun _ _) (TNode fun' _ _) | fun == fun' = True
 sameRoot (TMeta cat) (TMeta cat') | cat == cat' = True
 sameRoot _ _ = False
+
+disjoint ∷ Ord a ⇒ MultiSet a → MultiSet a → Bool
+disjoint a b = MultiSet.null $ MultiSet.intersection a b
 
 -- | @True@ if two trees have the same root, and exactly one child
 -- differs.
@@ -266,13 +280,6 @@ insertBranches branches tree = map fst (ins branches tree)
                 [ (tree', tree:trees') | (tree', trees') <- selectBranch cat trees ]
           selectBranch _ _ = error "Muste.Prune.insertBranches: Incomplete pattern match"
 
--- | Calculates a sorted list of the categories of all metavariables
--- in a tree. Note that the list may contain duplicates
-getMetas :: TTree -> [Category]
-getMetas tree = sort (getMetas' tree)
-    where getMetas' (TMeta cat) = [cat]
-          getMetas' (TNode _ _ children) = concatMap getMetas' children
-
 -- FIXME Certainly something wrong with the wording here "up to a
 -- given depth". There is no parameter so surely it should be "up to a
 -- fixed depth". I can't verify that this is the case either though
@@ -281,20 +288,28 @@ getMetas tree = sort (getMetas' tree)
 -- pruned tree consists of a tree with metavariables and a list of all
 -- the pruned branches (subtrees).
 pruneTree :: TTree -> [(TTree, [TTree])]
-pruneTree tree = [(t, bs) | (t, bs, _) <- pt [] tree]
-    where pt visited tree@(TNode _ _ []) = [(tree, [], visited)]
-          pt visited tree@(TNode fun typ@(Fun cat _) children)
-              = (TMeta cat, [tree], visited) :
-                [ (tree', branches', visited') |
-                  cat `notElem` visited,
-                  (children', branches', visited') <- pc (cat:visited) children,
-                  let tree' = TNode fun typ children'
-                ]
-          pt _ _ = error "Muste.Prune.pruneTree: Incomplete pattern match"
-          pc visited [] = [([], [], visited)]
-          pc visited (t:ts) = [ (t':ts', bs' ++ bs'', visited'') |
-                                (t', bs', _visited') <- pt visited t,
-                                (ts', bs'', visited'') <- pc visited ts ]
+pruneTree tree = [(t, bs) | (t, bs, _) <- pt mempty tree]
+  where
+  pt ∷ Set Category → TTree → [(TTree, [TTree], Set Category)]
+  pt visited = \case
+    tree@(TNode _ _ []) → [(tree, [], visited)]
+    tree@(TNode fun typ@(Fun cat _) children)
+      → (TMeta cat, [tree], visited) :
+        [ (TNode fun typ children', branches', visited')
+        | cat `notElem` visited
+        , (children', branches', visited') ← pc (Set.insert cat visited) children
+        ]
+    _ → error "Muste.Prune.pruneTree: Incomplete pattern match"
+  pc ∷ Set Category → [TTree] → [([TTree], [TTree], Set Category)]
+  pc visited = \case
+    []     → [([], [], visited)]
+    (t:ts) →
+      [ (t'  : ts' , bs' <> bs'', visited'')
+      | (t'  , bs' , _visited') ← pt visited t
+      -- Should visited be visited'? Or perhaps visited'' above should
+      -- be the union of the two?
+      , (ts' , bs'', visited'') ← pc visited ts
+      ]
 
 -- | Edit distance between trees.
 --
@@ -305,60 +320,3 @@ treeDiff s t = getNodes s `editDistance` getNodes t
   where
   getNodes (TMeta cat) = ["?" ++ cat]
   getNodes (TNode fun _ children) = fun : concatMap getNodes children
-
-
--- * Creating adjunction trees.
-
--- Profiling has shown me that this function is really heavy.  Quoting the relevant bits:
---
--- COST CENTRE                                                               entries  %time %alloc   %time %alloc
---     getAdjunctionTrees                                                    1        0.0    0.0     4.6   10.2
---      getAdjunctionTrees.\                                                 29       0.0    0.2     4.6   10.2
---       getAdjunctionTrees.adjTrees                                         54085    0.6    1.1     4.6   10.0
---        getAdjunctionTrees.adjChildren                                     341021   0.9    2.4     3.1    8.8
---         treeIsRecursive                                                   281519   0.3    0.2     2.3    6.3
---          getMetas                                                         227463   0.8    2.6     1.7    5.1
---           getMetas.getMetas'                                              1184075  1.0    2.6     1.0    2.6
---          getFunctions                                                     62894    0.2    0.6     0.2    1.0
---           getFunctions.getF                                               98140    0.0    0.3     0.0    0.3
---           compare                                                         57024    0.0    0.0     0.0    0.0
---        getAdjunctionTrees.getRulesFor                                     18947    0.9    0.1     0.9    0.1
--- | Finds all @AdjunctionTrees@ from a specified 'Grammar'.  That is;
--- a mapping from a @Category@ to all trees in the specified 'Grammar'
--- that have this type.
-getAdjunctionTrees :: Grammar -> AdjunctionTrees
-getAdjunctionTrees grammar = Mono.mapFromList ((\cat -> (cat, map fst (adjTrees getRulesFor cat []))) <$> allCats)
-  where
-  allRules :: Map String [Rule]
-  allRules = M.fromListWith mappend $ catRule <$> Grammar.getAllRules grammar
-  catRule ∷ Rule → (String, [Rule])
-  catRule r@(Function _ (Fun c _)) = (c, pure r)
-  catRule _ = error "Non-exhaustive pattern match"
-  allCats :: [String]
-  allCats = M.keys allRules
-  getRulesFor :: String -> [Rule]
-  getRulesFor cat = M.findWithDefault mempty cat allRules
-
--- The next two functions are mutually recursive.
-adjTrees :: (String → [Rule]) → String -> [String] -> [(TTree, [String])]
-adjTrees getRulesFor cat visited = (TMeta cat, visited) : do
-  guard $ cat `notElem` visited
-  (Function fun typ@(Fun _ childcats)) <- getRulesFor cat
-  (children, visited') <- adjChildren getRulesFor childcats (cat:visited)
-  pure (TNode fun typ children, visited')
-
-adjChildren :: (String → [Rule]) → [String] -> [String] -> [([TTree], [String])]
-adjChildren _getRulesFor [] visited = [([], visited)]
-adjChildren getRulesFor (cat:cats) visited = do
-  (tree, visited') <- adjTrees getRulesFor cat visited
-  guard $ not $ treeIsRecursive tree
-  (trees, visited'') <- adjChildren getRulesFor cats visited'
-  pure (tree:trees, visited'')
-
-treeIsRecursive :: TTree -> Bool
-treeIsRecursive tree@(TNode _ (Fun cat _) children) =
-    case getMetas tree of
-      [] -> cat `elem` [cat' | Function _ (Fun cat' _) <- concatMap getFunctions children]
-      [cat'] -> cat == cat'
-      _ -> False
-treeIsRecursive _ = False

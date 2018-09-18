@@ -87,7 +87,7 @@ Partially/unsupported options:
 
 ### Building
 
-If the grammar-files (in `muste/data/gf/grammars/`) have changed (or
+If the grammar-files (in `muste/data/grammars/`) have changed (or
 if you just cloned the repository) you need to build the
 grammar-files.  This can be achieved with:
 

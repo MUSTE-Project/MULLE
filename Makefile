@@ -5,10 +5,10 @@ all: grammars
 clean: grammars/clean
 
 grammars:
-	make -C muste/data/gf/grammars
+	make -C muste/data/grammars
 
 grammars/clean:
-	make -C muste/data/gf/grammars clean
+	make -C muste/data/grammars clean
 
 # Mainly a reminder to self
 ghcid:

@@ -17,6 +17,7 @@ module Muste.Common
   , eitherFail
   , enumerate
   , maybeFail
+  , maybeThrow
   , binaryFromText
   , binaryToText
   , lookupFail
@@ -24,6 +25,8 @@ module Muste.Common
   , putDoc
   , putDocLn
   , lookupFailIO
+  , lookupThrow
+  , trace
   , traceShow
   , traceShowId
   , from
@@ -156,6 +159,11 @@ maybeFailIO err = \case
   Nothing → liftIO $ throwIO err
   Just a → pure a
 
+maybeThrow ∷ MonadThrow m ⇒ Exception e ⇒ e → Maybe a → m a
+maybeThrow e = \case
+  Nothing → throwM e
+  Just a  → pure a
+
 binaryToText :: Binary bin ⇒ ConvertibleStrings ByteString text ⇒ bin → text
 binaryToText = convertString . Binary.encode
 
@@ -216,6 +224,16 @@ lookupFailIO
   → map
   → m (Mono.MapValue map)
 lookupFailIO err k = maybeFailIO err . Mono.lookup k
+
+lookupThrow
+  ∷ MonadThrow m
+  ⇒ IsMap map
+  ⇒ Exception e
+  ⇒ e
+  → Mono.ContainerKey map
+  → map
+  → m (Mono.MapValue map)
+lookupThrow e k = maybeThrow e . Mono.lookup k
 
 renderDoc ∷ Doc a → String
 renderDoc = renderString . Doc.layoutPretty Doc.defaultLayoutOptions

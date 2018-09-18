@@ -11,6 +11,7 @@ import Control.Monad
 
 import Muste
 import Muste.Prune
+import Muste.AdjunctionTrees
 import qualified Test.Common as Test
 import qualified Muste.Grammar.Internal as Grammar
 import Data.Text.Prettyprint.Doc (pretty, vsep)

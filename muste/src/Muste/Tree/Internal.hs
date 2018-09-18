@@ -18,6 +18,8 @@ module Muste.Tree.Internal
   , TTree(TNode,TMeta)
   , FunType(Fun, NoType)
   , toGfTree
+  , flatten
+  , foldMapTTree
   ) where
 
 -- TODO Do not depend on PGF
@@ -31,6 +33,7 @@ import qualified Data.Text as Text
 import Data.String (fromString)
 import Data.String.ToString
 import Language.Haskell.TH.Syntax (Lift)
+import Control.DeepSeq (NFData)
 
 import Muste.Common.SQL (FromField, ToField)
 import qualified Muste.Common.SQL as SQL
@@ -62,6 +65,8 @@ data TTree
    -- read/show instances for @CId@
   deriving (Ord, Eq, Show, Read, Generic)
 
+instance NFData TTree where
+
 deriving instance Lift TTree
 
 instance Binary TTree
@@ -71,6 +76,15 @@ instance Pretty TTree where
 
 prettyTree ∷ TTree → String
 prettyTree = PGF.showExpr mempty . toGfTree
+
+-- | Flattening a 'TTree' into a list of its function nodes.
+-- This is reversable, if the grammar is known.
+-- TODO: merge with 'Muste.Grammar.Internal.getFunction.getF'?
+-- TODO: this should use an accumulator, right?
+flatten :: TTree -> [String]
+flatten (TMeta cat) = ["?" ++ cat]
+flatten (TNode x _ ts) = x : concatMap flatten ts
+
 
 -- parseTree ∷ MonadFail fail ⇒ String → fail TTree
 -- parseTree = do
@@ -138,6 +152,9 @@ data FunType
 deriving instance Lift FunType
 
 instance Binary FunType
+
+instance NFData FunType where
+  -- Generic derivation
 
 -- | Generic class for trees
 class Show t => TreeC t where
@@ -394,3 +411,15 @@ toGfTree tree =
         if name == wildCard then (nid,PGF.mkApp PGF.wildCId nts) else (nid,PGF.mkApp (PGF.mkCId name) nts)
   in
     snd $ convert tree 0
+
+{-# INLINE foldMapTTree #-}
+-- | If 'TTree' was an instance of 'Foldable' then 'foldMap' would look
+-- something like this.
+foldMapTTree
+  ∷ Monoid w
+  ⇒ (String → FunType → w)
+  → TTree
+  → w
+foldMapTTree f = \case
+  TMeta{} → mempty
+  TNode s t ts → f s t <> foldMap (foldMapTTree f) ts

@@ -30,15 +30,13 @@ import Control.Exception
 import Data.Time
 import Control.Category ((>>>))
 
-import Muste hiding (Menu)
+import Muste
 import Muste.Sentence (Sentence)
 import qualified Muste.Sentence              as Sentence
 import Muste.Sentence.Unannotated (Unannotated)
 import qualified Muste.Sentence.Unannotated  as Unannotated
 import Muste.Sentence.Annotated (Annotated)
 import qualified Muste.Sentence.Annotated    as Annotated
-
-type Menu = NewFancyMenu
 
 data ClientMessageException = CME String deriving (Show)
 data ReadTreeException = RTE String deriving (Show)

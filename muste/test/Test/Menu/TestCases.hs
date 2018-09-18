@@ -1,10 +1,14 @@
 {-# Language UnicodeSyntax, OverloadedStrings, OverloadedLists #-}
-module Test.NewMenuTestCases where
+module Test.Menu.TestCases (LinTestCase, linTestCases) where
 
+import Prelude ()
+import Muste.Prelude
 import Data.Text (Text)
-import qualified Muste.Menu.New as Menu
 
-(><) ∷ Int -> Int -> Menu.Interval
+import Muste.Menu.Internal (Selection, Interval)
+import qualified Muste.Menu.Internal as Menu
+
+(><) ∷ Int -> Int -> Interval
 a >< b = Menu.Interval (a, b)
 
 -- | A test-case consists of the following (in order of appearance):
@@ -14,7 +18,7 @@ a >< b = Menu.Interval (a, b)
 -- * A list of cases from that menu:
 -- ** The "selection" to make. If the selection is [] then the test is supposed to fail.
 -- ** A sentence to (alt.: not) expect to be at this position in the menu.
-type LinTestCase = (Text, String, [(Menu.Selection, String)])
+type LinTestCase = (Text, String, [(Selection, String)])
 
 linTestCases :: [LinTestCase]
 linTestCases=

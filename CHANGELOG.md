@@ -4,6 +4,19 @@ Change log
 HEAD
 ---
 
+0.2.5.0
+---
+
+Add benchmarking suite for generating menus.
+
+Move grammar files.  This requires the grammar files to be re-built
+(with `make`).  First subsequent built may also issue a warning about
+missing files.  This warning should dissapear on subsequent builds.
+
+Drop support for old menu.
+
+Performance improvements when generating trees.
+
 0.2.4.0
 ---
 

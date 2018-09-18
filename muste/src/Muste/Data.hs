@@ -18,7 +18,7 @@ dataDir :: FilePath
 dataDir = "data"
 
 grammarDir :: FilePath
-grammarDir = dataDir </> "gf" </> "grammars"
+grammarDir = dataDir </> "grammars"
 
 grammar :: FilePath -> FilePath
 grammar g = grammarDir </> g <.> "pgf"

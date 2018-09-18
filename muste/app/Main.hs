@@ -21,12 +21,12 @@ import Control.Monad.State.Strict
 import System.Environment (getArgs)
 import Data.List (intercalate)
 
-import Muste
+import Muste hiding (getMenu)
 import Muste.Common
 import Muste.Util
 import qualified Muste.Grammar.Internal       as Grammar
-import Muste.Menu.New (NewFancyMenu)
-import qualified Muste.Menu.New               as Menu
+import Muste.Menu (Menu)
+import qualified Muste.Menu.Internal          as Menu
 import qualified Muste.Sentence.Annotated     as Annotated
 import qualified Muste.Linearization.Internal as Linearization
 
@@ -41,7 +41,7 @@ defCtxt = unsafeGetContext grammar "ExemplumSwe"
 
 data Env = Env
   { lang ∷ String
-  , menu ∷ NewFancyMenu
+  , menu ∷ Menu
   , ctxt ∷ Context
   }
 
@@ -77,7 +77,7 @@ updateMenu s = do
     putDocLn $ prettyMenu ctxt s m
   setMenu m
 
-prettyMenu ∷ Context → String → NewFancyMenu → Doc a
+prettyMenu ∷ Context → String → Menu → Doc a
 prettyMenu ctxt s = Doc.vsep . fmap (uncurry go) . open
   where
   open = fmap @[] (fmap @((,) Menu.Selection) Set.toList)
@@ -131,24 +131,24 @@ weave xs@(x@(n, _):xss) ys@(y@(m, _):yss)
 -- | @'getMenu' s@ gets a menu for a sentence @s@.
 getMenuFor
   ∷ String -- ^ The sentence to parse
-  → Repl NewFancyMenu
+  → Repl Menu
 getMenuFor s = do
   c ← getContext
   pure $ Menu.getMenuItems c s
 
-setMenu ∷ NewFancyMenu → Repl ()
+setMenu ∷ Menu → Repl ()
 setMenu menu = modify $ \e → e { menu }
 
 getContext ∷ Repl Context
 getContext = gets $ \(Env { .. }) → ctxt
 
-getMenu ∷ Repl NewFancyMenu
+getMenu ∷ Repl Menu
 getMenu = gets $ \(Env { .. }) → menu
 
 options ∷ Repl.Options (HaskelineT (StateT Env IO))
 options =
   [ "lang" |> oneArg setLang
-  , "sel"  |> oneArg setSel
+  , "sel"  |> setSel
   ]
   where
   (|>) = (,)
@@ -168,15 +168,21 @@ instance Show AppException where
     SelectionNotFound → "ERROR: Selection not found"
     OneArgErr → "One argument plz"
 
-setSel ∷ String → Repl ()
-setSel str = do
-  case readMaybe @Menu.Selection str of
-    Nothing → liftIO $ putStrLn "readMaybe @Menu.Selection: No parse"
+setSel ∷ [String] → Repl ()
+setSel args = do
+  -- case readMaybe @[(Int, Int)] str of
+  case traverse (readMaybe @(Int, Int)) args of
+    Nothing → liftIO $ putStrLn
+      $  "Expecting a space-seperated list of pairs of numbers.  "
+      <> "Like so: \"(0,1) (2,3)\""
     Just sel → do
       m ← getMenu
-      case lookupFail mempty sel m of
+      case lookupFail mempty (fromL sel) m of
         Nothing → showErr SelectionNotFound
         Just ts → liftIO $ putDocLn $ pretty $ Set.toList ts
+  where
+  fromL ∷ [(Int, Int)] → Menu.Selection
+  fromL = Menu.Selection . fmap Menu.Interval
 
 showErr ∷ MonadIO m ⇒ Exception e ⇒ e → m ()
 showErr = liftIO . putStrLn . displayException

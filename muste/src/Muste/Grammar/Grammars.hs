@@ -21,6 +21,7 @@ import qualified Muste.Grammar.Embed as Embed
 -- - @novo_modo/Secunda@
 -- - @novo_modo/Exemplum@
 
+{-# INLINE grammars #-}
 grammars :: [(Text, ByteString)]
 grammars = mk <$>
   [ $(Embed.grammar "novo_modo/Prima")
