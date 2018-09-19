@@ -11,5 +11,6 @@
 # Stack
 stack.yaml
 .stack-work/
+.stack-work-prof/
 .history
 *.log
