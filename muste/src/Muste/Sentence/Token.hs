@@ -1,7 +1,6 @@
 {-# OPTIONS_GHC -Wall -Wno-type-defaults #-}
-{-# Language NamedFieldPuns, RecordWildCards, OverloadedStrings
-  , DuplicateRecordFields
-#-}
+{-# Language NamedFieldPuns, RecordWildCards, OverloadedStrings ,
+  DuplicateRecordFields #-}
 module Muste.Sentence.Token
   ( Annotated(Annotated)
   , Unannotated(Unannotated)
@@ -45,7 +44,7 @@ instance ToField Annotated where
 instance FromField Annotated where
   fromField = SQL.fromBlob
 instance ToJSON Annotated where
-  toJSON (Annotated {..}) = Aeson.object
+  toJSON Annotated{..} = Aeson.object
     [ "concrete" .= concrete
     , "classes"  .= classes
     ]

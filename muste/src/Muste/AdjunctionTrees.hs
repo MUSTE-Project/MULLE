@@ -77,7 +77,7 @@ import qualified Muste.Tree.Internal as Tree
 -- | Finds all 'AdjunctionTrees' from a specified 'Grammar'.  That is;
 -- a mapping from a 'Category' to all trees in the specified 'Grammar'
 -- that have this type.
-getAdjunctionTrees :: Grammar -> AdjunctionTrees
+getAdjunctionTrees ∷ Grammar → AdjunctionTrees
 getAdjunctionTrees grammar
   =   dbg diagnose
   $   AdjunctionTrees
@@ -85,24 +85,22 @@ getAdjunctionTrees grammar
   $   (>>= regroup)
   $   fmap (fmap treesByMeta)
   <$> treesByCat
-  <$> allCats
+  <$> Map.keys allRules
   where
   regroup
-    ∷ (Category                     ,  [(MultiSet Category, [TTree])])
+    ∷ (Category                      , [(MultiSet Category, [TTree])])
     → [((Category, MultiSet Category), [TTree])]
   regroup (c, xs) = (\(s, ts) → ((c, s), ts)) <$> xs
   treesByMeta ∷ TTree → (MultiSet Category, [TTree])
   treesByMeta t = (Grammar.getMetas t, pure t)
   treesByCat ∷ Category → (Category, [TTree])
   treesByCat cat = (cat, fst <$> runBuilderI (adjTrees cat []) ruleGen)
-  allRules :: Map Category [Rule]
-  allRules = Map.fromListWith mappend $ catRule <$> Grammar.getAllRules grammar
   catRule ∷ Rule → (Category, [Rule])
   catRule r@(Function _ (Fun c _)) = (c, pure r)
   catRule _ = error "Non-exhaustive pattern match"
-  allCats :: [Category]
-  allCats = Map.keys allRules
-  ruleGen :: RuleGen
+  allRules ∷ Map Category [Rule]
+  allRules = Map.fromListWith mappend $ catRule <$> Grammar.getAllRules grammar
+  ruleGen ∷ RuleGen
   ruleGen cat = Map.findWithDefault mempty cat allRules
 
 dbg ∷ (a → IO b) → a → a

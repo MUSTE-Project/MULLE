@@ -1,4 +1,3 @@
-{-# Language TemplateHaskell #-}
 module Test.Grammar (tests) where
 
 import Test.Tasty

@@ -227,7 +227,7 @@ filterTrees
   ⇒ Map (MultiSet Category) (m (TTree, MultiSet Rule))
   → TTree
   → m TTree
-filterTrees byMetas pruned = do
+filterTrees byMetas pruned =
   case M.lookup (Grammar.getMetas pruned) byMetas of
     Nothing → empty
     Just xs → do

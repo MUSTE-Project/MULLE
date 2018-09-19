@@ -1,5 +1,4 @@
-{-# Language UnicodeSyntax, NamedWildCards, TemplateHaskell,
-  OverloadedStrings #-}
+{-# Language UnicodeSyntax, NamedWildCards, OverloadedStrings #-}
 module Test.Linearization (tests) where
 
 import Prelude ()
@@ -41,7 +40,9 @@ theCtxt ∷ Context
 theCtxt = latCtxt
 
 isAmbiguous :: String -> Assertion
-isAmbiguous sent = length (parseSentence theCtxt sent) > 1 @? (show (parseSentence theCtxt sent))
+isAmbiguous sent
+  = length (parseSentence theCtxt sent)
+  > 1 @? show (parseSentence theCtxt sent)
 
 parseSentence ∷ Context -> String → [TTree]
 parseSentence ctxt = Grammar.parseSentence grammar (Linearization.ctxtLang ctxt)

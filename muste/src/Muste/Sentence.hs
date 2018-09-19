@@ -29,7 +29,7 @@ import qualified Muste.Sentence.Class    as Sentence
 import qualified Muste.Sentence.Token    as Token
 
 parse ∷ Context → String → [TTree]
-parse (OldLinearization.Context { .. })
+parse OldLinearization.Context{..}
   = Grammar.parseSentence ctxtGrammar ctxtLang
 
 -- | Get all 'TTree's correspnding to this sentence in a given

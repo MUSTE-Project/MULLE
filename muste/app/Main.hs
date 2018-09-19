@@ -1,7 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language RecordWildCards, NamedFieldPuns, TemplateHaskell,
-  DeriveAnyClass, OverloadedStrings
-#-}
+  DeriveAnyClass, OverloadedStrings #-}
 module Main (main) where
 
 import Prelude ()
