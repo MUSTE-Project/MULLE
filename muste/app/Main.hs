@@ -3,7 +3,7 @@
   DeriveAnyClass, OverloadedStrings #-}
 module Main (main) where
 
-import Prelude ()
+import Prelude (Float)
 import Muste.Prelude
 import System.Console.Repline
   (HaskelineT, runHaskelineT)
@@ -19,6 +19,10 @@ import qualified Data.Containers              as Mono
 import Control.Monad.State.Strict
 import System.Environment (getArgs)
 import Data.List (intercalate)
+import System.CPUTime (getCPUTime)
+import Text.Printf (printf)
+import Data.MonoTraversable
+import qualified Data.Containers as Mono
 
 import Muste hiding (getMenu)
 import Muste.Common
@@ -70,11 +74,24 @@ repl
 updateMenu ∷ String → Repl ()
 updateMenu s = do
   ctxt ← getContext
+  liftIO $ timeCommand "Precalculate adjunction trees" $ do
+    let adjtrees = Mono.mapToList $ Linearization.ctxtPrecomputed ctxt
+    let adjsizes = [ (cat, length trees) | (cat, trees) <- adjtrees ]
+    printf "\nN:o adjunction trees = %d\n" (sum (map snd adjsizes))
   m ← getMenuFor s
-  liftIO $ do
+  liftIO $ timeCommand "Update menu" $ do
     putStrLn $ "Sentence is now: " <> s
     putDocLn $ prettyMenu ctxt s m
   setMenu m
+
+timeCommand :: String -> IO a -> IO a
+timeCommand title cmd = do
+    time0 <- getCPUTime
+    result <- cmd
+    time1 <- getCPUTime
+    let secs :: Float = fromInteger (time1-time0) * 1e-12
+    printf "\n>>> %s: %.2f s <<<\n\n" title secs
+    return result
 
 prettyMenu ∷ Context → String → Menu → Doc a
 prettyMenu ctxt s = Doc.vsep . fmap (uncurry go) . open
