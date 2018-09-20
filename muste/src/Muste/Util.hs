@@ -17,12 +17,12 @@ import Muste.Linearization
 import Muste.Common
 import qualified Muste.Linearization.Internal as Linearization
 
-unsafeGetContext ∷ Grammar → Text → Context
-unsafeGetContext g lang = fromMaybe err $ getCtxt g lang
+unsafeGetContext ∷ BuilderInfo → Grammar → Text → Context
+unsafeGetContext nfo g lang = fromMaybe err $ getCtxt nfo g lang
   where
   err = error $ printf "Can't find %s" $ Text.unpack lang
 
-getCtxt ∷ MonadFail m ⇒ Grammar → Text → m Context
-getCtxt g lang = lookupFail err lang $ Linearization.readLangs g
+getCtxt ∷ MonadFail m ⇒ BuilderInfo → Grammar → Text → m Context
+getCtxt nfo g lang = lookupFail err lang $ Linearization.readLangs nfo g
   where
   err = printf "Can't find %s" $ Text.unpack lang

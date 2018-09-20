@@ -342,7 +342,7 @@ mkContext
   ∷ Database.Lesson
   → (Text, Map.Map Sentence.Language Context)
 mkContext (ls, _, nm, _, _, _, _, _) =
-  (ls, Map.mapKeys (Sentence.Language stub) $ Muste.langAndContext nm)
+  (ls, Map.mapKeys (Sentence.Language stub) $ Muste.langAndContext mempty nm)
   where
   stub ∷ Sentence.Grammar
   stub = "STUB"

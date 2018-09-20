@@ -17,7 +17,6 @@ import qualified Data.Text.Prettyprint.Doc    as Doc
 import qualified Data.Set                     as Set
 import qualified Data.Containers              as Mono
 import Control.Monad.State.Strict
-import System.Environment (getArgs)
 import Data.List (intercalate)
 import System.CPUTime (getCPUTime)
 import Text.Printf (printf)
@@ -31,14 +30,14 @@ import qualified Muste.Menu.Internal          as Menu
 import qualified Muste.Sentence.Annotated     as Annotated
 import qualified Muste.Linearization.Internal as Linearization
 
+import Options (Options(Options))
+import qualified Options
+
 grammar :: Grammar
 grammar = Grammar.parseGrammar $ convertString $ snd grammar'
   where
   grammar' ∷ (Text, ByteString)
   grammar' = $(Embed.grammar "novo_modo/Exemplum")
-
-defCtxt ∷ Context
-defCtxt = unsafeGetContext grammar "ExemplumSwe"
 
 data Env = Env
   { lang ∷ String
@@ -46,28 +45,42 @@ data Env = Env
   , ctxt ∷ Context
   }
 
-defEnv ∷ Env
-defEnv = Env defLang mempty defCtxt
+makeEnv ∷ BuilderInfo → Env
+makeEnv nfo = Env defLang mempty c
+  where
+  c ∷ Context
+  c = unsafeGetContext nfo grammar "ExemplumSwe"
 
 defLang ∷ String
 defLang = "Swe"
 
 type Repl a = HaskelineT (StateT Env IO) a
 
+builderInfo ∷ Options → BuilderInfo
+builderInfo Options{..} = BuilderInfo { searchDepth }
+
 main :: IO ()
-main = getArgs >>= \case
-  [] → repl
-  xs → mapM_ nonInteractive xs
+main = do
+  opts ← Options.getOptions
+  let e ∷ Env
+      e = makeEnv $ builderInfo opts
+  let sentences = Options.sentences opts
+  -- If there are any sentences supplied on the command line, run them
+  -- all.
+  void $ traverse (nonInteractive e) sentences
+  -- If we are also in interactive mode, start the interactive session.
+  let interactive = Options.interactiveMode opts
+  when interactive $ repl e    
 
-nonInteractive :: String -> IO ()
-nonInteractive s
+nonInteractive :: Env → String -> IO ()
+nonInteractive env s
   = runHaskelineT Repl.defaultSettings (updateMenu s)
-  & flip evalStateT defEnv
+  & flip evalStateT env
 
-repl ∷ IO ()
-repl
+repl ∷ Env → IO ()
+repl env
   = Repl.evalRepl "§ " updateMenu options completer ini
-  & flip evalStateT defEnv
+  & flip evalStateT env
 
 updateMenu ∷ String → Repl ()
 updateMenu s = do

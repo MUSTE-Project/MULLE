@@ -115,6 +115,8 @@ executables:
       - muste
       - haskeline
       - repline
+      - optparse-applicative
+      - gitrev
 
 tests:
   test:
