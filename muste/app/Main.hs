@@ -1,6 +1,7 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language RecordWildCards, NamedFieldPuns, TemplateHaskell,
-  DeriveAnyClass, OverloadedStrings #-}
+  DeriveAnyClass, OverloadedStrings, MultiParamTypeClasses,
+  DerivingStrategies #-}
 module Main (main) where
 
 import Prelude (Float)
@@ -17,6 +18,7 @@ import qualified Data.Text.Prettyprint.Doc    as Doc
 import qualified Data.Set                     as Set
 import qualified Data.Containers              as Mono
 import Control.Monad.State.Strict
+import Control.Monad.Reader
 import Data.List (intercalate)
 import System.CPUTime (getCPUTime)
 import Text.Printf (printf)
@@ -32,6 +34,10 @@ import qualified Muste.Linearization.Internal as Linearization
 
 import Options (Options(Options))
 import qualified Options
+
+data ReplOptions = ReplOptions
+  { printNodes ∷ Bool
+  }
 
 grammar :: Grammar
 grammar = Grammar.parseGrammar $ convertString $ snd grammar'
@@ -53,7 +59,17 @@ makeEnv opts@(Options{..}) = Env defLang c
 defLang ∷ String
 defLang = "Swe"
 
-type Repl a = HaskelineT (StateT Env IO) a
+newtype Muste m a = Muste { unMuste ∷ (ReaderT ReplOptions (StateT Env m)) a }
+
+deriving newtype instance Functor m             ⇒ Functor (Muste m)
+deriving newtype instance Monad m               ⇒ Applicative (Muste m)
+deriving newtype instance Monad m               ⇒ Monad (Muste m)
+deriving newtype instance MonadIO m             ⇒ MonadIO (Muste m)
+deriving newtype instance Monad m               ⇒ MonadReader ReplOptions (Muste m)
+deriving newtype instance Monad m               ⇒ MonadState Env (Muste m)
+deriving newtype instance Repl.MonadException m ⇒ Repl.MonadException (Muste m)
+
+type Repl a = HaskelineT (Muste IO) a
 
 builderInfo ∷ Options → BuilderInfo
 builderInfo Options{..} = BuilderInfo { searchDepth }
@@ -63,23 +79,42 @@ main = do
   opts ← Options.getOptions
   let e ∷ Env
       e = makeEnv opts
-  let sentences = Options.sentences opts
+  let sentences ∷ [String]
+      sentences = Options.sentences opts
+      replOpts ∷ ReplOptions
+      replOpts = ReplOptions $ Options.printNodes opts
   -- If there are any sentences supplied on the command line, run them
   -- all.
-  void $ traverse (nonInteractive e) sentences
+  void $ traverse (nonInteractive replOpts e) sentences
   -- If we are also in interactive mode, start the interactive session.
   let interactive = Options.interactiveMode opts
-  when interactive $ repl e    
+  when interactive $ repl replOpts e
 
-nonInteractive :: Env → String -> IO ()
-nonInteractive env s
+nonInteractive :: ReplOptions → Env → String -> IO ()
+nonInteractive opts env s
   = runHaskelineT Repl.defaultSettings (updateMenu s)
-  & flip evalStateT env
+  & runMuste opts env
 
-repl ∷ Env → IO ()
-repl env
+runMuste
+  ∷ Monad m
+  ⇒ ReplOptions
+  → Env
+  → Muste m a
+  → m a
+runMuste opts env
+  =   unMuste
+  >>> flip runReaderT opts
+  >>> flip evalStateT env
+
+repl ∷ ReplOptions → Env → IO ()
+repl opts env
   = Repl.evalRepl "§ " updateMenu options completer ini
-  & flip evalStateT env
+  & runMuste opts env
+
+-- I think there's a bug in the instantiation of `MonadReader` for
+-- `HaskelineT` meaning that we have to use `lift` here.
+getPrintNodes ∷ Repl Bool
+getPrintNodes = lift $ asks @ReplOptions printNodes
 
 updateMenu ∷ String → Repl ()
 updateMenu s = do
@@ -89,9 +124,10 @@ updateMenu s = do
     let adjsizes = [ (cat, length trees) | (cat, trees) <- adjtrees ]
     printf "\nN:o adjunction trees = %d\n" (sum (map snd adjsizes))
   m ← getMenuFor s
+  verb ← getPrintNodes
   liftIO $ timeCommand "Update menu" $ do
     putStrLn $ "Sentence is now: " <> s
-    putDocLn $ prettyMenu ctxt s m
+    putDocLn $ prettyMenu verb ctxt s m
 
 timeCommand :: String -> IO a -> IO a
 timeCommand title cmd = do
@@ -102,8 +138,8 @@ timeCommand title cmd = do
     printf "\n>>> %s: %.2f s <<<\n\n" title secs
     return result
 
-prettyMenu ∷ Context → String → Menu → Doc a
-prettyMenu ctxt s = Doc.vsep . fmap (uncurry go) . open
+prettyMenu ∷ ∀ a . Bool → Context → String → Menu → Doc a
+prettyMenu verbose ctxt s = Doc.vsep . fmap (uncurry go) . open
   where
   open = fmap @[] (fmap @((,) Menu.Selection) Set.toList)
     . Mono.mapToList
@@ -112,13 +148,17 @@ prettyMenu ctxt s = Doc.vsep . fmap (uncurry go) . open
     → Doc a
   go sel xs = Doc.vcat
     [ ""
-    , Doc.fill 60 (pretty sel <> ":" <+> prettyLin sel (words s))
-      <+> prettyLin sel annotated
+    , maybeVerbose prettySel $ prettyLin sel annotated
     , Doc.vcat $ fmap gogo xs
     ]
+    where
+    prettySel = pretty sel <> ":" <+> prettyLin sel (words s)
   gogo ∷ (Menu.Selection, Menu.Linearization Menu.Annotated) → Doc a
-  gogo (sel, lin) = Doc.fill 60 (prettyLin sel (map getWord (toList lin)))
-                    <+> prettyLin sel (map getNodes (toList lin))
+  gogo (sel, lin)
+    = maybeVerbose prettyMenuItems
+    $ prettyLin sel (map getNodes (toList lin))
+    where
+    prettyMenuItems = prettyLin sel (map getWord (toList lin))
   annotated = Grammar.parseSentence (Linearization.ctxtGrammar ctxt) (Linearization.ctxtLang ctxt) s
               & map (\t -> Annotated.mkLinearization ctxt t t t)
               & foldl1 Annotated.mergeL
@@ -126,6 +166,9 @@ prettyMenu ctxt s = Doc.vsep . fmap (uncurry go) . open
               & map getNodes
   getWord (Menu.Annotated word _) = word
   getNodes (Menu.Annotated _ nodes) = intercalate "+" (Set.toList nodes)
+  maybeVerbose docA docB
+    | verbose   = Doc.fill 60 docA <+> docB
+    | otherwise = docA
 
 prettyLin ∷ ∀ tok a . Pretty tok => Menu.Selection → [tok] → Doc a
 prettyLin sel tokens = Doc.hsep $ map go $ highlight sel tokens
@@ -164,7 +207,7 @@ getMenuFor s = do
 getContext ∷ Repl Context
 getContext = gets $ \(Env { .. }) → ctxt
 
-options ∷ Repl.Options (HaskelineT (StateT Env IO))
+options ∷ Repl.Options (HaskelineT (Muste IO))
 options =
   [ "lang" |> oneArg setLang
   ]
@@ -196,7 +239,7 @@ setLang ∷ MonadState Env m ⇒ String → m ()
 setLang lang = modify $ \e → e { lang }
 
 -- Currently no completion support.
-completer ∷ Repl.CompleterStyle (StateT Env IO)
+completer ∷ Repl.CompleterStyle (Muste IO)
 completer = Repl.Word (const (pure mempty))
 
 ini ∷ Repl ()

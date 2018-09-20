@@ -14,6 +14,7 @@ data Options = Options
   , interactiveMode ∷ Bool
   , sentences       ∷ [String]
   , language        ∷ Text
+  , printNodes      ∷ Bool
   }
 
 optionsParser ∷ Parser Options
@@ -23,12 +24,13 @@ optionsParser
   <*> interactiveModeParser
   <*> sentencesParser
   <*> languageParser
+  <*> printNodesParser
   where
   searchDepthParser ∷ Parser (Maybe Int)
   searchDepthParser
     = optional
     $ O.option O.auto
-    $ (  O.short 'L'
+      (  O.short 'L'
       <> O.long "limit-search"
       <> O.help "Limit search depth when creating adjunction trees"
       <> O.metavar "DEPTH"
@@ -36,7 +38,7 @@ optionsParser
   interactiveModeParser ∷ Parser Bool
   interactiveModeParser
     = O.switch
-    $ (  O.long "interactive"
+      (  O.long "interactive"
       <> O.help "Run in interactive mode"
       )
   sentencesParser ∷ Parser [String]
@@ -45,11 +47,17 @@ optionsParser
   languageParser ∷ Parser Text
   languageParser
     = O.strOption
-    $ (  O.long "language"
+      (  O.long "language"
       <> O.help "The language to use"
       <> O.metavar "LANG"
       <> O.value "ExemplumSwe"
       <> O.showDefault
+      )
+  printNodesParser ∷ Parser Bool
+  printNodesParser
+    = O.switch
+      (  O.long "print-nodes"
+      <> O.help "Show the internal representation of the sentences"
       )
 
 getOptions ∷ IO Options
