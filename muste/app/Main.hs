@@ -21,8 +21,6 @@ import System.Environment (getArgs)
 import Data.List (intercalate)
 import System.CPUTime (getCPUTime)
 import Text.Printf (printf)
-import Data.MonoTraversable
-import qualified Data.Containers as Mono
 
 import Muste hiding (getMenu)
 import Muste.Common
