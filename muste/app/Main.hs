@@ -41,12 +41,11 @@ grammar = Grammar.parseGrammar $ convertString $ snd grammar'
 
 data Env = Env
   { lang ∷ String
-  , menu ∷ Menu
   , ctxt ∷ Context
   }
 
 makeEnv ∷ Options → Env
-makeEnv opts@(Options{..}) = Env defLang mempty c
+makeEnv opts@(Options{..}) = Env defLang c
   where
   c ∷ Context
   c = unsafeGetContext (builderInfo opts) grammar language
@@ -93,7 +92,6 @@ updateMenu s = do
   liftIO $ timeCommand "Update menu" $ do
     putStrLn $ "Sentence is now: " <> s
     putDocLn $ prettyMenu ctxt s m
-  setMenu m
 
 timeCommand :: String -> IO a -> IO a
 timeCommand title cmd = do
@@ -163,19 +161,12 @@ getMenuFor s = do
   c ← getContext
   pure $ Menu.getMenuItems c s
 
-setMenu ∷ Menu → Repl ()
-setMenu menu = modify $ \e → e { menu }
-
 getContext ∷ Repl Context
 getContext = gets $ \(Env { .. }) → ctxt
-
-getMenu ∷ Repl Menu
-getMenu = gets $ \(Env { .. }) → menu
 
 options ∷ Repl.Options (HaskelineT (StateT Env IO))
 options =
   [ "lang" |> oneArg setLang
-  , "sel"  |> setSel
   ]
   where
   (|>) = (,)
@@ -195,22 +186,6 @@ instance Show AppException where
     SelectionNotFound → "ERROR: Selection not found"
     OneArgErr → "One argument plz"
 
-setSel ∷ [String] → Repl ()
-setSel args = do
-  -- case readMaybe @[(Int, Int)] str of
-  case traverse (readMaybe @(Int, Int)) args of
-    Nothing → liftIO $ putStrLn
-      $  "Expecting a space-seperated list of pairs of numbers.  "
-      <> "Like so: \"(0,1) (2,3)\""
-    Just sel → do
-      m ← getMenu
-      case lookupFail mempty (fromL sel) m of
-        Nothing → showErr SelectionNotFound
-        Just ts → liftIO $ putDocLn $ pretty $ Set.toList ts
-  where
-  fromL ∷ [(Int, Int)] → Menu.Selection
-  fromL = Menu.Selection . fmap Menu.Interval
-
 showErr ∷ MonadIO m ⇒ Exception e ⇒ e → m ()
 showErr = liftIO . putStrLn . displayException
 
@@ -226,17 +201,16 @@ completer = Repl.Word (const (pure mempty))
 
 ini ∷ Repl ()
 ini = liftIO $ putStrLn $ unlines
-  [ "Type in a sentence to get the menu for that sentence"
-  , "This will set and display the \"active\" menu"
-  , "You can select an entry in the active menu with e.g.:"
+  [ "Type in a sentence to get the menu for that sentence."
   , ""
-  , "    :sel [(0,1)]"
-  , ""
-  , "Please note that sentences that cannot be parsed are silently ignored"
+  , "Please note that sentences that cannot be parsed are silently ignored."
   , "An empty menu will be displayed (just newline) this is likely caused"
   , "by the sentence not being understood by the current grammar."
   , ""
   , "Also the current grammar is hard-coded to be:"
+  , ""
   , "    novo_modo/Exemplum"
-  , "    ExemplumSwe"
+  , ""
+  , "The language can be specified on the command line (run with `--help`"
+  , "to see usage)."
   ]
