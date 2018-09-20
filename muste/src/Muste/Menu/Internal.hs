@@ -103,13 +103,14 @@ linTree ctxt tree = (map Linearization.ltlin lintokens, map (lookupNode tree . L
     where Linearization lintokens = Linearization.linearizeTree ctxt tree
 
 lookupNode :: TTree -> Path -> Node
-lookupNode tree path = case Tree.selectNode tree path of
-                         Just (TNode node _ _) -> node
-                         _ → error "Incomplete Pattern-Match"
+lookupNode tree path
+  = case Tree.selectNode tree path of
+    Just (TNode node _ _) -> node
+    _ → error "Incomplete Pattern-Match"
 
-similarTrees :: Context -> TTree -> [TTree]
-similarTrees ctxt tree = [ tree' | (_path, simtrees) <- Map.toList simmap, (_, tree') <- Set.toList simtrees ]
-    where simmap = Prune.replaceTrees (ctxtGrammar ctxt) (ctxtPrecomputed ctxt) tree
+similarTrees :: Context -> TTree -> Set TTree
+similarTrees c
+  = Prune.replaceTrees (ctxtGrammar c) (ctxtPrecomputed c)
 
 -- * Exported stuff
 
@@ -187,14 +188,14 @@ type TreeSubst = (Int, XTree, XTree)
 type XTree = (TTree, [Tokn], [Node])
 
 collectTreeSubstitutions :: Context -> String -> [TreeSubst]
-collectTreeSubstitutions ctxt sentence =
-    do oldtree <- parseSentence ctxt sentence
-       let (oldwords, oldnodes) = linTree ctxt oldtree
-       let old = (oldtree, oldwords, oldnodes)
-       newtree <- similarTrees ctxt oldtree
-       let (newwords, newnodes) = linTree ctxt newtree
-       let new = (newtree, newwords, newnodes)
-       return (old `xtreeDiff` new, old, new)
+collectTreeSubstitutions ctxt sentence = do
+  oldtree <- parseSentence ctxt sentence
+  let (oldwords, oldnodes) = linTree ctxt oldtree
+  let old = (oldtree, oldwords, oldnodes)
+  newtree <- Set.toList $ similarTrees ctxt oldtree
+  let (newwords, newnodes) = linTree ctxt newtree
+  let new = (newtree, newwords, newnodes)
+  pure (old `xtreeDiff` new, old, new)
 
 collectMenuItems :: Context -> [TreeSubst] -> Menu
 collectMenuItems ctxt substs = Menu $ Map.fromListWith Set.union $ do

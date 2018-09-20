@@ -35,11 +35,14 @@ replaceTrees
   :: Grammar
   -> AdjunctionTrees
   -> TTree
-  -> Map Path (Set (SimTree, TTree))
-replaceTrees grammar precomputed tree = M.fromList (go <$> collectSimilarTrees grammar precomputed tree)
+  -> Set TTree
+replaceTrees grammar precomputed tree
+  =   mconcat
+  $   go
+  <$> collectSimilarTrees grammar precomputed tree
   where
-  go :: ReplacementTree -> (Path, Set (SimTree, TTree))
-  go (path, _, trees) = (path, Set.map (replaceTree tree path) trees)
+  go :: ReplacementTree -> Set TTree
+  go (path, _, trees) = Set.map (snd . replaceTree tree path) trees
 
 -- | @'replaceTree' trees@ returns a list of @(cost, isInsertion, t)@
 -- where @t@ is a new tree arising from the 'SimTree'.
