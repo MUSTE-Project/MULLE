@@ -20,9 +20,12 @@ import qualified Muste.Linearization.Internal as Linearization
 unsafeGetContext ∷ BuilderInfo → Grammar → Text → Context
 unsafeGetContext nfo g lang = fromMaybe err $ getCtxt nfo g lang
   where
-  err = error $ printf "Can't find %s" $ Text.unpack lang
+  err = error $ printf cantFindLang $ Text.unpack lang
 
 getCtxt ∷ MonadFail m ⇒ BuilderInfo → Grammar → Text → m Context
 getCtxt nfo g lang = lookupFail err lang $ Linearization.readLangs nfo g
   where
-  err = printf "Can't find %s" $ Text.unpack lang
+  err = printf cantFindLang $ Text.unpack lang
+
+cantFindLang ∷ String
+cantFindLang = "Cannot find language: \"%s\""

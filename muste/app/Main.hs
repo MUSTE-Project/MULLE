@@ -45,11 +45,11 @@ data Env = Env
   , ctxt ∷ Context
   }
 
-makeEnv ∷ BuilderInfo → Env
-makeEnv nfo = Env defLang mempty c
+makeEnv ∷ Options → Env
+makeEnv opts@(Options{..}) = Env defLang mempty c
   where
   c ∷ Context
-  c = unsafeGetContext nfo grammar "ExemplumSwe"
+  c = unsafeGetContext (builderInfo opts) grammar language
 
 defLang ∷ String
 defLang = "Swe"
@@ -63,7 +63,7 @@ main :: IO ()
 main = do
   opts ← Options.getOptions
   let e ∷ Env
-      e = makeEnv $ builderInfo opts
+      e = makeEnv opts
   let sentences = Options.sentences opts
   -- If there are any sentences supplied on the command line, run them
   -- all.
