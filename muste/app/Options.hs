@@ -30,8 +30,7 @@ optionsParser
   searchDepthParser
     = optional
     $ O.option O.auto
-      (  O.short 'L'
-      <> O.long "limit-search"
+      (  O.long "limit-search"
       <> O.help "Limit search depth when creating adjunction trees"
       <> O.metavar "DEPTH"
       )
@@ -47,11 +46,10 @@ optionsParser
   languageParser ∷ Parser Text
   languageParser
     = O.strOption
-      (  O.long "language"
+      (  O.short 'L'
+      <> O.long "language"
       <> O.help "The language to use"
       <> O.metavar "LANG"
-      <> O.value "ExemplumSwe"
-      <> O.showDefault
       )
   printNodesParser ∷ Parser Bool
   printNodesParser
