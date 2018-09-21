@@ -5,13 +5,13 @@
 module Main (main) where
 
 import Muste.Prelude
+import Data.Binary (encodeFile)
 
 import Muste (Grammar, Context)
 import qualified Muste.Util             as Muste
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees (BuilderInfo(..))
 import qualified Muste.Menu as Menu
-import System.Exit
 
 import Options (Options(Options))
 import qualified Options
@@ -20,10 +20,13 @@ import qualified Muste.Repl             as Repl
 makeEnv ∷ Options → Repl.Env
 makeEnv opts@(Options{..}) = Repl.Env language c
   where
-  g ∷ Grammar
-  g = fromMaybe (error "Grammar not found") $ Grammar.lookupGrammar grammar
+  g = unsafeLookupGrammar grammar
   c ∷ Context
   c = Muste.unsafeGetContext (builderInfo opts) g grammarLang
+
+unsafeLookupGrammar ∷ Text → Grammar
+unsafeLookupGrammar g
+  = fromMaybe (error "Grammar not found") $ Grammar.lookupGrammar g
 
 builderInfo ∷ Options → BuilderInfo
 builderInfo Options{..} = BuilderInfo { searchDepth }
@@ -43,11 +46,13 @@ muste opts@Options{..} = do
   when (Options.interactiveMode opts)
     $ Repl.interactively replOpts e Repl.updateMenu
 
+precompute ∷ Options.PreComputeOpts → IO ()
+precompute Options.PreComputeOpts{..}
+  = encodeFile output $ unsafeLookupGrammar grammar
+
 main :: IO ()
 main = do
   Options.Command cmd ← Options.getOptions
   case cmd of
     Options.Muste opts → muste opts
-    Options.PreCompute → do
-      putStrLn "Not yet implemented!"
-      exitFailure
+    Options.PreCompute g → precompute g

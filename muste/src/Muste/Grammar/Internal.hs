@@ -31,7 +31,7 @@ import qualified PGF
   , showCId, startCat, functionType, parsePGF
   , bracketedLinearize, parse
   )
-import PGF.Internal as PGF hiding (funs, cats)
+import PGF.Internal as PGF hiding (funs, cats, Binary)
 import Data.List (union, partition)
 import Data.Text.Prettyprint.Doc (Pretty(..))
 import qualified Data.Text.Prettyprint.Doc as Doc
@@ -39,6 +39,7 @@ import Control.DeepSeq
 import Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as MultiSet
 import Control.DeepSeq (NFData)
+import Data.Binary (Binary(..))
 
 import qualified Muste.Grammar.Grammars as Grammars
 import Muste.Common
@@ -62,6 +63,10 @@ data Grammar = Grammar
   , pgf :: PGF
   }
 
+instance Binary Grammar where
+  get = error "Muste.Grammar.Internal.get @Grammar: Unimplemented"
+  put = error "Muste.Grammar.Internal.put @Grammar: Unimplemented"
+
 instance Pretty Grammar where
   pretty (Grammar sCat srules lrules _) = Doc.sep
     [ p "Startcat: %s" (show sCat)
@@ -73,7 +78,8 @@ instance Pretty Grammar where
     p :: String -> String -> Doc.Doc ann
     p frmt s = Doc.pretty @String $ printf frmt s
 
--- | The function 'getRules' returns the union of syntactic and lexical rules of a grammar
+-- | The function 'getRules' returns the union of syntactic and
+-- lexical rules of a grammar.
 getAllRules :: Grammar -> [Rule]
 getAllRules g = synrules g `union` lexrules g
 

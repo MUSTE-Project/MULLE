@@ -1,6 +1,13 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# Language UnicodeSyntax, TemplateHaskell, OverloadedStrings #-}
-module Options (getOptions, Command(Command), SubCommand(..), Options(..)) where
+{-# Language UnicodeSyntax, TemplateHaskell, OverloadedStrings,
+  DuplicateRecordFields #-}
+module Options
+  ( getOptions
+  , Command(Command)
+  , SubCommand(..)
+  , Options(..)
+  , PreComputeOpts(..)
+  ) where
 
 import Prelude ()
 import Muste.Prelude
@@ -21,9 +28,14 @@ data Options = Options
   , pruneSearchDepth ∷ Maybe Int
   }
 
+data PreComputeOpts = PreComputeOpts
+  { grammar ∷ Text
+  , output  ∷ FilePath
+  }
+
 data Command = Command SubCommand
 
-data SubCommand = Muste Options | PreCompute
+data SubCommand = Muste Options | PreCompute PreComputeOpts
 
 optionsParser ∷ Parser Options
 optionsParser
@@ -55,18 +67,6 @@ optionsParser
   sentencesParser ∷ Parser [String]
   sentencesParser
     = many (O.strArgument (O.metavar "SENTENCES"))
-  grammarParser ∷ Parser Text
-  grammarParser
-    = O.strOption
-      (  O.short 'G'
-      <> O.long "grammar"
-      <> O.help
-        (  "The grammar to use.  E.g. \"novo_modo/Exemplum\".  "
-        <> "Please note that this is not actually a path, "
-        <> "but rather must be one of the built in grammars."
-        )
-      <> O.metavar "GRAMMAR"
-      )
   grammarLangParser ∷ Parser Text
   grammarLangParser
     = O.strOption
@@ -104,6 +104,19 @@ optionsParser
       <> O.metavar "DEPTH"
       )
 
+grammarParser ∷ Parser Text
+grammarParser
+  = O.strOption
+    (  O.short 'G'
+    <> O.long "grammar"
+    <> O.help
+      (  "The grammar to use.  E.g. \"novo_modo/Exemplum\".  "
+      <> "Please note that this is not actually a path, "
+      <> "but rather must be one of the built in grammars."
+      )
+    <> O.metavar "GRAMMAR"
+    )
+
 musteParserInfo ∷ ParserInfo Options
 musteParserInfo = O.info (optionsParser <**> O.helper <**> version)
   (  O.fullDesc
@@ -111,13 +124,27 @@ musteParserInfo = O.info (optionsParser <**> O.helper <**> version)
   <> O.header header
   )
 
-preComputeParserInfo ∷ ParserInfo ()
-preComputeParserInfo = O.info (pure ()) (O.progDesc "Precompute grammar")
+preComputeOptsParser ∷ Parser PreComputeOpts
+preComputeOptsParser
+  =   PreComputeOpts
+  <$> grammarParser
+  <*> outputParser
+  where
+  outputParser ∷ Parser FilePath
+  outputParser = O.strOption
+    (  O.short 'o'
+    <> O.long "output"
+    <> O.metavar "PATH"
+    )
+
+preComputeParserInfo ∷ ParserInfo PreComputeOpts
+preComputeParserInfo
+  = O.info preComputeOptsParser (O.progDesc "Precompute grammar")
 
 commandParser ∷ Parser Command
 commandParser = Command <$> O.subparser
   (  O.command "cli"        (Muste      <$> musteParserInfo)
-  <> O.command "precompute" (PreCompute <$  preComputeParserInfo)
+  <> O.command "precompute" (PreCompute <$> preComputeParserInfo)
   )
 
 getOptions ∷ IO Command
