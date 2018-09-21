@@ -96,6 +96,11 @@ a.button {
     padding: 0.3em 0.6em;
     display: inline-block;
     border-radius: 2px;
+    border-width: 1px;
+    border-style: solid;
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
+    border-color: #acacac;
 }
 
 .vertical-separator {
