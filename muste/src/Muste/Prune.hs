@@ -198,15 +198,12 @@ similarTreesForSubtree tree adjTrees = similiarTrees trees tree
     trees
       = M.fromListWith mappend
       $ fmap (\t → (Grammar.getMetas t, pure (t, Grammar.getFunctions t)))
-      $ fromMaybe errNoCat
+      $ fromMaybe mempty
       $ Mono.lookup (cat, metas) adjTrees
     cat = case tree of
       (TNode _ (Fun c _) _) → c
       _ → errNotNode
     metas = Grammar.getMetas tree
-    errNoCat = error
-      $  "Muste.Prune.similarTreesForSubtree: "
-      <> "The tree with the given category and/or metas does not exist."
     errNotNode = error
       $  "Muste.Prune.similarTreesForSubtree: "
       <> "Non-exhaustive pattern match"
