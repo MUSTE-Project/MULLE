@@ -6,10 +6,6 @@ module Main (main) where
 
 import Muste.Prelude
 
-import Data.ByteString (ByteString)
-import qualified Muste.Grammar.Embed    as Embed
-import Data.String.Conversions (convertString)
-
 import Muste (Grammar, Context)
 import qualified Muste.Util             as Muste
 import qualified Muste.Grammar.Internal as Grammar
@@ -20,20 +16,13 @@ import Options (Options(Options))
 import qualified Options
 import qualified Muste.Repl             as Repl
 
-grammar :: Grammar
-grammar = Grammar.parseGrammar $ convertString $ snd grammar'
-  where
-  grammar' ∷ (Text, ByteString)
-  grammar' = $(Embed.grammar "novo_modo/Exemplum")
-
 makeEnv ∷ Options → Repl.Env
-makeEnv opts@(Options{..}) = Repl.Env defLang c
+makeEnv opts@(Options{..}) = Repl.Env language c
   where
+  g ∷ Grammar
+  g = fromMaybe (error "Grammar not found") $ Grammar.lookupGrammar grammar
   c ∷ Context
-  c = Muste.unsafeGetContext (builderInfo opts) grammar language
-
-defLang ∷ String
-defLang = "Swe"
+  c = Muste.unsafeGetContext (builderInfo opts) g grammarLang
 
 builderInfo ∷ Options → BuilderInfo
 builderInfo Options{..} = BuilderInfo { searchDepth }
