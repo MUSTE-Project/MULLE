@@ -4,6 +4,15 @@ Change log
 HEAD
 ---
 
+The CLI executable is no longer called `muste-cli`, rather, it's called
+`muste` and it has two subcommands:
+
+  * cli
+  * precompute
+
+So where you would before write `muste-cli` you must now write `muste
+cli` (note the space).
+
 Change styling (Issue #35)
 
 Adds options to CLI:
