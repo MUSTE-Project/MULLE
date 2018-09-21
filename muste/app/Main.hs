@@ -38,13 +38,11 @@ builderInfo Options{..} = BuilderInfo { searchDepth }
 
 main :: IO ()
 main = do
-  opts ← Options.getOptions
+  opts@Options{..} ← Options.getOptions
   let e ∷ Repl.Env
       e = makeEnv opts
-  let sentences ∷ [String]
-      sentences = Options.sentences opts
-      replOpts ∷ Repl.Options
-      replOpts = Repl.Options $ Options.printNodes opts
+  let replOpts ∷ Repl.Options
+      replOpts = Repl.Options printNodes printCompact
   -- If there are any sentences supplied on the command line, run them
   -- all.
   void $ Repl.detachedly replOpts e (traverse Repl.updateMenu sentences)

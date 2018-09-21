@@ -5,7 +5,7 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language RecordWildCards, NamedFieldPuns, TemplateHaskell,
   DeriveAnyClass, OverloadedStrings, MultiParamTypeClasses,
-  DerivingStrategies #-}
+  DerivingStrategies, MultiWayIf #-}
 module Muste.Repl
   -- * The repl monad
   ( Muste
@@ -46,6 +46,7 @@ import qualified Muste.Linearization.Internal as Linearization
 -- | Options for the REPL.
 data Options = Options
   { printNodes ∷ Bool
+  , compact    ∷ Bool
   }
 
 -- | Data used during execution of the REPL.
@@ -93,6 +94,9 @@ interactively opts env cmd
 getPrintNodes ∷ Repl Bool
 getPrintNodes = lift $ asks @Options printNodes
 
+getCompact ∷ Repl Bool
+getCompact = lift $ asks @Options compact
+
 updateMenu ∷ String → Repl ()
 updateMenu s = do
   ctxt ← getContext
@@ -102,9 +106,22 @@ updateMenu s = do
     printf "\nN:o adjunction trees = %d\n" (sum (map snd adjsizes))
   m ← getMenuFor s
   verb ← getPrintNodes
+  comp ← getCompact
+  let compDoc = Doc.vsep
+        $  [ Doc.fill 60 "Selection" <+> "N:o menu items"
+           ]
+        <> (purdy <$> Mono.mapToList m)
+  let doc = if
+        | comp      → compDoc
+        | otherwise → prettyMenu verb ctxt s m
   liftIO $ timeCommand "Update menu" $ do
     putStrLn $ "Sentence is now: " <> s
-    putDocLn $ prettyMenu verb ctxt s m
+    putDocLn doc
+    where
+    purdy (sel, items)
+      = Doc.fill 60
+            (pretty sel <> ":" <+> prettyLin sel (words s))
+        <+> pretty (length items)
 
 timeCommand :: String -> IO a -> IO a
 timeCommand title cmd = do

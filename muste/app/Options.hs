@@ -15,6 +15,7 @@ data Options = Options
   , sentences       ∷ [String]
   , language        ∷ Text
   , printNodes      ∷ Bool
+  , printCompact    ∷ Bool
   }
 
 optionsParser ∷ Parser Options
@@ -25,6 +26,7 @@ optionsParser
   <*> sentencesParser
   <*> languageParser
   <*> printNodesParser
+  <*> printCompactParser
   where
   searchDepthParser ∷ Parser (Maybe Int)
   searchDepthParser
@@ -56,6 +58,12 @@ optionsParser
     = O.switch
       (  O.long "print-nodes"
       <> O.help "Show the internal representation of the sentences"
+      )
+  printCompactParser ∷ Parser Bool
+  printCompactParser
+    = O.switch
+      (  O.long "print-compact"
+      <> O.help "Print compact information about menus"
       )
 
 getOptions ∷ IO Options
