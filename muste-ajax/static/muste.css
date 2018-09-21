@@ -1,11 +1,10 @@
-
 body, button, ul {
     padding: 0;
     margin: 0;
 }
 
-body, #body {
-    background-color: #ccc;
+body {
+    background-color: hsl(0, 0%, 95%);
     width: 100%;
     height: 100%;
 } 
@@ -49,8 +48,11 @@ a {
     margin: 0.3em;
     padding: 0.3em 0.6em;
     display: inline-block;
-    border-radius: 20px;
+    border-radius: 2px;
     text-decoration: none;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #acacac;
 }
 
 .greyed a {
@@ -65,8 +67,16 @@ a {
     text-decoration: line-through;
 }
 
-button {
-    background-color: transparent;
+button, .button {
+    background-color: white;
+    border-width: 1px;
+    border-color: #acacac;
+    border-style: solid;
+}
+
+a.button {
+    text-decoration: none;
+    color: initial;
 }
 
 #container {
@@ -85,7 +95,7 @@ button {
     margin: 0.3em;
     padding: 0.3em 0.6em;
     display: inline-block;
-    border-radius: 20px;
+    border-radius: 2px;
 }
 
 .vertical-separator {
@@ -130,8 +140,11 @@ input:checked + label {
     top: 0;
 }
 
-#abortlesson, #logoutbutton {
+button {
     padding: 5px 20px;
+}
+
+#abortlesson, #logoutbutton {
     position: fixed;
     right: 0; 
     top: 0;
@@ -189,9 +202,9 @@ input:checked + label {
     padding: 0; 
     margin: 0;
     border: 1px solid;
-    background-color: #eee;
-    background-color: rgba(220,220,220,0.7); 
-    border-radius: 10px;
+    background-color: hsl(0, 0%, 95%);
+    border-radius: 2px;
+    border-color: #acacac;
 }
 
 #menus ul li {
@@ -202,8 +215,10 @@ input:checked + label {
 .correct { background-color: #cfc }
 
 .correct, .match {
-    border-radius: 10px;
+    border-radius: 2px;
     padding: 0 5px;
+    border-width: 2px;
+    border-style: dashed;
 }
 
 .highlighted {
@@ -221,26 +236,18 @@ input:checked + label {
 }
 
 .clickable, .word, button, label, .highlighted {
-    border-radius: 10px;
+    border-radius: 2px;
 }
 
 .space {
     height: 5px;
 }
 
-.space.clickable:hover {
-    padding: 0 10px;
-}
-
-.word.clickable:hover {
-    padding: 0 10px;
-}
-
 .clickable:hover, button:hover, label:hover {
     cursor: pointer;
     background-color: #eee;
     background-color: rgba(220,220,220,0.7); 
-    border-radius: 10px;
+    border-radius: 2px;
 }
 
 .striked {
