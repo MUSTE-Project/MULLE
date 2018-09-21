@@ -125,12 +125,12 @@ function show_lessons(lessons) {
         var item = $('<tr>');
 	if (lsn.enabled) {
           $('<td>').append(
-              $('<a href="">').text(lsn.name).data({lesson: lsn.name}).click(select_lesson)
+              $('<button>').text(lsn.name).data({lesson: lsn.name}).click(select_lesson)
           ).appendTo(item);
 	}
 	else {
 	    $('<td>').append(
-		$('<a href="">').text(lsn.name).data({lesson: lsn.name})
+		$('<button>').text(lsn.name).data({lesson: lsn.name})
 	    ).appendTo(item);
 	}
         $('<td>').append(
@@ -354,7 +354,7 @@ function show_lin(lang, lin) {
             wordspan.addClass('match');
             var h = hash_array_of_string(Array.from(matchingClasses));
             var c = int_to_rgba(h);
-            wordspan.css({"background-color": c})
+            wordspan.css({"border-color": c})
         }
     }
     $('<span>')
@@ -369,7 +369,7 @@ function int_to_rgba(num) {
         g = (num & 0xFF00) >>> 8,
         r = (num & 0xFF0000) >>> 16,
         // a = ( (num & 0xFF000000) >>> 24 ) / 255 ;
-        a = .5;
+        a = 1;
     return "rgba(" + [r, g, b, a].join(",") + ")";
 }
 

@@ -17,16 +17,16 @@
         <table>
           <tr><td><strong>Användare:</strong></td> <td><input type="text" name="name"></td></tr>
           <tr><td><strong>Lösenord:</strong></td> <td><input type="password" name="pwd"></td>
-            <td><input type="submit" value="Login"></td></tr>
+            <td><button type="submit">Login</td></tr>
         </table>
       </form>      
     </div>
 
     <div class="page" id="lessonspage">
-      <a href="" id="logoutbutton">Logga ut</a>
+      <button href="" id="logoutbutton">Logga ut</button>
       <h1>MUSTE: Latinträning</h1>
       <table id="lessonslist"></table>
-      <a href="instructions.html" target="_blank">Instructions</a>
+      <a class="button" href="instructions.html" target="_blank">Instructions</a>
     </div>
 
     <div class="page" id="exercisepage">
@@ -35,7 +35,7 @@
       <span id="timer"></span>
       <span id="busy-indicator" class="idle"></span>
       <!-- Unicode Character 'BLACK CIRCLE' (U+25CF) -->
-      <a href="" id="abortlesson">Avbryt lektion</a>
+      <button id="abortlesson">Avbryt lektion</button>
 
       <div id="container">
         <div id="a" class="sentence prevent-body-click"></div>
