@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language UnicodeSyntax, TemplateHaskell, OverloadedStrings #-}
-module Options (getOptions, Options(..)) where
+module Options (getOptions, Command(Command), SubCommand(..), Options(..)) where
 
 import Prelude ()
 import Muste.Prelude
@@ -20,6 +20,10 @@ data Options = Options
   , printCompact     ∷ Bool
   , pruneSearchDepth ∷ Maybe Int
   }
+
+data Command = Command SubCommand
+
+data SubCommand = Muste Options | PreCompute
 
 optionsParser ∷ Parser Options
 optionsParser
@@ -100,15 +104,26 @@ optionsParser
       <> O.metavar "DEPTH"
       )
 
-getOptions ∷ IO Options
-getOptions = execParser opts
-
-opts ∷ ParserInfo Options
-opts = O.info (optionsParser <**> O.helper <**> version)
+musteParserInfo ∷ ParserInfo Options
+musteParserInfo = O.info (optionsParser <**> O.helper <**> version)
   (  O.fullDesc
   <> O.progDesc descr
   <> O.header header
   )
+
+preComputeParserInfo ∷ ParserInfo ()
+preComputeParserInfo = O.info empty (O.progDesc "Precompute grammar")
+
+commandParser ∷ Parser Command
+commandParser = Command <$> O.subparser
+  (  O.command "cli"        (Muste      <$> musteParserInfo)
+  <> O.command "precompute" (PreCompute <$  preComputeParserInfo)
+  )
+
+getOptions ∷ IO Command
+getOptions
+  = execParser
+  $ O.info (commandParser <**> O.helper <**> version) mempty
 
 version ∷ Parser (a → a)
 version = O.infoOption gitDescription $ mconcat
@@ -118,7 +133,7 @@ version = O.infoOption gitDescription $ mconcat
   ]
 
 header ∷ String
-header = "muste-cli - CLI for the Multi Semantic Text Editor (MUSTE)"
+header = "muste cli - CLI for the Multi Semantic Text Editor (MUSTE)"
 
 descr ∷ String
 descr = "Runs the CLI for the Multi Semantic Text Editor"

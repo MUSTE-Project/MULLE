@@ -11,6 +11,7 @@ import qualified Muste.Util             as Muste
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees (BuilderInfo(..))
 import qualified Muste.Menu as Menu
+import System.Exit
 
 import Options (Options(Options))
 import qualified Options
@@ -27,9 +28,8 @@ makeEnv opts@(Options{..}) = Repl.Env language c
 builderInfo ∷ Options → BuilderInfo
 builderInfo Options{..} = BuilderInfo { searchDepth }
 
-main :: IO ()
-main = do
-  opts@Options{..} ← Options.getOptions
+muste ∷ Options.Options → IO ()
+muste opts@Options{..} = do
   let pruneOpts ∷ Menu.PruneOpts
       pruneOpts = Menu.PruneOpts pruneSearchDepth
       e ∷ Repl.Env
@@ -42,3 +42,12 @@ main = do
   -- If we are also in interactive mode, start the interactive session.
   when (Options.interactiveMode opts)
     $ Repl.interactively replOpts e Repl.updateMenu
+
+main :: IO ()
+main = do
+  Options.Command cmd ← Options.getOptions
+  case cmd of
+    Options.Muste opts → muste opts
+    Options.PreCompute → do
+      putStrLn "Not yet implemented!"
+      exitFailure
