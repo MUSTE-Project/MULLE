@@ -21,8 +21,7 @@ data Options = Options
   , interactiveMode  ∷ Bool
   , sentences        ∷ [String]
   , grammar          ∷ Text   -- E.g. "novo_modo/Exemplum"
-  , grammarLang      ∷ Text   -- E.g. "ExemplumSwe"
-  , language         ∷ String -- E.g. "Swe"
+  , language         ∷ Text   -- E.g. "ExemplumSwe"
   , printNodes       ∷ Bool
   , printCompact     ∷ Bool
   , pruneSearchDepth ∷ Maybe Int
@@ -44,7 +43,6 @@ optionsParser
   <*> interactiveModeParser
   <*> sentencesParser
   <*> grammarParser
-  <*> grammarLangParser
   <*> languageParser
   <*> printNodesParser
   <*> printCompactParser
@@ -67,20 +65,12 @@ optionsParser
   sentencesParser ∷ Parser [String]
   sentencesParser
     = many (O.strArgument (O.metavar "SENTENCES"))
-  grammarLangParser ∷ Parser Text
-  grammarLangParser
-    = O.strOption
-      (  O.short 'L'
-      <> O.long "grammar-lang"
-      <> O.help "The grammar/lang to use.  E.g. \"ExemplumSwe\""
-      <> O.metavar "GRAMMAR_LANG"
-      )
-  languageParser ∷ Parser String
+  languageParser ∷ Parser Text
   languageParser
     = O.strOption
-      (  O.short 'l'
+      (  O.short 'L'
       <> O.long "language"
-      <> O.help "The language to use.  E.g. \"Swe\""
+      <> O.help "The language to use.  E.g. \"ExemplumSwe\""
       <> O.metavar "LANG"
       )
   printNodesParser ∷ Parser Bool

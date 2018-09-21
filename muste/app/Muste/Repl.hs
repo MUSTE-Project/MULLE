@@ -52,8 +52,7 @@ data Options = Options
 
 -- | Data used during execution of the REPL.
 data Env = Env
-  { lang ∷ String
-  , ctxt ∷ Context
+  { ctxt ∷ Context
   }
 
 -- | The monad used for interacting with the MUSTE library.
@@ -208,35 +207,7 @@ getContext ∷ Repl Context
 getContext = gets $ \(Env { .. }) → ctxt
 
 options ∷ Repl.Options (HaskelineT (Muste IO))
-options =
-  [ "lang" |> oneArg setLang
-  ]
-  where
-  (|>) = (,)
-
-oneArg ∷ MonadIO m ⇒ (a → m b) → [a] → m ()
-oneArg a = \case
-  [l] → void $ a l
-  _   → throwOneArgErr
-
-data AppException
-  = SelectionNotFound
-  | OneArgErr
-  deriving (Exception)
-
-instance Show AppException where
-  show e = "ERROR: " <> case e of
-    SelectionNotFound → "ERROR: Selection not found"
-    OneArgErr → "One argument plz"
-
-showErr ∷ MonadIO m ⇒ Exception e ⇒ e → m ()
-showErr = liftIO . putStrLn . displayException
-
-throwOneArgErr ∷ MonadIO m ⇒ m ()
-throwOneArgErr = showErr OneArgErr
-
-setLang ∷ MonadState Env m ⇒ String → m ()
-setLang lang = modify $ \e → e { lang }
+options = mempty
 
 -- Currently no completion support.
 completer ∷ Repl.CompleterStyle (Muste IO)

@@ -18,11 +18,11 @@ import qualified Options
 import qualified Muste.Repl             as Repl
 
 makeEnv ∷ Options → Repl.Env
-makeEnv opts@(Options{..}) = Repl.Env language c
+makeEnv opts@(Options{..}) = Repl.Env c
   where
   g = unsafeLookupGrammar grammar
   c ∷ Context
-  c = Muste.unsafeGetContext (builderInfo opts) g grammarLang
+  c = Muste.unsafeGetContext (builderInfo opts) g language
 
 unsafeLookupGrammar ∷ Text → Grammar
 unsafeLookupGrammar g
