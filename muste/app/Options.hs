@@ -10,12 +10,13 @@ import Control.Applicative ((<**>), optional)
 import qualified Development.GitRev as Dev
 
 data Options = Options
-  { searchDepth     ∷ Maybe Int
-  , interactiveMode ∷ Bool
-  , sentences       ∷ [String]
-  , language        ∷ Text
-  , printNodes      ∷ Bool
-  , printCompact    ∷ Bool
+  { searchDepth      ∷ Maybe Int
+  , interactiveMode  ∷ Bool
+  , sentences        ∷ [String]
+  , language         ∷ Text
+  , printNodes       ∷ Bool
+  , printCompact     ∷ Bool
+  , pruneSearchDepth ∷ Maybe Int
   }
 
 optionsParser ∷ Parser Options
@@ -27,12 +28,13 @@ optionsParser
   <*> languageParser
   <*> printNodesParser
   <*> printCompactParser
+  <*> pruneSearchDepthParser
   where
   searchDepthParser ∷ Parser (Maybe Int)
   searchDepthParser
     = optional
     $ O.option O.auto
-      (  O.long "limit-search"
+      (  O.long "limit-adjunctions"
       <> O.help "Limit search depth when creating adjunction trees"
       <> O.metavar "DEPTH"
       )
@@ -64,6 +66,14 @@ optionsParser
     = O.switch
       (  O.long "print-compact"
       <> O.help "Print compact information about menus"
+      )
+  pruneSearchDepthParser ∷ Parser (Maybe Int)
+  pruneSearchDepthParser
+    = optional
+    $ O.option O.auto
+      (  O.long "limit-prune"
+      <> O.help "Limit search depth when creating pruning trees"
+      <> O.metavar "DEPTH"
       )
 
 getOptions ∷ IO Options

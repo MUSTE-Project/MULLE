@@ -42,7 +42,6 @@ replaceTrees
   → TTree           -- ^ The tree where we do the replacements
   → Set TTree
 replaceTrees opts g adj t
-  -- TODO Add the 'PruneOpts' as an argument!
   = runPrunerI pruner env
   where
   pruner ∷ PrunerI (Set TTree)

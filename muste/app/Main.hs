@@ -14,6 +14,7 @@ import Muste (Grammar, Context)
 import qualified Muste.Util             as Muste
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees (BuilderInfo(..))
+import qualified Muste.Menu as Menu
 
 import Options (Options(Options))
 import qualified Options
@@ -40,10 +41,12 @@ builderInfo Options{..} = BuilderInfo { searchDepth }
 main :: IO ()
 main = do
   opts@Options{..} ← Options.getOptions
-  let e ∷ Repl.Env
+  let pruneOpts ∷ Menu.PruneOpts
+      pruneOpts = Menu.PruneOpts pruneSearchDepth
+      e ∷ Repl.Env
       e = makeEnv opts
-  let replOpts ∷ Repl.Options
-      replOpts = Repl.Options printNodes printCompact
+      replOpts ∷ Repl.Options
+      replOpts = Repl.Options printNodes printCompact pruneOpts
   -- If there are any sentences supplied on the command line, run them
   -- all.
   void $ Repl.detachedly replOpts e (traverse Repl.updateMenu sentences)

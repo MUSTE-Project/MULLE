@@ -47,6 +47,7 @@ import qualified Muste.Linearization.Internal as Linearization
 data Options = Options
   { printNodes ∷ Bool
   , compact    ∷ Bool
+  , pruneOpts  ∷ Menu.PruneOpts
   }
 
 -- | Data used during execution of the REPL.
@@ -99,7 +100,7 @@ getCompact = lift $ asks @Options compact
 
 askPruneOpts ∷ Repl Menu.PruneOpts
 -- TODO Actually be ready with an answer here.
-askPruneOpts = lift $ asks @Options mempty
+askPruneOpts = lift $ asks @Options pruneOpts
 
 updateMenu ∷ String → Repl ()
 updateMenu s = do
