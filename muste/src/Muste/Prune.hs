@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall -Wno-unused-top-binds -Wno-name-shadowing #-}
-{-# Language DerivingStrategies, ConstraintKinds #-}
+{-# Language DerivingStrategies, ConstraintKinds, RecordWildCards #-}
 -- FIXME Should this be an internal module? It's not currently used in
 -- @muste-ajax@.
 module Muste.Prune
@@ -42,26 +42,30 @@ replaceTrees
   → Set TTree
 replaceTrees g adj t
   -- TODO Add the 'PruneOpts' as an argument!
-  = runPrunerI pruner (mempty @PruneOpts)
+  = runPrunerI pruner env
   where
   pruner ∷ PrunerI (Set TTree)
-  pruner = replaceTreesM g adj t
+  pruner = replaceTreesM
+  env ∷ Env
+  env = Env
+    { pruneOpts   = mempty @PruneOpts
+    , grammar     = g
+    , precomputed = adj
+    , baseTree    = t
+    }
 
 replaceTreesM
   ∷ Pruner m
-  ⇒ Grammar
-  → AdjunctionTrees
-  → TTree
-  → m (Set TTree)
-replaceTreesM grammar precomputed tree = do
-  simtrees ← collectSimilarTrees grammar precomputed tree
+  ⇒ m (Set TTree)
+replaceTreesM = do
+  tree ← askBaseTree
+  let go ∷ ReplacementTree → Set TTree
+      go (path, _, trees) = Set.map (snd . replaceTree tree path) trees
+  simtrees ← collectSimilarTrees
   pure
     $   mconcat
     $   go
     <$> simtrees
-  where
-  go :: ReplacementTree -> Set TTree
-  go (path, _, trees) = Set.map (snd . replaceTree tree path) trees
 
 -- | @'replaceTree' trees@ returns a list of @(cost, isInsertion, t)@
 -- where @t@ is a new tree arising from the 'SimTree'.
@@ -79,26 +83,42 @@ instance Semigroup PruneOpts where
 instance Monoid PruneOpts where
   mempty = PruneOpts empty
 
+data Env = Env
+  { pruneOpts   ∷ PruneOpts
+  , grammar     ∷ Grammar         -- ^ The grammar
+  , precomputed ∷ AdjunctionTrees -- ^ The pre computed adjunction trees
+  , baseTree    ∷ TTree           -- ^ The tree where we do the replacements
+  }
+
 type Pruner m =
-  ( MonadReader PruneOpts m
+  ( MonadReader Env m
   )
 
 -- | The monad used for creating similar trees.  It's a bit of a
 -- misnomer because it does more than prune trees.
-newtype PrunerT m a = PrunerT { unPrunerT ∷ ReaderT PruneOpts m a }
+newtype PrunerT m a = PrunerT { unPrunerT ∷ ReaderT Env m a }
 
 deriving newtype instance Functor m ⇒ Functor (PrunerT m)
 deriving newtype instance Monad m   ⇒ Applicative (PrunerT m)
 deriving newtype instance Monad m   ⇒ Monad (PrunerT m)
-deriving newtype instance Monad m   ⇒ MonadReader PruneOpts (PrunerT m)
+deriving newtype instance Monad m   ⇒ MonadReader Env (PrunerT m)
 
 type PrunerI a = PrunerT Identity a
 
-runPrunerI ∷ PrunerI a → PruneOpts → a
+runPrunerI ∷ PrunerI a → Env → a
 runPrunerI = runReader . unPrunerT
 
 askSearchDepth ∷ Pruner m ⇒ m (Maybe Int)
-askSearchDepth = asks searchDepth
+askSearchDepth = asks (\Env{pruneOpts=PruneOpts{..}} → searchDepth)
+
+askGrammar ∷ Pruner m ⇒ m Grammar
+askGrammar = asks (\Env{..} → grammar)
+
+askPrecomputed ∷ Pruner m ⇒ m AdjunctionTrees
+askPrecomputed = asks (\Env{..} → precomputed)
+
+askBaseTree ∷ Pruner m ⇒ m TTree
+askBaseTree = asks (\Env{..} → baseTree)
 
 
 -- * Pruning
@@ -133,22 +153,20 @@ type ReplacementTree = (Path, TTree, Set SimTree)
 -- A simliar tree is given by @ReplacementTree@.
 collectSimilarTrees
   ∷ Pruner m
-  ⇒ Grammar
-  → AdjunctionTrees
-  → TTree
-  → m [ReplacementTree]
-collectSimilarTrees _grammar adjTrees basetree
-  = traverse go $ Tree.getAllPaths basetree
-  where
-  go ∷ Pruner m ⇒ Path -> m ReplacementTree
-  go path = do
-    simtrees ← getSimTrees
-    pure (path, tree, Set.fromList simtrees)
-    where
-      err = error "Muste.Prune.collectSimilarTrees: Incongruence with 'getAllPaths'"
-      tree = fromMaybe err $ Tree.selectNode basetree path
-      getSimTrees ∷ Pruner m ⇒ m [SimTree]
-      getSimTrees = onlyKeepCheapest <$> similarTreesForSubtree tree adjTrees
+  ⇒ m [ReplacementTree]
+collectSimilarTrees = do
+  basetree ← askBaseTree
+  let
+    go ∷ Pruner m ⇒ Path -> m ReplacementTree
+    go path = do
+      simtrees ← getSimTrees
+      pure (path, tree, Set.fromList simtrees)
+      where
+        err = error "Muste.Prune.collectSimilarTrees: Incongruence with 'getAllPaths'"
+        tree = fromMaybe err $ Tree.selectNode basetree path
+        getSimTrees ∷ Pruner m ⇒ m [SimTree]
+        getSimTrees = onlyKeepCheapest <$> similarTreesForSubtree tree
+  traverse go $ Tree.getAllPaths basetree
 
 -- FIXME Quadratic in the length of 'simtrees'.  Even though this is
 -- quadratic, profiling shows that this is negliciable.
@@ -240,13 +258,10 @@ directMoreExpensive (cost, t, _, _) (cost', t', _, _)
 --      getAllPaths                                Muste.Tree.Internal            20649          2    0.0    0.0     0.0    0.0
 --       ...
 
-similarTreesForSubtree
-  ∷ Pruner m
-  ⇒ TTree
-  → AdjunctionTrees
-  → m [SimTree]
-similarTreesForSubtree tree adjTrees = similarTrees trees tree
-  where
+similarTreesForSubtree ∷ Pruner m ⇒ TTree → m [SimTree]
+similarTreesForSubtree tree = do
+  adjTrees ← askPrecomputed
+  let
     trees ∷ Map (MultiSet Category) [(TTree, MultiSet Rule)]
     trees
       = M.fromListWith mappend
@@ -260,6 +275,7 @@ similarTreesForSubtree tree adjTrees = similarTrees trees tree
     errNotNode = error
       $  "Muste.Prune.similarTreesForSubtree: "
       <> "Non-exhaustive pattern match"
+  similarTrees trees tree
 
 -- O(n^3) !!!! I don't think this can be avoided though since the
 -- output is bounded by Ω(n^3).
