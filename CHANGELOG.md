@@ -4,6 +4,19 @@ Change log
 HEAD
 ---
 
+Change styling (Issue #35)
+
+Adds options to CLI:
+
+  * Limit prune depth (Issue #28)
+  * Print compact (Issue #27)
+  * Switch for showing internal representation (Issue #31)
+
+Other changes to CLI:
+
+  * Drops support for setting the "active menu" (Issue #26)
+  * Language argument is mandatory
+
 0.2.5.0
 ---
 
