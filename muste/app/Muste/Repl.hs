@@ -97,6 +97,10 @@ getPrintNodes = lift $ asks @Options printNodes
 getCompact ∷ Repl Bool
 getCompact = lift $ asks @Options compact
 
+askPruneOpts ∷ Repl Menu.PruneOpts
+-- TODO Actually be ready with an answer here.
+askPruneOpts = lift $ asks @Options mempty
+
 updateMenu ∷ String → Repl ()
 updateMenu s = do
   ctxt ← getContext
@@ -196,7 +200,8 @@ getMenuFor
   → Repl Menu
 getMenuFor s = do
   c ← getContext
-  pure $ Menu.getMenuItems c s
+  opts ← askPruneOpts
+  pure $ Menu.getMenuItems opts c s
 
 getContext ∷ Repl Context
 getContext = gets $ \(Env { .. }) → ctxt

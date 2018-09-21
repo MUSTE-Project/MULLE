@@ -10,9 +10,10 @@ import Data.ByteString (ByteString)
 import qualified Muste.Grammar.Embed    as Embed
 import Data.String.Conversions (convertString)
 
-import Muste (Grammar, BuilderInfo(..), Context)
+import Muste (Grammar, Context)
 import qualified Muste.Util             as Muste
 import qualified Muste.Grammar.Internal as Grammar
+import Muste.AdjunctionTrees (BuilderInfo(..))
 
 import Options (Options(Options))
 import qualified Options

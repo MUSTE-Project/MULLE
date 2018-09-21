@@ -36,6 +36,7 @@ import qualified Muste.Sentence as Sentence
 import Muste.Sentence.Annotated (Annotated)
 import Muste.Sentence.Unannotated (Unannotated)
 import qualified Muste.Sentence.Unannotated as Unannotated
+import qualified Muste.Menu as Menu
 
 import Common
 
@@ -405,7 +406,7 @@ makeTree
 makeTree c lesson s
   = Ajax.serverTree s menu
   where
-  menu = Muste.getMenu ctxt (Sentence.linearization s)
+  menu = Muste.getMenu (mempty @Menu.PruneOpts) ctxt (Sentence.linearization s)
   ctxt = throwLeft $ getContext c lesson language
   language = Sentence.language s
 

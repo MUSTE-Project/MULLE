@@ -9,6 +9,7 @@ module Muste.Menu.Internal
   , Token.Unannotated
   , Token.Annotated(..)
   , Interval(Interval, runInterval)
+  , Prune.PruneOpts(..)
   ) where
 
 import Prelude ()
@@ -108,9 +109,9 @@ lookupNode tree path
     Just (TNode node _ _) -> node
     _ → error "Incomplete Pattern-Match"
 
-similarTrees :: Context -> TTree -> Set TTree
-similarTrees c
-  = Prune.replaceTrees (ctxtGrammar c) (ctxtPrecomputed c)
+similarTrees ∷ Prune.PruneOpts → Context → TTree → Set TTree
+similarTrees opts c
+  = Prune.replaceTrees opts (ctxtGrammar c) (ctxtPrecomputed c)
 
 -- * Exported stuff
 
@@ -171,28 +172,29 @@ instance Pretty Menu where
 
 getMenu
   ∷ Sentence.IsToken a
-  ⇒ Context
+  ⇒ Prune.PruneOpts
+  → Context
   → Sentence.Linearization a
   → Menu
-getMenu c l
+getMenu opts c l
   = Sentence.stringRep l
-  & getMenuItems c
+  & getMenuItems opts c
 
-getMenuItems :: Context -> String -> Menu
-getMenuItems ctxt str
-  = collectTreeSubstitutions ctxt str
+getMenuItems ∷ Prune.PruneOpts → Context → String → Menu
+getMenuItems opts ctxt str
+  = collectTreeSubstitutions opts ctxt str
   & filterTreeSubstitutions
   & collectMenuItems ctxt
 
 type TreeSubst = (Int, XTree, XTree)
 type XTree = (TTree, [Tokn], [Node])
 
-collectTreeSubstitutions :: Context -> String -> [TreeSubst]
-collectTreeSubstitutions ctxt sentence = do
-  oldtree <- parseSentence ctxt sentence
+collectTreeSubstitutions ∷ Prune.PruneOpts → Context → String → [TreeSubst]
+collectTreeSubstitutions opts ctxt sentence = do
+  oldtree ← parseSentence ctxt sentence
   let (oldwords, oldnodes) = linTree ctxt oldtree
   let old = (oldtree, oldwords, oldnodes)
-  newtree <- Set.toList $ similarTrees ctxt oldtree
+  newtree ← Set.toList $ similarTrees opts ctxt oldtree
   let (newwords, newnodes) = linTree ctxt newtree
   let new = (newtree, newwords, newnodes)
   pure (old `xtreeDiff` new, old, new)

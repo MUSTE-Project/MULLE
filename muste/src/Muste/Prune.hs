@@ -36,11 +36,12 @@ import Muste.AdjunctionTrees hiding (BuilderInfo(..))
 -- get when you replace one of the valid trees into that given
 -- position along with the "cost" of doing so.
 replaceTrees
-  ∷ Grammar         -- ^ The grammar
+  ∷ PruneOpts       -- ^ Options controlling the pruning algorithm
+  → Grammar         -- ^ The grammar
   → AdjunctionTrees -- ^ The pre computed adjunction trees
   → TTree           -- ^ The tree where we do the replacements
   → Set TTree
-replaceTrees g adj t
+replaceTrees opts g adj t
   -- TODO Add the 'PruneOpts' as an argument!
   = runPrunerI pruner env
   where
@@ -48,7 +49,7 @@ replaceTrees g adj t
   pruner = replaceTreesM
   env ∷ Env
   env = Env
-    { pruneOpts   = mempty @PruneOpts
+    { pruneOpts   = opts
     , grammar     = g
     , precomputed = adj
     , baseTree    = t
