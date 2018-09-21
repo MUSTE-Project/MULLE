@@ -112,7 +112,7 @@ musteParserInfo = O.info (optionsParser <**> O.helper <**> version)
   )
 
 preComputeParserInfo ∷ ParserInfo ()
-preComputeParserInfo = O.info empty (O.progDesc "Precompute grammar")
+preComputeParserInfo = O.info (pure ()) (O.progDesc "Precompute grammar")
 
 commandParser ∷ Parser Command
 commandParser = Command <$> O.subparser
