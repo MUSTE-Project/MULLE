@@ -15,6 +15,7 @@ import           System.Directory (createDirectoryIfMissing)
 import           System.FilePath (takeDirectory)
 import qualified Data.Map as Map
 import           Data.FileEmbed
+import           Data.Vector (Vector)
 
 import qualified DbInit.Data as Data
 import qualified Config
@@ -54,11 +55,11 @@ initDB conn = do
   mapM_ (exec insertLessonQuery)   Data.lessons
   mapM_ (exec insertExerciseQuery) exercises
 
-exercises ∷ [(Annotated, Annotated, Text)]
+exercises ∷ Vector (Annotated, Annotated, Text)
 exercises = Data.exercises >>= mkExercise
   where
-  mkExercise ∷ (Text, Text, Text, Text, [(TTree, TTree)])
-    → [(Annotated, Annotated, Text)]
+  mkExercise ∷ (Text, Text, Text, Text, Vector (TTree, TTree))
+    → Vector (Annotated, Annotated, Text)
   mkExercise (idfG, idfL, srcL, trgL, xs)
     = go (lin srcL) (lin trgL) idfL <$> xs
     where

@@ -1,4 +1,5 @@
-{-# Language TemplateHaskell, OverloadedStrings #-}
+{-# Language TemplateHaskell, OverloadedStrings, OverloadedLists #-}
+{-# OPTIONS_GHC -Wall #-}
 -- | Data used for inititializing the database
 
 module DbInit.Data (exercises, lessons) where
@@ -6,10 +7,11 @@ module DbInit.Data (exercises, lessons) where
 import Muste.Tree
 import Muste.Grammar (tree)
 import Data.Text (Text)
+import Data.Vector (Vector)
 
 type Lesson = (String,String,String,String,String,Int,Int,Int)
 
-lessons :: [Lesson]
+lessons :: Vector Lesson
 lessons =
   [ ( "Exemplum Pars"
     , "Example grammar with one exercise"
@@ -62,21 +64,21 @@ lessons =
 -- is identified by 1. an identifier for the grammar for that lesson
 -- and 2. by the name of that lesson (a PK in the DB).  Exercises are
 -- identified by a pair of tree/language pairs.
-exercises :: [(Text, Text, Text, Text, [(TTree, TTree)])]
+exercises ∷ Vector (Text, Text, Text, Text, Vector (TTree, TTree))
 exercises =
   [ ("novo_modo/Exemplum","Exemplum Pars","ExemplumEng","ExemplumSwe",exemplumPars)
   , ("novo_modo/Prima"  , "Prima Pars"  , "PrimaLat"  , "PrimaSwe"  , primaPars)
   , ("novo_modo/Secunda", "Secunda Pars", "SecundaLat", "SecundaSwe", secundaPars)
   ]
 
-exemplumPars ∷ [(TTree, TTree)]
+exemplumPars ∷ Vector (TTree, TTree)
 exemplumPars =
   [ ( ($(tree "novo_modo/Exemplum" "useS (useCl (simpleCl (detCN aSg_Det (attribCN (useA good_A) (useN king_N))) (transV copula_V (detCN aSg_Det (attribCN (useA blue_A) (useN king_N))))))"))
     , ($(tree "novo_modo/Exemplum" "useS (useCl (simpleCl (detCN theSg_Det (useN king_N)) (transV love_V (usePN paris_PN))))"))
     )
   ]
 
-primaPars ∷ [(TTree, TTree)]
+primaPars ∷ Vector (TTree, TTree)
 primaPars =
   [ ( ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (useCNdefsg (useN vinum_N)) (complVA copula_VA (useA sapiens_A))))"))
     , ($(tree "novo_modo/Prima" "useS (useCl (simpleCl (usePron he_PP) (complVA copula_VA (useA sapiens_A))))"))
@@ -120,7 +122,7 @@ primaPars =
   --   , ($(tree "novo_modo/Secunda" "useS (impS nos_Pron (useVV velle_VV))"))
   --   )
 
-secundaPars :: [(TTree, TTree)]
+secundaPars :: Vector (TTree, TTree)
 secundaPars =
   [ ( ($(tree "novo_modo/Secunda" "useS (impS they_PP (useVV nolle_VV))"))
     , ($(tree "novo_modo/Secunda" "useS (presS (simpleCl (usePron they_PP) (intransV gaudere_V)))"))
