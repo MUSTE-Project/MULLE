@@ -11,11 +11,13 @@ module Muste.Linearization.Internal
   , sameOrder
   , disambiguate
   -- Used in test suite:
-  , readLangs
+  , buildContexts
   , stringRep
   , isInsertion
   , mkLinSimpl
   , BuilderInfo(..)
+  , PGF.Language
+  , languages
   ) where
 
 import Prelude ()
@@ -174,7 +176,7 @@ langAndContext
   ∷ BuilderInfo
   → Text -- ^ An identitfier for a grammar.  E.g. @novo_modo/Prima@.
   → Map Text Context
-langAndContext nfo = readLangs nfo . getGrammar
+langAndContext nfo = buildContexts nfo . getGrammar
   where
   getGrammar ∷ Text → Grammar
   getGrammar s = fromMaybe (err s) $ Grammar.lookupGrammar s
@@ -185,11 +187,16 @@ langAndContext nfo = readLangs nfo . getGrammar
 
 -- | Given a grammar creates a mapping from all the languages in that
 -- grammar to their respective 'Context's.
-readLangs :: BuilderInfo → Grammar -> Map Text Context
-readLangs nfo g
+buildContexts :: BuilderInfo → Grammar -> Map Text Context
+buildContexts nfo g = buildContext nfo g <$> languages g
+
+-- | Gets all the languages in the grammar.
+languages ∷ Grammar → Map Text PGF.Language
+languages g
   = Map.fromList $ mkCtxt <$> PGF.languages (Grammar.pgf g)
   where
-  mkCtxt lang = (Text.pack $ PGF.showCId lang, buildContext nfo g lang)
+  mkCtxt ∷ PGF.Language → (Text, PGF.Language)
+  mkCtxt lang = (Text.pack $ PGF.showCId lang, lang)
 
 
 -- This part of the module knows about 'PGF' and maybe shouldn't.  The

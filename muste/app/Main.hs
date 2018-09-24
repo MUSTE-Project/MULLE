@@ -5,25 +5,31 @@
 module Main (main) where
 
 import Muste.Prelude
-import Data.Binary (encodeFile)
+import qualified Data.Binary as Binary
 
-import Muste (Grammar, Context)
+import Muste (Grammar)
 import qualified Muste.Util             as Muste
-import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees (BuilderInfo(..))
 import qualified Muste.Menu as Menu
 import qualified Muste.AdjunctionTrees as AdjunctionTrees
+import Muste.AdjunctionTrees (AdjunctionTrees)
+import qualified Muste.Grammar.Internal as Grammar
+import Muste.Linearization.Internal (Context(Context))
 
 import Options (Options(Options), PreComputeOpts(PreComputeOpts))
 import qualified Options
 import qualified Muste.Repl             as Repl
 
-makeEnv ∷ Options → Repl.Env
-makeEnv opts@(Options{..}) = Repl.Env c
+makeEnv ∷ Options → IO Repl.Env
+makeEnv opts@(Options{..}) = Repl.Env <$> getContext
   where
   g = unsafeLookupGrammar grammar
-  c ∷ Context
-  c = Muste.unsafeGetContext (builderInfo opts) g language
+  getContext ∷ IO Context
+  getContext = case input of
+    Nothing → pure  $ Muste.unsafeGetContext (builderInfo opts) g language
+    Just p → do
+      adj ← Binary.decodeFile @AdjunctionTrees p
+      pure $ Context g (Muste.unsafeGetLang g language) adj
 
 unsafeLookupGrammar ∷ Text → Grammar
 unsafeLookupGrammar g
@@ -36,10 +42,9 @@ muste ∷ Options.Options → IO ()
 muste opts@Options{..} = do
   let pruneOpts ∷ Menu.PruneOpts
       pruneOpts = Menu.PruneOpts pruneSearchDepth
-      e ∷ Repl.Env
-      e = makeEnv opts
       replOpts ∷ Repl.Options
       replOpts = Repl.Options printNodes printCompact pruneOpts
+  e ← makeEnv opts
   -- If there are any sentences supplied on the command line, run them
   -- all.
   void $ Repl.detachedly replOpts e (traverse Repl.updateMenu sentences)
@@ -49,7 +54,7 @@ muste opts@Options{..} = do
 
 precompute ∷ Options.PreComputeOpts → IO ()
 precompute Options.PreComputeOpts{..}
-  = encodeFile output $ AdjunctionTrees.getAdjunctionTrees opts g
+  = Binary.encodeFile output $ AdjunctionTrees.getAdjunctionTrees opts g
   where
   g = unsafeLookupGrammar grammar
   opts ∷ BuilderInfo

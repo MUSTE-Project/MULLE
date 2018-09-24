@@ -25,6 +25,7 @@ data Options = Options
   , printNodes       ∷ Bool
   , printCompact     ∷ Bool
   , pruneSearchDepth ∷ Maybe Int
+  , input            ∷ Maybe FilePath
   }
 
 data PreComputeOpts = PreComputeOpts
@@ -48,6 +49,7 @@ optionsParser
   <*> printNodesParser
   <*> printCompactParser
   <*> pruneSearchDepthParser
+  <*> inputParser
   where
   interactiveModeParser ∷ Parser Bool
   interactiveModeParser
@@ -85,6 +87,14 @@ optionsParser
       (  O.long "limit-prune"
       <> O.help "Limit search depth when creating pruning trees"
       <> O.metavar "DEPTH"
+      )
+  inputParser ∷ Parser (Maybe FilePath)
+  inputParser
+    = optional
+    $ O.strOption
+      (  O.long "input"
+      <> O.help "Load adjunction trees from cache"
+      <> O.metavar "PATH"
       )
 
 searchDepthParser ∷ Parser (Maybe Int)

@@ -129,17 +129,20 @@ Run the tests with:
     stack test
 
 If you need profiling things are a bit more complicated.  There's an
-open issue in stack[^1] concerned with profiling things involving template
-Haskell.  Here's a work-around:
+issue with GHC[^1][^2] concerned with profiling things involving
+template Haskell.  Here's a work-around:
 
-    stack build --work-dir .stack-work-prof
-    rm .stack-work-prof/installed-cache.bin
-    stack build --test --work-dir .stack-work-prof  --ghc-options="-osuf p_o" --profile
+    stack build                              \
+      --test                                 \
+      --profile                              \
+      --work-dir .stack-work-prof            \
+      --ghc-options="-fexternal-interpreter"
 
 Using a separate work-dir for profiling means that we don't have to
 rebuild the project when switching between (no-) profiling.
 
 [^1]: https://github.com/commercialhaskell/stack/issues/2903
+[^2]: https://downloads.haskell.org/~ghc/8.6.1/docs/html/users_guide/glasgow_exts.html#using-template-haskell-with-profiling
 
 Documentation
 ---
