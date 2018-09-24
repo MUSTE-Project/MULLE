@@ -19,7 +19,7 @@ import qualified Data.Vector as Vector
 --   * ExerciseCount
 --   * Enabled
 --   * Repeatable
-type Lesson = (Text,Text,Text,Text,Text,Int,Int,Int)
+type Lesson = (Text,Text,Text,Text,Text,Int,Bool,Bool)
 
 lessons :: Vector Lesson
 lessons =
@@ -29,8 +29,8 @@ lessons =
     , "ExemplumEng"
     , "ExemplumSwe"
     , Vector.length exemplumPars
-    , 1
-    , 1
+    , True
+    , True
     )
   , ( "Prima Pars"
     , "Den första Lektionen fran boken \"Novo modo\""
@@ -38,8 +38,8 @@ lessons =
     , "PrimaLat"
     , "PrimaSwe"
     , Vector.length primaPars
-    , 1
-    , 1
+    , True
+    , True
     )
   , ( "Secunda Pars"
     , "Den andra Lektionen fran boken \"Novo modo\""
@@ -47,8 +47,8 @@ lessons =
     , "SecundaLat"
     , "SecundaSwe"
     , Vector.length secundaPars
-    , 1
-    , 1
+    , True
+    , True
     )
   , ( "Tertia Pars"
     , "Den tredje Lektionen fran boken \"Novo modo\""
@@ -56,8 +56,8 @@ lessons =
     , "TertiaLat"
     , "TertiaSwe"
     , Vector.length tertiaPars
-    , 0
-    , 1
+    , False
+    , True
     )
   , ( "Quarta Pars"
     , "Den fjärde Lektionen fran boken \"Novo modo\""
@@ -65,8 +65,8 @@ lessons =
     , "QuartaLat"
     , "QuartaSwe"
     , Vector.length quartaPars
-    , 0
-    , 1
+    , False
+    , True
     )
   ]
 
