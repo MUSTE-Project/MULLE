@@ -11,10 +11,13 @@ module Muste.Linearization.Internal
   , sameOrder
   , disambiguate
   -- Used in test suite:
-  , readLangs
+  , buildContexts
   , stringRep
   , isInsertion
   , mkLinSimpl
+  , BuilderInfo(..)
+  , PGF.Language
+  , languages
   ) where
 
 import Prelude ()
@@ -144,9 +147,9 @@ instance SemiSequence Linearization where
 instance IsSequence Linearization where
 
 -- | Memoize all @AjdunctionTrees@ for a given grammar and language.
-buildContext :: Grammar -> PGF.Language -> Context
-buildContext grammar lang =
-  Context grammar lang (getAdjunctionTrees grammar)
+buildContext :: BuilderInfo → Grammar -> PGF.Language -> Context
+buildContext nfo g lang =
+  Context g lang (getAdjunctionTrees nfo g)
 
 -- lin is the full linearization
 -- Maybe fits better in the grammar.
@@ -170,9 +173,10 @@ linearizeTree (Context grammar language _) ttree =
 -- This method is unsafe and will throw if we can't find the
 -- corresponding grammar.
 langAndContext
-  ∷ Text -- ^ An identitfier for a grammar.  E.g. @novo_modo/Prima@.
+  ∷ BuilderInfo
+  → Text -- ^ An identitfier for a grammar.  E.g. @novo_modo/Prima@.
   → Map Text Context
-langAndContext = readLangs . getGrammar
+langAndContext nfo = buildContexts nfo . getGrammar
   where
   getGrammar ∷ Text → Grammar
   getGrammar s = fromMaybe (err s) $ Grammar.lookupGrammar s
@@ -183,11 +187,16 @@ langAndContext = readLangs . getGrammar
 
 -- | Given a grammar creates a mapping from all the languages in that
 -- grammar to their respective 'Context's.
-readLangs :: Grammar -> Map Text Context
-readLangs grammar
-  = Map.fromList $ mkCtxt <$> PGF.languages (Grammar.pgf grammar)
+buildContexts :: BuilderInfo → Grammar -> Map Text Context
+buildContexts nfo g = buildContext nfo g <$> languages g
+
+-- | Gets all the languages in the grammar.
+languages ∷ Grammar → Map Text PGF.Language
+languages g
+  = Map.fromList $ mkCtxt <$> PGF.languages (Grammar.pgf g)
   where
-  mkCtxt lang = (Text.pack $ PGF.showCId lang, buildContext grammar lang)
+  mkCtxt ∷ PGF.Language → (Text, PGF.Language)
+  mkCtxt lang = (Text.pack $ PGF.showCId lang, lang)
 
 
 -- This part of the module knows about 'PGF' and maybe shouldn't.  The

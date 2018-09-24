@@ -1,10 +1,15 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# Language ConstraintKinds, CPP, OverloadedStrings #-}
+{-# Language ConstraintKinds, CPP, OverloadedStrings, NamedFieldPuns,
+  RecordWildCards #-}
 -- | Adjunction trees
 --
 -- Interfacint with 'AdjunctionTrees' is done using the interface for
 -- monomorphic map containers.
-module Muste.AdjunctionTrees (AdjunctionTrees, getAdjunctionTrees) where
+module Muste.AdjunctionTrees
+  ( AdjunctionTrees
+  , getAdjunctionTrees
+  , BuilderInfo(..)
+  ) where
 
 import Prelude ()
 import Muste.Prelude
@@ -30,6 +35,16 @@ import qualified Muste.Tree.Internal as Tree
 #endif
 
 -- * Creating adjunction trees.
+
+data BuilderInfo = BuilderInfo
+  { searchDepth ∷ Maybe Int
+  }
+
+instance Semigroup BuilderInfo where
+  BuilderInfo a <> BuilderInfo b = BuilderInfo $ (+) <$> a <*> b
+
+instance Monoid BuilderInfo where
+  mempty = BuilderInfo empty
 
 -- Profiling reveals that this function is really heavy.  Quoting the
 -- relevant bits:
@@ -77,33 +92,35 @@ import qualified Muste.Tree.Internal as Tree
 -- | Finds all 'AdjunctionTrees' from a specified 'Grammar'.  That is;
 -- a mapping from a 'Category' to all trees in the specified 'Grammar'
 -- that have this type.
-getAdjunctionTrees :: Grammar -> AdjunctionTrees
-getAdjunctionTrees grammar
+getAdjunctionTrees ∷ BuilderInfo → Grammar → AdjunctionTrees
+getAdjunctionTrees BuilderInfo{..} grammar
   =   dbg diagnose
   $   AdjunctionTrees
   $   Map.fromListWith mappend
   $   (>>= regroup)
   $   fmap (fmap treesByMeta)
   <$> treesByCat
-  <$> allCats
+  <$> Map.keys allRules
   where
   regroup
-    ∷ (Category                     ,  [(MultiSet Category, [TTree])])
+    ∷ (Category                      , [(MultiSet Category, [TTree])])
     → [((Category, MultiSet Category), [TTree])]
   regroup (c, xs) = (\(s, ts) → ((c, s), ts)) <$> xs
   treesByMeta ∷ TTree → (MultiSet Category, [TTree])
   treesByMeta t = (Grammar.getMetas t, pure t)
   treesByCat ∷ Category → (Category, [TTree])
-  treesByCat cat = (cat, fst <$> runBuilderI (adjTrees cat []) ruleGen)
-  allRules :: Map Category [Rule]
-  allRules = Map.fromListWith mappend $ catRule <$> Grammar.getAllRules grammar
+  treesByCat cat = (cat, fst <$> runBuilderI (adjTrees cat []) bEnv)
   catRule ∷ Rule → (Category, [Rule])
   catRule r@(Function _ (Fun c _)) = (c, pure r)
   catRule _ = error "Non-exhaustive pattern match"
-  allCats :: [Category]
-  allCats = Map.keys allRules
-  ruleGen :: RuleGen
+  allRules ∷ Map Category [Rule]
+  allRules = Map.fromListWith mappend $ catRule <$> Grammar.getAllRules grammar
+  ruleGen ∷ RuleGen
   ruleGen cat = Map.findWithDefault mempty cat allRules
+  depth ∷ Maybe Int
+  depth = searchDepth
+  bEnv ∷ BuilderEnv
+  bEnv = BuilderEnv { depth , ruleGen }
 
 dbg ∷ (a → IO b) → a → a
 #ifdef DIAGNOSTICS
@@ -138,19 +155,54 @@ diagnose (AdjunctionTrees t) = putDocLn $ Doc.sep
 diagnose = error "Not diagnosing"
 #endif
 
+data BuilderEnv = BuilderEnv
+  { depth       ∷ Maybe Int
+  , ruleGen     ∷ RuleGen
+  }
+
 type RuleGen = Category → [Rule]
 
-type Builder m = MonadReader RuleGen m
+type Builder m = MonadReader BuilderEnv m
 
-type BuilderT m a = ReaderT RuleGen m a
+type BuilderT m a = ReaderT BuilderEnv m a
 
 type BuilderI a = BuilderT Identity a
 
-runBuilderI ∷ BuilderI a → RuleGen → a
+runBuilderI ∷ BuilderI a → BuilderEnv → a
 runBuilderI = runReader
 
+askRuleGen ∷ Builder m ⇒ m RuleGen
+askRuleGen = asks ruleGen
+
 getRulesFor ∷ Builder m ⇒ Category → m [Rule]
-getRulesFor c = ($ c) <$> ask
+getRulesFor c = ($ c) <$> askRuleGen
+
+-- | @'deeper' act@ goes down a level locally within @act@.
+deeper ∷ Builder m ⇒ m a → m a
+deeper = local deeperEnv
+
+deeperEnv ∷ BuilderEnv → BuilderEnv
+deeperEnv env@(BuilderEnv{..}) = env { depth = pred <$> depth }
+
+-- | Determines if we've hit rock bottom. I.e. the search depth limit
+-- specified by the builder has been exceeded.
+hitRockBottom ∷ Builder m ⇒ m Bool
+hitRockBottom = asks (\BuilderEnv{..} → fromMaybe False $ (<= 0) <$> depth)
+
+-- | Maybe continues building if we haven't hit rock bottom (the
+-- search depth limit specified by the builder). If we are not to
+-- continue we will return 'empty'.
+maybeCutoff
+  ∷ ∀ m alt a
+  . Builder m
+  ⇒ Alternative alt
+  ⇒ m (alt a)
+  → m (alt a)
+maybeCutoff act = do
+  b ← hitRockBottom
+  if b
+  then pure (empty @alt)
+  else deeper act
 
 -- The next two functions are mutually recursive.
 adjTrees :: ∀ m . Builder m ⇒ String -> [String] -> m [(TTree, [String])]
@@ -172,7 +224,8 @@ adjTrees cat visited = do
 adjChildren :: Builder m ⇒ [Category] -> [Category] -> m [([TTree], [Category])]
 adjChildren [] visited = pure [([], visited)]
 adjChildren (cat:cats) visited = do
-  adjCs ← adjTrees cat visited
+  adjCs ← maybeCutoff @_ @[] $ adjTrees cat visited
+  -- adjCs ← adjTrees cat visited
   join <$> adjCs `forM` \(tree, visited') → do
     let
       step ∷ ([TTree], [Category]) → ([TTree], [Category])

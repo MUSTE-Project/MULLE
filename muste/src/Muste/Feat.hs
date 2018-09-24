@@ -63,7 +63,7 @@ mkFEAT gr =
        cats :: [String]
        cats = nub [ x | r <- getAllRules gr, let (Fun y xs) = getRuleType r, x <- y:xs ]
        memo :: ([String] -> Int -> (Integer, Integer -> [TTree])) -> ([String] -> Int -> (Integer, Integer -> [TTree]))
-       memo f = \cs -> case cs of
+       memo f = \case
          []   -> (nil !!)
          a:as -> head [ f' as | (c,f') <- cons, a == c ]
          where

@@ -1,9 +1,11 @@
 {-# OPTIONS_GHC -Wall -Wno-unused-top-binds -Wno-name-shadowing #-}
+{-# Language DerivingStrategies, ConstraintKinds, RecordWildCards #-}
 -- FIXME Should this be an internal module? It's not currently used in
 -- @muste-ajax@.
 module Muste.Prune
   ( replaceTrees
   , SimTree
+  , PruneOpts(..)
   ) where
 
 import Prelude ()
@@ -15,14 +17,16 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as MultiSet
+import Control.Monad.Reader
+import Data.Functor.Identity
 
 import Muste.Common
 
 import Muste.Tree (TTree(..), Path, FunType(..), Category)
 import qualified Muste.Tree.Internal as Tree
-import Muste.Grammar
+import Muste.Grammar hiding (tree)
 import qualified Muste.Grammar.Internal as Grammar
-import Muste.AdjunctionTrees
+import Muste.AdjunctionTrees hiding (BuilderInfo(..))
 
 
 -- * Replacing trees
@@ -32,20 +36,89 @@ import Muste.AdjunctionTrees
 -- get when you replace one of the valid trees into that given
 -- position along with the "cost" of doing so.
 replaceTrees
-  :: Grammar
-  -> AdjunctionTrees
-  -> TTree
-  -> Map Path (Set (SimTree, TTree))
-replaceTrees grammar precomputed tree = M.fromList (go <$> collectSimilarTrees grammar precomputed tree)
+  ∷ PruneOpts       -- ^ Options controlling the pruning algorithm
+  → Grammar         -- ^ The grammar
+  → AdjunctionTrees -- ^ The pre computed adjunction trees
+  → TTree           -- ^ The tree where we do the replacements
+  → Set TTree
+replaceTrees opts g adj t
+  = runPrunerI pruner env
   where
-  go :: ReplacementTree -> (Path, Set (SimTree, TTree))
-  go (path, _, trees) = (path, Set.map (replaceTree tree path) trees)
+  pruner ∷ PrunerI (Set TTree)
+  pruner = replaceTreesM
+  env ∷ Env
+  env = Env
+    { pruneOpts   = opts
+    , grammar     = g
+    , precomputed = adj
+    , baseTree    = t
+    }
+
+replaceTreesM
+  ∷ Pruner m
+  ⇒ m (Set TTree)
+replaceTreesM = do
+  tree ← askBaseTree
+  let go ∷ ReplacementTree → Set TTree
+      go (path, _, trees) = Set.map (snd . replaceTree tree path) trees
+  simtrees ← collectSimilarTrees
+  pure
+    $   mconcat
+    $   go
+    <$> simtrees
 
 -- | @'replaceTree' trees@ returns a list of @(cost, isInsertion, t)@
 -- where @t@ is a new tree arising from the 'SimTree'.
 replaceTree :: TTree -> Path -> SimTree -> (SimTree, TTree)
 replaceTree tree path sim@(_, subtree, _, _)
   = (sim, Tree.replaceNode tree path subtree)
+
+data PruneOpts = PruneOpts
+  { searchDepth ∷ Maybe Int
+  }
+
+instance Semigroup PruneOpts where
+  PruneOpts a <> PruneOpts b = PruneOpts $ (+) <$> a <*> b
+
+instance Monoid PruneOpts where
+  mempty = PruneOpts empty
+
+data Env = Env
+  { pruneOpts   ∷ PruneOpts
+  , grammar     ∷ Grammar         -- ^ The grammar
+  , precomputed ∷ AdjunctionTrees -- ^ The pre computed adjunction trees
+  , baseTree    ∷ TTree           -- ^ The tree where we do the replacements
+  }
+
+type Pruner m =
+  ( MonadReader Env m
+  )
+
+-- | The monad used for creating similar trees.  It's a bit of a
+-- misnomer because it does more than prune trees.
+newtype PrunerT m a = PrunerT { unPrunerT ∷ ReaderT Env m a }
+
+deriving newtype instance Functor m ⇒ Functor (PrunerT m)
+deriving newtype instance Monad m   ⇒ Applicative (PrunerT m)
+deriving newtype instance Monad m   ⇒ Monad (PrunerT m)
+deriving newtype instance Monad m   ⇒ MonadReader Env (PrunerT m)
+
+type PrunerI a = PrunerT Identity a
+
+runPrunerI ∷ PrunerI a → Env → a
+runPrunerI = runReader . unPrunerT
+
+askSearchDepth ∷ Pruner m ⇒ m (Maybe Int)
+askSearchDepth = asks (\Env{pruneOpts=PruneOpts{..}} → searchDepth)
+
+askGrammar ∷ Pruner m ⇒ m Grammar
+askGrammar = asks (\Env{..} → grammar)
+
+askPrecomputed ∷ Pruner m ⇒ m AdjunctionTrees
+askPrecomputed = asks (\Env{..} → precomputed)
+
+askBaseTree ∷ Pruner m ⇒ m TTree
+askBaseTree = asks (\Env{..} → baseTree)
 
 
 -- * Pruning
@@ -79,21 +152,21 @@ type ReplacementTree = (Path, TTree, Set SimTree)
 --
 -- A simliar tree is given by @ReplacementTree@.
 collectSimilarTrees
-  :: Grammar
-  -> AdjunctionTrees
-  -> TTree
-  -> [ReplacementTree]
-collectSimilarTrees _grammar adjTrees basetree
-  = go <$> Tree.getAllPaths basetree
-  where
-  go :: Path -> ReplacementTree
-  go path = (path, tree, Set.fromList simtrees)
-    where
-      err = error "Muste.Prune.collectSimilarTrees: Incongruence with 'getAllPaths'"
-      tree = fromMaybe err $ Tree.selectNode basetree path
-      -- Get similar trees.
-      simtrees = onlyKeepCheapest $ similarTreesForSubtree tree adjTrees
-      -- And then additionally filter some out...
+  ∷ Pruner m
+  ⇒ m [ReplacementTree]
+collectSimilarTrees = do
+  basetree ← askBaseTree
+  let
+    go ∷ Pruner m ⇒ Path -> m ReplacementTree
+    go path = do
+      simtrees ← getSimTrees
+      pure (path, tree, Set.fromList simtrees)
+      where
+        err = error "Muste.Prune.collectSimilarTrees: Incongruence with 'getAllPaths'"
+        tree = fromMaybe err $ Tree.selectNode basetree path
+        getSimTrees ∷ Pruner m ⇒ m [SimTree]
+        getSimTrees = onlyKeepCheapest <$> similarTreesForSubtree tree
+  traverse go $ Tree.getAllPaths basetree
 
 -- FIXME Quadratic in the length of 'simtrees'.  Even though this is
 -- quadratic, profiling shows that this is negliciable.
@@ -151,7 +224,7 @@ directMoreExpensive (cost, t, _, _) (cost', t', _, _)
 --          ...
 --         similarTreesForSubtree.trees            Muste.Prune                    20731         29    0.0    0.0     0.0    0.0
 --          ...
---         similiarTrees                           Muste.Prune                    20669         29    0.0    0.0    32.2   44.8
+--         similarTrees                            Muste.Prune                    20669         29    0.0    0.0    32.2   44.8
 --          insertBranches                         Muste.Prune                    20920        461    0.0    0.0     0.0    0.0
 --           insertBranches.ins                    Muste.Prune                    20921        461    0.0    0.0     0.0    0.0
 --          treeDiff                               Muste.Prune                    20923        461    0.0    0.0     0.0    0.0
@@ -185,40 +258,39 @@ directMoreExpensive (cost, t, _, _) (cost', t', _, _)
 --      getAllPaths                                Muste.Tree.Internal            20649          2    0.0    0.0     0.0    0.0
 --       ...
 
-similarTreesForSubtree
-  :: TTree
-  -> AdjunctionTrees
-  -> [SimTree]
-similarTreesForSubtree tree adjTrees = similiarTrees trees tree
-  where
+similarTreesForSubtree ∷ Pruner m ⇒ TTree → m [SimTree]
+similarTreesForSubtree tree = do
+  adjTrees ← askPrecomputed
+  let
     trees ∷ Map (MultiSet Category) [(TTree, MultiSet Rule)]
     trees
       = M.fromListWith mappend
       $ fmap (\t → (Grammar.getMetas t, pure (t, Grammar.getFunctions t)))
-      $ fromMaybe errNoCat
+      $ fromMaybe mempty
       $ Mono.lookup (cat, metas) adjTrees
     cat = case tree of
       (TNode _ (Fun c _) _) → c
       _ → errNotNode
     metas = Grammar.getMetas tree
-    errNoCat = error
-      $  "Muste.Prune.similarTreesForSubtree: "
-      <> "The tree with the given category and/or metas does not exist."
     errNotNode = error
       $  "Muste.Prune.similarTreesForSubtree: "
       <> "Non-exhaustive pattern match"
+  similarTrees trees tree
 
 -- O(n^3) !!!! I don't think this can be avoided though since the
 -- output is bounded by Ω(n^3).
-similiarTrees
-  ∷ Map (MultiSet Category) [(TTree, MultiSet Rule)]
+similarTrees
+  ∷ Pruner m
+  ⇒ Map (MultiSet Category) [(TTree, MultiSet Rule)]
   → TTree
-  → [SimTree]
-similiarTrees byMetas tree = do
-  (pruned, branches) ← pruneTree tree
-  pruned'            ← filterTrees byMetas pruned
-  tree'              ← insertBranches branches pruned'
-  pure (tree `treeDiff` tree', tree', pruned, pruned')
+  → m [SimTree]
+similarTrees byMetas tree = do
+  prunedTrees ← pruneTree tree
+  pure $ do
+    (pruned, branches) ← prunedTrees
+    pruned'            ← filterTrees byMetas pruned
+    tree'              ← insertBranches branches pruned'
+    pure (tree `treeDiff` tree', tree', pruned, pruned')
 
 -- m ~ [] ⇒ runtime = O(n)
 filterTrees
@@ -227,7 +299,7 @@ filterTrees
   ⇒ Map (MultiSet Category) (m (TTree, MultiSet Rule))
   → TTree
   → m TTree
-filterTrees byMetas pruned = do
+filterTrees byMetas pruned =
   case M.lookup (Grammar.getMetas pruned) byMetas of
     Nothing → empty
     Just xs → do
@@ -287,29 +359,35 @@ insertBranches branches tree = map fst (ins branches tree)
 -- | Calculates all possible pruned trees up to a given depth.  A
 -- pruned tree consists of a tree with metavariables and a list of all
 -- the pruned branches (subtrees).
-pruneTree :: TTree -> [(TTree, [TTree])]
-pruneTree tree = [(t, bs) | (t, bs, _) <- pt mempty tree]
+pruneTree :: Pruner m ⇒ TTree -> m [(TTree, [TTree])]
+pruneTree tree = do
+  d ← askSearchDepth
+  pure [(t, bs) | (t, bs, _) <- pt d mempty tree]
   where
-  pt ∷ Set Category → TTree → [(TTree, [TTree], Set Category)]
-  pt visited = \case
-    tree@(TNode _ _ []) → [(tree, [], visited)]
-    tree@(TNode fun typ@(Fun cat _) children)
-      → (TMeta cat, [tree], visited) :
-        [ (TNode fun typ children', branches', visited')
-        | cat `notElem` visited
-        , (children', branches', visited') ← pc (Set.insert cat visited) children
-        ]
-    _ → error "Muste.Prune.pruneTree: Incomplete pattern match"
-  pc ∷ Set Category → [TTree] → [([TTree], [TTree], Set Category)]
-  pc visited = \case
+  pt ∷ Maybe Int → Set Category → TTree → [(TTree, [TTree], Set Category)]
+  pt d visited
+    | dun d = mempty
+    | otherwise = \case
+      tree@(TNode _ _ []) → [(tree, [], visited)]
+      tree@(TNode fun typ@(Fun cat _) children)
+        → (TMeta cat, [tree], visited) :
+          [ (TNode fun typ children', branches', visited')
+          | cat `notElem` visited
+          , (children', branches', visited') ← pc d (Set.insert cat visited) children
+          ]
+      _ → error "Muste.Prune.pruneTree: Incomplete pattern match"
+  pc ∷ Maybe Int → Set Category → [TTree] → [([TTree], [TTree], Set Category)]
+  pc d visited = \case
     []     → [([], [], visited)]
     (t:ts) →
       [ (t'  : ts' , bs' <> bs'', visited'')
-      | (t'  , bs' , _visited') ← pt visited t
+      | (t'  , bs' , _visited') ← pt (pred <$> d) visited t
       -- Should visited be visited'? Or perhaps visited'' above should
       -- be the union of the two?
-      , (ts' , bs'', visited'') ← pc visited ts
+      , (ts' , bs'', visited'') ← pc d visited ts
       ]
+  dun ∷ Maybe Int → Bool
+  dun = fromMaybe False . fmap (<= 0)
 
 -- | Edit distance between trees.
 --

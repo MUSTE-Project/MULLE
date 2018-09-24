@@ -62,7 +62,7 @@ exercises = Data.exercises >>= mkExercise
   mkExercise (idfG, idfL, srcL, trgL, xs)
     = go (lin srcL) (lin trgL) idfL <$> xs
     where
-    ctxt = OldLinearization.langAndContext idfG
+    ctxt = OldLinearization.langAndContext mempty idfG
     lang ∷ Text → Context
     lang idf = fromMaybe (error $ printf "Lang not found: %s" idf)
       $ Map.lookup idf ctxt

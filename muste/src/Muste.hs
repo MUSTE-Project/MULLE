@@ -10,7 +10,7 @@ module Muste
   , module Muste.Linearization
   ) where
 
-import Muste.Tree
-import Muste.Grammar
-import Muste.Menu
-import Muste.Linearization
+import Muste.Tree          hiding (BuilderInfo(..))
+import Muste.Grammar       hiding (BuilderInfo(..))
+import Muste.Menu          hiding (PruneOpts(..))
+import Muste.Linearization hiding (BuilderInfo(..))

@@ -31,7 +31,7 @@ deriving instance Eq Unannotated
 deriving instance Ord Unannotated
 
 instance ToJSON Unannotated where
-  toJSON (Unannotated {..}) = Aeson.object
+  toJSON Unannotated{..} = Aeson.object
     [ "language"      .= language
     , "linearization" .= linearization
     ]
@@ -64,7 +64,7 @@ unambiguous
   → Context
   → Unannotated
   → m Annotated
-unambiguous e c@(Context { .. }) s
+unambiguous e c@Context{..} s
   = linearization s
   & Sentence.stringRep
   & Grammar.parseSentence ctxtGrammar ctxtLang

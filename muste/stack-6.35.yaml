@@ -1,9 +1,0 @@
-resolver: lts-6.35
-
-extra-deps:
-
-packages:
-- '.'
-
-extra-deps:
-- '../libs/GF/src/runtime/haskell/'

@@ -1,5 +1,5 @@
 name:                muste
-version:             0.2.5.0
+version:             0.2.5.1
 license:             BSD3
 author:              Herbert Lange
 maintainer:          herbert.lange@cse.gu.se
@@ -68,6 +68,7 @@ default-extensions:
 - GADTs
 - GeneralizedNewtypeDeriving
 - TypeFamilies
+- MultiParamTypeClasses
 
 library:
   exposed-modules:
@@ -105,7 +106,7 @@ library:
     - Muste.Sentence.Token.Class
 
 executables:
-  muste-cli:
+  muste:
     source-dirs:
       - app
 
@@ -115,6 +116,8 @@ executables:
       - muste
       - haskeline
       - repline
+      - optparse-applicative
+      - gitrev
 
 tests:
   test:

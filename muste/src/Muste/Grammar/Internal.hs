@@ -31,7 +31,7 @@ import qualified PGF
   , showCId, startCat, functionType, parsePGF
   , bracketedLinearize, parse
   )
-import PGF.Internal as PGF hiding (funs, cats)
+import PGF.Internal as PGF hiding (funs, cats, Binary)
 import Data.List (union, partition)
 import Data.Text.Prettyprint.Doc (Pretty(..))
 import qualified Data.Text.Prettyprint.Doc as Doc
@@ -73,7 +73,8 @@ instance Pretty Grammar where
     p :: String -> String -> Doc.Doc ann
     p frmt s = Doc.pretty @String $ printf frmt s
 
--- | The function 'getRules' returns the union of syntactic and lexical rules of a grammar
+-- | The function 'getRules' returns the union of syntactic and
+-- lexical rules of a grammar.
 getAllRules :: Grammar -> [Rule]
 getAllRules g = synrules g `union` lexrules g
 

@@ -1,215 +1,68 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language RecordWildCards, NamedFieldPuns, TemplateHaskell,
-  DeriveAnyClass, OverloadedStrings
-#-}
+  DeriveAnyClass, OverloadedStrings, MultiParamTypeClasses,
+  DerivingStrategies #-}
 module Main (main) where
 
-import Prelude ()
 import Muste.Prelude
-import System.Console.Repline
-  (HaskelineT, runHaskelineT)
-import qualified System.Console.Haskeline     as Repl
-import qualified System.Console.Repline       as Repl
-import Data.ByteString (ByteString)
-import Data.String.Conversions (convertString)
-import qualified Muste.Grammar.Embed          as Embed
-import Data.Text.Prettyprint.Doc ((<+>))
-import qualified Data.Text.Prettyprint.Doc    as Doc
-import qualified Data.Set                     as Set
-import qualified Data.Containers              as Mono
-import Control.Monad.State.Strict
-import System.Environment (getArgs)
-import Data.List (intercalate)
+import qualified Data.Binary as Binary
 
-import Muste hiding (getMenu)
-import Muste.Common
-import Muste.Util
-import qualified Muste.Grammar.Internal       as Grammar
-import Muste.Menu (Menu)
-import qualified Muste.Menu.Internal          as Menu
-import qualified Muste.Sentence.Annotated     as Annotated
-import qualified Muste.Linearization.Internal as Linearization
+import Muste (Grammar)
+import qualified Muste.Util             as Muste
+import Muste.AdjunctionTrees (BuilderInfo(..))
+import qualified Muste.Menu as Menu
+import qualified Muste.AdjunctionTrees as AdjunctionTrees
+import Muste.AdjunctionTrees (AdjunctionTrees)
+import qualified Muste.Grammar.Internal as Grammar
+import Muste.Linearization.Internal (Context(Context))
 
-grammar :: Grammar
-grammar = Grammar.parseGrammar $ convertString $ snd grammar'
+import Options (Options(Options), PreComputeOpts(PreComputeOpts))
+import qualified Options
+import qualified Muste.Repl             as Repl
+
+makeEnv ∷ Options → IO Repl.Env
+makeEnv opts@(Options{..}) = Repl.Env <$> getContext
   where
-  grammar' ∷ (Text, ByteString)
-  grammar' = $(Embed.grammar "novo_modo/Exemplum")
+  g = unsafeLookupGrammar grammar
+  getContext ∷ IO Context
+  getContext = case input of
+    Nothing → pure  $ Muste.unsafeGetContext (builderInfo opts) g language
+    Just p → do
+      adj ← Binary.decodeFile @AdjunctionTrees p
+      pure $ Context g (Muste.unsafeGetLang g language) adj
 
-defCtxt ∷ Context
-defCtxt = unsafeGetContext grammar "ExemplumSwe"
+unsafeLookupGrammar ∷ Text → Grammar
+unsafeLookupGrammar g
+  = fromMaybe (error "Grammar not found") $ Grammar.lookupGrammar g
 
-data Env = Env
-  { lang ∷ String
-  , menu ∷ Menu
-  , ctxt ∷ Context
-  }
+builderInfo ∷ Options → BuilderInfo
+builderInfo Options{..} = BuilderInfo { searchDepth }
 
-defEnv ∷ Env
-defEnv = Env defLang mempty defCtxt
+muste ∷ Options.Options → IO ()
+muste opts@Options{..} = do
+  let pruneOpts ∷ Menu.PruneOpts
+      pruneOpts = Menu.PruneOpts pruneSearchDepth
+      replOpts ∷ Repl.Options
+      replOpts = Repl.Options printNodes printCompact pruneOpts
+  e ← makeEnv opts
+  -- If there are any sentences supplied on the command line, run them
+  -- all.
+  void $ Repl.detachedly replOpts e (traverse Repl.updateMenu sentences)
+  -- If we are also in interactive mode, start the interactive session.
+  when interactiveMode
+    $ Repl.interactively replOpts e Repl.updateMenu
 
-defLang ∷ String
-defLang = "Swe"
-
-type Repl a = HaskelineT (StateT Env IO) a
+precompute ∷ Options.PreComputeOpts → IO ()
+precompute Options.PreComputeOpts{..}
+  = Binary.encodeFile output $ AdjunctionTrees.getAdjunctionTrees opts g
+  where
+  g = unsafeLookupGrammar grammar
+  opts ∷ BuilderInfo
+  opts = BuilderInfo { searchDepth }
 
 main :: IO ()
-main = getArgs >>= \case
-  [] → repl
-  xs → mapM_ nonInteractive xs
-
-nonInteractive :: String -> IO ()
-nonInteractive s
-  = runHaskelineT Repl.defaultSettings (updateMenu s)
-  & flip evalStateT defEnv
-
-repl ∷ IO ()
-repl
-  = Repl.evalRepl "§ " updateMenu options completer ini
-  & flip evalStateT defEnv
-
-updateMenu ∷ String → Repl ()
-updateMenu s = do
-  ctxt ← getContext
-  m ← getMenuFor s
-  liftIO $ do
-    putStrLn $ "Sentence is now: " <> s
-    putDocLn $ prettyMenu ctxt s m
-  setMenu m
-
-prettyMenu ∷ Context → String → Menu → Doc a
-prettyMenu ctxt s = Doc.vsep . fmap (uncurry go) . open
-  where
-  open = fmap @[] (fmap @((,) Menu.Selection) Set.toList)
-    . Mono.mapToList
-  go ∷ Menu.Selection
-    → [(Menu.Selection, Menu.Linearization Menu.Annotated)]
-    → Doc a
-  go sel xs = Doc.vcat
-    [ ""
-    , Doc.fill 60 (pretty sel <> ":" <+> prettyLin sel (words s))
-      <+> prettyLin sel annotated
-    , Doc.vcat $ fmap gogo xs
-    ]
-  gogo ∷ (Menu.Selection, Menu.Linearization Menu.Annotated) → Doc a
-  gogo (sel, lin) = Doc.fill 60 (prettyLin sel (map getWord (toList lin)))
-                    <+> prettyLin sel (map getNodes (toList lin))
-  annotated = Grammar.parseSentence (Linearization.ctxtGrammar ctxt) (Linearization.ctxtLang ctxt) s
-              & map (\t -> Annotated.mkLinearization ctxt t t t)
-              & foldl1 Annotated.mergeL
-              & toList
-              & map getNodes
-  getWord (Menu.Annotated word _) = word
-  getNodes (Menu.Annotated _ nodes) = intercalate "+" (Set.toList nodes)
-
-prettyLin ∷ ∀ tok a . Pretty tok => Menu.Selection → [tok] → Doc a
-prettyLin sel tokens = Doc.hsep $ map go $ highlight sel tokens
-  where
-  go ∷ Either Bool tok → Doc a
-  go = \case
-    Left a     → hl a
-    Right tok  → pretty tok
-  hl ∷ Bool → Doc a
-  hl = bool "[" "]" >>> pretty @String
-
-highlight ∷ Menu.Selection → [a] → [Either Bool a]
-highlight (toList → xs) (zip [0..] . map pure → ys)
-  = snd <$> closes `weave` opens `weave` ys
-  where
-  opens  ∷ [(Int, Either Bool a)]
-  opens  = zip (map (pred . fst . Menu.runInterval) xs) (repeat (Left False))
-  closes ∷ [(Int, Either Bool a)]
-  closes  = zip (map (pred . snd . Menu.runInterval) xs) (repeat (Left True))
-
-weave ∷ [(Int, a)] → [(Int, a)] → [(Int, a)]
-weave [] ys = ys
-weave xs [] = xs
-weave xs@(x@(n, _):xss) ys@(y@(m, _):yss)
-  | n < m     = x : weave xss ys
-  | otherwise = y : weave xs  yss
-
--- | @'getMenu' s@ gets a menu for a sentence @s@.
-getMenuFor
-  ∷ String -- ^ The sentence to parse
-  → Repl Menu
-getMenuFor s = do
-  c ← getContext
-  pure $ Menu.getMenuItems c s
-
-setMenu ∷ Menu → Repl ()
-setMenu menu = modify $ \e → e { menu }
-
-getContext ∷ Repl Context
-getContext = gets $ \(Env { .. }) → ctxt
-
-getMenu ∷ Repl Menu
-getMenu = gets $ \(Env { .. }) → menu
-
-options ∷ Repl.Options (HaskelineT (StateT Env IO))
-options =
-  [ "lang" |> oneArg setLang
-  , "sel"  |> setSel
-  ]
-  where
-  (|>) = (,)
-
-oneArg ∷ MonadIO m ⇒ (a → m b) → [a] → m ()
-oneArg a = \case
-  [l] → void $ a l
-  _   → throwOneArgErr
-
-data AppException
-  = SelectionNotFound
-  | OneArgErr
-  deriving (Exception)
-
-instance Show AppException where
-  show e = "ERROR: " <> case e of
-    SelectionNotFound → "ERROR: Selection not found"
-    OneArgErr → "One argument plz"
-
-setSel ∷ [String] → Repl ()
-setSel args = do
-  -- case readMaybe @[(Int, Int)] str of
-  case traverse (readMaybe @(Int, Int)) args of
-    Nothing → liftIO $ putStrLn
-      $  "Expecting a space-seperated list of pairs of numbers.  "
-      <> "Like so: \"(0,1) (2,3)\""
-    Just sel → do
-      m ← getMenu
-      case lookupFail mempty (fromL sel) m of
-        Nothing → showErr SelectionNotFound
-        Just ts → liftIO $ putDocLn $ pretty $ Set.toList ts
-  where
-  fromL ∷ [(Int, Int)] → Menu.Selection
-  fromL = Menu.Selection . fmap Menu.Interval
-
-showErr ∷ MonadIO m ⇒ Exception e ⇒ e → m ()
-showErr = liftIO . putStrLn . displayException
-
-throwOneArgErr ∷ MonadIO m ⇒ m ()
-throwOneArgErr = showErr OneArgErr
-
-setLang ∷ MonadState Env m ⇒ String → m ()
-setLang lang = modify $ \e → e { lang }
-
--- Currently no completion support.
-completer ∷ Repl.CompleterStyle (StateT Env IO)
-completer = Repl.Word (const (pure mempty))
-
-ini ∷ Repl ()
-ini = liftIO $ putStrLn $ unlines
-  [ "Type in a sentence to get the menu for that sentence"
-  , "This will set and display the \"active\" menu"
-  , "You can select an entry in the active menu with e.g.:"
-  , ""
-  , "    :sel [(0,1)]"
-  , ""
-  , "Please note that sentences that cannot be parsed are silently ignored"
-  , "An empty menu will be displayed (just newline) this is likely caused"
-  , "by the sentence not being understood by the current grammar."
-  , ""
-  , "Also the current grammar is hard-coded to be:"
-  , "    novo_modo/Exemplum"
-  , "    ExemplumSwe"
-  ]
+main = do
+  Options.Command cmd ← Options.getOptions
+  case cmd of
+    Options.Muste opts → muste opts
+    Options.PreCompute g → precompute g

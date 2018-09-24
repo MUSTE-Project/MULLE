@@ -9,6 +9,7 @@ module Muste.Menu.Internal
   , Token.Unannotated
   , Token.Annotated(..)
   , Interval(Interval, runInterval)
+  , Prune.PruneOpts(..)
   ) where
 
 import Prelude ()
@@ -103,13 +104,14 @@ linTree ctxt tree = (map Linearization.ltlin lintokens, map (lookupNode tree . L
     where Linearization lintokens = Linearization.linearizeTree ctxt tree
 
 lookupNode :: TTree -> Path -> Node
-lookupNode tree path = case Tree.selectNode tree path of
-                         Just (TNode node _ _) -> node
-                         _ → error "Incomplete Pattern-Match"
+lookupNode tree path
+  = case Tree.selectNode tree path of
+    Just (TNode node _ _) -> node
+    _ → error "Incomplete Pattern-Match"
 
-similarTrees :: Context -> TTree -> [TTree]
-similarTrees ctxt tree = [ tree' | (_path, simtrees) <- Map.toList simmap, (_, tree') <- Set.toList simtrees ]
-    where simmap = Prune.replaceTrees (ctxtGrammar ctxt) (ctxtPrecomputed ctxt) tree
+similarTrees ∷ Prune.PruneOpts → Context → TTree → Set TTree
+similarTrees opts c
+  = Prune.replaceTrees opts (ctxtGrammar c) (ctxtPrecomputed c)
 
 -- * Exported stuff
 
@@ -170,31 +172,32 @@ instance Pretty Menu where
 
 getMenu
   ∷ Sentence.IsToken a
-  ⇒ Context
+  ⇒ Prune.PruneOpts
+  → Context
   → Sentence.Linearization a
   → Menu
-getMenu c l
+getMenu opts c l
   = Sentence.stringRep l
-  & getMenuItems c
+  & getMenuItems opts c
 
-getMenuItems :: Context -> String -> Menu
-getMenuItems ctxt str
-  = collectTreeSubstitutions ctxt str
+getMenuItems ∷ Prune.PruneOpts → Context → String → Menu
+getMenuItems opts ctxt str
+  = collectTreeSubstitutions opts ctxt str
   & filterTreeSubstitutions
   & collectMenuItems ctxt
 
 type TreeSubst = (Int, XTree, XTree)
 type XTree = (TTree, [Tokn], [Node])
 
-collectTreeSubstitutions :: Context -> String -> [TreeSubst]
-collectTreeSubstitutions ctxt sentence =
-    do oldtree <- parseSentence ctxt sentence
-       let (oldwords, oldnodes) = linTree ctxt oldtree
-       let old = (oldtree, oldwords, oldnodes)
-       newtree <- similarTrees ctxt oldtree
-       let (newwords, newnodes) = linTree ctxt newtree
-       let new = (newtree, newwords, newnodes)
-       return (old `xtreeDiff` new, old, new)
+collectTreeSubstitutions ∷ Prune.PruneOpts → Context → String → [TreeSubst]
+collectTreeSubstitutions opts ctxt sentence = do
+  oldtree ← parseSentence ctxt sentence
+  let (oldwords, oldnodes) = linTree ctxt oldtree
+  let old = (oldtree, oldwords, oldnodes)
+  newtree ← Set.toList $ similarTrees opts ctxt oldtree
+  let (newwords, newnodes) = linTree ctxt newtree
+  let new = (newtree, newwords, newnodes)
+  pure (old `xtreeDiff` new, old, new)
 
 collectMenuItems :: Context -> [TreeSubst] -> Menu
 collectMenuItems ctxt substs = Menu $ Map.fromListWith Set.union $ do
@@ -210,31 +213,7 @@ collectMenuItems ctxt substs = Menu $ Map.fromListWith Set.union $ do
 
 
 filterTreeSubstitutions :: [TreeSubst] -> [TreeSubst]
-filterTreeSubstitutions substs =
-    ---- simple, quadratic variant:
-    keepWith directMoreExpensive substs
-    ---- more optimised, only compares with substitutions with lower cost:
-    ---- (1/2 the nr of comparisons, but makes no real difference in the end)
-    -- do let groups = groupWith (\(cost,_,_) -> cost) substs
-    --    (cheapergroups, group, _expensiver) <- split groups
-    --    subst <- group
-    --    guard $ isCheapest cheapergroups subst
-    --    return subst
-    -- where isCheapest cheapergroups (cost, old, new) =
-    --           and [ mid `xtreeDiff` new >= cost |
-    --                 cheaper <- cheapergroups,
-    --                 (_cost, old', mid) <- cheaper, old == old' ]
-    --       split :: [a] -> [([a], a, [a])]
-    --       split [] = []
-    --       split (x:yzws) = ([], x, yzws) : [ (x:ys, z, ws) | (ys, z, ws) <- split yzws ]
-
-
-keepWith :: (a → a → Bool) -> [a] -> [a]
-keepWith p xs = [ x | x <- xs, not (any (p x) xs) ]
-
-directMoreExpensive :: TreeSubst -> TreeSubst -> Bool
-directMoreExpensive (cost, _, xtree) (cost', _, xtree')
-    = cost' < cost && xtree' `xtreeDiff` xtree < cost
+filterTreeSubstitutions = identity
 
 xtreeDiff :: XTree -> XTree -> Int
 xtreeDiff (t,_,_) (t',_,_) = Tree.flatten t `editDistance` Tree.flatten t'

@@ -4,6 +4,33 @@ Change log
 HEAD
 ---
 
+0.2.5.1
+---
+
+The CLI executable is no longer called `muste-cli`, rather, it's called
+`muste` and it has two subcommands:
+
+  * cli
+  * precompute
+
+So where you would before write `muste-cli` you must now write `muste
+cli` (note the space).
+
+Change styling (Issue #35)
+
+Adds options to CLI:
+
+  * Limit prune depth (Issue #28)
+  * Print compact (Issue #27)
+  * Switch for showing internal representation (Issue #31)
+  * Sub-command precompute to cache adjunction trees and a switch to
+    load these (Issue #34)
+
+Other changes to CLI:
+
+  * Drops support for setting the "active menu" (Issue #26)
+  * Language argument is mandatory
+
 0.2.5.0
 ---
 

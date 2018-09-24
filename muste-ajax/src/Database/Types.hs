@@ -70,8 +70,8 @@ type Session =
 -- * The lesson to which the exercise belongs.
 -- * Timeout for the exercise.
 type Exercise =
-  ( Annotated -- @sourceTree@
-  , Annotated -- @targetTree@
+  ( Annotated -- @sourceLinearization@
+  , Annotated -- @targetLinearization@
   , Text      -- @lesson@
   , Numeric   -- @timeout@
   )
@@ -110,8 +110,8 @@ type Lesson =
 -- * The round it was in the lesson.
 type FinishedExercise =
   ( Text            -- @user@
-  , Annotated       -- @sourceTree@
-  , Annotated       -- @targetTree@
+  , Annotated       -- @sourceLinearization@
+  , Annotated       -- @targetLinearization@
   , Text            -- @lesson@
   , NominalDiffTime -- @time@
   , Numeric         -- @clickCount@
@@ -156,8 +156,8 @@ type FinishedLesson =
 -- * The round.
 type ExerciseList =
   ( Text      -- @user@
-  , Annotated -- @sourceTree@
-  , Annotated -- @targetTree@
+  , Annotated -- @sourceLinearization@
+  , Annotated -- @targetLinearization@
   , Text      -- @lesson@
   , Numeric   -- @round@
   )

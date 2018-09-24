@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# Language OverloadedStrings, InstanceSigs #-}
+{-# Language InstanceSigs #-}
 -- | A 'Set' with a dfferent 'Ord' instance.
 module Muste.Selection (Selection, fromList, toList) where
 

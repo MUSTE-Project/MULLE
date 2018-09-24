@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall -Wno-orphans #-}
 -- | Adjunction trees
 --
 -- Interfacint with 'AdjunctionTrees' is done using the interface for
@@ -11,16 +11,23 @@ import qualified Data.Containers      as Mono
 import Data.MonoTraversable
 import qualified Data.Map.Strict      as M
 import Data.MultiSet (MultiSet)
+import qualified Data.MultiSet as MultiSet
 import GHC.Generics (Generic)
 import Control.DeepSeq (NFData)
+import Data.Binary (Binary)
+import qualified Data.Binary as Binary
 
 import Muste.Tree
+
+instance Binary a ⇒ Binary (MultiSet a) where
+  get = MultiSet.fromOccurMap <$> Binary.get
+  put = Binary.put . MultiSet.toMap
 
 -- | @AdjunctionTrees@ really is a map from a @Category@ to a set of
 -- trees that have this category.
 newtype AdjunctionTrees
   = AdjunctionTrees (M.Map (Category, MultiSet Category) [TTree])
-  deriving (Show, MonoFunctor, Generic, NFData)
+  deriving (Show, MonoFunctor, Generic, NFData, Binary)
 
 type instance Element AdjunctionTrees = [TTree]
 

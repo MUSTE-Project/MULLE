@@ -5,6 +5,7 @@ module Muste.Linearization
   , langAndContext
   , mkLin
   , disambiguate
+  , BuilderInfo(..)
   ) where
 
 import Muste.Linearization.Internal
