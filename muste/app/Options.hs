@@ -28,8 +28,9 @@ data Options = Options
   }
 
 data PreComputeOpts = PreComputeOpts
-  { grammar ∷ Text
-  , output  ∷ FilePath
+  { grammar     ∷ Text
+  , output      ∷ FilePath
+  , searchDepth ∷ Maybe Int
   }
 
 data Command = Command SubCommand
@@ -48,14 +49,6 @@ optionsParser
   <*> printCompactParser
   <*> pruneSearchDepthParser
   where
-  searchDepthParser ∷ Parser (Maybe Int)
-  searchDepthParser
-    = optional
-    $ O.option O.auto
-      (  O.long "limit-adjunctions"
-      <> O.help "Limit search depth when creating adjunction trees"
-      <> O.metavar "DEPTH"
-      )
   interactiveModeParser ∷ Parser Bool
   interactiveModeParser
     = O.switch
@@ -94,6 +87,15 @@ optionsParser
       <> O.metavar "DEPTH"
       )
 
+searchDepthParser ∷ Parser (Maybe Int)
+searchDepthParser
+  = optional
+  $ O.option O.auto
+    (  O.long "limit-adjunctions"
+    <> O.help "Limit search depth when creating adjunction trees"
+    <> O.metavar "DEPTH"
+    )
+
 grammarParser ∷ Parser Text
 grammarParser
   = O.strOption
@@ -119,6 +121,7 @@ preComputeOptsParser
   =   PreComputeOpts
   <$> grammarParser
   <*> outputParser
+  <*> searchDepthParser
   where
   outputParser ∷ Parser FilePath
   outputParser = O.strOption

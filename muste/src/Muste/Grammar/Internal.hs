@@ -39,7 +39,6 @@ import Control.DeepSeq
 import Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as MultiSet
 import Control.DeepSeq (NFData)
-import Data.Binary (Binary(..))
 
 import qualified Muste.Grammar.Grammars as Grammars
 import Muste.Common
@@ -62,10 +61,6 @@ data Grammar = Grammar
   , lexrules :: [Rule]
   , pgf :: PGF
   }
-
-instance Binary Grammar where
-  get = error "Muste.Grammar.Internal.get @Grammar: Unimplemented"
-  put = error "Muste.Grammar.Internal.put @Grammar: Unimplemented"
 
 instance Pretty Grammar where
   pretty (Grammar sCat srules lrules _) = Doc.sep

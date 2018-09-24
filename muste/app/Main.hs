@@ -12,8 +12,9 @@ import qualified Muste.Util             as Muste
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees (BuilderInfo(..))
 import qualified Muste.Menu as Menu
+import qualified Muste.AdjunctionTrees as AdjunctionTrees
 
-import Options (Options(Options))
+import Options (Options(Options), PreComputeOpts(PreComputeOpts))
 import qualified Options
 import qualified Muste.Repl             as Repl
 
@@ -43,12 +44,16 @@ muste opts@Options{..} = do
   -- all.
   void $ Repl.detachedly replOpts e (traverse Repl.updateMenu sentences)
   -- If we are also in interactive mode, start the interactive session.
-  when (Options.interactiveMode opts)
+  when interactiveMode
     $ Repl.interactively replOpts e Repl.updateMenu
 
 precompute ∷ Options.PreComputeOpts → IO ()
 precompute Options.PreComputeOpts{..}
-  = encodeFile output $ unsafeLookupGrammar grammar
+  = encodeFile output $ AdjunctionTrees.getAdjunctionTrees opts g
+  where
+  g = unsafeLookupGrammar grammar
+  opts ∷ BuilderInfo
+  opts = BuilderInfo { searchDepth }
 
 main :: IO ()
 main = do
