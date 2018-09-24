@@ -213,24 +213,7 @@ collectMenuItems ctxt substs = Menu $ Map.fromListWith Set.union $ do
 
 
 filterTreeSubstitutions :: [TreeSubst] -> [TreeSubst]
-filterTreeSubstitutions substs =
-    ---- simple, quadratic variant:
-    keepWith directMoreExpensive substs
-    ---- more optimised, only compares with substitutions with lower cost:
-    ---- (1/2 the nr of comparisons, but makes no real difference in the end)
-    -- do let groups = groupWith (\(cost,_,_) -> cost) substs
-    --    (cheapergroups, group, _expensiver) <- split groups
-    --    subst <- group
-    --    guard $ isCheapest cheapergroups subst
-    --    return subst
-    -- where isCheapest cheapergroups (cost, old, new) =
-    --           and [ mid `xtreeDiff` new >= cost |
-    --                 cheaper <- cheapergroups,
-    --                 (_cost, old', mid) <- cheaper, old == old' ]
-    --       split :: [a] -> [([a], a, [a])]
-    --       split [] = []
-    --       split (x:yzws) = ([], x, yzws) : [ (x:ys, z, ws) | (ys, z, ws) <- split yzws ]
-
+filterTreeSubstitutions = identity
 
 keepWith :: (a → a → Bool) -> [a] -> [a]
 keepWith p xs = [ x | x <- xs, not (any (p x) xs) ]
