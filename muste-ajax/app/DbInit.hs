@@ -25,8 +25,8 @@ import qualified Muste.Linearization      as OldLinearization
   (langAndContext, mkLin)
 import Muste.Sentence (Sentence)
 import qualified Muste.Sentence           as Sentence
-import Muste.Sentence.Annotated (Annotated)
-import qualified Muste.Sentence.Annotated as Annotated
+import Muste.Sentence.Unannotated (Unannotated(Unannotated))
+import qualified Muste.Sentence.Unannotated as Unannotated
 
 initDb :: IO ()
 initDb = do
@@ -55,11 +55,11 @@ initDB conn = do
   mapM_ (exec insertLessonQuery)   Data.lessons
   mapM_ (exec insertExerciseQuery) exercises
 
-exercises ∷ Vector (Annotated, Annotated, Text)
+exercises ∷ Vector (Unannotated, Unannotated, Text)
 exercises = Data.exercises >>= mkExercise
   where
   mkExercise ∷ (Text, Text, Text, Text, Vector (TTree, TTree))
-    → Vector (Annotated, Annotated, Text)
+    → Vector (Unannotated, Unannotated, Text)
   mkExercise (idfG, idfL, srcL, trgL, xs)
     = go (lin srcL) (lin trgL) idfL <$> xs
     where
@@ -67,17 +67,13 @@ exercises = Data.exercises >>= mkExercise
     lang ∷ Text → Context
     lang idf = fromMaybe (error $ printf "Lang not found: %s" idf)
       $ Map.lookup idf ctxt
-    lin ∷ Text → TTree → TTree → TTree → Annotated
-    -- lin l = Annotated.mkLin (lang l)
-    -- lin l = Sentence.linearization (lang l)
-    -- lin l = Sentence.mkLin (lang l)
-    -- lin l = Annotated.annotated (lang l) _
-    lin l = Annotated.annotated (lang l) (Sentence.Language g l)
+    lin ∷ Text → TTree → TTree → TTree → Unannotated
+    lin l = Unannotated.unannotated (lang l) (Sentence.Language g l)
     g ∷ Sentence.Grammar
     g = "STUB"
-  go ∷ (TTree → TTree → TTree → Annotated) → (TTree → TTree → TTree → Annotated)
+  go ∷ (TTree → TTree → TTree → Unannotated) → (TTree → TTree → TTree → Unannotated)
     → Text → (TTree, TTree)
-    → (Annotated, Annotated, Text)
+    → (Unannotated, Unannotated, Text)
   go srcC trgC idfE (src, trg) = (srcC src trg src, trgC src trg trg, idfE)
 
 addUser ∷ Connection → (Text, Text, Bool) → IO ()

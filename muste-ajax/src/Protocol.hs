@@ -213,15 +213,19 @@ handleLessonInit token lesson = do
     c <- askContexts
     (sourceLang,sourceTree,targetLang,targetTree)
       <- Database.startLesson token lesson
-    let (a,b) = assembleMenus c lesson
-                (stce sourceLang sourceTree)
-                (stce targetLang targetTree)
+    let
+      ann ∷ Unannotated → Annotated
+      ann = fromMaybe err . annotate c lesson
+      (a,b) = assembleMenus c lesson
+                (stce sourceLang (ann sourceTree))
+                (stce targetLang (ann targetTree))
     verifyMessage token (SMMenuList lesson False 0 a b)
     where
     stce ∷ Text → Annotated → Annotated
     stce l t = (Sentence.sentence (Sentence.Language g l) (Sentence.linearization t))
     g ∷ Sentence.Grammar
     g = "STUB"
+    err = error "Protocol.handleLessonInit: Error when trying to annotate sentence."
 
 -- | This request is called after the user selects a new sentence from
 -- the drop-down menu.  A request consists of two 'ClientTree's (the
@@ -255,25 +259,25 @@ handleMenuRequest token lesson clicks time src trg = do
       pure (\_ _ → emptyMenus)
     else pure assembleMenus
   -- Lift 'unambiguous' into 'IO' to enable throwing (IO) exceptions.
-  srcUnamb ← liftIO $ unambiguous c lesson src
-  trgUnamb ← liftIO $ unambiguous c lesson trg
+  let ann ∷ MonadIO io ⇒ ClientTree → io Annotated
+      ann = liftIO . annotate c lesson . Ajax.unClientTree
+  srcUnamb ← ann src
+  trgUnamb ← ann trg
   let (a , b) = act c lesson srcUnamb trgUnamb
   verifyMessage token (SMMenuList lesson finished (succ clicks) a b)
 
-unambiguous
+annotate
   ∷ MonadThrow m
   ⇒ Contexts
   → Text
-  → ClientTree
+  → Unannotated
   → m Annotated
-unambiguous cs lesson t = Unannotated.unambiguous
+annotate cs lesson s = Unannotated.annotate
     (ErrorCall $ "Unable to parse: " <> show s) ctxt s
   where
   ctxt ∷ Context
   ctxt = fromMaybe err $ getContext cs lesson $ Sentence.language s
   err = error "Context not found for language"
-  s ∷ Unannotated
-  s = Ajax.unClientTree t
 
 oneSimiliarTree
   ∷ Contexts

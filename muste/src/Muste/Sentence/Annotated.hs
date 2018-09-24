@@ -125,7 +125,6 @@ annotated
 annotated c l src trg t
   = Annotated l $ mkLinearization c src trg t
 
-
 -- | Merge multiple
 merge ∷ MonadThrow m ⇒ Exception e ⇒ e → [Annotated] → m Annotated
 merge e = \case

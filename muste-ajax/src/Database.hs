@@ -244,7 +244,7 @@ startLesson
   => String -- ^ Token
   -> Text -- ^ Lesson name
   -- * Source- language and tree, target- langauge and tree.
-  -> db (Text, Types.Annotated, Text, Types.Annotated)
+  -> db (Text, Types.Unannotated, Text, Types.Unannotated)
 startLesson token lesson = do
   -- get user name
   Only user <- fromMaybe errUsr . listToMaybe
@@ -312,7 +312,7 @@ shuffle = liftIO . QC.generate . QC.shuffle
 getTreePairs
   :: MonadDB db
   => Text
-  -> db [(Types.Annotated, Types.Annotated)]
+  -> db [(Types.Unannotated, Types.Unannotated)]
 getTreePairs lesson = query exerciseQuery (Only lesson)
   where
   exerciseQuery =
@@ -321,8 +321,8 @@ getTreePairs lesson = query exerciseQuery (Only lesson)
           WHERE Lesson = ?;|]
 
 newLesson :: MonadDB db ⇒ Text -> Text -> db
-  ( Text, Types.Annotated
-  , Text, Types.Annotated
+  ( Text, Types.Unannotated
+  , Text, Types.Unannotated
   )
 newLesson user lesson = do
   -- get exercise count
@@ -361,15 +361,15 @@ continueLesson
   -> Text -- ^ Lesson name
   -> db
     ( Text
-    , Types.Annotated
+    , Types.Unannotated
     , Text
-    , Types.Annotated
+    , Types.Unannotated
     )
 continueLesson user lesson = do
   [Only round] <- query @(Only Integer)
     lessonRoundQuery (user,lesson)
   (sourceTree,targetTree) <- fromMaybe errNoExercises . listToMaybe
-    <$> query @(Types.Annotated, Types.Annotated)
+    <$> query @(Types.Unannotated, Types.Unannotated)
         selectExerciseListQuery (lesson,user,round)
   (sourceLang,targetLang)
     <- fromMaybe errLangs . listToMaybe
@@ -402,7 +402,7 @@ finishExercise token lesson time clicks = do
   -- get lesson round
   [Only round] <- query @(Only Integer) lessonRoundQuery (user,lesson)
   ((sourceTree,targetTree):_)
-    <- query @(Types.Annotated, Types.Annotated) selectExerciseListQuery (lesson,user,round)
+    <- query @(Types.Unannotated, Types.Unannotated) selectExerciseListQuery (lesson,user,round)
   execute insertFinishedExerciseQuery
     (user, lesson, sourceTree, targetTree, time, clicks + 1, round)
   -- check if all exercises finished
