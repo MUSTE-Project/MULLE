@@ -28,6 +28,7 @@ deriving instance ToField Grammar
 deriving instance IsString Grammar
 
 data Language = Language
+  -- NB This field is not in use.
   { grammar  ∷ Grammar
   , lang     ∷ Text
   }

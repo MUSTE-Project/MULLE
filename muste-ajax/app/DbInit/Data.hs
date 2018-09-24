@@ -8,8 +8,18 @@ import Muste.Tree
 import Muste.Grammar (tree)
 import Data.Text (Text)
 import Data.Vector (Vector)
+import qualified Data.Vector as Vector
 
-type Lesson = (String,String,String,String,String,Int,Int,Int)
+-- | In order of appearance:
+--   * Name
+--   * Description
+--   * Grammar
+--   * SourceLanguage
+--   * TargetLanguage
+--   * ExerciseCount
+--   * Enabled
+--   * Repeatable
+type Lesson = (Text,Text,Text,Text,Text,Int,Int,Int)
 
 lessons :: Vector Lesson
 lessons =
@@ -18,7 +28,7 @@ lessons =
     , "novo_modo/Exemplum"
     , "ExemplumEng"
     , "ExemplumSwe"
-    , 1
+    , Vector.length exemplumPars
     , 1
     , 1
     )
@@ -27,7 +37,7 @@ lessons =
     , "novo_modo/Prima"
     , "PrimaLat"
     , "PrimaSwe"
-    , 5
+    , Vector.length primaPars
     , 1
     , 1
     )
@@ -36,7 +46,7 @@ lessons =
     , "novo_modo/Secunda"
     , "SecundaLat"
     , "SecundaSwe"
-    , 8
+    , Vector.length secundaPars
     , 1
     , 1
     )
@@ -45,7 +55,7 @@ lessons =
     , "novo_modo/Tertia"
     , "TertiaLat"
     , "TertiaSwe"
-    , 12
+    , Vector.length tertiaPars
     , 0
     , 1
     )
@@ -54,7 +64,7 @@ lessons =
     , "novo_modo/Quarta"
     , "QuartaLat"
     , "QuartaSwe"
-    , 15
+    , Vector.length quartaPars
     , 0
     , 1
     )
@@ -188,3 +198,9 @@ secundaPars =
     , ($(tree "novo_modo/Secunda" "useS (pastS (simpleCl (usePron they_PP) (transV docere_V2 (useCNdefpl (useN Romanus_N)))))"))
     )
   ]
+
+tertiaPars ∷ Vector (TTree, TTree)
+tertiaPars = []
+
+quartaPars ∷ Vector (TTree, TTree)
+quartaPars = []
