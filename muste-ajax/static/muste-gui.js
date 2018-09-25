@@ -107,6 +107,32 @@ function call_server_new(message, parameters, endpoint) {
     }
 }
 
+Handlebars.registerHelper({
+    eq: function (v1, v2) {
+        return v1 === v2;
+    },
+    ne: function (v1, v2) {
+        return v1 !== v2;
+    },
+    lt: function (v1, v2) {
+        return v1 < v2;
+    },
+    gt: function (v1, v2) {
+        return v1 > v2;
+    },
+    lte: function (v1, v2) {
+        return v1 <= v2;
+    },
+    gte: function (v1, v2) {
+        return v1 >= v2;
+    },
+    and: function () {
+        return Array.prototype.slice.call(arguments).every(Boolean);
+    },
+    or: function () {
+        return Array.prototype.slice.call(arguments, 0, -1).some(Boolean);
+    }
+});
 
 function retrieve_lessons(evt) {
     if (evt && evt.preventDefault) {
@@ -115,41 +141,41 @@ function retrieve_lessons(evt) {
     call_server(MESSAGES.LESSONS, {token: LOGIN_TOKEN});
 }
 
+// TODO Template strings are not supported in msie.  We need to write
+// this differently to support that browser.
+var lesson_list_template = `
+<tbody>
+{{#each .}}
+ <tr class="{{#if (or passed (gte passed total))}}finished{{else}}disabled{{/if}}">
+  <td>
+   <button {{#if enabled}}{{else}}disabled{{/if}} onclick="start_lesson('{{name}}');">{{name}}</button>
+  </td>
+  <td>
+   <span>
+    {{passedcount}} avklarade av {{exercisecount}} övningar, {{lsn.score}}  klick i {{lsn.time}} sekunder
+   </span>
+  </td>
+ </tr>
+ <tr>
+  <td>
+    {{description}}
+  </td>
+ </tr>
+{{/each}}
+</tbody>
+`;
+
+var render_lesson_list = Handlebars.compile(lesson_list_template);
+
 function show_lessons(lessons) {
     show_page("lessonspage");
     TIMER_START = null;
     var table = $("#lessonslist");
     table.empty();
+    var e = render_lesson_list(lessons);
+    table.html(e);
     lessons.forEach(function(lsn) {
-	EXERCISES[lsn.name] = {passed : lsn.passedcount, total : lsn.exercisecount} ;
-        var item = $('<tr>');
-        var enable_lesson = (function() {
-            if (lsn.enabled) {
-                return function(e) { return e.click(select_lesson); };
-            }
-            return function(e) { return e; }
-        })();
-        var btn =
-            $('<button>')
-            .text(lsn.name)
-            .data({lesson: lsn.name})
-            .attr('disabled', !lsn.enabled);
-        $('<td>').append(
-            enable_lesson(btn)
-        ).appendTo(item);
-        $('<td>').append(
-            $('<span>').text(lsn.passedcount + " avklarade av " + lsn.exercisecount + " övningar, " + lsn.score + " klick i " + lsn.time + " sekunder")
-        ).appendTo(item);
-        if (lsn.passed || lsn.passed >= lsn.total) {
-            item.addClass("finished");
-        }
-	if (!lsn.enabled) {
-	    item.addClass("disabled");
-	}
-        item.appendTo(table);
-	var item = $('<tr>');
-	$('<td>').text(lsn.description).appendTo(item);
-	item.appendTo(table);
+	EXERCISES[lsn.name] = {passed : lsn.passedcount, total : lsn.exercisecount};
     });
 }
 
@@ -158,7 +184,7 @@ function select_lesson(evt) {
     if (evt && evt.preventDefault) {
         evt.preventDefault();
     }
-    start_lesson($(this).data().lesson);
+    start_lesson($(this).data('lesson'));
 }
 
 
