@@ -218,7 +218,15 @@ collectMenuItems ctxt substs = Menu $ Map.fromListWith Set.union $ do
 
 
 filterTreeSubstitutions :: [TreeSubst] -> [TreeSubst]
-filterTreeSubstitutions = identity
+filterTreeSubstitutions = keepWith directMoreExpensive
+
+keepWith :: (a → a → Bool) -> [a] -> [a]
+keepWith p xs = [ x | x <- xs, not (any (p x) xs) ]
+
+directMoreExpensive :: TreeSubst -> TreeSubst -> Bool
+directMoreExpensive (cost, _, xtree) (cost', _, xtree')
+    = cost' < cost && xtree' `xtreeDiff` xtree < cost
+
 
 xtreeDiff :: XTree -> XTree -> Int
 xtreeDiff (t,_,_) (t',_,_) = Tree.flatten t `editDistance` Tree.flatten t'
