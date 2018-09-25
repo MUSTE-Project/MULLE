@@ -48,3 +48,14 @@ Add `NFData` instance for `Grammar`.
 
 This will allow for better benchmarking, but unfortunately require an
 `NFData` instance for `PGF`.
+
+Switch to text in Muste.Sentence.Token.Class
+---
+
+Consider removing the rows source- and target language
+---
+
+We're relying on the sentence object given us the correct information
+about the language of that sentence, so we don't really need the
+source- and target- language rows in the DB anymore.
+

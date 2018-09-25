@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings, UnicodeSyntax, TemplateHaskell, QuasiQuotes, TypeApplications #-}
+{-# OPTIONS_GHC -Wall #-}
 module DbInit (initDb) where
 
 import           Prelude ()
@@ -13,19 +14,13 @@ import           Database.SQLite.Simple.QQ (sql)
 import qualified Database.SQLite3 as SQL
 import           System.Directory (createDirectoryIfMissing)
 import           System.FilePath (takeDirectory)
-import qualified Data.Map as Map
 import           Data.FileEmbed
 import           Data.Vector (Vector)
 
 import qualified DbInit.Data as Data
 import qualified Config
 
-import Muste (TTree, Context)
-import qualified Muste.Linearization      as OldLinearization
-  (langAndContext, mkLin)
-import Muste.Sentence (Sentence)
-import qualified Muste.Sentence           as Sentence
-import Muste.Sentence.Unannotated (Unannotated(Unannotated))
+import           Muste.Sentence.Unannotated (Unannotated)
 import qualified Muste.Sentence.Unannotated as Unannotated
 
 initDb :: IO ()
@@ -36,7 +31,7 @@ initDb = do
   putStrLn "Initializing database... done"
 
 -- | @'mkParDir' p@ Ensure that the directory that @p@ is in is
--- created.
+-- created like the linux command @mkdir -p@.
 mkParDir ∷ FilePath → IO ()
 mkParDir = createDirectoryIfMissing True . takeDirectory
 
@@ -56,25 +51,22 @@ initDB conn = do
   mapM_ (exec insertExerciseQuery) exercises
 
 exercises ∷ Vector (Unannotated, Unannotated, Text)
-exercises = Data.exercises >>= mkExercise
+exercises = Data.exercises >>= go
   where
-  mkExercise ∷ (Text, Text, Text, Text, Vector (TTree, TTree))
-    → Vector (Unannotated, Unannotated, Text)
-  mkExercise (idfG, idfL, srcL, trgL, xs)
-    = go (lin srcL) (lin trgL) idfL <$> xs
-    where
-    ctxt = OldLinearization.langAndContext mempty idfG
-    lang ∷ Text → Context
-    lang idf = fromMaybe (error $ printf "Lang not found: %s" idf)
-      $ Map.lookup idf ctxt
-    lin ∷ Text → TTree → TTree → TTree → Unannotated
-    lin l = Unannotated.unannotated (lang l) (Sentence.Language g l)
-    g ∷ Sentence.Grammar
-    g = "STUB"
-  go ∷ (TTree → TTree → TTree → Unannotated) → (TTree → TTree → TTree → Unannotated)
-    → Text → (TTree, TTree)
+  go ∷ (Text, Text, Text, Text, Vector (Text, Text))
+     → Vector (Unannotated, Unannotated, Text)
+  go (g, n, srcL, trgL, xs) = step g n srcL trgL <$> xs
+  step
+    ∷ Text
+    → Text
+    → Text
+    → Text
+    → (Text, Text)
     → (Unannotated, Unannotated, Text)
-  go srcC trgC idfE (src, trg) = (srcC src trg src, trgC src trg trg, idfE)
+  step g n srcL trgL (src, trg) = (f srcL src, f trgL trg, n)
+    where
+    f ∷ Text → Text → Unannotated
+    f l = Unannotated.fromText g l
 
 addUser ∷ Connection → (Text, Text, Bool) → IO ()
 addUser c (usr,psw,active)

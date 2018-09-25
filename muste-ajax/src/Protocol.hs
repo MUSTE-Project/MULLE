@@ -4,12 +4,14 @@ module Protocol
   ( registerRoutes
   ) where
 
+import Prelude ()
+import Muste.Prelude
+
 import Data.Aeson
 import Data.Map (Map)
 import qualified Data.Map.Lazy as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Control.Monad
 import Database.SQLite.Simple
 import Control.Monad.Reader
 import qualified Data.ByteString.Lazy as LBS
@@ -18,7 +20,6 @@ import qualified Data.ByteString.Char8 as C8
 import Snap (MonadSnap)
 import qualified Snap
 import qualified System.IO.Streams as Streams
-import Text.Printf
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -37,6 +38,7 @@ import Muste.Sentence.Annotated (Annotated)
 import Muste.Sentence.Unannotated (Unannotated)
 import qualified Muste.Sentence.Unannotated as Unannotated
 import qualified Muste.Menu as Menu
+import qualified Muste.Linearization as Linearization
 
 import Common
 
@@ -211,20 +213,14 @@ handleLessonInit
   → m ServerMessage
 handleLessonInit token lesson = do
     c <- askContexts
-    (sourceLang,sourceTree,targetLang,targetTree)
+    (_sourceLang,sourceTree,_targetLang,targetTree)
       <- Database.startLesson token lesson
     let
       ann ∷ Unannotated → Annotated
       ann = fromMaybe err . annotate c lesson
-      (a,b) = assembleMenus c lesson
-                (stce sourceLang (ann sourceTree))
-                (stce targetLang (ann targetTree))
+      (a,b) = assembleMenus c lesson (ann sourceTree) (ann targetTree)
     verifyMessage token (SMMenuList lesson False 0 a b)
     where
-    stce ∷ Text → Annotated → Annotated
-    stce l t = (Sentence.sentence (Sentence.Language g l) (Sentence.linearization t))
-    g ∷ Sentence.Grammar
-    g = "STUB"
     err = error "Protocol.handleLessonInit: Error when trying to annotate sentence."
 
 -- | This request is called after the user selects a new sentence from
@@ -275,9 +271,10 @@ annotate
 annotate cs lesson s = Unannotated.annotate
     (ErrorCall $ "Unable to parse: " <> show s) ctxt s
   where
+  l ∷ Sentence.Language
+  l = Sentence.language s
   ctxt ∷ Context
-  ctxt = fromMaybe err $ getContext cs lesson $ Sentence.language s
-  err = error "Context not found for language"
+  ctxt = throwLeft $ getContext cs lesson $ l
 
 oneSimiliarTree
   ∷ Contexts
@@ -346,11 +343,13 @@ mkContexts = Map.fromList . map mkContext
 mkContext
   ∷ Database.Lesson
   → (Text, Map.Map Sentence.Language Context)
-mkContext (ls, _, nm, _, _, _, _, _) =
-  (ls, Map.mapKeys (Sentence.Language stub) $ Muste.langAndContext mempty nm)
+mkContext (name, _, grammar, _, _, _, _, _)
+  = (name, Map.mapKeys f m)
   where
-  stub ∷ Sentence.Grammar
-  stub = "STUB"
+  m ∷ Map Text Context
+  m = Muste.langAndContext (mempty @Linearization.BuilderInfo) grammar
+  f ∷ Text → Sentence.Language
+  f l = Sentence.Language (Sentence.Grammar grammar) l
 
 -- | Gets the menus for a lesson.  This consists of a source tree and
 -- a target tree.

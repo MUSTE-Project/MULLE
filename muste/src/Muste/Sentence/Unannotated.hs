@@ -10,16 +10,23 @@ import GHC.Generics (Generic)
 import Data.Function ((&))
 import GHC.Exts (fromList)
 import Data.MonoTraversable
+import qualified Data.Text as Text
 
 import Muste.Tree.Internal (TTree)
 import Muste.Linearization.Internal (Context(..))
-import Muste.Grammar.Internal as Grammar
+import qualified Muste.Grammar.Internal as Grammar
 import Muste.Common.SQL (FromField, ToField)
 import qualified Muste.Common.SQL as SQL
 import qualified Muste.Sentence.Token as Token
-import Muste.Sentence.Class (Sentence, Language, Linearization)
+import Muste.Sentence.Class
+  ( Sentence
+  , Language(Language)
+  , Linearization
+  , Grammar(Grammar)
+  )
+import qualified Muste.Sentence.Linearization as Linearization
 import qualified Muste.Sentence.Class as Sentence
-import qualified Muste.Linearization.Internal as Linearization
+import qualified Muste.Linearization.Internal as OldLinearization
 import Muste.Sentence.Annotated (Annotated)
 import qualified Muste.Sentence.Annotated as Annotated
 
@@ -98,14 +105,14 @@ mkLinearization
   → Linearization Token.Unannotated
 mkLinearization c t0 t1 t
   -- Reuse functionality from 'Muste.Linearization.Internal'
-  = Linearization.mkLin c t0 t1 t
+  = OldLinearization.mkLin c t0 t1 t
   & otoList
   -- Convert old representation to new.
   & fmap step
   & fromList
   where
-  step ∷ Linearization.LinToken → Token.Unannotated
-  step (Linearization.LinToken { .. })
+  step ∷ OldLinearization.LinToken → Token.Unannotated
+  step (OldLinearization.LinToken { .. })
     = Token.unannotated ltlin
 
 -- | @'sentence' c src trg t@ creates a 'Sentence' of @t@ from a
@@ -123,3 +130,13 @@ unannotated
   → Unannotated
 unannotated c l src trg t
   = Unannotated l $ mkLinearization c src trg t
+
+stringRep ∷ Unannotated → String
+stringRep = linearization >>> Linearization.stringRep
+
+fromText ∷ Text → Text → Text → Unannotated
+fromText g l xs
+  = Unannotated (Language (Grammar g) l) (fromList (go <$> Text.words xs))
+  where
+  go ∷ Text → Token.Unannotated
+  go = Token.Unannotated . Text.unpack
