@@ -16,6 +16,7 @@ module Muste.Grammar.Internal
   , parseSentence
   , getMetas
   , getFunctions
+  , hole
   ) where
 
 import Prelude ()
@@ -177,7 +178,10 @@ fromGfTree g (EApp e1 e2) =
     st2 = fromGfTree g e2
   in
     TNode name typ (sts ++ [st2])
-fromGfTree _ _ = TMeta wildCard
+fromGfTree _ _ = hole
+
+hole ∷ TTree
+hole = TMeta wildCard
 
 grammars :: Map Text Grammar
 grammars = Map.fromList (uncurry grm <$> Grammars.grammars)

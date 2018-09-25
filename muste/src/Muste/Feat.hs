@@ -10,8 +10,6 @@ module Muste.Feat
   , featCard
   , featIth
   , emptyFeat
-  , getRuleType
-  , getAllRules
   , generateTrees
   ) where
 
@@ -19,14 +17,15 @@ import Prelude ()
 import Muste.Prelude
 import Data.List
 
-import Muste.Grammar.Internal
-  (Rule(Function), getAllRules, Grammar, getRuleType)
+import Muste.Common
+import Muste.Grammar.Internal (Rule(Function), Grammar)
+import qualified Muste.Grammar.Internal as Grammar
 import Muste.Tree
 
 type FEAT = Category -> Int -> (Integer, Integer -> TTree)
 
 emptyFeat :: Category -> Int -> (Integer, Integer -> TTree)
-emptyFeat _ _ = (-1, \_ -> TMeta "*empty*")
+emptyFeat _ _ = (-1, \_ -> Grammar.hole)
              
 -- | Compute how many trees there are of a given size and type.
 featCard :: FEAT -> Category -> Int -> Integer
@@ -50,7 +49,7 @@ mkFEAT gr =
              ++
            [ (n, \i -> [TNode f t (h i)])
            | s > 0 
-           , (Function f t) <- getAllRules gr
+           , (Function f t) <- Grammar.getAllRules gr
            , let (Fun y xs) = t
            , y == c
            , let (n,h) = catList xs (s-1)
@@ -65,7 +64,7 @@ mkFEAT gr =
    catList = memo catList'
      where
        cats :: [Category]
-       cats = nub [ x | r <- getAllRules gr, let (Fun y xs) = getRuleType r, x <- y:xs ]
+       cats = nub [ x | r <- Grammar.getAllRules gr, let (Fun y xs) = Grammar.getRuleType r, x <- y:xs ]
        memo :: ([Category] -> Int -> (Integer, Integer -> [TTree])) -> ([Category] -> Int -> (Integer, Integer -> [TTree]))
        memo f = \case
          []   -> (nil !!)
