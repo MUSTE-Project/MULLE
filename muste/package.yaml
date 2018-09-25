@@ -1,5 +1,5 @@
 name:                muste
-version:             0.2.5.1
+version:             0.2.5.2
 license:             BSD3
 author:              Herbert Lange
 maintainer:          herbert.lange@cse.gu.se
@@ -69,6 +69,7 @@ default-extensions:
 - GeneralizedNewtypeDeriving
 - TypeFamilies
 - MultiParamTypeClasses
+- DerivingStrategies
 
 library:
   exposed-modules:

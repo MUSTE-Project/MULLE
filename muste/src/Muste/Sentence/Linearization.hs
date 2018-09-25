@@ -2,7 +2,8 @@
 {-# Language NamedFieldPuns, RecordWildCards, OverloadedStrings #-}
 module Muste.Sentence.Linearization where
 
-import Prelude hiding (Word)
+import Prelude ()
+import Muste.Prelude
 import Data.Aeson (ToJSON(..), FromJSON(..))
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
@@ -13,6 +14,7 @@ import GHC.Exts (IsList(..))
 import Data.Typeable (Typeable)
 import Data.Text.Prettyprint.Doc (Pretty(..))
 import Control.DeepSeq (NFData)
+import qualified Data.Text as Text
 
 import Muste.Common.SQL (FromField, ToField)
 import qualified Muste.Common.SQL as SQL
@@ -49,8 +51,9 @@ instance IsList (Linearization a) where
 instance IsToken a ⇒ Pretty (Linearization a) where
   pretty = pretty . stringRep
 
-stringRep ∷ IsToken a ⇒ Linearization a → String
+-- FIXME change name to @textRep@
+stringRep ∷ IsToken a ⇒ Linearization a → Text
 stringRep
   =   toList
   >>> fmap Token.concrete
-  >>> unwords
+  >>> Text.unwords

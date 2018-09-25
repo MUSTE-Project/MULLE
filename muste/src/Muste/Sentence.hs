@@ -28,7 +28,7 @@ import qualified Muste.Grammar.Internal as Grammar
 import qualified Muste.Sentence.Class    as Sentence
 import qualified Muste.Sentence.Token    as Token
 
-parse ∷ Context → String → [TTree]
+parse ∷ Context → Text → [TTree]
 parse OldLinearization.Context{..}
   = Grammar.parseSentence ctxtGrammar ctxtLang
 

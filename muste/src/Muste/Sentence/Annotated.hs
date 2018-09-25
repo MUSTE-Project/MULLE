@@ -1,15 +1,14 @@
-{-# OPTIONS_GHC -Wall -Wno-type-defaults #-}
+{-# OPTIONS_GHC -Wall #-}
 {-# Language NamedFieldPuns, RecordWildCards, OverloadedStrings #-}
 module Muste.Sentence.Annotated
   (Annotated, annotated, merge, mergeL, mkLinearization)
   where
 
-import Data.Maybe
-import Prelude hiding (Word)
+import Prelude ()
+import Muste.Prelude
 import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:))
 import qualified Data.Aeson as Aeson
 import GHC.Generics (Generic)
-import Data.Binary hiding (Word)
 import Data.Function ((&))
 import Data.MonoTraversable
 import GHC.Exts (fromList)
@@ -26,7 +25,7 @@ import qualified Muste.Sentence.Class as Sentence
 import Muste.Common.SQL (FromField, ToField)
 import qualified Muste.Common.SQL as SQL
 
-import Muste.Tree.Internal (TTree)
+import Muste.Tree.Internal (TTree, Category)
 import qualified Muste.Tree.Internal as Tree
 import Muste.Linearization.Internal (Context)
 import qualified Muste.Linearization.Internal as OldLinearization
@@ -95,16 +94,17 @@ mkLinearization c t0 t1 t
   where
   step ∷ OldLinearization.LinToken → Token.Annotated
   step (OldLinearization.LinToken { .. })
-    = Token.annotated ltlin (fromList @[String] $ names ltpath)
+    = Token.annotated ltlin (fromList @[Text] $ names ltpath)
   -- Throws if the path is not found /and/ only finds a single
   -- function name!
-  names ∷ Tree.Path → [String]
+  names ∷ Tree.Path → [Text]
   names
     =   Tree.selectNode @TTree t
     >>> fromMaybe (error "Expected to find path here")
     >>> name
+    >>> Tree.unCategory
     >>> pure @[]
-  name ∷ TTree → String
+  name ∷ TTree → Category
   name = \case
     Tree.TNode n _ _ → n
     Tree.TMeta{} → error "Expected saturated tree"
@@ -124,7 +124,6 @@ annotated
   → Annotated
 annotated c l src trg t
   = Annotated l $ mkLinearization c src trg t
-
 
 -- | Merge multiple
 merge ∷ MonadThrow m ⇒ Exception e ⇒ e → [Annotated] → m Annotated

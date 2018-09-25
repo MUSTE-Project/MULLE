@@ -4,6 +4,14 @@ Change log
 HEAD
 ---
 
+0.2.5.2
+---
+
+Make `Category` a newtype wrapper around `Text` (rather than a type
+synonym for `String`)
+
+Close issue #37: Store *un*annotated sentences in exercises
+
 0.2.5.1
 ---
 

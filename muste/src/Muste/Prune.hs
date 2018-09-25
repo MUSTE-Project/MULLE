@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -Wall -Wno-unused-top-binds -Wno-name-shadowing #-}
-{-# Language DerivingStrategies, ConstraintKinds, RecordWildCards #-}
+{-# Language DerivingStrategies, ConstraintKinds, RecordWildCards,
+  OverloadedStrings #-}
 -- FIXME Should this be an internal module? It's not currently used in
 -- @muste-ajax@.
 module Muste.Prune
@@ -396,5 +397,5 @@ pruneTree tree = do
 treeDiff :: TTree -> TTree -> Int
 treeDiff s t = getNodes s `editDistance` getNodes t
   where
-  getNodes (TMeta cat) = ["?" ++ cat]
+  getNodes (TMeta cat) = ["?" <> cat]
   getNodes (TNode fun _ children) = fun : concatMap getNodes children

@@ -19,7 +19,7 @@ module Database.Types
   , FinishedLesson
   , ExerciseList
   , Muste.TTree
-  , Sentence.Annotated
+  , Sentence.Unannotated
   ) where
 
 import Prelude ()
@@ -30,8 +30,8 @@ import Data.ByteString (ByteString)
 import Data.Time
 
 import qualified Muste (TTree)
-import qualified Muste.Sentence.Annotated as Sentence (Annotated)
-import Muste.Sentence.Annotated (Annotated)
+import qualified Muste.Sentence.Unannotated as Sentence (Unannotated)
+import Muste.Sentence.Unannotated (Unannotated)
 
 type Blob = ByteString
 type Numeric = Integer
@@ -70,10 +70,10 @@ type Session =
 -- * The lesson to which the exercise belongs.
 -- * Timeout for the exercise.
 type Exercise =
-  ( Annotated -- @sourceLinearization@
-  , Annotated -- @targetLinearization@
-  , Text      -- @lesson@
-  , Numeric   -- @timeout@
+  ( Unannotated -- @sourceLinearization@
+  , Unannotated -- @targetLinearization@
+  , Text        -- @lesson@
+  , Numeric     -- @timeout@
   )
 
 -- | Representation of a 'Leson' in the database.  Consists of:
@@ -110,8 +110,8 @@ type Lesson =
 -- * The round it was in the lesson.
 type FinishedExercise =
   ( Text            -- @user@
-  , Annotated       -- @sourceLinearization@
-  , Annotated       -- @targetLinearization@
+  , Unannotated     -- @sourceLinearization@
+  , Unannotated     -- @targetLinearization@
   , Text            -- @lesson@
   , NominalDiffTime -- @time@
   , Numeric         -- @clickCount@
@@ -155,9 +155,9 @@ type FinishedLesson =
 -- * The lesson it belongs to.
 -- * The round.
 type ExerciseList =
-  ( Text      -- @user@
-  , Annotated -- @sourceLinearization@
-  , Annotated -- @targetLinearization@
-  , Text      -- @lesson@
-  , Numeric   -- @round@
+  ( Text        -- @user@
+  , Unannotated -- @sourceLinearization@
+  , Unannotated -- @targetLinearization@
+  , Text        -- @lesson@
+  , Numeric     -- @round@
   )

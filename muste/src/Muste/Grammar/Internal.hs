@@ -16,6 +16,7 @@ module Muste.Grammar.Internal
   , parseSentence
   , getMetas
   , getFunctions
+  , hole
   ) where
 
 import Prelude ()
@@ -28,7 +29,7 @@ import qualified Data.ByteString.Lazy as LB
 -- This might be the only place we should know of PGF
 import qualified PGF
   ( Tree, wildCId, functions
-  , showCId, startCat, functionType, parsePGF
+  , startCat, functionType, parsePGF
   , bracketedLinearize, parse
   )
 import PGF.Internal as PGF hiding (funs, cats, Binary)
@@ -39,6 +40,7 @@ import Control.DeepSeq
 import Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as MultiSet
 import Control.DeepSeq (NFData)
+import qualified Data.Text as Text
 
 import qualified Muste.Grammar.Grammars as Grammars
 import Muste.Common
@@ -47,7 +49,7 @@ import qualified Muste.Tree.Internal as Tree
 
 -- | Type 'Rule' consists of a 'String' representing the function name
 -- and a 'FunType' representing its type.
-data Rule = Function String FunType deriving (Ord,Eq,Show,Read)
+data Rule = Function Category FunType deriving (Ord,Eq,Show,Read)
 
 deriving instance Generic Rule
 
@@ -56,7 +58,7 @@ instance NFData Rule where
 
 -- | Type 'Grammar' consists of a start category and a list of rules.
 data Grammar = Grammar
-  { startcat :: String
+  { startcat :: Category
   , synrules :: [Rule]
   , lexrules :: [Rule]
   , pgf :: PGF
@@ -97,7 +99,7 @@ isEmptyGrammar :: Grammar -> Bool
 isEmptyGrammar grammar = startcat grammar == wildCard && isEmptyPGF (pgf grammar)
 
 -- | The function 'getFunTypeWithGrammar' extracts the function type from a Grammar given a function name
-getFunType :: Grammar -> String -> FunType
+getFunType :: Grammar -> Category -> FunType
 getFunType g id =
   let
     rules = filter (\r -> getRuleName r == id) $ getAllRules g
@@ -105,7 +107,7 @@ getFunType g id =
     if not $ null rules then getRuleType $ head rules else NoType
 
 -- | The function 'getRuleName' extracts the name of a rule
-getRuleName :: Rule -> String
+getRuleName :: Rule -> Category
 getRuleName (Function name _) = name
 
 -- | The function 'pgfToGrammar' transforms a PGF grammar to a simpler grammar data structure
@@ -119,13 +121,13 @@ pgfToGrammar pgf
       -- Get their types
       funtypes = map (getFunTypeWithPGF pgf) funs
       -- Combine to a rule
-      rules = zipWith Function (map PGF.showCId funs) funtypes
+      rules = zipWith Function (map Tree.cIdToCat funs) funtypes
       -- Split in lexical and syntactical rules
       (lexrules,synrules) = partition (\r -> case r of { Function _ (Fun _ []) -> True ; _ -> False } ) rules
       -- Get the startcat from the PGF
       (_, startcat, _) = unType (PGF.startCat pgf)
     in
-      Grammar (PGF.showCId startcat) synrules lexrules pgf
+      Grammar (Tree.cIdToCat startcat) synrules lexrules pgf
   where
     getFunTypeWithPGF :: PGF -> CId -> FunType
     getFunTypeWithPGF grammar id
@@ -141,7 +143,7 @@ pgfToGrammar pgf
               (hypos,typeid,_exprs) = unType t
               cats = map (\(_,_,DTyp _ cat _) -> cat) hypos
             in
-              Fun (PGF.showCId typeid) (map PGF.showCId cats)
+              Fun (Tree.cIdToCat typeid) (map Tree.cIdToCat cats)
             }
 
 -- | Although the parameter to 'parseGrammar' is a lazy stream it's
@@ -161,22 +163,25 @@ brackets grammar language ttree
 parseTTree :: Grammar -> String -> TTree
 parseTTree g = fromGfTree g . read
 
--- | The function 'fromGfTree' creates a 'TTree' from an
--- 'PGF.Tree' and a 'Grammar'. Othewise similar to
--- 'fromGfTreeWithPGF'
+-- | The function 'fromGfTree' creates a 'TTree' from a 'PGF.Tree' and
+-- a 'Grammar'. Handles only 'EApp' and 'EFun'. Generates a 'hole' in
+-- unsupported cases.
 fromGfTree :: Grammar -> PGF.Tree -> TTree
 fromGfTree g (EFun f) =
   let
-    typ = getFunType g (PGF.showCId f)
+    typ = getFunType g (Tree.cIdToCat f)
   in
-    TNode (PGF.showCId f) typ []
+    TNode (Tree.cIdToCat f) typ []
 fromGfTree g (EApp e1 e2) =
   let
     (TNode name typ sts) = fromGfTree g e1
     st2 = fromGfTree g e2
   in
     TNode name typ (sts ++ [st2])
-fromGfTree _ _ = TMeta wildCard
+fromGfTree _ _ = hole
+
+hole ∷ TTree
+hole = TMeta wildCard
 
 grammars :: Map Text Grammar
 grammars = Map.fromList (uncurry grm <$> Grammars.grammars)
@@ -198,8 +203,8 @@ lookupGrammarM err = lookupGrammar >>> maybeFail err
 
 -- | Parses a linearized sentence.  Essentially a wrapper around
 -- 'PGF.parse'.
-parseSentence ∷ Grammar → Language → String → [TTree]
-parseSentence grammar lang = pgfIfy >>> fmap musteIfy
+parseSentence ∷ Grammar → Language → Text → [TTree]
+parseSentence grammar lang = Text.unpack >>> pgfIfy >>> fmap musteIfy
   where
   pgfIfy ∷ String → [PGF.Tree]
   pgfIfy = PGF.parse (pgf grammar) lang (PGF.startCat p)

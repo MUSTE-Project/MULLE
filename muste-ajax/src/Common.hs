@@ -4,7 +4,9 @@ module Common
   ( showPretty
   , tracePretty
   , tracePrettyId
+  , traceShow
   , traceShowId
+  , trace
   , throwLeft
   , decodeFileThrow
   ) where
@@ -21,6 +23,14 @@ import qualified Debug.Trace as Debug
 {-# DEPRECATED traceShowId "Development aid remain in your code!!" #-}
 traceShowId ∷ Show a ⇒ a → a
 traceShowId = Debug.traceShowId
+
+{-# DEPRECATED traceShow "Development aid remain in your code!!" #-}
+traceShow ∷ Show a ⇒ a → b → b
+traceShow = Debug.traceShow
+
+{-# DEPRECATED trace "Development aid remain in your code!!" #-}
+trace ∷ String → b → b
+trace = Debug.trace
 
 showPretty ∷ Pretty a => a → String
 showPretty = show . Doc.pretty

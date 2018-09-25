@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings, UnicodeSyntax, TemplateHaskell, QuasiQuotes, TypeApplications #-}
+{-# OPTIONS_GHC -Wall #-}
 module DbInit (initDb) where
 
 import           Prelude ()
@@ -13,20 +14,14 @@ import           Database.SQLite.Simple.QQ (sql)
 import qualified Database.SQLite3 as SQL
 import           System.Directory (createDirectoryIfMissing)
 import           System.FilePath (takeDirectory)
-import qualified Data.Map as Map
 import           Data.FileEmbed
 import           Data.Vector (Vector)
 
 import qualified DbInit.Data as Data
 import qualified Config
 
-import Muste (TTree, Context)
-import qualified Muste.Linearization      as OldLinearization
-  (langAndContext, mkLin)
-import Muste.Sentence (Sentence)
-import qualified Muste.Sentence           as Sentence
-import Muste.Sentence.Annotated (Annotated)
-import qualified Muste.Sentence.Annotated as Annotated
+import           Muste.Sentence.Unannotated (Unannotated)
+import qualified Muste.Sentence.Unannotated as Unannotated
 
 initDb :: IO ()
 initDb = do
@@ -36,7 +31,7 @@ initDb = do
   putStrLn "Initializing database... done"
 
 -- | @'mkParDir' p@ Ensure that the directory that @p@ is in is
--- created.
+-- created like the linux command @mkdir -p@.
 mkParDir ∷ FilePath → IO ()
 mkParDir = createDirectoryIfMissing True . takeDirectory
 
@@ -55,30 +50,23 @@ initDB conn = do
   mapM_ (exec insertLessonQuery)   Data.lessons
   mapM_ (exec insertExerciseQuery) exercises
 
-exercises ∷ Vector (Annotated, Annotated, Text)
-exercises = Data.exercises >>= mkExercise
+exercises ∷ Vector (Unannotated, Unannotated, Text)
+exercises = Data.exercises >>= go
   where
-  mkExercise ∷ (Text, Text, Text, Text, Vector (TTree, TTree))
-    → Vector (Annotated, Annotated, Text)
-  mkExercise (idfG, idfL, srcL, trgL, xs)
-    = go (lin srcL) (lin trgL) idfL <$> xs
+  go ∷ (Text, Text, Text, Text, Vector (Text, Text))
+     → Vector (Unannotated, Unannotated, Text)
+  go (g, n, srcL, trgL, xs) = step g n srcL trgL <$> xs
+  step
+    ∷ Text
+    → Text
+    → Text
+    → Text
+    → (Text, Text)
+    → (Unannotated, Unannotated, Text)
+  step g n srcL trgL (src, trg) = (f srcL src, f trgL trg, n)
     where
-    ctxt = OldLinearization.langAndContext mempty idfG
-    lang ∷ Text → Context
-    lang idf = fromMaybe (error $ printf "Lang not found: %s" idf)
-      $ Map.lookup idf ctxt
-    lin ∷ Text → TTree → TTree → TTree → Annotated
-    -- lin l = Annotated.mkLin (lang l)
-    -- lin l = Sentence.linearization (lang l)
-    -- lin l = Sentence.mkLin (lang l)
-    -- lin l = Annotated.annotated (lang l) _
-    lin l = Annotated.annotated (lang l) (Sentence.Language g l)
-    g ∷ Sentence.Grammar
-    g = "STUB"
-  go ∷ (TTree → TTree → TTree → Annotated) → (TTree → TTree → TTree → Annotated)
-    → Text → (TTree, TTree)
-    → (Annotated, Annotated, Text)
-  go srcC trgC idfE (src, trg) = (srcC src trg src, trgC src trg trg, idfE)
+    f ∷ Text → Text → Unannotated
+    f l = Unannotated.fromText g l
 
 addUser ∷ Connection → (Text, Text, Bool) → IO ()
 addUser c (usr,psw,active)

@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# Language UnicodeSyntax, FlexibleContexts #-}
+{-# Language UnicodeSyntax, FlexibleContexts, OverloadedStrings #-}
 module Muste.Common
   ( preAndSuffix
   , wildCard
@@ -73,8 +73,11 @@ preAndSuffix a b =
   in
     prefix a b
 
-wildCard :: String
+wildCard :: IsString text ⇒ text
 wildCard = "*empty*"
+
+{-# Specialize wildCard ∷ Text #-}
+{-# Specialize wildCard ∷ String #-}
 
 -- | True if the (ordered) list contains no duplicates (i.e., is a set)
 noDuplicates :: Eq a => [a] -> Bool

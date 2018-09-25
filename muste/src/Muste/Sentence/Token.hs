@@ -11,13 +11,13 @@ module Muste.Sentence.Token
   )
   where
 
-import Prelude hiding (Word)
+import Prelude ()
+import Muste.Prelude
 import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:))
 import qualified Data.Aeson as Aeson
 import Data.Set (Set)
 import qualified Data.Set as Set
 import GHC.Generics (Generic)
-import Data.Binary hiding (Word)
 import Data.Text.Prettyprint.Doc (Pretty(..))
 import Control.DeepSeq (NFData)
 
@@ -30,8 +30,8 @@ import qualified Muste.Sentence.Token.Class as Token
 
 -- * Annotated words
 data Annotated = Annotated
-  { concrete ∷ String
-  , classes  ∷ Set String
+  { concrete ∷ Text
+  , classes  ∷ Set Text
   }
 
 deriving instance Show Annotated
@@ -57,13 +57,13 @@ instance IsToken Annotated where
   concrete = concrete
 instance NFData Annotated where
 
-annotated ∷ String → [String] → Annotated
+annotated ∷ Text → [Text] → Annotated
 annotated c a = Annotated c (Set.fromList a)
 
 
 -- * Unannotated words
 
-newtype Unannotated = Unannotated { concrete ∷ String }
+newtype Unannotated = Unannotated { concrete ∷ Text }
 
 deriving instance Show Unannotated
 deriving instance Eq Unannotated
@@ -88,7 +88,7 @@ instance IsToken Unannotated where
 instance Pretty Unannotated where
   pretty (Unannotated s) = pretty s
 
-unannotated ∷ String → Unannotated
+unannotated ∷ Text → Unannotated
 unannotated = Unannotated
 
 mergeAnnotated ∷ Annotated → Annotated → Annotated
