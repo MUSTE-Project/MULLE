@@ -11,41 +11,59 @@
 </head>
 
 <body>
-  <div id="body">
+  <main>
     <div class="page" id="loginpage">
-      <h1>MUSTE: Latinträning</h1>
-      <form id="loginform">
-        <table>
-          <tr><td><strong>Användare:</strong></td> <td><input type="text" name="name"></td></tr>
-          <tr><td><strong>Lösenord:</strong></td> <td><input type="password" name="pwd"></td>
-            <td><button type="submit">Login</td></tr>
-        </table>
-      </form>      
+      <div></div>
+      <div class="container">
+        <h1 class="title">MUSTE: Latinträning</h1>
+        <form id="loginform">
+          <table>
+            <tr><td><strong>Användare:</strong></td> <td><input type="text" name="name"></td></tr>
+            <tr><td><strong>Lösenord:</strong></td> <td><input type="password" name="pwd"></td>
+              <td><button type="submit">Login</td></tr>
+          </table>
+        </form>
+      </div>
+      <div></div>
     </div>
 
     <div class="page" id="lessonspage">
-      <button href="" id="logoutbutton">Logga ut</button>
-      <h1>MUSTE: Latinträning</h1>
-      <table id="lessonslist"></table>
-      <a class="button" href="instructions.html" target="_blank">Instructions</a>
+      <div>
+        <span>
+          <button class="backbutton" href="" id="logoutbutton">Logga ut</button>
+        </span>
+        <h1 class="title">MUSTE: Latinträning</h1>
+      </div>
+      <div>
+        <div class="container" id="lessonslist"></div>
+      </div>
+      <div>
+        <a class="instructions button" href="instructions.html" target="_blank">Instructions</a>
+      </div>
     </div>
 
     <div class="page" id="exercisepage">
-      <span id="lessoncounter"></span>
-      <span id="score"></span>
-      <span id="timer"></span>
-      <span id="busy-indicator" class="idle"></span>
-      <!-- Unicode Character 'BLACK CIRCLE' (U+25CF) -->
-      <button id="abortlesson">Avbryt lektion</button>
-
-      <div id="container">
-        <div id="a" class="sentence prevent-body-click"></div>
-        <div class="vertical-separator"></div>
-        <div id="b"class="sentence prevent-body-click"></div>
+      <div>
+        <span id="lessoncounter"></span>
+        <span id="busy-indicator" class="idle"></span>
+          <!-- Unicode Character 'BLACK CIRCLE' (U+25CF) -->
+        <button class="backbutton" id="abortlesson">Avbryt lektion</button>
       </div>
 
-      <div id="menus" class="prevent-body-click"></div>
+      <div class="container">
+        <div class="exercise">
+          <div id="a" class="sentence prevent-body-click"></div>
+          <div class="vertical-separator"></div>
+          <div id="b"class="sentence prevent-body-click"></div>
+        </div>
+      </div>
+
+      <div>
+        <span id="score"></span>
+        <span id="timer"></span>
+        <div id="menus" class="prevent-body-click"></div>
+      </div>
     </div>
-  </div>
+  </main>
 </body>
 </html>

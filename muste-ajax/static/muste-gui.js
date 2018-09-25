@@ -144,25 +144,26 @@ function retrieve_lessons(evt) {
 // TODO Template strings are not supported in msie.  We need to write
 // this differently to support that browser.
 var lesson_list_template = `
-<tbody>
+<div class="lessons">
 {{#each .}}
- <tr class="{{#if (or passed (gte passed total))}}finished{{else}}disabled{{/if}}">
-  <td>
-   <button {{#if enabled}}{{else}}disabled{{/if}} onclick="start_lesson('{{name}}');">{{name}}</button>
-  </td>
-  <td>
-   <span>
-    {{passedcount}} avklarade av {{exercisecount}} övningar, {{lsn.score}}  klick i {{lsn.time}} sekunder
-   </span>
-  </td>
- </tr>
- <tr>
-  <td>
-    {{description}}
-  </td>
- </tr>
+ <div class="{{#if (or passed (gte passed total))}}finished{{/if}} {{#if enabled}}{{else}}disabled{{/if}}">
+  <h2>{{name}}</h2>
+  <div class="lesson-info">
+   <div>
+    <span>
+     {{passedcount}} avklarade av {{exercisecount}} övningar, {{lsn.score}}  klick i {{lsn.time}} sekunder
+    </span>
+    <div>
+     {{description}}
+    </div>
+   </div>
+   <div class="lesson-info-button">
+    <button {{#if enabled}}{{else}}disabled{{/if}} onclick="start_lesson('{{name}}');">Solve</button>
+   </div>
+  </div>
+ </div>
 {{/each}}
-</tbody>
+</div>
 `;
 
 var render_lesson_list = Handlebars.compile(lesson_list_template);
