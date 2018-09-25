@@ -1,6 +1,8 @@
 {-# OPTIONS_GHC -Wall #-}
 module Muste.Sentence.Token.Class (IsToken(..)) where
 
--- FIXME Switch to 'Text'!
+import Prelude ()
+import Muste.Prelude
+
 class IsToken a where
-  concrete ∷ a → String
+  concrete ∷ a → Text

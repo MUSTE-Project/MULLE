@@ -31,9 +31,10 @@ import qualified Data.Set                     as Set
 import qualified Data.Containers              as Mono
 import Control.Monad.State.Strict
 import Control.Monad.Reader
-import Data.List (intercalate)
 import System.CPUTime (getCPUTime)
 import Text.Printf (printf)
+import qualified Data.Text as Text
+import qualified Data.Text.IO as Text
 
 import Muste hiding (getMenu)
 import Muste.Common
@@ -101,7 +102,7 @@ askPruneOpts ∷ Repl Menu.PruneOpts
 -- TODO Actually be ready with an answer here.
 askPruneOpts = lift $ asks @Options pruneOpts
 
-updateMenu ∷ String → Repl ()
+updateMenu ∷ Text → Repl ()
 updateMenu s = do
   ctxt ← getContext
   liftIO $ timeCommand "Precalculate adjunction trees" $ do
@@ -119,12 +120,12 @@ updateMenu s = do
         | comp      → compDoc
         | otherwise → prettyMenu verb ctxt s m
   liftIO $ timeCommand "Update menu" $ do
-    putStrLn $ "Sentence is now: " <> s
+    Text.putStrLn $ "Sentence is now: " <> s
     putDocLn doc
     where
     purdy (sel, items)
       = Doc.fill 60
-            (pretty sel <> ":" <+> prettyLin sel (words s))
+            (pretty sel <> ":" <+> prettyLin sel (Text.words s))
         <+> pretty (length items)
 
 timeCommand :: String -> IO a -> IO a
@@ -136,7 +137,7 @@ timeCommand title cmd = do
     printf "\n>>> %s: %.2f s <<<\n\n" title secs
     return result
 
-prettyMenu ∷ ∀ a . Bool → Context → String → Menu → Doc a
+prettyMenu ∷ ∀ a . Bool → Context → Text → Menu → Doc a
 prettyMenu verbose ctxt s = Doc.vsep . fmap (uncurry go) . open
   where
   open = fmap @[] (fmap @((,) Menu.Selection) Set.toList)
@@ -150,20 +151,26 @@ prettyMenu verbose ctxt s = Doc.vsep . fmap (uncurry go) . open
     , Doc.vcat $ fmap gogo xs
     ]
     where
-    prettySel = pretty sel <> ":" <+> prettyLin sel (words s)
+    prettySel = pretty sel <> ":" <+> prettyLin sel (Text.words s)
   gogo ∷ (Menu.Selection, Menu.Linearization Menu.Annotated) → Doc a
   gogo (sel, lin)
     = maybeVerbose prettyMenuItems
     $ prettyLin sel (map getNodes (toList lin))
     where
     prettyMenuItems = prettyLin sel (map getWord (toList lin))
-  annotated = Grammar.parseSentence (Linearization.ctxtGrammar ctxt) (Linearization.ctxtLang ctxt) s
-              & map (\t -> Annotated.mkLinearization ctxt t t t)
-              & foldl1 Annotated.mergeL
-              & toList
-              & map getNodes
+  annotated ∷ [Text]
+  annotated
+    = parse s
+    & map (\t -> Annotated.mkLinearization ctxt t t t)
+    & foldl1 Annotated.mergeL
+    & toList
+    & map getNodes
+  parse ∷ Text → [TTree]
+  parse = Grammar.parseSentence
+    (Linearization.ctxtGrammar ctxt) (Linearization.ctxtLang ctxt)
   getWord (Menu.Annotated word _) = word
-  getNodes (Menu.Annotated _ nodes) = intercalate "+" (Set.toList nodes)
+  getNodes ∷ Menu.Annotated → Text
+  getNodes (Menu.Annotated _ nodes) = Text.intercalate "+" (Set.toList nodes)
   maybeVerbose docA docB
     | verbose   = Doc.fill 60 docA <+> docB
     | otherwise = docA
@@ -196,7 +203,7 @@ weave xs@(x@(n, _):xss) ys@(y@(m, _):yss)
 
 -- | @'getMenu' s@ gets a menu for a sentence @s@.
 getMenuFor
-  ∷ String -- ^ The sentence to parse
+  ∷ Text -- ^ The sentence to parse
   → Repl Menu
 getMenuFor s = do
   c ← getContext

@@ -52,9 +52,9 @@ import qualified Muste.Selection as Selection
 
 data LinToken = LinToken
   -- The path refers to the path in the 'TTree'
-  { ltpath :: Path
-  , ltlin :: String
-  , ltmatched :: Path
+  { ltpath    ∷ Path
+  , ltlin     ∷ Text
+  , ltmatched ∷ Path
   }
 
 deriving instance Show LinToken
@@ -76,8 +76,8 @@ newtype Linearization = Linearization { runLinearization :: [LinToken] }
   , FromJSON, ToJSON
   )
 
-stringRep ∷ Linearization → String
-stringRep = otoList >>> fmap ltlin >>> unwords
+stringRep ∷ Linearization → Text
+stringRep = otoList >>> fmap ltlin >>> Text.unwords
 
 deriving instance Show Linearization
 
@@ -212,10 +212,10 @@ bracketsToTuples = deep
   deep _     (PGF.Bracket _ _   _ _ _ []) = mempty
   -- Ordinary leaf
   deep ltree (PGF.Bracket _ fid _ _ _ [PGF.Leaf token]) =
-    Linearization [LinToken (Tree.getPath ltree fid) token []]
+    Linearization [LinToken (Tree.getPath ltree fid) (Text.pack token) []]
   -- Meta leaf
   deep ltree (PGF.Bracket _ fid _ _ [PGF.EMeta i] _) =
-    Linearization [LinToken (Tree.getPath ltree fid) ("?" ++ show i) []]
+    Linearization [LinToken (Tree.getPath ltree fid) ("?" <> Text.pack (show i)) []]
   -- In the middle of the tree
   deep ltree (PGF.Bracket _ fid _ _ _ bs) =
     broad ltree fid bs mempty
@@ -226,7 +226,7 @@ bracketsToTuples = deep
   -- Syncategorial word
   broad ltree fid (PGF.Leaf token:bss) ts = Linearization (x:xs)
     where
-    x = LinToken (Tree.getPath ltree fid) token []
+    x = LinToken (Tree.getPath ltree fid) (Text.pack token) []
     Linearization xs = broad ltree fid bss ts
   -- In the middle of the nodes
   broad ltree fid (bs:bss)
@@ -276,10 +276,10 @@ sameOrder' (x:xs) yss@(y:ys)
 disambiguate ∷ Context → Linearization → [TTree]
 disambiguate ctxt = stringRep >>> parse
   where
-  parse ∷ String → [TTree]
+  parse ∷ Text → [TTree]
   parse = Grammar.parseSentence (ctxtGrammar ctxt) (ctxtLang ctxt)
 
-type CoverNode = (Int, String, Path)
+type CoverNode = (Int, Category, Path)
 
 coverNodes :: Context -> TTree -> [CoverNode]
 coverNodes ctxt t

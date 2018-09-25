@@ -24,13 +24,14 @@ import qualified Data.Containers as Mono
 import Data.List (intercalate)
 import Data.Aeson (ToJSONKey, FromJSONKey)
 import Control.DeepSeq (NFData)
+import qualified Data.Text as Text
 
 import Muste.Common
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.Linearization.Internal
   (Linearization(..), Context, ctxtGrammar, ctxtLang, ctxtPrecomputed)
 import qualified Muste.Linearization.Internal as Linearization
-import Muste.Tree.Internal (TTree(..), Path)
+import Muste.Tree.Internal (TTree(..), Path, Category)
 import qualified Muste.Tree.Internal as Tree
 import qualified Muste.Prune as Prune
 import Data.Function ((&))
@@ -41,8 +42,8 @@ import qualified Muste.Sentence.Linearization as Sentence (Linearization)
 import qualified Muste.Sentence.Token as Token
 import qualified Muste.Sentence.Annotated as Annotated
 
-type Tokn = String
-type Node = String
+type Tokn = Text
+type Node = Category
 
 newtype Interval = Interval { runInterval ∷ (Int, Int) }
 
@@ -95,13 +96,17 @@ instance Pretty Selection where
 
 -- * First, some basic functions and types:
 
-parseSentence :: Context -> String -> [TTree]
+parseSentence :: Context -> Text -> [TTree]
 parseSentence ctxt sent
   = Grammar.parseSentence (ctxtGrammar ctxt) (ctxtLang ctxt) sent
 
 linTree :: Context -> TTree -> ([Tokn], [Node])
-linTree ctxt tree = (map Linearization.ltlin lintokens, map (lookupNode tree . Linearization.ltpath) lintokens)
-    where Linearization lintokens = Linearization.linearizeTree ctxt tree
+linTree ctxt tree = (toks, nods)
+  where
+  toks ∷ [Tokn]
+  toks = Linearization.ltlin <$> lintokens
+  nods = lookupNode tree . Linearization.ltpath <$> lintokens
+  Linearization lintokens = Linearization.linearizeTree ctxt tree
 
 lookupNode :: TTree -> Path -> Node
 lookupNode tree path
@@ -180,7 +185,7 @@ getMenu opts c l
   = Sentence.stringRep l
   & getMenuItems opts c
 
-getMenuItems ∷ Prune.PruneOpts → Context → String → Menu
+getMenuItems ∷ Prune.PruneOpts → Context → Text → Menu
 getMenuItems opts ctxt str
   = collectTreeSubstitutions opts ctxt str
   & filterTreeSubstitutions
@@ -189,7 +194,7 @@ getMenuItems opts ctxt str
 type TreeSubst = (Int, XTree, XTree)
 type XTree = (TTree, [Tokn], [Node])
 
-collectTreeSubstitutions ∷ Prune.PruneOpts → Context → String → [TreeSubst]
+collectTreeSubstitutions ∷ Prune.PruneOpts → Context → Text → [TreeSubst]
 collectTreeSubstitutions opts ctxt sentence = do
   oldtree ← parseSentence ctxt sentence
   let (oldwords, oldnodes) = linTree ctxt oldtree
@@ -205,7 +210,7 @@ collectMenuItems ctxt substs = Menu $ Map.fromListWith Set.union $ do
   let edits = alignSequences oldnodes newnodes
   let (oldselection, newselection) = splitAlignments edits
   let lins = [ Annotated.mkLinearization ctxt t t t |
-                      t <- parseSentence ctxt (unwords newwords) ]
+                      t <- parseSentence ctxt (Text.unwords newwords) ]
   let allnewnodes = case lins of
         []       → error "Muste.Menu.New.collectMenuItems: No linearizations."
         (x:xs) → foldl Annotated.mergeL x xs

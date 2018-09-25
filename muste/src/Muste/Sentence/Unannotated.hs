@@ -131,7 +131,7 @@ unannotated
 unannotated c l src trg t
   = Unannotated l $ mkLinearization c src trg t
 
-stringRep ∷ Unannotated → String
+stringRep ∷ Unannotated → Text
 stringRep = linearization >>> Linearization.stringRep
 
 fromText ∷ Text → Text → Text → Unannotated
@@ -139,4 +139,4 @@ fromText g l xs
   = Unannotated (Language (Grammar g) l) (fromList (go <$> Text.words xs))
   where
   go ∷ Text → Token.Unannotated
-  go = Token.Unannotated . Text.unpack
+  go = Token.Unannotated

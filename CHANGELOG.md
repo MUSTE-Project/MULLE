@@ -4,6 +4,9 @@ Change log
 HEAD
 ---
 
+Make `Category` a newtype wrapper around `Text` (rather than a type
+synonym for `String`)
+
 0.2.5.1
 ---
 

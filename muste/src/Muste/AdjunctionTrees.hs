@@ -205,7 +205,7 @@ maybeCutoff act = do
   else deeper act
 
 -- The next two functions are mutually recursive.
-adjTrees :: ∀ m . Builder m ⇒ String -> [String] -> m [(TTree, [String])]
+adjTrees :: ∀ m . Builder m ⇒ Category -> [Category] -> m [(TTree, [Category])]
 adjTrees cat visited = do
   rules ← getRulesFor cat
   let

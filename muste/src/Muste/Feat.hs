@@ -4,6 +4,7 @@
   Original URL: https://github.com/koengit/grammarfeat
   Adopted by Herbert Lange for Muste
 -}
+{-# Language OverloadedStrings #-}
 module Muste.Feat
   ( mkFEAT
   , featCard
@@ -14,30 +15,32 @@ module Muste.Feat
   , generateTrees
   ) where
 
+import Prelude ()
+import Muste.Prelude
 import Data.List
 
 import Muste.Grammar.Internal
   (Rule(Function), getAllRules, Grammar, getRuleType)
 import Muste.Tree
 
-type FEAT = String -> Int -> (Integer, Integer -> TTree)
+type FEAT = Category -> Int -> (Integer, Integer -> TTree)
 
-emptyFeat :: String -> Int -> (Integer, Integer -> TTree)
+emptyFeat :: Category -> Int -> (Integer, Integer -> TTree)
 emptyFeat _ _ = (-1, \_ -> TMeta "*empty*")
              
 -- | Compute how many trees there are of a given size and type.
-featCard :: FEAT -> String -> Int -> Integer
+featCard :: FEAT -> Category -> Int -> Integer
 featCard f c n = fst (f c n)
 
 -- | Generate the i-th tree of a given size and type.
-featIth :: FEAT -> String -> Int -> Integer -> TTree
+featIth :: FEAT -> Category -> Int -> Integer -> TTree
 featIth f c n = snd (f c n)
 
 mkFEAT :: Grammar -> FEAT
 mkFEAT gr =
   \c s -> let (n,h) = catList [c] s in (n, head . h)
  where
-   catList' :: [String] -> Int -> (Integer, Integer -> [TTree])
+   catList' :: [Category] -> Int -> (Integer, Integer -> [TTree])
    catList' [] s =
      if s == 0
      then (1, \0 -> [])
@@ -58,11 +61,12 @@ mkFEAT gr =
            , let (nx,hx)   = catList [c] k
                  (nxs,hxs) = catList cs (s-k)
            ]
+   catList ∷ [Category] → Int → (Integer, Integer → [TTree])
    catList = memo catList'
      where
-       cats :: [String]
+       cats :: [Category]
        cats = nub [ x | r <- getAllRules gr, let (Fun y xs) = getRuleType r, x <- y:xs ]
-       memo :: ([String] -> Int -> (Integer, Integer -> [TTree])) -> ([String] -> Int -> (Integer, Integer -> [TTree]))
+       memo :: ([Category] -> Int -> (Integer, Integer -> [TTree])) -> ([Category] -> Int -> (Integer, Integer -> [TTree]))
        memo f = \case
          []   -> (nil !!)
          a:as -> head [ f' as | (c,f') <- cons, a == c ]
@@ -76,7 +80,7 @@ mkFEAT gr =
        (n',h') = parts nhs
 
 -- | The function 'generateTrees' generates a list of 'TTree's up to a certain depth given a grammar. Powered by the magic of feat
-generateTrees :: FEAT -> String -> [[TTree]]
+generateTrees :: FEAT -> Category -> [[TTree]]
 generateTrees f cat =
   let
     feats = map (\d -> (featCard f cat d,featIth f cat d)) [0..]

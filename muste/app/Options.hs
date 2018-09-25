@@ -19,7 +19,7 @@ import qualified Development.GitRev as Dev
 data Options = Options
   { searchDepth      ∷ Maybe Int
   , interactiveMode  ∷ Bool
-  , sentences        ∷ [String]
+  , sentences        ∷ [Text]
   , grammar          ∷ Text   -- E.g. "novo_modo/Exemplum"
   , language         ∷ Text   -- E.g. "ExemplumSwe"
   , printNodes       ∷ Bool
@@ -57,7 +57,7 @@ optionsParser
       (  O.long "interactive"
       <> O.help "Run in interactive mode"
       )
-  sentencesParser ∷ Parser [String]
+  sentencesParser ∷ Parser [Text]
   sentencesParser
     = many (O.strArgument (O.metavar "SENTENCES"))
   languageParser ∷ Parser Text

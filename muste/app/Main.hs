@@ -15,6 +15,7 @@ import qualified Muste.AdjunctionTrees as AdjunctionTrees
 import Muste.AdjunctionTrees (AdjunctionTrees)
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.Linearization.Internal (Context(Context))
+import qualified Data.Text as Text
 
 import Options (Options(Options), PreComputeOpts(PreComputeOpts))
 import qualified Options
@@ -50,7 +51,7 @@ muste opts@Options{..} = do
   void $ Repl.detachedly replOpts e (traverse Repl.updateMenu sentences)
   -- If we are also in interactive mode, start the interactive session.
   when interactiveMode
-    $ Repl.interactively replOpts e Repl.updateMenu
+    $ Repl.interactively replOpts e (Repl.updateMenu . Text.pack)
 
 precompute ∷ Options.PreComputeOpts → IO ()
 precompute Options.PreComputeOpts{..}

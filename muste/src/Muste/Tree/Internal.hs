@@ -1,12 +1,13 @@
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing -Wno-incomplete-patterns #-}
-{-# language DeriveGeneric, DeriveLift #-}
+{-# language DeriveGeneric, DeriveLift, DeriveAnyClass,
+  DeriveDataTypeable, OverloadedStrings #-}
 {- | This Module is the internal implementation behind the module 'Muste.Tree' -}
 module Muste.Tree.Internal
   ( Path
   , getPath
   , getAllPaths
   , Pos
-  , Category
+  , Category(..)
   , maxDepth
   , getTreeCat
   , replaceNode
@@ -20,11 +21,12 @@ module Muste.Tree.Internal
   , toGfTree
   , flatten
   , foldMapTTree
+  , cIdToCat
   ) where
 
 -- TODO Do not depend on PGF
 import qualified PGF
-  (CId, mkCId, Tree, wildCId, mkMeta, mkApp, showExpr)
+  (CId, mkCId, Tree, wildCId, mkMeta, mkApp, showExpr, showCId)
 
 import Prelude ()
 import Muste.Prelude
@@ -34,6 +36,7 @@ import Data.String (fromString)
 import Data.String.ToString
 import Language.Haskell.TH.Syntax (Lift)
 import Control.DeepSeq (NFData)
+import Data.Data (Typeable, Data(..))
 
 import Muste.Common.SQL (FromField, ToField)
 import qualified Muste.Common.SQL as SQL
@@ -46,7 +49,20 @@ import Muste.Common
 -- challenge here is that we depend on the specific implementation of
 -- 'Read', 'Show' and possibly other things.
 -- | A semantic category
-type Category = String
+newtype Category = Category { unCategory ∷ Text }
+
+deriving newtype instance Ord Category
+deriving newtype instance Show Category
+deriving newtype instance Read Category
+deriving newtype instance Eq Category
+deriving newtype instance Semigroup Category
+deriving newtype instance Monoid Category
+deriving newtype instance NFData Category
+deriving newtype instance Typeable Category
+deriving stock instance Data Category
+deriving anyclass instance Lift Category
+deriving newtype instance Binary Category
+deriving newtype instance IsString Category
 
 -- * = Typed Trees
 --
@@ -58,7 +74,7 @@ type Category = String
 data TTree
    -- Regular node consisting of a function name, function type and
    -- possible subtrees
-  = TNode String FunType [TTree]
+  = TNode Category FunType [TTree]
   -- A meta tree consisting just of a category type
   | TMeta Category
    -- read is broken at the moment, most likely because of the
@@ -81,8 +97,8 @@ prettyTree = PGF.showExpr mempty . toGfTree
 -- This is reversable, if the grammar is known.
 -- TODO: merge with 'Muste.Grammar.Internal.getFunction.getF'?
 -- TODO: this should use an accumulator, right?
-flatten :: TTree -> [String]
-flatten (TMeta cat) = ["?" ++ cat]
+flatten ∷ TTree -> [Category]
+flatten (TMeta cat) = pure $ "?" <> cat
 flatten (TNode x _ ts) = x : concatMap flatten ts
 
 
@@ -265,9 +281,9 @@ ttreeToLTree :: TTree -> LTree
 ttreeToLTree tree =
   let
     -- Convert structure without caring about labels
-    convert (TMeta cat) = LNode (PGF.mkCId cat) (-1) [LNode (PGF.mkCId "_") (-1) [LLeaf]]
-    convert (TNode _ (Fun cat _) []) = LNode (PGF.mkCId cat) (-1) []
-    convert (TNode _ (Fun cat _) ts) = LNode (PGF.mkCId cat) (-1) (map convert ts)
+    convert (TMeta cat) = LNode (catToCid cat) (-1) [LNode (catToCid "_") (-1) [LLeaf]]
+    convert (TNode _ (Fun cat _) []) = LNode (catToCid cat) (-1) []
+    convert (TNode _ (Fun cat _) ts) = LNode (catToCid cat) (-1) (map convert ts)
     convert rest = error $ "Could not convert tree due to lack of types" ++ show rest
 
     -- Update the labels in a tree
@@ -291,6 +307,12 @@ ttreeToLTree tree =
 
   in
     snd $ update 0 $ convert tree
+
+catToCid ∷ Category → PGF.CId
+catToCid = unCategory >>> Text.unpack >>> PGF.mkCId
+
+cIdToCat ∷ PGF.CId → Category
+cIdToCat = PGF.showCId >>> Text.pack >>> Category
 
 -- | Calculates the @Path@ to a node given an index. The index refers
 -- to the the numbering nodes in breadth first search order.  The empty
@@ -408,7 +430,7 @@ toGfTree tree =
       let
         (nid,nts) = loop ns id
       in
-        if name == wildCard then (nid,PGF.mkApp PGF.wildCId nts) else (nid,PGF.mkApp (PGF.mkCId name) nts)
+        if name == wildCard then (nid,PGF.mkApp PGF.wildCId nts) else (nid,PGF.mkApp (catToCid name) nts)
   in
     snd $ convert tree 0
 
@@ -417,7 +439,7 @@ toGfTree tree =
 -- something like this.
 foldMapTTree
   ∷ Monoid w
-  ⇒ (String → FunType → w)
+  ⇒ (Category → FunType → w)
   → TTree
   → w
 foldMapTTree f = \case
