@@ -123,16 +123,20 @@ function show_lessons(lessons) {
     lessons.forEach(function(lsn) {
 	EXERCISES[lsn.name] = {passed : lsn.passedcount, total : lsn.exercisecount} ;
         var item = $('<tr>');
-	if (lsn.enabled) {
-          $('<td>').append(
-              $('<button>').text(lsn.name).data({lesson: lsn.name}).click(select_lesson)
-          ).appendTo(item);
-	}
-	else {
-	    $('<td>').append(
-		$('<button>').text(lsn.name).data({lesson: lsn.name})
-	    ).appendTo(item);
-	}
+        var enable_lesson = (function() {
+            if (lsn.enabled) {
+                return function(e) { return e.click(select_lesson); };
+            }
+            return function(e) { return e; }
+        })();
+        var btn =
+            $('<button>')
+            .text(lsn.name)
+            .data({lesson: lsn.name})
+            .attr('disabled', !lsn.enabled);
+        $('<td>').append(
+            enable_lesson(btn)
+        ).appendTo(item);
         $('<td>').append(
             $('<span>').text(lsn.passedcount + " avklarade av " + lsn.exercisecount + " övningar, " + lsn.score + " klick i " + lsn.time + " sekunder")
         ).appendTo(item);
