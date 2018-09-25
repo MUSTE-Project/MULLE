@@ -26,7 +26,7 @@ module Muste.Tree.Internal
 
 -- TODO Do not depend on PGF
 import qualified PGF
-  (CId, mkCId, Tree, wildCId, mkMeta, mkApp, showExpr, showCId)
+  (CId, utf8CId, Tree, wildCId, mkMeta, mkApp, showExpr, showCId)
 
 import Prelude ()
 import Muste.Prelude
@@ -37,6 +37,7 @@ import Data.String.ToString
 import Language.Haskell.TH.Syntax (Lift)
 import Control.DeepSeq (NFData)
 import Data.Data (Typeable, Data(..))
+import Data.String.Conversions (convertString)
 
 import Muste.Common.SQL (FromField, ToField)
 import qualified Muste.Common.SQL as SQL
@@ -309,8 +310,10 @@ ttreeToLTree tree =
     snd $ update 0 $ convert tree
 
 catToCid ∷ Category → PGF.CId
-catToCid = unCategory >>> Text.unpack >>> PGF.mkCId
+catToCid = unCategory >>> convertString >>> PGF.utf8CId
 
+-- FIXME A 'PGF.CId' is just a newtype wrapper around a 'ByteString'.
+-- If we could just get at that somehow.
 cIdToCat ∷ PGF.CId → Category
 cIdToCat = PGF.showCId >>> Text.pack >>> Category
 
