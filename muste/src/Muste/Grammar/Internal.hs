@@ -163,9 +163,9 @@ brackets grammar language ttree
 parseTTree :: Grammar -> String -> TTree
 parseTTree g = fromGfTree g . read
 
--- | The function 'fromGfTree' creates a 'TTree' from an
--- 'PGF.Tree' and a 'Grammar'. Othewise similar to
--- 'fromGfTreeWithPGF'
+-- | The function 'fromGfTree' creates a 'TTree' from a 'PGF.Tree' and
+-- a 'Grammar'. Handles only 'EApp' and 'EFun'. Generates a 'hole' in
+-- unsupported cases.
 fromGfTree :: Grammar -> PGF.Tree -> TTree
 fromGfTree g (EFun f) =
   let
