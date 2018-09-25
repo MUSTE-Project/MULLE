@@ -313,7 +313,10 @@ catToCid ∷ Category → PGF.CId
 catToCid = unCategory >>> convertString >>> PGF.utf8CId
 
 -- FIXME A 'PGF.CId' is just a newtype wrapper around a 'ByteString'.
--- If we could just get at that somehow.
+-- If we could just get at that somehow.  If [this PR][PR#9] goes
+-- through we will be able to do this.
+--
+-- [PR#9]: https://github.com/GrammaticalFramework/gf-core/pull/9
 cIdToCat ∷ PGF.CId → Category
 cIdToCat = PGF.showCId >>> Text.pack >>> Category
 
