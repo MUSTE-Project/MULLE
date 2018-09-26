@@ -1,3 +1,8 @@
+html {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight: 300;
+}
+
 body, button, ul {
     padding: 0;
     margin: 0;
@@ -11,9 +16,10 @@ body {
 }
 
 body, button, input, table, tr, td {
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-weight: 300;
     font-size: large;
+}
+
+button, input, table, tr, td {
     border: 0;
 }
 
@@ -44,10 +50,20 @@ strong {
 .page .container {
     display: inline-block;
     text-align: initial;
+    margin-left: auto;
+    margin-right: auto;
+    /* On the login page we want the container to take up all
+       available space an sit at the start of the flex container */
+    flex: 1;
 }
 
-.exercise {
+/* TODO Not so nice that we've implemented this as a special case. */
+#exercisepage .container {
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .lesson-info {
@@ -63,11 +79,6 @@ strong {
 .page .title {
     text-align: center;
     margin: 5%;
-    /* border: 1px green solid; */
-}
-
-#loginform table, #lessonslist {
-    margin: 5% auto;
     /* border: 1px green solid; */
 }
 
@@ -110,12 +121,6 @@ button, .button {
 a.button {
     text-decoration: none;
     color: initial;
-}
-
-/* Containers are a bit off towards the top. */
-.container {
-    margin-top:    15%;
-    margin-bottom: 35%;
 }
 
 .sentence {
@@ -299,4 +304,9 @@ img { border: 1px dotted blue }
     top:        0;
     left:       0;
     position:   fixed;
+}
+
+.spaced {
+    margin-block-start: 1em;
+    margin-block-end: 1em;
 }
