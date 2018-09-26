@@ -30,8 +30,8 @@ $(function() {
     $('#loginform').submit(submit_login);
     $('#abortlesson').click(retrieve_lessons);
     $('#logoutbutton').click(restart_everything);
-    $('#body').click(click_body);
-    window.setInterval(update_timer, 100);
+    register_timer();
+    register_overlay();
     var tok = window.sessionStorage.getItem("LOGIN_TOKEN");
     // Show login page regardless.
     show_page("loginpage");
@@ -43,18 +43,31 @@ $(function() {
     }
 });
 
-function elapsed_time() {
-    var elapsed = new Date().getTime() - TIMER_START;
-    var secs = Math.floor(elapsed / 1000);
-    return secs;
+function register_timer() {
+    // FIXME This keeps churning even if we are not using the timer.
+    window.setInterval(update_timer, 500);
 }
+
+// Returns a formatted string of the elapsed time. Note that currently
+// this is not locale sensitive.
+function elapsed_time() {
+    return countdown(new Date, TIMER_START).toString();
+}
+
 function update_timer() {
     if (TIMER_START) {
-	var secs = elapsed_time();
-        $("#timer").text(secs + " s");
+        $("#timer").text(elapsed_time());
     }
 }
 
+// The overlay is shown when the menus pop up.  The click-event on the
+// overlay resets the selection - which hides the menu again.
+function register_overlay() {
+    $(".overlay").click(function() {
+        reset_selection();
+        $(this).hide();
+    });
+}
 
 function show_page(page) {
     $(".page").hide();
@@ -75,13 +88,6 @@ function submit_login(evt) {
     call_server(MESSAGES.LOGIN, {username: loginform.name.value, password: loginform.pwd.value});
 }
 
-
-function click_body(event) {
-    var prevented = $(event.target).closest('.prevent-body-click').length > 0;
-    if (!prevented) {
-        reset_selection();
-    }
-}
 
 function call_server(message, parameters) {
   call_server_new(message, parameters, message + "/");
@@ -346,7 +352,6 @@ function intersection(m, n) {
 }
 
 function show_lin(lang, lin) {
-    reset_selection();
     var sentence = $('#' + lang).empty();
     // var tree = parse_tree(DATA[lang].tree);
     for (var i=0; i<lin.length; i++) {
@@ -499,8 +504,8 @@ function click_word(event) {
             })
             .addClass('striked');
 
-        $('#menus').data('selection', selection);
-        var ul = $('<ul>').appendTo($('#menus')).hide();
+        $('#menus').data('selection', selection).hide();
+        var ul = $('<ul>').appendTo($('#menus'));
         for (var i = 0; i < menus.length; i++) {
             var pr = menus[i];
             var item = pr[1]; // snd
@@ -524,7 +529,7 @@ function click_word(event) {
         }
     }
 
-    var shown_menu = $('#menus ul').first();
+    var shown_menu = $('.menu');
     var top = clicked.offset().top + clicked.height() * 3/4;
     var left = clicked.offset().top + (clicked.width() - shown_menu.width()) / 2;
     var striked = $('.striked');
@@ -537,6 +542,7 @@ function click_word(event) {
         'left': left + 'px',
         'max-height': (window.innerHeight - top - 6) + 'px'
     }).show();
+    $(".overlay").show();
 }
 
 // is_selected :: Menu.Seleection -> Int -> Bool

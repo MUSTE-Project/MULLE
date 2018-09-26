@@ -11,9 +11,9 @@ body {
 }
 
 body, button, input, table, tr, td {
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; 
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-weight: 300;
-    font-size: large; 
+    font-size: large;
     border: 0;
 }
 
@@ -64,7 +64,7 @@ strong {
     text-align: center;
     margin: 5%;
     /* border: 1px green solid; */
-}    
+}
 
 #loginform table, #lessonslist {
     margin: 5% auto;
@@ -154,41 +154,32 @@ input[type=radio], input[type=checkbox] {
 }
 
 #mainmenu label, #mainmenu button {
-    font-size: 12pt; 
+    font-size: 12pt;
     padding: 0 0.4em;
     cursor: pointer;
 }
 
 input:checked + label {
-    color: black; 
+    color: black;
     font-weight: bolder;
 }
 
-
-
-#lessoncounter {
-    float: left;
-}
 
 button {
     padding: 5px 20px;
 }
 
-.backbutton {
-    float: right;
-}
-
-#score {
+.left {
     float: left;
 }
 
-#timer {
+.right {
     float: right;
 }
 
 #busy-indicator {
     position: fixed;
-    left: 0; 
+    left: 0;
     top: 0;
     color: red;
 }
@@ -210,23 +201,26 @@ button {
 
 #mainmenu-toggler, #mainmenu {
     padding: 5px 20px;
-    position: fixed; 
-    right: 0; 
+    position: fixed;
+    right: 0;
     top: 0;
 }
 
-#menus ul {
-    z-index: 10;
+.menu {
+    z-index: 20;
     position: absolute;
     max-height: 20ex;
     overflow: auto;
-    list-style: none; 
-    padding: 0; 
-    margin: 0;
-    border: 1px solid;
     background-color: hsl(0, 0%, 95%);
+    border: 1px solid;
     border-radius: 5px;
     border-color: #acacac;
+}
+
+.menu ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
 #menus ul li {
@@ -244,7 +238,7 @@ button {
 
 .highlighted {
     background-color: #eee;
-    background-color: rgba(220,220,220,0.3); 
+    background-color: rgba(220,220,220,0.3);
 }
 
 .greyed {
@@ -267,7 +261,7 @@ button {
 .clickable:hover, button:hover, label:hover {
     cursor: pointer;
     background-color: #eee;
-    background-color: rgba(220,220,220,0.7); 
+    background-color: rgba(220,220,220,0.7);
     border-radius: 5px;
 }
 
@@ -296,6 +290,13 @@ img { border: 1px dotted blue }
     user-select: none;
 }
 
-.instructions {
-    float: left;
+.overlay {
+    opacity:    0.1;
+    background: #000;
+    width:      100%;
+    height:     100%;
+    z-index:    10;
+    top:        0;
+    left:       0;
+    position:   fixed;
 }
