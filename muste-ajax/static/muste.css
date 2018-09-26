@@ -228,9 +228,9 @@ button {
     margin: 0;
 }
 
-#menus ul li {
+.menu ul li {
     text-align: center;
-    padding: 0 0.4em;
+    padding: .1em .4em;
 }
 
 .correct { background-color: #cfc }
