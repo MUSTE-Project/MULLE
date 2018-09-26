@@ -71,7 +71,7 @@ strong {
     /* border: 1px green solid; */
 }
 
-a {
+button, .button {
     background-color: white;
     margin: 0.3em;
     padding: 0.3em 0.6em;
