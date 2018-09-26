@@ -360,7 +360,7 @@ function show_lin(lang, lin) {
         var current = linTok.concrete;
         var menu = DATA[lang].menu
         var spacing = (previous == NOSPACING || current == NOSPACING || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
-            ? ' ' : ' &nbsp; ';
+            ? ' ' : ' &emsp; ';
         var spacyData = {
             nr: i,
             lang: lang,
@@ -395,7 +395,7 @@ function show_lin(lang, lin) {
     }
     $('<span>')
         .addClass('space clickable').data({nr:lin.length, lang:lang})
-        .html(' &nbsp; ').click(click_word)
+        .html('&emsp;').click(click_word)
         .appendTo(sentence);
 }
 
