@@ -70,7 +70,8 @@ exercises = Data.exercises >>= go
 
 addUser ∷ Connection → (Text, Text, Bool) → IO ()
 addUser c (usr,psw,active)
-  = Database.runDB (Database.addUser usr psw active) c
+  = void
+  $ Database.runDb (Database.addUser usr psw active) c
 
 users ∷ [(Text, Text, Bool)]
 users =

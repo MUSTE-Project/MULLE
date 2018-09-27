@@ -51,12 +51,12 @@ function register_timer() {
 // Returns a formatted string of the elapsed time. Note that currently
 // this is not locale sensitive.
 function elapsed_time() {
-    return countdown(new Date, TIMER_START).toString();
+    return countdown(new Date, TIMER_START);
 }
 
 function update_timer() {
     if (TIMER_START) {
-        $("#timer").text(elapsed_time());
+        $("#timer").text(elapsed_time().toString());
     }
 }
 
@@ -210,7 +210,7 @@ function show_exercise(parameters) {
     $('#score').text(DATA.score);
     $('#lessoncounter').text(DATA.lesson + ": övning " + EXERCISES[DATA.lesson].passed + " av " + EXERCISES[DATA.lesson].total);
     if (parameters.success) {
-        var elapsed_time = Math.floor((new Date().getTime() - TIMER_START) / 1000);
+        var elapsed_time = elapsed_time().toString();
         setTimeout(function(){
             alert("BRAVO!" +
                   "     Klick: " + DATA.score +
@@ -633,7 +633,7 @@ function* lookupKeySetWith(idx, map, f) {
 function select_menuitem(item, lang) {
     ct_setLinearization(DATA[lang], item);
     DATA.token = LOGIN_TOKEN;
-    DATA.time = elapsed_time();
+    DATA.time = elapsed_time().seconds;
     call_server(MESSAGES.MENU, DATA);
 }
 

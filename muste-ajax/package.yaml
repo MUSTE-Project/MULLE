@@ -16,23 +16,24 @@ flags:
 ghc-options: -fmax-valid-substitutions=0
 
 default-extensions:
-- ConstraintKinds
-- DeriveGeneric
-- FlexibleContexts
-- FlexibleInstances
-- GADTs
-- GeneralizedNewtypeDeriving
-- LambdaCase
-- NamedWildCards
-- OverloadedStrings
-- ScopedTypeVariables
-- StandaloneDeriving
-- TupleSections
-- TypeApplications
-- TypeFamilies
-- TypeSynonymInstances
-- UnicodeSyntax
-- ViewPatterns
+  - ConstraintKinds
+  - DeriveGeneric
+  - FlexibleContexts
+  - FlexibleInstances
+  - GADTs
+  - GeneralizedNewtypeDeriving
+  - LambdaCase
+  - NamedWildCards
+  - OverloadedStrings
+  - ScopedTypeVariables
+  - StandaloneDeriving
+  - TupleSections
+  - TypeApplications
+  - TypeFamilies
+  - TypeSynonymInstances
+  - UnicodeSyntax
+  - ViewPatterns
+  - DerivingStrategies
 
 data-files:
   - ./static/index.html
@@ -54,41 +55,44 @@ data-files:
   - ./static/muste.css
 
 dependencies:
-- QuickCheck           >= 2.9.2    && < 2.12
-- aeson                >= 1.1.2.0  && < 1.4
-- base                 >= 4.9.1.0  && < 4.12
-- base64-bytestring    >= 1.0.0.1  && < 1.1
-- bytestring           >= 0.10.8.1 && < 0.11
-- containers           >= 0.5.7.1  && < 0.6
-- crypto-random-api    >= 0.2.0    && < 0.3
-- cryptonite           >= 0.23     && < 0.26
-- direct-sqlite        >= 2.3.21   && < 2.4
-- directory            >= 1.3.0.0  && < 1.4
-- exceptions           >= 0.8.3    && < 0.11
-- file-embed           >= 0.0.10   && < 0.1
-- filepath             >= 1.4.1.1  && < 1.5
-- http-types           >= 0.9.1    && < 0.13
-- io-streams           >= 1.4.1.0  && < 1.6
-- lens                 >= 4.15.4   && < 4.17
-- mtl                  >= 2.2.1    && < 2.3
-- muste                >= 0.2.3.1  && < 0.3
-- network-uri          >= 2.6.1.0  && < 2.7
-- optparse-applicative >= 0.13.2.0 && < 0.15
-- pgf                  >= 3.9.1    && < 3.10
-- prettyprinter        >= 1.1.1    && < 1.3
-- snap                 >= 1.1.1.0  && < 1.2
-- snap-core            >= 1.0.3.1  && < 1.1
-- snap-extras          >= 0.12.2.0 && < 0.13
-- snap-server          >= 1.0.3.3  && < 1.2
-- sqlite-simple        >= 0.4.16.1 && < 0.5
-- template-haskell     >= 2.11.1.0 && < 2.14
-- text                 >= 1.2.2.2  && < 1.3
-- time                 >= 1.6.0.1  && < 1.9
-- vector               >= 0.12.0.1 && < 0.13
-- wai                  >= 3.2.1.1  && < 3.3
-- warp                 >= 3.2.13   && < 3.3
-- yaml                 >= 0.8.25   && < 0.9
-- gitrev
+  - QuickCheck           >= 2.9.2    && < 2.12
+  - aeson                >= 1.1.2.0  && < 1.4
+  - base                 >= 4.9.1.0  && < 4.12
+  - base64-bytestring    >= 1.0.0.1  && < 1.1
+  - bytestring           >= 0.10.8.1 && < 0.11
+  - containers           >= 0.5.7.1  && < 0.6
+  - crypto-random-api    >= 0.2.0    && < 0.3
+  - cryptonite           >= 0.23     && < 0.26
+  - direct-sqlite        >= 2.3.21   && < 2.4
+  - directory            >= 1.3.0.0  && < 1.4
+  - exceptions           >= 0.8.3    && < 0.11
+  - file-embed           >= 0.0.10   && < 0.1
+  - filepath             >= 1.4.1.1  && < 1.5
+  - http-types           >= 0.9.1    && < 0.13
+  - io-streams           >= 1.4.1.0  && < 1.6
+  - lens                 >= 4.15.4   && < 4.17
+  - mtl                  >= 2.2.1    && < 2.3
+  - muste                >= 0.2.3.1  && < 0.3
+  - network-uri          >= 2.6.1.0  && < 2.7
+  - optparse-applicative >= 0.13.2.0 && < 0.15
+  - pgf                  >= 3.9.1    && < 3.10
+  - prettyprinter        >= 1.1.1    && < 1.3
+  - snap                 >= 1.1.1.0  && < 1.2
+  - snap-core            >= 1.0.3.1  && < 1.1
+  - snap-extras          >= 0.12.2.0 && < 0.13
+  - snap-server          >= 1.0.3.3  && < 1.2
+  - sqlite-simple        >= 0.4.16.1 && < 0.5
+  - template-haskell     >= 2.11.1.0 && < 2.14
+  - text                 >= 1.2.2.2  && < 1.3
+  - time                 >= 1.6.0.1  && < 1.9
+  - vector               >= 0.12.0.1 && < 0.13
+  - wai                  >= 3.2.1.1  && < 3.3
+  - warp                 >= 3.2.13   && < 3.3
+  - yaml                 >= 0.8.25   && < 0.9
+  - gitrev
+  - monad-control
+  - transformers-base
+  - string-conversions
 
 library:
   default-extensions:
@@ -102,6 +106,7 @@ library:
   - TupleSections
   - UnicodeSyntax
   - ConstraintKinds
+  - MultiParamTypeClasses
 
   source-dirs:
     - src
