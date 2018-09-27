@@ -484,8 +484,8 @@ function click_word(event) {
         }
     }
     if(validMenus === "nothing") {
-        showErrorAt("No menu for item", event.target);
-        return;
+        // Fake an empty menu.
+        validMenus = {next: function() {return [[], []];}, reset: function (){}};
     }
     if(validMenus === undefined) {
         throw "No menu found. Probably because the user clicked a space between words, this is still not supported.";

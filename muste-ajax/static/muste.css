@@ -302,7 +302,9 @@ img { border: 1px dotted blue }
     position:   fixed;
 }
 
-.spaced {
-    margin-block-start: 1em;
-    margin-block-end: 1em;
+/* The spaced class is used to add the same spacing as on h3
+   elements. */
+.spaced, h3 {
+    margin-top: 1em;
+    margin-bottom: 1em;
 }
