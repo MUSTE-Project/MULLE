@@ -1,6 +1,6 @@
 -- TODO Fix name shadowing.
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# Language QuasiQuotes #-}
+{-# Language QuasiQuotes, RecordWildCards #-}
 module Database
   ( MonadDB
   , DbT(DbT)
@@ -8,6 +8,7 @@ module Database
   , HasConnection(getConnection)
   , Error(..)
   , MonadDatabaseError(..)
+  , Lesson2(..)
   , runDb
   , getLessons
   , authUser
@@ -33,18 +34,19 @@ import Database.SQLite.Simple.QQ (sql)
 import qualified Database.SQLite.Simple as SQL
 import Control.Monad.Except (MonadError(..), ExceptT, runExceptT)
 import Control.Exception (catch)
+import Data.String.Conversions (convertString)
+import Data.Aeson
+  ( FromJSON(parseJSON), withObject, (.:), ToJSON(toJSON), object, (.=))
 
 import Crypto.Random.API (getSystemRandomGen, genRandomBytes)
 import Crypto.KDF.PBKDF2 (fastPBKDF2_SHA512, Parameters(Parameters))
-import Crypto.Hash (Digest,SHA3_512(..),hash)
+import Crypto.Hash (SHA3_512, hash)
 
 import Data.ByteString (ByteString)
-import qualified Data.ByteString.Char8  as Char8
-import qualified Data.Text              as T
 import qualified Data.Text.Encoding     as T
 import Data.Time.Clock (NominalDiffTime, UTCTime)
 import qualified Data.Time.Clock        as Time
-import Data.Time.Format
+import qualified Data.Time.Format       as Time
 import Control.Monad.Reader
 
 -- FIXME QuickCheck seems like a heavy dependency just to get access
@@ -161,12 +163,11 @@ createSession user = do
     execute deleteSessionQuery [user]
     -- create new session
     timeStamp <- getCurrentTime
-    let sessionData
-         = T.unpack user
-         <> formatTime defaultTimeLocale "%s" timeStamp
-
-    let token :: Text
-        token = T.pack (show (hash (Char8.pack sessionData) :: Digest SHA3_512) :: String)
+    let
+      sessionData ∷ ByteString
+      sessionData = convertString $ formatTime timeStamp
+      token ∷ Text
+      token = convertString (show (hash @ByteString @SHA3_512 sessionData))
     pure (user, token, timeStamp, timeStamp)
 
 -- | Creates a new session and returns the session token.  At the
@@ -177,14 +178,18 @@ startSession
   -> db Text
 startSession user = do
   session@(_, token, _, _) <- createSession user
-  let insertSessionQuery = [sql|INSERT INTO Session VALUES (?,?,?,?);|] :: Query
+  let insertSessionQuery = [sql|INSERT INTO Session VALUES (?,?,?,?);|]
   execute insertSessionQuery session
   return token
 
-updateActivity :: MonadDB db ⇒ String -> db ()
+formatTime ∷ UTCTime → String
+formatTime = Time.formatTime Time.defaultTimeLocale "%s"
+
+updateActivity :: MonadDB db ⇒ Text -> db ()
 updateActivity token = do
-  timeStamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime
-  let updateSessionLastActiveQuery = [sql|UPDATE Session SET LastActive = ? WHERE Token = ?;|] :: Query
+  -- We should use to- from- row instances for UTCTime in stead.
+  timeStamp ← formatTime <$> getCurrentTime
+  let updateSessionLastActiveQuery = [sql|UPDATE Session SET LastActive = ? WHERE Token = ?;|]
   execute updateSessionLastActiveQuery (timeStamp,token)
 
 -- | Returns @Just err@ if there is an error.
@@ -215,13 +220,60 @@ verifySession token = do
     execute deleteSessionQuery [token]
     throwDbError error
 
+-- | Not like 'Types.Lesson'.  'Types.Lesson' refers to the
+-- representation in the database.  This is the type used in "Ajax".
+data Lesson2 = Lesson2
+  { name :: Text
+  , description :: Text
+  , exercisecount :: Int
+  , passedcount :: Int
+  , score :: Int
+  , time :: NominalDiffTime
+  , finished :: Bool
+  , enabled :: Bool
+  }
+
+instance FromJSON Lesson2 where
+  parseJSON = withObject "Lesson" $ \v -> Lesson2
+    <$> v .: "name"
+    <*> v .: "description"
+    <*> v .: "exercisecount"
+    <*> v .: "passedcount"
+    <*> v .: "score"
+    <*> v .: "time"
+    <*> v .: "passed"
+    <*> v .: "enabled"
+
+instance ToJSON Lesson2 where
+  toJSON Lesson2{..} = object
+    [ "name"          .= name
+    , "description"   .= description
+    , "exercisecount" .= exercisecount
+    , "passedcount"   .= passedcount
+    , "score"         .= score
+    , "time"          .= time
+    , "passed"        .= passedcount
+    , "enabled"       .= enabled
+    ]
+
+instance FromRow Lesson2 where
+  fromRow = Lesson2
+    <$> SQL.field
+    <*> SQL.field
+    <*> SQL.field
+    <*> SQL.field
+    <*> SQL.field
+    <*> SQL.field
+    <*> SQL.field
+    <*> SQL.field
+
 -- | List all the lessons i.e. lesson name, description and exercise
 -- count
 listLessons
   ∷ ∀ db
   . MonadDB db
   ⇒ Text -- Token
-  → db [(Text,Text,Int,Int,Int,NominalDiffTime,Bool,Bool)]
+  → db [Lesson2]
 listLessons token = do
   user <- getUser token
   let listLessonsQuery = [sql|
@@ -444,7 +496,7 @@ finishExercise
   -> db ()
 finishExercise token lesson time clicks = do
   -- get user name
-  [Only user] <- query @(Only String) userQuery [token]
+  user ← getUser token
   -- get lesson round
   [Only round] <- query @(Only Integer) lessonRoundQuery (user,lesson)
   ((sourceTree,targetTree):_)
@@ -460,7 +512,6 @@ finishExercise token lesson time clicks = do
     execute deleteStartedLessonQuery (user,lesson)
   else return ()
   where
-    userQuery = [sql|SELECT User FROM Session WHERE Token = ?;|]
     lessonRoundQuery = [sql|
       SELECT ifnull(MAX(Round),1)
       FROM StartedLesson

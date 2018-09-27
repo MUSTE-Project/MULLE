@@ -103,6 +103,7 @@ data ProtocolError
   | NoCookie
   | BadRequest
   | SessionInvalid
+  | LoginFail
 
 instance Show ProtocolError where
   show = \case
@@ -113,6 +114,7 @@ instance Show ProtocolError where
     SomeProtocolError e → displayException e
     SessionInvalid    → "Session invalid, please log in again"
     BadRequest        → "Bad request!"
+    LoginFail         → "Login failure"
 
 deriving anyclass instance Exception ProtocolError
 
@@ -149,6 +151,7 @@ errResponseCode = \case
   SomeProtocolError{} → 400
   SessionInvalid      → 400
   BadRequest          → 400
+  LoginFail           → 401
 
 dbErrResponseCode ∷ Database.Error → Int
 dbErrResponseCode = \case
@@ -193,10 +196,11 @@ apiRoutes db =
   , "DataResponse" |> run (missingApiRoute "DataResponse")
   ]
   where
+    run ∷ ToJSON a ⇒ ProtocolT (Snap.Handler v w) a → Snap.Handler v w ()
     run = runProtocolT @(Snap.Handler v w) db
     (|>) = (,)
 
-missingApiRoute ∷ MonadError ProtocolError m ⇒ String -> m a
+missingApiRoute ∷ MonadError ProtocolError m ⇒ String -> m ()
 missingApiRoute = throwError . MissingApiRoute
 
 -- | Reads the data from the request and deserializes from JSON.
@@ -253,10 +257,10 @@ loginHandler = Snap.method Snap.POST $ do
   (usr, pwd) <- getUser
   handleLoginRequest usr pwd
 
-logoutHandler :: MonadProtocol m ⇒ m ServerMessage
-logoutHandler = Snap.method Snap.POST $ do
-  tok <- getToken
-  handleLogoutRequest tok
+logoutHandler :: MonadProtocol m ⇒ m ()
+logoutHandler
+  = Snap.method Snap.POST
+  $ getToken >>= handleLogoutRequest
 
 -- TODO Now how this info should be retreived
 -- | Returns @(username, password)@.
@@ -287,7 +291,7 @@ handleLoginRequest user pass = do
   if authed
   then SMLoginSuccess token
     <$ setLoginCookie token
-  else pure $ SMLoginFail
+  else throwError LoginFail
 
 askContexts :: MonadProtocol m ⇒ m Contexts
 askContexts = asks contexts
@@ -295,7 +299,7 @@ askContexts = asks contexts
 handleLessonsRequest :: MonadProtocol m ⇒ Text -> m ServerMessage
 handleLessonsRequest token = do
   lessons <- Database.listLessons token
-  verifyMessage token (SMLessonsList $ Ajax.lessonFromTuple <$> lessons)
+  verifyMessage token (SMLessonsList lessons)
 
 handleLessonInit
   ∷ ∀ m
@@ -402,10 +406,8 @@ disambiguate cs lesson t = do
     getC ∷ Unannotated → m Context
     getC u = liftEither $ getContext cs lesson (Sentence.language u)
 
-handleLogoutRequest :: MonadProtocol m ⇒ Text -> m ServerMessage
-handleLogoutRequest token = do
-  Database.endSession token
-  pure $ SMLogoutResponse
+handleLogoutRequest ∷ MonadProtocol m ⇒ Text → m ()
+handleLogoutRequest = Database.endSession
 
 -- | @'verifySession' tok@ verifies the user identified by
 -- @tok@. Returns 'Nothing' if authentication is successfull and @Just

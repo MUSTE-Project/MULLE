@@ -93,6 +93,7 @@ dependencies:
   - monad-control
   - transformers-base
   - string-conversions
+  - memory
 
 library:
   default-extensions:

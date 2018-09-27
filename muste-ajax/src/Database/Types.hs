@@ -24,9 +24,7 @@ module Database.Types
 
 import Prelude ()
 import Muste.Prelude
-
 import Data.ByteString (ByteString)
-
 import Data.Time
 
 import qualified Muste (TTree)
