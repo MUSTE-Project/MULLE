@@ -63,10 +63,21 @@ function update_timer() {
 // The overlay is shown when the menus pop up.  The click-event on the
 // overlay resets the selection - which hides the menu again.
 function register_overlay() {
+    $(document).on("overlay", function() {
+        $(".overlay").show();
+    });
     $(".overlay").click(function() {
-        reset_selection();
+        $(document).trigger("overlay-out");
         $(this).hide();
     });
+    $(document).on("overlay-out", function() {
+        reset_selection();
+        clear_errors();
+    });
+}
+
+function clear_errors() {
+    $(".error").empty().hide();
 }
 
 function show_page(page) {
@@ -100,7 +111,6 @@ function call_server_new(message, parameters, endpoint) {
     else if (typeof(SERVER) === "string") {
         $.ajax({
             cache: false,
-            async: false,
             timeout: AjaxTimeout,
             url: SERVER + endpoint,
             dataType: "json",
@@ -434,6 +444,27 @@ function reset_selection() {
     }
 }
 
+function placeThisAtThat(a, b) {
+    var pos = $(b).position();
+
+    // .outerWidth() takes into account border and padding.
+    var width = $(b).outerWidth();
+
+    //show the menu directly over the placeholder
+    $(a).css({
+        position: "absolute",
+        top: pos.top + "px",
+        left: (pos.left + width) + "px"
+    });
+}
+
+function showErrorAt(msg, e) {
+    var err = $(".error")
+        .text(msg)
+        .show()
+    placeThisAtThat(err, e);
+    $(document).trigger("overlay");
+}
 
 function click_word(event) {
     var clicked = $(event.target).closest('.clickable');
@@ -453,7 +484,8 @@ function click_word(event) {
         }
     }
     if(validMenus === "nothing") {
-        throw "No menu for item";
+        showErrorAt("No menu for item", event.target);
+        return;
     }
     if(validMenus === undefined) {
         throw "No menu found. Probably because the user clicked a space between words, this is still not supported.";
@@ -542,7 +574,7 @@ function click_word(event) {
         'left': left + 'px',
         'max-height': (window.innerHeight - top - 6) + 'px'
     }).show();
-    $(".overlay").show();
+    $(document).trigger("overlay");
 }
 
 // is_selected :: Menu.Seleection -> Int -> Bool

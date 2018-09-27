@@ -211,7 +211,7 @@ button {
     top: 0;
 }
 
-.menu {
+.popup {
     z-index: 20;
     position: absolute;
     max-height: 20ex;
@@ -222,13 +222,13 @@ button {
     border-color: #acacac;
 }
 
-.menu ul {
+.popup ul {
     list-style: none;
     padding: 0;
     margin: 0;
 }
 
-.menu ul li {
+.popup ul li {
     text-align: center;
     padding: .1em .4em;
 }
