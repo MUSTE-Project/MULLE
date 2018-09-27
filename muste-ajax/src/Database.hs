@@ -6,7 +6,7 @@ module Database
   , DbT(DbT)
   , Db
   , HasConnection(getConnection)
-  , Error
+  , Error(..)
   , MonadDatabaseError(..)
   , runDb
   , getLessons

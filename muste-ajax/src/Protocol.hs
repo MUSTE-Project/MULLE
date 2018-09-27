@@ -139,9 +139,25 @@ type MonadProtocol m =
 instance Monad m ⇒ Database.HasConnection (ReaderT Env m) where
   getConnection = asks connection
 
--- FIXME Stub
+-- Could perhaps pick better error codes.
 errResponseCode ∷ ProtocolError → Int
-errResponseCode = const 400
+errResponseCode = \case
+  DatabaseError err   → dbErrResponseCode err
+  UnspecifiedError    → 500
+  MissingApiRoute{}   → 501
+  NoCookie            → 400
+  SomeProtocolError{} → 400
+  SessionInvalid      → 400
+  BadRequest          → 400
+
+dbErrResponseCode ∷ Database.Error → Int
+dbErrResponseCode = \case
+  Database.NoUserFound      → 401
+  Database.LangNotFound     → 400
+  Database.MultipleUsers    → 401
+  Database.NoCurrentSession → 401
+  Database.SessionTimeout   → 401
+  Database.MultipleSessions → 401
 
 -- | Errors are returned as JSON responses.
 runProtocolT :: MonadSnap m ⇒ ToJSON a ⇒ String → ProtocolT m a → m ()

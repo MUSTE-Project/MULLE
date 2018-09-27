@@ -109,17 +109,28 @@ function call_server_new(message, parameters, endpoint) {
         handle_server_response(SERVER(message, parameters));
     }
     else if (typeof(SERVER) === "string") {
-        $.ajax({
+        var req = {
             cache: false,
             timeout: AjaxTimeout,
             url: SERVER + endpoint,
             dataType: "json",
-	        method: "POST",
-	        processData: false,
+            method: "POST",
+            processData: false,
             data: JSON.stringify({message: message, parameters: parameters})
-        }).fail(function(resp, status, error) {
-            console.error(resp.responseText);
-        }).done(handle_server_response);
+        };
+        $.ajax(req)
+            .fail(handle_server_fail)
+            .done(handle_server_response);
+    }
+}
+
+function handle_server_fail(resp, status, error) {
+    switch(resp.status) {
+    case 401:
+        show_page("loginpage");
+        break
+    case 400:
+    default: console.error(resp.responseJSON);
     }
 }
 
