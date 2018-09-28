@@ -1,8 +1,8 @@
 var AjaxTimeout = 1000; // milliseconds
 
 var NOSPACING = '&+';
-var PUNCTUATION = /^[\,\;\.\?\!\)]$/;
-var PREFIXPUNCT = /^[¿¡\(]$/;
+var PUNCTUATION = /^[,;.?!)]$/;
+var PREFIXPUNCT = /^[¿¡(]$/;
 
 var DATA = null;
 var LOGIN_TOKEN = null;
