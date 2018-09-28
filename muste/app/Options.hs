@@ -7,6 +7,7 @@ module Options
   , SubCommand(..)
   , Options(..)
   , PreComputeOpts(..)
+  , SearchOptions(..)
   ) where
 
 import Prelude ()
@@ -17,21 +18,27 @@ import Control.Applicative ((<**>), optional)
 import qualified Development.GitRev as Dev
 
 data Options = Options
-  { searchDepth      ∷ Maybe Int
-  , interactiveMode  ∷ Bool
-  , sentences        ∷ [Text]
-  , grammar          ∷ Text   -- E.g. "novo_modo/Exemplum"
-  , language         ∷ Text   -- E.g. "ExemplumSwe"
-  , printNodes       ∷ Bool
-  , printCompact     ∷ Bool
-  , pruneSearchDepth ∷ Maybe Int
-  , input            ∷ Maybe FilePath
+  { interactiveMode    ∷ Bool
+  , sentences          ∷ [Text]
+  , grammar            ∷ Text   -- E.g. "novo_modo/Exemplum"
+  , language           ∷ Text   -- E.g. "ExemplumSwe"
+  , printNodes         ∷ Bool
+  , printCompact       ∷ Bool
+  , searchOptions      ∷ SearchOptions
+  , input              ∷ Maybe FilePath
   }
 
 data PreComputeOpts = PreComputeOpts
-  { grammar     ∷ Text
-  , output      ∷ FilePath
-  , searchDepth ∷ Maybe Int
+  { grammar       ∷ Text
+  , output        ∷ FilePath
+  , searchOptions ∷ SearchOptions
+  }
+
+data SearchOptions = SearchOptions
+  { adjTreeSearchDepth ∷ Maybe Int
+  , adjTreeSearchSize  ∷ Maybe Int
+  , pruneSearchDepth   ∷ Maybe Int
+  , pruneSearchSize    ∷ Maybe Int
   }
 
 data Command = Command SubCommand
@@ -41,14 +48,13 @@ data SubCommand = Muste Options | PreCompute PreComputeOpts
 optionsParser ∷ Parser Options
 optionsParser
   = Options
-  <$> searchDepthParser
-  <*> interactiveModeParser
+  <$> interactiveModeParser
   <*> sentencesParser
   <*> grammarParser
   <*> languageParser
   <*> printNodesParser
   <*> printCompactParser
-  <*> pruneSearchDepthParser
+  <*> searchOptionsParser
   <*> inputParser
   where
   interactiveModeParser ∷ Parser Bool
@@ -80,14 +86,6 @@ optionsParser
       (  O.long "print-compact"
       <> O.help "Print compact information about menus"
       )
-  pruneSearchDepthParser ∷ Parser (Maybe Int)
-  pruneSearchDepthParser
-    = optional
-    $ O.option O.auto
-      (  O.long "limit-prune"
-      <> O.help "Limit search depth when creating pruning trees"
-      <> O.metavar "DEPTH"
-      )
   inputParser ∷ Parser (Maybe FilePath)
   inputParser
     = optional
@@ -97,14 +95,60 @@ optionsParser
       <> O.metavar "PATH"
       )
 
-searchDepthParser ∷ Parser (Maybe Int)
-searchDepthParser
-  = optional
-  $ O.option O.auto
-    (  O.long "limit-adjunctions"
-    <> O.help "Limit search depth when creating adjunction trees"
-    <> O.metavar "DEPTH"
-    )
+searchOptionsParser ∷ Parser SearchOptions
+searchOptionsParser
+  = SearchOptions
+  <$> adjTreeSearchDepthParser
+  <*> adjTreeSearchSizeParser
+  <*> pruneSearchDepthParser
+  <*> pruneSearchSizeParser
+  where
+  adjTreeSearchDepthParser ∷ Parser (Maybe Int)
+  adjTreeSearchDepthParser
+    = optional
+    $ O.option O.auto
+      (  O.long "max-adjtree-depth"
+      <> O.help "Limit search depth when creating adjunction trees"
+      <> O.metavar "DEPTH"
+      )
+
+  adjTreeSearchSizeParser ∷ Parser (Maybe Int)
+  adjTreeSearchSizeParser
+    = optional
+    $ O.option O.auto
+      (  O.long "max-adjtree-size"
+      <> O.help
+        (  "Limit search size when creating adjunction trees. "
+        <> warnNotUsed
+        )
+      <> O.metavar "SIZE"
+      )
+
+  pruneSearchDepthParser ∷ Parser (Maybe Int)
+  pruneSearchDepthParser
+    = optional
+    $ O.option O.auto
+      (  O.long "max-prune-depth"
+      <> O.help
+        (  "Limit search depth when pruning trees. "
+        <> warnNotUsed
+        )
+      <> O.metavar "DEPTH"
+      )
+
+  warnNotUsed
+        =   "WARNING: This options is not currently being used. "
+        <> "Please see the discussion at: "
+        <> "https://github.com/MUSTE-Project/MULLE/issues/46"
+
+  pruneSearchSizeParser ∷ Parser (Maybe Int)
+  pruneSearchSizeParser
+    = optional
+    $ O.option O.auto
+      (  O.long "max-prune-size"
+      <> O.help "Limit search size when pruning trees"
+      <> O.metavar "SIZE"
+      )
 
 grammarParser ∷ Parser Text
 grammarParser
@@ -131,7 +175,7 @@ preComputeOptsParser
   =   PreComputeOpts
   <$> grammarParser
   <*> outputParser
-  <*> searchDepthParser
+  <*> searchOptionsParser
   where
   outputParser ∷ Parser FilePath
   outputParser = O.strOption

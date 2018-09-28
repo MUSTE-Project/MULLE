@@ -37,12 +37,19 @@ unsafeLookupGrammar g
   = fromMaybe (error "Grammar not found") $ Grammar.lookupGrammar g
 
 builderInfo ∷ Options → BuilderInfo
-builderInfo Options{..} = BuilderInfo { searchDepth }
+builderInfo Options { searchOptions = Options.SearchOptions{..} }
+  = BuilderInfo
+  { searchDepth = adjTreeSearchDepth
+  , searchSize  = adjTreeSearchSize
+  }
 
 muste ∷ Options.Options → IO ()
-muste opts@Options{..} = do
+muste opts@Options{ searchOptions = Options.SearchOptions{..}, ..} = do
   let pruneOpts ∷ Menu.PruneOpts
-      pruneOpts = Menu.PruneOpts pruneSearchDepth
+      pruneOpts = Menu.PruneOpts
+        { searchDepth = pruneSearchDepth
+        , searchSize  = pruneSearchSize
+        }
       replOpts ∷ Repl.Options
       replOpts = Repl.Options printNodes printCompact pruneOpts
   e ← makeEnv opts
@@ -54,12 +61,15 @@ muste opts@Options{..} = do
     $ Repl.interactively replOpts e (Repl.updateMenu . Text.pack)
 
 precompute ∷ Options.PreComputeOpts → IO ()
-precompute Options.PreComputeOpts{..}
+precompute Options.PreComputeOpts{ searchOptions = Options.SearchOptions{..}, ..}
   = Binary.encodeFile output $ AdjunctionTrees.getAdjunctionTrees opts g
   where
   g = unsafeLookupGrammar grammar
   opts ∷ BuilderInfo
-  opts = BuilderInfo { searchDepth }
+  opts = BuilderInfo
+    { searchDepth = adjTreeSearchDepth
+    , searchSize  = adjTreeSearchSize
+    }
 
 main :: IO ()
 main = do
