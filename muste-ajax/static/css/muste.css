@@ -1,7 +1,7 @@
 html {
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-weight: 300;
-    font-size: normal;
+    font-size: medium;
 }
 
 body {
@@ -24,7 +24,12 @@ main {
     display: flex;
     flex-direction: column;
     margin: 0 auto;
-    /* height: 95%; */
+}
+
+html, body, main {
+    /* I feel like this ought to be min-height but that does not acheive
+   the same result for some reason. */
+    height: 100%;
 }
 
 #loginform td, input {
