@@ -105,7 +105,7 @@ createUser user pass enabled = do
   -- Create a salted password
   salt <- createSalt
   let safePw = hashPasswd (T.encodeUtf8 pass) salt
-  pure (user, safePw, salt, enabled)
+  pure $ Types.User user safePw salt enabled
 
 addUser
   :: MonadDB db
@@ -168,7 +168,7 @@ createSession user = do
       sessionData = convertString $ formatTime timeStamp
       token ∷ Text
       token = convertString (show (hash @ByteString @SHA3_512 sessionData))
-    pure (user, token, timeStamp, timeStamp)
+    pure $ Types.Session user token timeStamp timeStamp
 
 -- | Creates a new session and returns the session token.  At the
 -- moment overly simplified.
@@ -177,7 +177,7 @@ startSession
   => Text -- ^ Username
   -> db Text
 startSession user = do
-  session@(_, token, _, _) <- createSession user
+  session@(Types.Session _ token _ _) <- createSession user
   let insertSessionQuery = [sql|INSERT INTO Session VALUES (?,?,?,?);|]
   execute insertSessionQuery session
   return token
@@ -435,7 +435,7 @@ newLesson user lesson = do
         = fromMaybe errNoExercises $ listToMaybe $ selectedTrees
   -- save in database
   let startedLesson :: Types.StartedLesson
-      startedLesson = (lesson, user, succ round)
+      startedLesson = Types.StartedLesson lesson user (succ round)
   execute insertStartedLesson startedLesson
   mapM_ (\(sTree,tTree) -> execute insertExerciseList (lesson,user,sTree,tTree,round)) selectedTrees
   -- get languages

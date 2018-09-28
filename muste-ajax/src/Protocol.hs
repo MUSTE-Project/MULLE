@@ -438,7 +438,7 @@ mkContexts = Map.fromList . map mkContext
 mkContext
   ∷ Database.Lesson
   → (Text, Map.Map Sentence.Language Context)
-mkContext (name, _, grammar, _, _, _, _, _)
+mkContext (Database.Lesson name _ grammar _ _ _ _ _)
   = (name, Map.mapKeys f m)
   where
   m ∷ Map Text Context

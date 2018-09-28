@@ -1,23 +1,19 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# language
-    StandaloneDeriving
-  , GeneralizedNewtypeDeriving
-  , TypeOperators
-  , LambdaCase
-#-}
+{-# Language StandaloneDeriving , GeneralizedNewtypeDeriving ,
+    TypeOperators , LambdaCase, DuplicateRecordFields #-}
 -- | One type per table
 --
 -- The reason I'm using type aliases is to inherit the `FromRow` and
 -- `ToRow` instances defined for these types.
 module Database.Types
-  ( User
-  , Session
-  , Exercise
-  , Lesson
-  , FinishedExercise
-  , StartedLesson
-  , FinishedLesson
-  , ExerciseList
+  ( User(..)
+  , Session(..)
+  , Exercise(..)
+  , Lesson(..)
+  , FinishedExercise(..)
+  , StartedLesson(..)
+  , FinishedLesson(..)
+  , ExerciseList(..)
   , Muste.TTree
   , Sentence.Unannotated
   ) where
@@ -30,6 +26,9 @@ import Data.Time
 import qualified Muste (TTree)
 import qualified Muste.Sentence.Unannotated as Sentence (Unannotated)
 import Muste.Sentence.Unannotated (Unannotated)
+import Database.SQLite.Simple.FromRow
+import Database.SQLite.Simple.ToRow
+import Database.SQLite.Simple.FromRow.Generic
 
 type Blob = ByteString
 type Numeric = Integer
@@ -40,12 +39,18 @@ type Numeric = Integer
 -- * Password.
 -- * Salt.
 -- * Is user enabled.
-type User =
-  ( Text            -- @username@
-  , Blob            -- @password@
-  , Blob            -- @salt@
-  , Bool            -- @enabled@
-  )
+data User = User
+  { userName            ∷ Text
+  , password            ∷ Blob
+  , salt                ∷ Blob
+  , enabled             ∷ Bool
+  }
+
+deriving stock instance Generic User
+instance ToRow User where
+  toRow = genericToRow
+instance FromRow User where
+  fromRow = genericFromRow
 
 -- | Representation of a 'Session' in the database.  Consists of:
 --
@@ -53,12 +58,18 @@ type User =
 -- * A token.
 -- * Start time.
 -- * End time.
-type Session =
-  ( Text            -- @user@
-  , Text            -- @token@
-  , UTCTime         -- @starttime@
-  , UTCTime         -- @lastActive@
-  )
+data Session = Session
+  { user                ∷ Text
+  , token               ∷ Text
+  , startTime           ∷ UTCTime
+  , lastActive          ∷ UTCTime
+  }
+
+deriving stock instance Generic Session
+instance ToRow Session where
+  toRow = genericToRow
+instance FromRow Session where
+  fromRow = genericFromRow
 
 -- Probably should be @(Blob, Blob, Text, Numeric)@
 -- | Representation of an 'Exercise' in the database.  Consists of:
@@ -67,12 +78,18 @@ type Session =
 -- * The target sentence.
 -- * The lesson to which the exercise belongs.
 -- * Timeout for the exercise.
-type Exercise =
-  ( Unannotated -- @sourceLinearization@
-  , Unannotated -- @targetLinearization@
-  , Text        -- @lesson@
-  , Numeric     -- @timeout@
-  )
+data Exercise = Exercise
+  { sourceLinearization ∷ Unannotated
+  , targetLinearization ∷ Unannotated
+  , lesson              ∷ Text
+  , timeout             ∷ Numeric
+  }
+
+deriving stock instance Generic Exercise
+instance ToRow Exercise where
+  toRow = genericToRow
+instance FromRow Exercise where
+  fromRow = genericFromRow
 
 -- | Representation of a 'Leson' in the database.  Consists of:
 --
@@ -85,16 +102,22 @@ type Exercise =
 -- * The number of exercises.
 -- * Is it enabled.
 -- * Is it repeatable.
-type Lesson =
-  ( Text            -- @name@
-  , Text            -- @description@
-  , Text            -- @grammar@
-  , Text            -- @sourceLanguage@
-  , Text            -- @targetLanguage@
-  , Numeric         -- @exerciseCount@
-  , Bool            -- @enabled@
-  , Bool            -- @repeatable@
-  )
+data Lesson = Lesson
+  { name                ∷ Text
+  , description         ∷ Text
+  , grammar             ∷ Text
+  , sourceLanguage      ∷ Text
+  , targetLanguage      ∷ Text
+  , exerciseCount       ∷ Numeric
+  , enabled             ∷ Bool
+  , repeatable          ∷ Bool
+  }
+
+deriving stock instance Generic Lesson
+instance ToRow Lesson where
+  toRow = genericToRow
+instance FromRow Lesson where
+  fromRow = genericFromRow
 
 -- | Representation of a 'FinishedExercise' in the database.  Consists
 -- of:
@@ -106,15 +129,21 @@ type Lesson =
 -- * The time it took to finish.
 -- * The amount of clicks it took.
 -- * The round it was in the lesson.
-type FinishedExercise =
-  ( Text            -- @user@
-  , Unannotated     -- @sourceLinearization@
-  , Unannotated     -- @targetLinearization@
-  , Text            -- @lesson@
-  , NominalDiffTime -- @time@
-  , Numeric         -- @clickCount@
-  , Numeric         -- @round@
-  )
+data FinishedExercise = FinishedExercise
+  { user                ∷ Text
+  , sourceLinearization ∷ Unannotated
+  , targetLinearization ∷ Unannotated
+  , lesson              ∷ Text
+  , time                ∷ NominalDiffTime
+  , clickCount          ∷ Numeric
+  , round               ∷ Numeric
+  }
+
+deriving stock instance Generic FinishedExercise
+instance ToRow FinishedExercise where
+  toRow = genericToRow
+instance FromRow FinishedExercise where
+  fromRow = genericFromRow
 
 -- | Representation of a 'StartedLesson' in the
 -- database.  Consists of:
@@ -122,11 +151,17 @@ type FinishedExercise =
 -- * The name of the lesson.
 -- * The (name of the) user that started the lessson.
 -- * The round.
-type StartedLesson =
-  ( Text            -- @lesson@
-  , Text            -- @user@
-  , Numeric         -- @round@
-  )
+data StartedLesson = StartedLesson
+  { lesson              ∷ Text
+  , user                ∷ Text
+  , round               ∷ Numeric
+  }
+
+deriving stock instance Generic StartedLesson
+instance ToRow StartedLesson where
+  toRow = genericToRow
+instance FromRow StartedLesson where
+  fromRow = genericFromRow
 
 -- | Representation of a 'FinishedLesson' in the
 -- database.  Consists of:
@@ -136,13 +171,19 @@ type StartedLesson =
 -- * The time it took to finish the exercise.
 -- * The number of clicks it took to finish.
 -- * The number of rounds.
-type FinishedLesson =
-  ( Text            -- @lesson@
-  , Text            -- @user@
-  , Numeric         -- @time@
-  , Numeric         -- @clickCount@
-  , Numeric         -- @round@
-  )
+data FinishedLesson = FinishedLesson
+  { lesson              ∷ Text
+  , user                ∷ Text
+  , time                ∷ Numeric
+  , clickCount          ∷ Numeric
+  , round               ∷ Numeric
+  }
+
+deriving stock instance Generic FinishedLesson
+instance ToRow FinishedLesson where
+  toRow = genericToRow
+instance FromRow FinishedLesson where
+  fromRow = genericFromRow
 
 -- | Representation of an 'ExerciseList' in the database.  Consists
 -- of:
@@ -152,10 +193,16 @@ type FinishedLesson =
 -- * Target language.
 -- * The lesson it belongs to.
 -- * The round.
-type ExerciseList =
-  ( Text        -- @user@
-  , Unannotated -- @sourceLinearization@
-  , Unannotated -- @targetLinearization@
-  , Text        -- @lesson@
-  , Numeric     -- @round@
-  )
+data ExerciseList = ExerciseList
+  { user                ∷ Text
+  , sourceLinearization ∷ Unannotated
+  , targetLinearization ∷ Unannotated
+  , lesson              ∷ Text
+  , round               ∷ Numeric
+  }
+
+deriving stock instance Generic ExerciseList
+instance ToRow ExerciseList where
+  toRow = genericToRow
+instance FromRow ExerciseList where
+  fromRow = genericFromRow
