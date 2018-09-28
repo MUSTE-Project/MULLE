@@ -5,6 +5,7 @@
 module DbInit.Data (exercises, lessons) where
 
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
 
@@ -20,71 +21,37 @@ import qualified Data.Vector as Vector
 type Lesson = (Text,Text,Text,Text,Text,Int,Bool,Bool)
 
 lessons :: Vector Lesson
-lessons =
-  [ ( "Exemplum Pars"
-    , "Example grammar with one exercise"
-    , "exemplum/Exemplum"
-    , "ExemplumEng"
-    , "ExemplumSwe"
-    , Vector.length exemplumPars
-    , True
-    , True
-    )
-  , ( "Prima Pars"
-    , "Den första Lektionen fran boken \"Novo modo\""
-    , "novo_modo/Prima"
-    , "PrimaLat"
-    , "PrimaSwe"
-    , Vector.length primaPars
-    , True
-    , True
-    )
-  , ( "Secunda Pars"
-    , "Den andra Lektionen fran boken \"Novo modo\""
-    , "novo_modo/Secunda"
-    , "SecundaLat"
-    , "SecundaSwe"
-    , Vector.length secundaPars
-    , True
-    , True
-    )
-  , ( "Tertia Pars"
-    , "Den tredje Lektionen fran boken \"Novo modo\""
-    , "novo_modo/Tertia"
-    , "TertiaLat"
-    , "TertiaSwe"
-    , Vector.length tertiaPars
-    , False
-    , True
-    )
-  , ( "Quarta Pars"
-    , "Den fjärde Lektionen fran boken \"Novo modo\""
-    , "novo_modo/Quarta"
-    , "QuartaLat"
-    , "QuartaSwe"
-    , Vector.length quartaPars
-    , False
-    , True
-    )
-  ]
+lessons = Vector.fromList $ novomodoLessons ++ exemplumLessons
 
 -- | List of exercises group by the lesson they belong to.  The lesson
 -- is identified by 1. an identifier for the grammar for that lesson
 -- and 2. by the name of that lesson (a PK in the DB).  Exercises are
 -- identified by a pair of tree/language pairs.
 exercises ∷ Vector (Text, Text, Text, Text, Vector (Text, Text))
-exercises =
-  [ ( "exemplum/Exemplum", "Exemplum Pars", "ExemplumEng", "ExemplumSwe", exemplumPars)
-  , ( "novo_modo/Prima"   , "Prima Pars"   , "PrimaLat"   , "PrimaSwe"   , primaPars)
-  , ( "novo_modo/Secunda" , "Secunda Pars" , "SecundaLat" , "SecundaSwe" , secundaPars)
+exercises = Vector.fromList $ novomodoExercises ++ exemplumExercises
+
+
+--------------------------------------------------------------------------------
+-- Novo Modo lessons
+
+novomodoLessons =
+  [ (lesson, Text.concat ["Lektion ", lesson, " från boken 'Novo Modo'"],
+     grammar, srcLng, trgLng, Vector.length exs, True, True)
+  | (grammar, lesson, srcLng, trgLng, exs) <- novomodoExercises
   ]
 
-exemplumPars ∷ Vector (Text, Text)
-exemplumPars =
-  [ ("a good king is a blue king"                 ,"kungen \228lskar Paris")
+novomodoExercises =
+  [ (Text.append "novo_modo/" lesson, lesson, Text.append lesson "Lat", Text.append lesson "Swe", exerciseList)
+  | (lesson, exerciseList) <- novomodoDB
   ]
 
-primaPars ∷ Vector (Text, Text)
+novomodoDB =
+    [ ("Prima"  , primaPars)
+    , ("Secunda", secundaPars)
+    -- , ("Tertia" , tertiaPars)
+    -- , ("Quarta" , quartaPars)
+    ]
+
 primaPars =
   [ ("vinum sapiens est"                          ,"han \228r vis")
   , ("Augustus imperium tenet"                    ,"imperatorn h\229ller riket")
@@ -98,7 +65,6 @@ primaPars =
   , ("Caesar Augustus Africam vincit"             ,"kejsaren Augustus besegrar Gallien")
   ]
 
-secundaPars ∷ Vector (Text, Text)
 secundaPars =
   [ ("(Pers.pron 3rd pers. Pl.) nolite"           ,"de gl\228djas")
   , ("(Pers.pron 3rd pers. Pl.) gaudent"          ,"v\228gra")
@@ -123,10 +89,35 @@ secundaPars =
   , ("Romani eos docebant"                        ,"de undervisade romarna")
   ]
 
-tertiaPars ∷ Vector (Text, Text)
-tertiaPars
-  = []
+-- tertiaPars
+--   = []
 
-quartaPars ∷ Vector (Text, Text)
-quartaPars
-  = []
+-- quartaPars
+--   = []
+
+
+--------------------------------------------------------------------------------
+-- Exemplum lessons
+
+exemplumLessons =
+  [ (lesson, Text.append "Example grammar: " lesson,
+     grammar, srcLng, trgLng, length exs, True, True)
+  | (grammar, lesson, srcLng, trgLng, exs) <- exemplumExercises
+  ]
+
+exemplumExercises =
+  [ ("exemplum/Exemplum", Text.concat ["Exemplum ", l1, "-", l2],
+     Text.append "Exemplum" l1, Text.append "Exemplum" l2, Vector.singleton (s1, s2))
+  | let (l1, s1) = head exemplumSentences,
+    (l2, s2) <- tail exemplumSentences
+  ]
+
+exemplumSentences =
+    [ ("Eng", "many kings love Paris")
+    , ("Swe", "en god kung läser en bok")
+    , ("Lat", "rex bonus librum legit")
+    , ("Spa", "un bueno rey lee un libro")
+    , ("Chi", " 一 个 好 国 王 读 一 本 书 ")
+    , ("Ara", " يَقْرَأُ مَلِكٌ جوَيِّدٌ كِتابً ")
+    ]
+
