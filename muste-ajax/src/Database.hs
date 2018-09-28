@@ -1,11 +1,15 @@
 -- TODO Fix name shadowing.
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# Language QuasiQuotes #-}
+{-# Language QuasiQuotes, RecordWildCards #-}
 module Database
   ( MonadDB
-  , DB
+  , DbT(DbT)
+  , Db
   , HasConnection(getConnection)
-  , runDB
+  , Error(..)
+  , MonadDatabaseError(..)
+  , Lesson2(..)
+  , runDb
   , getLessons
   , authUser
   , startSession
@@ -28,18 +32,21 @@ import Database.SQLite.Simple
   )
 import Database.SQLite.Simple.QQ (sql)
 import qualified Database.SQLite.Simple as SQL
+import Control.Monad.Except (MonadError(..), ExceptT, runExceptT)
+import Control.Exception (catch)
+import Data.String.Conversions (convertString)
+import Data.Aeson
+  ( FromJSON(parseJSON), withObject, (.:), ToJSON(toJSON), object, (.=))
 
 import Crypto.Random.API (getSystemRandomGen, genRandomBytes)
 import Crypto.KDF.PBKDF2 (fastPBKDF2_SHA512, Parameters(Parameters))
-import Crypto.Hash (Digest,SHA3_512(..),hash)
+import Crypto.Hash (SHA3_512, hash)
 
 import Data.ByteString (ByteString)
-import qualified Data.ByteString.Char8  as Char8
-import qualified Data.Text              as T
 import qualified Data.Text.Encoding     as T
 import Data.Time.Clock (NominalDiffTime, UTCTime)
 import qualified Data.Time.Clock        as Time
-import Data.Time.Format
+import qualified Data.Time.Format       as Time
 import Control.Monad.Reader
 
 -- FIXME QuickCheck seems like a heavy dependency just to get access
@@ -48,18 +55,26 @@ import qualified Test.QuickCheck as QC (shuffle, generate)
 
 import qualified Database.Types as Types
 
-data DatabaseException
+data Error
   = NoUserFound
-  | NonUniqueUser
   | LangNotFound
+  | MultipleUsers
+  | NoCurrentSession
+  | SessionTimeout
+  | MultipleSessions
 
-instance Show DatabaseException where
+instance Show Error where
   show = \case
-    NoUserFound   → "No user found"
-    NonUniqueUser → "Non unique user associated with token"
-    LangNotFound  → "Couldn't find the languages"
+    NoUserFound      → "No user found."
+    LangNotFound     → "Could not find the languages."
+    MultipleUsers
+      →  "Well this is embarrasing.  It would appear that someone managed "
+      <> "to steal youre identity."
+    NoCurrentSession → "Not current session"
+    SessionTimeout   → "Session timeout"
+    MultipleSessions → "More than one session"
 
-instance Exception DatabaseException
+instance Exception Error
 
 -- | hashPasswd returns a SHA512 hash of a PBKDF2 encoded password
 -- (SHA512,10000 iterations,1024 bytes output)
@@ -90,7 +105,7 @@ createUser user pass enabled = do
   -- Create a salted password
   salt <- createSalt
   let safePw = hashPasswd (T.encodeUtf8 pass) salt
-  pure (user, safePw, salt, enabled)
+  pure $ Types.User user safePw salt enabled
 
 addUser
   :: MonadDB db
@@ -148,13 +163,12 @@ createSession user = do
     execute deleteSessionQuery [user]
     -- create new session
     timeStamp <- getCurrentTime
-    let sessionData
-         = T.unpack user
-         <> formatTime defaultTimeLocale "%s" timeStamp
-
-    let token :: Text
-        token = T.pack (show (hash (Char8.pack sessionData) :: Digest SHA3_512) :: String)
-    pure (user, token, timeStamp, timeStamp)
+    let
+      sessionData ∷ ByteString
+      sessionData = convertString $ formatTime timeStamp
+      token ∷ Text
+      token = convertString (show (hash @ByteString @SHA3_512 sessionData))
+    pure $ Types.Session user token timeStamp timeStamp
 
 -- | Creates a new session and returns the session token.  At the
 -- moment overly simplified.
@@ -163,22 +177,26 @@ startSession
   => Text -- ^ Username
   -> db Text
 startSession user = do
-  session@(_, token, _, _) <- createSession user
-  let insertSessionQuery = [sql|INSERT INTO Session VALUES (?,?,?,?);|] :: Query
+  session@(Types.Session _ token _ _) <- createSession user
+  let insertSessionQuery = [sql|INSERT INTO Session VALUES (?,?,?,?);|]
   execute insertSessionQuery session
   return token
 
-updateActivity :: MonadDB db ⇒ String -> db ()
+formatTime ∷ UTCTime → String
+formatTime = Time.formatTime Time.defaultTimeLocale "%s"
+
+updateActivity :: MonadDB db ⇒ Text -> db ()
 updateActivity token = do
-  timeStamp <- formatTime defaultTimeLocale "%s" <$> getCurrentTime
-  let updateSessionLastActiveQuery = [sql|UPDATE Session SET LastActive = ? WHERE Token = ?;|] :: Query
+  -- We should use to- from- row instances for UTCTime in stead.
+  timeStamp ← formatTime <$> getCurrentTime
+  let updateSessionLastActiveQuery = [sql|UPDATE Session SET LastActive = ? WHERE Token = ?;|]
   execute updateSessionLastActiveQuery (timeStamp,token)
 
 -- | Returns @Just err@ if there is an error.
 verifySession
   :: MonadDB db
-  => String -- ^ Token
-  -> db (Maybe String)
+  => Text -- ^ Token
+  -> db ()
 verifySession token = do
   -- Get potential user session(s)
   let selectSessionQuery = [sql|SELECT LastActive FROM Session WHERE Token = ?;|]
@@ -192,24 +210,72 @@ verifySession token = do
       hour = fromInteger 60
       threshold = fromInteger (30 * hour)
       error
-        | length sessions  == 0 = "Not current session"
-        | diff > threshold      = "Session timeout"
-        | otherwise             = "More than one session"
+        | length sessions  == 0 = NoCurrentSession
+        | diff > threshold      = SessionTimeout
+        | otherwise             = MultipleSessions
   -- ... until here. check if a session exists and it is has been active in the last 30 minutes
   if length sessions == 1 && diff <= threshold
-  then pure Nothing
+  then pure ()
   else do
     execute deleteSessionQuery [token]
-    pure $ pure error
+    throwDbError error
+
+-- | Not like 'Types.Lesson'.  'Types.Lesson' refers to the
+-- representation in the database.  This is the type used in "Ajax".
+data Lesson2 = Lesson2
+  { name :: Text
+  , description :: Text
+  , exercisecount :: Int
+  , passedcount :: Int
+  , score :: Int
+  , time :: NominalDiffTime
+  , finished :: Bool
+  , enabled :: Bool
+  }
+
+instance FromJSON Lesson2 where
+  parseJSON = withObject "Lesson" $ \v -> Lesson2
+    <$> v .: "name"
+    <*> v .: "description"
+    <*> v .: "exercisecount"
+    <*> v .: "passedcount"
+    <*> v .: "score"
+    <*> v .: "time"
+    <*> v .: "passed"
+    <*> v .: "enabled"
+
+instance ToJSON Lesson2 where
+  toJSON Lesson2{..} = object
+    [ "name"          .= name
+    , "description"   .= description
+    , "exercisecount" .= exercisecount
+    , "passedcount"   .= passedcount
+    , "score"         .= score
+    , "time"          .= time
+    , "passed"        .= passedcount
+    , "enabled"       .= enabled
+    ]
+
+instance FromRow Lesson2 where
+  fromRow = Lesson2
+    <$> SQL.field
+    <*> SQL.field
+    <*> SQL.field
+    <*> SQL.field
+    <*> SQL.field
+    <*> SQL.field
+    <*> SQL.field
+    <*> SQL.field
 
 -- | List all the lessons i.e. lesson name, description and exercise
 -- count
 listLessons
-  :: MonadDB db
-  => Text -- Token
-  -> db [(Text,Text,Int,Int,Int,NominalDiffTime,Bool,Bool)]
+  ∷ ∀ db
+  . MonadDB db
+  ⇒ Text -- Token
+  → db [Lesson2]
 listLessons token = do
-  users <- query @(Only Text) [sql|SELECT User FROM Session WHERE Token = ?;|] (Only token)
+  user <- getUser token
   let listLessonsQuery = [sql|
       WITH userName AS (SELECT ?),
       maxRounds AS (SELECT Lesson,IFNULL(MAX(Round),0) AS Round FROM
@@ -232,53 +298,85 @@ listLessons token = do
       User = (SELECT * from UserName) AND Lesson = Name) AS Passed,
       Enabled
       FROM Lesson;|]
-  case users of
-    []          -> throw NoUserFound
-    [Only user] -> query listLessonsQuery [user]
-    _usrs       -> throw NonUniqueUser
+  query listLessonsQuery (Only user)
 
 -- | Start a new lesson by randomly choosing the right number of
 -- exercises and adding them to the users exercise list
 startLesson
   :: MonadDB db
-  => String -- ^ Token
+  => Text -- ^ Token
   -> Text -- ^ Lesson name
   -- * Source- language and tree, target- langauge and tree.
   -> db (Text, Types.Unannotated, Text, Types.Unannotated)
 startLesson token lesson = do
-  -- get user name
-  Only user <- fromMaybe errUsr . listToMaybe
-    <$> query userQuery (Only token)
+  user ← getUser token
   isRunning <- (0 /=) . fromOnly . head
     <$> (query @(Only Int) checkLessonStartedQuery [user,lesson])
   if isRunning
   then continueLesson user lesson
   else newLesson      user lesson
   where
-  userQuery
-    = [sql|SELECT User FROM Session WHERE Token = ?;|]
   checkLessonStartedQuery
     = [sql|SELECT COUNT(*) FROM StartedLesson WHERE User = ? AND Lesson = ?|]
-  errUsr = error "No active session for user"
 
+getUser ∷ MonadDB db ⇒ Text → db Text
+getUser token = do
+  xs ← query userQuery (Only token)
+  case xs of
+    []       → throwDbError NoUserFound
+    [Only x] → pure x
+    _        → throwDbError MultipleUsers
+  where
+  userQuery
+    = [sql|SELECT User FROM Session WHERE Token = ?;|]
+
+-- | Like 'MonadReader' but only for 'Connection's.
 class HasConnection m where
   getConnection ∷ m Connection
 
 instance Monad m ⇒ HasConnection (ReaderT Connection m) where
   getConnection = ask
 
-instance HasConnection DB where
-  getConnection = DB ask
+instance Monad m ⇒ HasConnection (DbT m) where
+  getConnection = DbT ask
 
-newtype DB a = DB (ReaderT Connection IO a) deriving
-  ( Functor, Applicative, Monad
-  , MonadIO
-  )
+-- | Like 'MonadError' but only for 'Error's.
+class Monad m ⇒ MonadDatabaseError m where
+  throwDbError ∷ Error → m a
+  catchDbError ∷ m a → (Error → m a) → m a
 
-type MonadDB m = (HasConnection m, MonadIO m)
+instance MonadDatabaseError IO where
+  throwDbError = throw
+  catchDbError = catch
 
-runDB :: DB a -> Connection -> IO a
-runDB (DB db) = runReaderT db
+instance Monad m ⇒ MonadDatabaseError (ExceptT Error m) where
+  throwDbError = throwError @Error
+  catchDbError = catchError @Error
+
+instance Monad m ⇒ MonadDatabaseError (DbT m) where
+  throwDbError = DbT . throwError
+  catchDbError (DbT act) h = DbT $ catchError act (unDbT . h)
+
+type MonadDB m = (HasConnection m, MonadIO m, MonadDatabaseError m)
+
+newtype DbT m a = DbT
+  { unDbT ∷ (ReaderT Connection (ExceptT Error m) a)
+  }
+
+deriving newtype instance Functor m ⇒ Functor     (DbT m)
+deriving newtype instance Monad m   ⇒ Applicative (DbT m)
+deriving newtype instance Monad m   ⇒ Monad       (DbT m)
+deriving newtype instance MonadIO m ⇒ MonadIO     (DbT m)
+
+instance MonadTrans DbT where
+  lift = DbT . lift . lift
+
+type Db a = DbT IO a
+
+-- instance
+
+runDb :: Db a -> Connection -> IO (Either Error a)
+runDb (DbT db) c = runExceptT $ runReaderT db c
 
 query
   :: ∀ r q db . MonadDB db
@@ -337,7 +435,7 @@ newLesson user lesson = do
         = fromMaybe errNoExercises $ listToMaybe $ selectedTrees
   -- save in database
   let startedLesson :: Types.StartedLesson
-      startedLesson = (lesson, user, succ round)
+      startedLesson = Types.StartedLesson lesson user (succ round)
   execute insertStartedLesson startedLesson
   mapM_ (\(sTree,tTree) -> execute insertExerciseList (lesson,user,sTree,tTree,round)) selectedTrees
   -- get languages
@@ -391,14 +489,14 @@ continueLesson user lesson = do
 
 finishExercise
   :: MonadDB db
-  => String -- ^ Token
+  => Text -- ^ Token
   -> Text -- ^ Lesson
   -> NominalDiffTime -- ^ Time elapsed
   -> Integer -- ^ Clicks
   -> db ()
 finishExercise token lesson time clicks = do
   -- get user name
-  [Only user] <- query @(Only String) userQuery [token]
+  user ← getUser token
   -- get lesson round
   [Only round] <- query @(Only Integer) lessonRoundQuery (user,lesson)
   ((sourceTree,targetTree):_)
@@ -414,7 +512,6 @@ finishExercise token lesson time clicks = do
     execute deleteStartedLessonQuery (user,lesson)
   else return ()
   where
-    userQuery = [sql|SELECT User FROM Session WHERE Token = ?;|]
     lessonRoundQuery = [sql|
       SELECT ifnull(MAX(Round),1)
       FROM StartedLesson
@@ -461,7 +558,7 @@ finishExercise token lesson time clicks = do
       (SELECT * FROM roundCount));
       |]
 
-endSession :: MonadDB db ⇒ String -> db ()
+endSession :: MonadDB db ⇒ Text -> db ()
 endSession token = do
   let deleteSessionQuery = [sql|DELETE FROM Session WHERE Token = ?;|]
   execute deleteSessionQuery [token]

@@ -4,6 +4,31 @@ Change log
 HEAD
 ---
 
+Various styling changes:
+
+* Use `handlebars.js` (a template engine) for creating the layout on the
+  exercise page.
+* Do not use table for layout
+* Make heavy use of the CSS attribute `flex`.
+* Display time difference differently.  In stead of just giving the
+  diff in seconds we also show minutes, hours, days (if applicable).
+  This requires uses `coundown.js` to work.
+* Increase spacing between words in exercise.
+
+More robust error reporting between server and client.
+
+Automatically show login page if a request responds with `401
+Unauthorized`.
+
+Update from jQuery version from  v1.11.1 to v3.3.1.
+
+Reduce font-size.  This is to accomodate mobile users.  Users on
+hi-dpi screens should use their browsers scaling functionality if they
+want a larger font size.
+
+Display an empty menu if we click an element with no menu suggestions.
+Old behaviour was to throw an error in the javascript console.
+
 0.2.5.2
 ---
 

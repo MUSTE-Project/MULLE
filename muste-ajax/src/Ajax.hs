@@ -1,48 +1,32 @@
-{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
-{-# language OverloadedStrings, DuplicateRecordFields
-  , RecordWildCards, NamedFieldPuns
-#-}
+{-# OPTIONS_GHC -Wall #-}
+{-# language OverloadedStrings, DuplicateRecordFields , RecordWildCards,
+  NamedFieldPuns #-}
 module Ajax
   ( ServerTree
   , ServerMessage(..)
   , ClientTree(ClientTree)
-  , ClientMessage(CMMenuRequest, CMLoginRequest)
-  , Lesson(..)
-  , decodeClientMessage
+  , ClientMessage(..)
+  , Lesson2(..)
   , serverTree
-  , lessonFromTuple
   , unClientTree
   ) where
 
 import Prelude ()
 import Muste.Prelude
 
-import Data.Aeson hiding (Null,String)
-import qualified Data.Aeson                  as A
-import Data.Aeson.Types hiding (Null)
+import Data.Aeson
+  ( parseJSON, toJSON, Value, Object, withObject, (.:), object, (.=)
+  , (.:?)
+  )
+import Data.Aeson.Types (Parser)
 import Data.Text (Text)
-import qualified Data.Text                   as T
-import qualified Data.ByteString.Lazy.Char8  as B
-import Data.Vector (Vector)
-import qualified Data.Vector                 as V
-import Data.Maybe
-import Control.Exception
 import Data.Time
-import Control.Category ((>>>))
 
 import Muste
-import Muste.Sentence (Sentence)
-import qualified Muste.Sentence              as Sentence
 import Muste.Sentence.Unannotated (Unannotated)
-import qualified Muste.Sentence.Unannotated  as Unannotated
 import Muste.Sentence.Annotated (Annotated)
-import qualified Muste.Sentence.Annotated    as Annotated
 
-data ClientMessageException = CME String deriving (Show)
-data ReadTreeException = RTE String deriving (Show)
-
-instance Exception ClientMessageException
-instance Exception ReadTreeException
+import Database (Lesson2(..))
 
 newtype ClientTree = ClientTree { unClientTree ∷ Unannotated }
 
@@ -59,31 +43,25 @@ instance ToJSON ClientTree where
     ]
 
 createMessageObject :: String -> Value -> Value
-createMessageObject msg params =
-  object [
-  "message" .= msg ,
-  "parameters" .= params
+createMessageObject msg params = object
+  [ "message"    .= msg
+  , "parameters" .= params
   ]
 
 data ClientMessage
   = CMLoginRequest
-    { cusername :: T.Text
-    , cpassword :: T.Text
-    }
-  | CMMOTDRequest
-  | CMDataResponse
-    { context :: String
-    , cdata :: [(String, String)]
+    { username :: Text
+    , password :: Text
     }
   | CMLessonInit
-    { clesson :: T.Text
+    { lesson :: Text
     }
   | CMMenuRequest
-    { clesson :: T.Text
-    , cscore :: Integer
-    , ctime :: NominalDiffTime
-    , ca :: ClientTree
-    , cb :: ClientTree
+    { lesson :: Text
+    , score :: Integer
+    , time :: NominalDiffTime
+    , a :: ClientTree
+    , b :: ClientTree
     }
   deriving (Show)
 
@@ -93,21 +71,6 @@ instance FromJSON ClientMessage where
     params <- v .: "parameters" :: Parser Object
     case msg of
       "login" -> CMLoginRequest <$> params .: "username" <*> params .: "password"
-      "CMMOTDRequest" -> pure CMMOTDRequest
-      "CMDataResponse" -> do
-        ccontext <- params .: "context"
-        cdata <- params .: "data"  :: Parser Value
-        carray <- case cdata of
-          Array a -> sequence
-            $ V.toList
-            $ V.map (withObject "Key-Value-Pair" $ \o -> do
-                                                     f <- o .: "field"
-                                                     v <- o .: "value"
-                                                     return (f,v)
-                                                 ) a ;
-            _ -> error "Boo, not an array"
-        return $ CMDataResponse ccontext carray
-          -- (o .: "field", o .: "value")
       "lesson" -> CMLessonInit <$> params .: "lesson"
       "menu" -> CMMenuRequest
         <$> params .: "lesson"
@@ -115,18 +78,13 @@ instance FromJSON ClientMessage where
         <*> params .: "time"
         <*> params .: "a"
         <*> params .: "b"
-      _ -> error ( "Unexpected message " ++ show v)
+      _ -> fail $ "Unexpected message " <> show v
 
 instance ToJSON ClientMessage where
   toJSON = \case
     (CMLoginRequest username password) -> "CMLoginRequest" |> object
       [ "username" .= username
       , "password" .= password
-      ]
-    CMMOTDRequest -> "CMMOTDRequest" |> object []
-    (CMDataResponse context cdata) -> "CMDataResponse" |> object
-      [ "context" .= context
-      , "data" .= map (\(k,v) -> object [ "field" .= k, "value" .= v ]) cdata
       ]
     (CMMenuRequest lesson score time a b) -> "CMMenuRequest" |> object
       [ "lesson" .= lesson
@@ -167,71 +125,29 @@ instance ToJSON ServerTree where
 serverTree ∷ Annotated → Menu → ServerTree
 serverTree = ServerTree
 
-data Lesson = Lesson {
-  lname :: Text,
-  ldescription :: Text,
-  lexercisecount :: Int,
-  lpassedcount :: Int,
-  lscore :: Int,
-  ltime :: NominalDiffTime,
-  lfinished :: Bool,
-  lenabled :: Bool
-  } deriving Show;
-
-lessonFromTuple
-  :: (Text,Text,Int,Int,Int,NominalDiffTime,Bool,Bool)
-  -> Lesson
-lessonFromTuple
-  ( name, description, exercises
-  , passedcount, score, time
-  , passed, enabled
-  ) = Lesson
-    name description exercises
-    passedcount score time passed enabled
-
-data ServerMessage = SMNull
-                   | SMLoginSuccess { stoken :: T.Text }
-                   | SMLoginFail
-                   | SMMOTDResponse { sfilename :: String }
-                   | SMSessionInvalid { serror :: String }
-                   | SMLessonsList { slessions :: [Lesson] }
-                   | SMMenuList {
-                       slesson :: T.Text ,
-                       spassed :: Bool ,
-                       sclicks :: Integer ,
-                       sa :: ServerTree ,
-                       sb :: ServerTree
-                       }
-                   | SMLessonInvalid
-                   | SMDataReceived
-                   | SMDataInvalid { serror :: String }
-                   | SMLogoutResponse
-                   deriving (Show) ;
-
-instance FromJSON Lesson where
-  parseJSON = withObject "Lesson" $ \v -> Lesson
-    <$> v .: "name"
-    <*> v .: "description"
-    <*> v .: "exercisecount"
-    <*> v .: "passedcount"
-    <*> v .: "score"
-    <*> v .: "time"
-    <*> v .: "passed"
-    <*> v .: "enabled"
+data ServerMessage
+  = SMLoginSuccess
+    { stoken :: Text
+    }
+  | SMLessonsList
+    { slessions :: [Lesson2]
+    }
+  | SMMenuList
+    { slesson :: Text
+    , spassed :: Bool
+    , sclicks :: Integer
+    , sa      :: ServerTree
+    , sb      :: ServerTree
+    } 
 
 instance FromJSON ServerMessage where
   parseJSON = withObject "ServerMessage" $ \v ->
     do
       msg <- v .: "message" :: Parser Text
       params <- v .:? "parameters" :: Parser (Maybe Object)
-      case T.unpack msg of {
+      case msg of
         "SMLoginSuccess" ->
             SMLoginSuccess <$> fromJust params .: "token" ;
-        "SMLoginFail" -> return SMLoginFail ;
-        "SMMOTDResponse" ->
-            SMMOTDResponse <$> fromJust params .: "filename" ;
-        "SMSessionInvalid" ->
-            SMSessionInvalid <$> fromJust params .: "error" ;
         "SMLessonsList" ->
             (do
               clist <- fromJust params .: "lessons"
@@ -243,43 +159,13 @@ instance FromJSON ServerMessage where
             <*> fromJust params .: "clicks"
             <*> fromJust params .: "a"
             <*> fromJust params .: "b" ;
-        "SMLessonInvalid" -> return SMLessonInvalid ;
-        "SMDataReceived" -> return SMDataReceived ;
-        "SMDataInvalid" ->
-            SMDataInvalid <$> fromJust params .: "error" ;
-        "SMLogoutResponse" -> return SMLogoutResponse ;
-        _ → error "Ajax.parseJSON @ServerMessage: Non-exhaustive pattern match"
-        }
-
-instance ToJSON Lesson where
-  toJSON (Lesson name description exercises passedcount score time passed enabled) =
-    object [
-    "name" .= name,
-    "description" .= description ,
-    "exercisecount" .= exercises ,
-    "passedcount" .= passedcount ,
-    "score" .= score,
-    "time" .= time,
-    "passed" .= passed,
-    "enabled" .= enabled
-    ]
-
+        _ → fail "Unknown message"
 
 instance ToJSON ServerMessage where
     -- this generates a Value
   toJSON (SMLoginSuccess stoken) =
     createMessageObject "SMLoginSuccess" $ object [
     "token" .= stoken
-    ]
-  toJSON SMLoginFail =
-    createMessageObject "SMLoginFail" A.Null
-  toJSON (SMMOTDResponse sfilename) =
-    createMessageObject "SMMOTDRequest" $ object [
-    "filename" .= sfilename
-    ]
-  toJSON (SMSessionInvalid error) =
-    createMessageObject "SMSessionInvalid" $ object [
-    "error" .= error
     ]
   toJSON (SMLessonsList slessons) =
     createMessageObject "SMLessonsList" $ object [
@@ -293,22 +179,3 @@ instance ToJSON ServerMessage where
     "a" .= sa ,
     "b" .= sb
     ]
-  toJSON SMLessonInvalid =
-    createMessageObject "SMLessonInvalid" A.Null
-  toJSON SMDataReceived =
-    createMessageObject "SMDataReceived" A.Null
-  toJSON (SMDataInvalid error) =
-    createMessageObject "SMDataInvalid" $ object [
-    "error" .= error
-    ]
-  toJSON SMLogoutResponse =
-    createMessageObject "SMLogoutResponse" A.Null
-  toJSON _ = error "Ajax.toJSON @ServerMessage: Non-exhaustive pattern match"
-
--- FIXME Indicate in type signature that we can fail (e.g. `IO
--- ClientMessage`)
-decodeClientMessage :: B.ByteString -> ClientMessage
-decodeClientMessage s =
-  let rcm = eitherDecode @ClientMessage s
-  in
-    either (throw . CME) identity rcm
