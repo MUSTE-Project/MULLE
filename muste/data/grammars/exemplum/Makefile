@@ -1,5 +1,5 @@
 GFMAKE = gf --make
-LANGS = Lat Eng Swe Spa 
+LANGS = Lat Eng Swe Spa Chi 
 GRAMMARS = Exemplum.pgf
 
 .PHONY: all clean
