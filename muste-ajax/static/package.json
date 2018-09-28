@@ -11,18 +11,18 @@
     "url": "git+ssh://git@github.com/MUSTE-Project/MULLE.git"
   },
   "author": "",
-  "license": "See license in ../LICENSE",
+  "license": "Artistic-2.0",
   "bugs": {
     "url": "https://github.com/MUSTE-Project/MULLE/issues"
   },
   "homepage": "https://github.com/MUSTE-Project/MULLE#readme",
   "dependencies": {
     "countdown": "^2.6.0",
+    "handlebars": "^4.0.12",
     "jquery": "^3.3.1"
   },
   "devDependencies": {
     "babel-eslint": "^10.0.1",
-    "eslint": "^5.6.0",
-    "handlebars": "^4.0.12"
+    "eslint": "^5.6.0"
   }
 }

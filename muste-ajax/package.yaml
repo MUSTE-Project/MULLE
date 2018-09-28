@@ -1,6 +1,6 @@
 name:                muste-ajax
 version:             0.2.5.2
-license:             OtherLicense
+license:             Artistic-2.0
 license-file:        LICENSE
 author:              Herbert Lange
 maintainer:          herbert.lange@cse.gu.se
@@ -36,23 +36,27 @@ default-extensions:
   - DerivingStrategies
 
 data-files:
-  - ./static/index.html
-  - ./static/img/menu.jpg
-  - ./static/img/menu2.jpg
-  - ./static/img/menu1.jpg
-  - ./static/img/congrats.jpg
-  - ./static/img/unfinished.jpg
-  - ./static/img/finished.jpg
-  - ./static/img/logout.jpg
-  - ./static/img/statistics.jpg
-  - ./static/img/exercise.jpg
-  - ./static/img/lessonlist.jpg
-  - ./static/img/disabled.jpg
-  - ./static/jquery-1.11.1.min.js
-  - ./static/muste-gui.js
-  - ./static/instructions.html
-  - ./static/favicon.ico
-  - ./static/muste.css
+  - static/css/muste.css
+  - static/favicon.ico
+  - static/img/congrats.jpg
+  - static/img/disabled.jpg
+  - static/img/exercise.jpg
+  - static/img/finished.jpg
+  - static/img/lessonlist.jpg
+  - static/img/logout.jpg
+  - static/img/menu.jpg
+  - static/img/menu1.jpg
+  - static/img/menu2.jpg
+  - static/img/statistics.jpg
+  - static/img/unfinished.jpg
+  - static/index.html
+  - static/instructions.html
+  - static/js/app.js
+  - static/js/countdown.js
+  - static/js/handlebars.js
+  - static/js/handlebars.min.js
+  - static/js/jquery.js
+  - static/js/jquery.min.js
 
 dependencies:
   - QuickCheck           >= 2.9.2    && < 2.12
