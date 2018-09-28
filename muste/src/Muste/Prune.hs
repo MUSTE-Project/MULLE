@@ -263,50 +263,38 @@ similarTreesForSubtree ∷ Pruner m ⇒ TTree → m [SimTree]
 similarTreesForSubtree tree = do
   adjTrees ← askPrecomputed
   let
-    trees ∷ Map (MultiSet Category) [(TTree, MultiSet Rule)]
-    trees
-      = M.fromListWith mappend
-      $ fmap (\t → (Grammar.getMetas t, pure (t, Grammar.getFunctions t)))
-      $ fromMaybe mempty
-      $ Mono.lookup (cat, metas) adjTrees
     cat = case tree of
       (TNode _ (Fun c _) _) → c
       _ → errNotNode
-    metas = Grammar.getMetas tree
     errNotNode = error
       $  "Muste.Prune.similarTreesForSubtree: "
       <> "Non-exhaustive pattern match"
-  similarTrees trees tree
+  similarTrees cat adjTrees tree
 
 -- O(n^3) !!!! I don't think this can be avoided though since the
 -- output is bounded by Ω(n^3).
-similarTrees
-  ∷ Pruner m
-  ⇒ Map (MultiSet Category) [(TTree, MultiSet Rule)]
-  → TTree
-  → m [SimTree]
-similarTrees byMetas tree = do
+similarTrees ∷ Pruner m ⇒ Category → AdjunctionTrees → TTree → m [SimTree]
+similarTrees cat adjTrees tree = do
   prunedTrees ← pruneTree tree
   pure $ do
     (pruned, branches) ← prunedTrees
+    let metas = Grammar.getMetas pruned
+    byMetas            ← maybeToList $ Mono.lookup (cat, metas) adjTrees
     pruned'            ← filterTrees byMetas pruned
     tree'              ← insertBranches branches pruned'
     pure (tree `treeDiff` tree', tree', pruned, pruned')
 
+maybeToList :: Maybe a -> [a]
+maybeToList (Just a) = [a]
+maybeToList _ = []
+
 -- m ~ [] ⇒ runtime = O(n)
-filterTrees
-  ∷ Monad m
-  ⇒ Alternative m
-  ⇒ Map (MultiSet Category) (m (TTree, MultiSet Rule))
-  → TTree
-  → m TTree
-filterTrees byMetas pruned =
-  case M.lookup (Grammar.getMetas pruned) byMetas of
-    Nothing → empty
-    Just xs → do
-      (pruned', funs) ← xs
-      guard $ heuristics pruned funs
-      pure pruned'
+filterTrees ∷ Monad m ⇒ Alternative m ⇒ m TTree → TTree → m TTree
+filterTrees byMetas pruned = do
+  pruned' ← byMetas
+  let funs = Grammar.getFunctions pruned'
+  guard $ heuristics pruned funs
+  pure pruned'
 
 -- | Various heuristics used for filtering out results.
 heuristics ∷ TTree → MultiSet Rule → Bool
