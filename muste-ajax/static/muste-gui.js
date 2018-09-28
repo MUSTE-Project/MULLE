@@ -26,7 +26,10 @@ var MESSAGES =
   , MENU: "menu"
   };
 
-$(function() {
+jQuery().ready(init);
+
+function init() {
+    register_handlebars_helper();
     $('#loginform').submit(submit_login);
     $('#abortlesson').click(retrieve_lessons);
     $('#logoutbutton').click(restart_everything);
@@ -41,7 +44,7 @@ $(function() {
 	LOGIN_TOKEN = tok;
 	retrieve_lessons();
     }
-});
+}
 
 function register_timer() {
     // FIXME This keeps churning even if we are not using the timer.
@@ -134,32 +137,34 @@ function handle_server_fail(resp, status, error) {
     }
 }
 
-Handlebars.registerHelper({
-    eq: function (v1, v2) {
-        return v1 === v2;
-    },
-    ne: function (v1, v2) {
-        return v1 !== v2;
-    },
-    lt: function (v1, v2) {
-        return v1 < v2;
-    },
-    gt: function (v1, v2) {
-        return v1 > v2;
-    },
-    lte: function (v1, v2) {
-        return v1 <= v2;
-    },
-    gte: function (v1, v2) {
-        return v1 >= v2;
-    },
-    and: function () {
-        return Array.prototype.slice.call(arguments).every(Boolean);
-    },
-    or: function () {
-        return Array.prototype.slice.call(arguments, 0, -1).some(Boolean);
-    }
-});
+function register_handlebars_helper() {
+    Handlebars.registerHelper({
+        eq: function (v1, v2) {
+            return v1 === v2;
+        },
+        ne: function (v1, v2) {
+            return v1 !== v2;
+        },
+        lt: function (v1, v2) {
+            return v1 < v2;
+        },
+        gt: function (v1, v2) {
+            return v1 > v2;
+        },
+        lte: function (v1, v2) {
+            return v1 <= v2;
+        },
+        gte: function (v1, v2) {
+            return v1 >= v2;
+        },
+        and: function () {
+            return Array.prototype.slice.call(arguments).every(Boolean);
+        },
+        or: function () {
+            return Array.prototype.slice.call(arguments, 0, -1).some(Boolean);
+        }
+    });
+}
 
 function retrieve_lessons(evt) {
     if (evt && evt.preventDefault) {
