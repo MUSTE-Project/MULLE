@@ -1,82 +1,82 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MUSTE</title>
-  <link rel="stylesheet" href="muste.css" type="text/css"/>
-  <script defer type="text/javascript" src="jquery.min.js"></script>
-  <script defer type="text/javascript" src="handlebars.min.js"></script>
-  <script defer type="text/javascript" src="countdown.js"></script>
-  <script defer type="text/javascript" src="muste-gui.js"></script>
+ <title>MUSTE</title>
+ <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1" />
+ <link rel="stylesheet" href="/muste.css" />
+ <script defer type="text/javascript" src="jquery.min.js"></script>
+ <script defer type="text/javascript" src="handlebars.min.js"></script>
+ <script defer type="text/javascript" src="countdown.js"></script>
+ <script defer type="text/javascript" src="muste-gui.js"></script>
 </head>
 
 <body>
-  <main>
-    <div class="page" id="loginpage">
+ <main>
+  <div class="page" id="loginpage">
+   <div>
+    <h1 class="title">MUSTE: Latinträning</h1>
+   </div>
+   <div class="container">
+    <form id="loginform" method="post">
+     <div>
       <div>
-        <h1 class="title">MUSTE: Latinträning</h1>
+       <div><h3>Användare:</h3></div>
+       <div><input type="text" name="name"></div>
       </div>
-      <div class="container">
-        <form id="loginform" method="post">
-          <div>
-            <div>
-              <div><h3>Användare:</h3></div>
-              <div><input type="text" name="name"></div>
-            </div>
-            <div>
-              <div><h3>Lösenord:</h3></div>
-              <div><input type="password" name="pwd"></div>
-            </div>
-            <div class="spaced">
-              <div><button type="submit">Login</button></div>
-            </div>
-          </div>
-        </form>
+      <div>
+       <div><h3>Lösenord:</h3></div>
+       <div><input type="password" name="pwd"></div>
       </div>
-      <div></div>
+      <div class="spaced">
+       <div><button type="submit">Login</button></div>
+      </div>
+     </div>
+    </form>
+   </div>
+   <div></div>
+  </div>
+
+  <div class="page" id="lessonspage">
+   <div>
+    <span>
+     <button class="right backbutton" id="logoutbutton">Logga ut</button>
+    </span>
+    <h1 class="title">MUSTE: Latinträning</h1>
+   </div>
+   <div>
+    <div class="container" id="lessonslist"></div>
+   </div>
+   <div class="vertical-separator"></div>
+   <div>
+    <a class="button left instructions button" href="instructions.html" target="_blank">Instructions</a>
+   </div>
+  </div>
+
+  <div class="page" id="exercisepage">
+   <div>
+    <span class="left" id="lessoncounter"></span>
+    <span id="busy-indicator" class="idle"></span>
+     <!-- Unicode Character 'BLACK CIRCLE' (U+25CF) -->
+    <button class="right backbutton" id="abortlesson">Avbryt lektion</button>
+   </div>
+
+   <div class="container">
+    <div class="exercise">
+     <div id="a" class="sentence prevent-body-click"></div>
+     <div class="vertical-separator"></div>
+     <div id="b" class="sentence prevent-body-click"></div>
     </div>
+   </div>
 
-    <div class="page" id="lessonspage">
-      <div>
-        <span>
-          <button class="right backbutton" id="logoutbutton">Logga ut</button>
-        </span>
-        <h1 class="title">MUSTE: Latinträning</h1>
-      </div>
-      <div>
-        <div class="container" id="lessonslist"></div>
-      </div>
-      <div class="vertical-separator"></div>
-      <div>
-        <a class="button left instructions button" href="instructions.html" target="_blank">Instructions</a>
-      </div>
-    </div>
-
-    <div class="page" id="exercisepage">
-      <div>
-        <span class="left" id="lessoncounter"></span>
-        <span id="busy-indicator" class="idle"></span>
-          <!-- Unicode Character 'BLACK CIRCLE' (U+25CF) -->
-        <button class="right backbutton" id="abortlesson">Avbryt lektion</button>
-      </div>
-
-      <div class="container">
-        <div class="exercise">
-          <div id="a" class="sentence prevent-body-click"></div>
-          <div class="vertical-separator"></div>
-          <div id="b" class="sentence prevent-body-click"></div>
-        </div>
-      </div>
-
-      <div>
-        <span class="left" id="score"></span>
-        <span class="right">Elapsed time: <span id="timer"></span></span>
-        <div hidden class="popup menu prevent-body-click" id="menus"></div>
-        <div hidden class="popup error">I'm an error.</div>
-        <div hidden class="overlay"></div>
-      </div>
-    </div>
-  </main>
+   <div>
+    <span class="left" id="score"></span>
+    <span class="right">Elapsed time: <span id="timer"></span></span>
+    <div hidden class="popup menu prevent-body-click" id="menus"></div>
+    <div hidden class="popup error"></div>
+    <div hidden class="overlay"></div>
+   </div>
+  </div>
+ </main>
 </body>
 </html>
