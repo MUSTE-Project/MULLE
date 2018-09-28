@@ -168,30 +168,28 @@ function retrieve_lessons(evt) {
     call_server(MESSAGES.LESSONS, {token: LOGIN_TOKEN});
 }
 
-// TODO Template strings are not supported in msie.  We need to write
-// this differently to support that browser.
-var lesson_list_template = `
-<div class="lessons">
-{{#each .}}
- <div class="{{#if (or passed (gte passed total))}}finished{{/if}} {{#if enabled}}{{else}}disabled{{/if}}">
-  <h2>{{name}}</h2>
-  <div class="lesson-info">
-   <div>
-    <span>
-     {{passedcount}} avklarade av {{exercisecount}} övningar, {{lsn.score}}  klick i {{lsn.time}} sekunder
-    </span>
-    <div>
-     {{description}}
-    </div>
-   </div>
-   <div class="lesson-info-button">
-    <button {{#if enabled}}{{else}}disabled{{/if}} onclick="start_lesson('{{name}}');">Solve</button>
-   </div>
-  </div>
- </div>
-{{/each}}
-</div>
-`;
+var lesson_list_template = ' \
+<div class="lessons"> \
+{{#each .}} \
+ <div class="{{#if (or passed (gte passed total))}}finished{{/if}} {{#if enabled}}{{else}}disabled{{/if}}"> \
+  <h2>{{name}}</h2> \
+  <div class="lesson-info"> \
+   <div> \
+    <span> \
+     {{passedcount}} avklarade av {{exercisecount}} övningar, {{lsn.score}}  klick i {{lsn.time}} sekunder \
+    </span> \
+    <div> \
+     {{description}} \
+    </div> \
+   </div> \
+   <div class="lesson-info-button"> \
+    <button {{#if enabled}}{{else}}disabled{{/if}} onclick="start_lesson(\'{{name}}\');">Solve</button> \
+   </div> \
+  </div> \
+ </div> \
+{{/each}} \
+</div> \
+';
 
 var render_lesson_list = Handlebars.compile(lesson_list_template);
 
