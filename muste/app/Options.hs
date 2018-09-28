@@ -20,7 +20,7 @@ data Options = Options
   { searchDepth      ∷ Maybe Int
   , interactiveMode  ∷ Bool
   , sentences        ∷ [Text]
-  , grammar          ∷ Text   -- E.g. "novo_modo/Exemplum"
+  , grammar          ∷ Text   -- E.g. "exemplum/Exemplum" or "novo_modo/Prima"
   , language         ∷ Text   -- E.g. "ExemplumSwe"
   , printNodes       ∷ Bool
   , printCompact     ∷ Bool
@@ -112,7 +112,8 @@ grammarParser
     (  O.short 'G'
     <> O.long "grammar"
     <> O.help
-      (  "The grammar to use.  E.g. \"novo_modo/Exemplum\".  "
+      (  "The grammar to use.  "
+      <> "E.g. \"novo_modo/Prima\" or \"exemplum/Exemplum\".  "
       <> "Please note that this is not actually a path, "
       <> "but rather must be one of the built in grammars."
       )

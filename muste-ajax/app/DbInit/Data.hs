@@ -23,7 +23,7 @@ lessons :: Vector Lesson
 lessons =
   [ ( "Exemplum Pars"
     , "Example grammar with one exercise"
-    , "novo_modo/Exemplum"
+    , "exemplum/Exemplum"
     , "ExemplumEng"
     , "ExemplumSwe"
     , Vector.length exemplumPars
@@ -74,7 +74,7 @@ lessons =
 -- identified by a pair of tree/language pairs.
 exercises ∷ Vector (Text, Text, Text, Text, Vector (Text, Text))
 exercises =
-  [ ( "novo_modo/Exemplum", "Exemplum Pars", "ExemplumEng", "ExemplumSwe", exemplumPars)
+  [ ( "exemplum/Exemplum", "Exemplum Pars", "ExemplumEng", "ExemplumSwe", exemplumPars)
   , ( "novo_modo/Prima"   , "Prima Pars"   , "PrimaLat"   , "PrimaSwe"   , primaPars)
   , ( "novo_modo/Secunda" , "Secunda Pars" , "SecundaLat" , "SecundaSwe" , secundaPars)
   ]
