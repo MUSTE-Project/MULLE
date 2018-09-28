@@ -1,6 +1,6 @@
 var AjaxTimeout = 1000; // milliseconds
 
-var NOSPACING = "&+";
+var NOSPACING = '&+';
 var PUNCTUATION = /^[\,\;\.\?\!\)]$/;
 var PREFIXPUNCT = /^[¿¡\(]$/;
 
@@ -9,21 +9,21 @@ var LOGIN_TOKEN = null;
 var TIMER_START = null;
 
 var EXERCISES = [];
-var VIRTUAL_ROOT = "/";
-var SERVER = VIRTUAL_ROOT + "api/";
+var VIRTUAL_ROOT = '/';
+var SERVER = VIRTUAL_ROOT + 'api/';
 
 var MESSAGES =
-  { LOGOUT: "logout"
+  { LOGOUT: 'logout'
   // Must set authentication header
-  , LOGIN: "login"
-  , LESSONS: "lessons"
+  , LOGIN: 'login'
+  , LESSONS: 'lessons'
   // Muste request the *name* of the lesson.  E.g:
   //
   //    /lesson/Prima+Pars
   //
   // TODO Would be more convenient if it was an id.
-  , LESSON: "lesson"
-  , MENU: "menu"
+  , LESSON: 'lesson'
+  , MENU: 'menu'
   };
 
 jQuery().ready(init);
@@ -35,9 +35,9 @@ function init() {
     $('#logoutbutton').click(restart_everything);
     register_timer();
     register_overlay();
-    var tok = window.sessionStorage.getItem("LOGIN_TOKEN");
+    var tok = window.sessionStorage.getItem('LOGIN_TOKEN');
     // Show login page regardless.
-    show_page("loginpage");
+    show_page('loginpage');
     if (tok == null) {
 	loginform.name.focus();
     } else {
@@ -59,33 +59,33 @@ function elapsed_time() {
 
 function update_timer() {
     if (TIMER_START) {
-        $("#timer").text(elapsed_time().toString());
+        $('#timer').text(elapsed_time().toString());
     }
 }
 
 // The overlay is shown when the menus pop up.  The click-event on the
 // overlay resets the selection - which hides the menu again.
 function register_overlay() {
-    $(document).on("overlay", function() {
-        $(".overlay").show();
+    $(document).on('overlay', function() {
+        $('.overlay').show();
     });
-    $(".overlay").click(function() {
-        $(document).trigger("overlay-out");
+    $('.overlay').click(function() {
+        $(document).trigger('overlay-out');
         $(this).hide();
     });
-    $(document).on("overlay-out", function() {
+    $(document).on('overlay-out', function() {
         reset_selection();
         clear_errors();
     });
 }
 
 function clear_errors() {
-    $(".error").empty().hide();
+    $('.error').empty().hide();
 }
 
 function show_page(page) {
-    $(".page").hide();
-    $("#" + page).show();
+    $('.page').hide();
+    $('#' + page).show();
 }
 
 
@@ -104,20 +104,20 @@ function submit_login(evt) {
 
 
 function call_server(message, parameters) {
-  call_server_new(message, parameters, message + "/");
+  call_server_new(message, parameters, message + '/');
 }
 
 function call_server_new(message, parameters, endpoint) {
-    if (typeof(SERVER) === "function") {
+    if (typeof(SERVER) === 'function') {
         handle_server_response(SERVER(message, parameters));
     }
-    else if (typeof(SERVER) === "string") {
+    else if (typeof(SERVER) === 'string') {
         var req = {
             cache: false,
             timeout: AjaxTimeout,
             url: SERVER + endpoint,
-            dataType: "json",
-            method: "POST",
+            dataType: 'json',
+            method: 'POST',
             processData: false,
             data: JSON.stringify({message: message, parameters: parameters})
         };
@@ -130,7 +130,7 @@ function call_server_new(message, parameters, endpoint) {
 function handle_server_fail(resp, status, error) {
     switch(resp.status) {
     case 401:
-        show_page("loginpage");
+        show_page('loginpage');
         break
     case 400:
     default: console.error(resp.responseJSON);
@@ -199,9 +199,9 @@ var lesson_list_template = ' \
 var render_lesson_list = Handlebars.compile(lesson_list_template);
 
 function show_lessons(lessons) {
-    show_page("lessonspage");
+    show_page('lessonspage');
     TIMER_START = null;
-    var table = $("#lessonslist");
+    var table = $('#lessonslist');
     table.empty();
     var e = render_lesson_list(lessons);
     table.html(e);
@@ -221,24 +221,24 @@ function select_lesson(evt) {
 
 function start_lesson(lesson) {
     TIMER_START = new Date().getTime();
-    call_server_new(MESSAGES.LESSON, {token: LOGIN_TOKEN, lesson: lesson}, MESSAGES.LESSON + "/" + lesson);
+    call_server_new(MESSAGES.LESSON, {token: LOGIN_TOKEN, lesson: lesson}, MESSAGES.LESSON + '/' + lesson);
 }
 
 function show_exercise(parameters) {
-    show_page("exercisepage");
+    show_page('exercisepage');
     DATA = parameters;
     clean_server_data(DATA.a);
     clean_server_data(DATA.b);
     build_matching_classes(DATA);
     show_sentences(DATA.a, DATA.b);
     $('#score').text(DATA.score);
-    $('#lessoncounter').text(DATA.lesson + ": övning " + EXERCISES[DATA.lesson].passed + " av " + EXERCISES[DATA.lesson].total);
+    $('#lessoncounter').text(DATA.lesson + ': övning ' + EXERCISES[DATA.lesson].passed + ' av ' + EXERCISES[DATA.lesson].total);
     if (parameters.success) {
         var elapsed_time = elapsed_time().toString();
         setTimeout(function(){
-            alert("BRAVO!" +
-                  "     Klick: " + DATA.score +
-                  "     Tid: " + elapsed_time + " sekunder");
+            alert('BRAVO!' +
+                  '     Klick: ' + DATA.score +
+                  '     Tid: ' + elapsed_time + ' sekunder');
             if (DATA.exercise < DATA.total) {
                 start_lesson(DATA.lesson);
             } else {
@@ -261,32 +261,32 @@ function handle_server_response(response) {
     var parameters = response.parameters;
 
     switch (message) {
-    case "SMLogoutResponse":
-	window.sessionStorage.removeItem("LOGIN_TOKEN");
+    case 'SMLogoutResponse':
+	window.sessionStorage.removeItem('LOGIN_TOKEN');
         location.reload();
         break;
 
-    case "SMLoginSuccess":
+    case 'SMLoginSuccess':
         LOGIN_TOKEN = parameters.token;
-	window.sessionStorage.setItem("LOGIN_TOKEN",LOGIN_TOKEN);
+	window.sessionStorage.setItem('LOGIN_TOKEN',LOGIN_TOKEN);
         retrieve_lessons();
         break;
 
-    case "SMLessonsList":
+    case 'SMLessonsList':
         show_lessons(parameters.lessons);
         break;
 
-    case "SMMenuList":
+    case 'SMMenuList':
         show_exercise(parameters);
         break;
 
     default:
-        var title = (message == "SMLoginFail"      ? "Login failure, please try again"     :
-                     message == "SMSessionInvalid" ? "Session invalid, please login again" :
-                     message == "SMLessonInvalid"  ? "Lesson invalid, please login again"  :
-                     message == "SMDataInvalid"    ? "Invalid data, please login again"    :
-                     "Uknown message from server: " + message);
-        var description = (parameters && parameters.error ? parameters.error : "");
+        var title = (message == 'SMLoginFail'      ? 'Login failure, please try again'     :
+                     message == 'SMSessionInvalid' ? 'Session invalid, please login again' :
+                     message == 'SMLessonInvalid'  ? 'Lesson invalid, please login again'  :
+                     message == 'SMDataInvalid'    ? 'Invalid data, please login again'    :
+                     'Uknown message from server: ' + message);
+        var description = (parameters && parameters.error ? parameters.error : '');
         alert_error(title, description);
         // restart_everything();
         break;
@@ -298,7 +298,7 @@ function handle_server_response(response) {
 // `data.trees[0][0][*].path` and `data.menu`
 function clean_server_data(data) {
     function convert_path(path) {
-        return path.toString().replace(/[,\[\]]/g,"");
+        return path.toString().replace(/[,\[\]]/g,'');
     }
     function clean_lin(lin) {
         lin.forEach(function(pword){
@@ -315,10 +315,10 @@ function build_matching_classes(data) {
 
     data.matching_classes = {};
     var matching_class = 0;
-    ["a", "b"].forEach(function(lang) {
+    ['a', 'b'].forEach(function(lang) {
         ct_linearization(data[lang]).forEach(function(token) {
             if (token.matched && token.matched.length && !data.matching_classes[token.path]) {
-                data.matching_classes[token.path] = "match-" + matching_class;
+                data.matching_classes[token.path] = 'match-' + matching_class;
                 matching_class = (matching_class + 1) % MAX_CLASSES;
             }
         });
@@ -335,7 +335,7 @@ function show_sentences(src, trg) {
 }
 
 function all_classes(xs) {
-    var xss = xs.map(function(x) { return x["classes"];});
+    var xss = xs.map(function(x) { return x['classes'];});
     var flattened = [].concat.apply([], xss);
     return new Set(flattened);
 }
@@ -365,8 +365,8 @@ function hash_string(s) {
 function matchy_magic(src, trg) {
     var cs = all_classes(src);
     trg.forEach(function(x) {
-        var s = intersection(cs, new Set(x["classes"]));
-        x["matching-classes"] = s;
+        var s = intersection(cs, new Set(x['classes']));
+        x['matching-classes'] = s;
     });
 }
 
@@ -388,33 +388,33 @@ function show_lin(lang, lin) {
         var spacyData = {
             nr: i,
             lang: lang,
-            "valid-menus": getValidMenusEmpty(i, menu)
+            'valid-menus': getValidMenusEmpty(i, menu)
         };
         $('<span>')
             .addClass('space clickable').data(spacyData)
             .html(spacing).click(click_word)
             .appendTo(sentence);
-        var classes = linTok["classes"];
-        var matchingClasses = linTok["matching-classes"];
+        var classes = linTok['classes'];
+        var matchingClasses = linTok['matching-classes'];
         var match = matchingClasses.size > 0;
         var validMenus = getValidMenus(i, menu);
         var wordData = {
             nr: i,
             lang: lang,
-            "classes": classes,
+            'classes': classes,
             /* , subtree:subtree */
-            "valid-menus": validMenus
+            'valid-menus': validMenus
         }
         var wordspan = $('<span>')
             .addClass('word clickable').data(wordData)
-            .html(current + '<sub class="debug">' + (match ? "=" : "") + JSON.stringify(classes) /* + ' ' + show_tree(subtree) */ + '</sub>')
+            .html(current + '<sub class="debug">' + (match ? '=' : '') + JSON.stringify(classes) /* + ' ' + show_tree(subtree) */ + '</sub>')
             .click(click_word)
             .appendTo(sentence);
         if (match) {
             wordspan.addClass('match');
             var h = hash_array_of_string(Array.from(matchingClasses));
             var c = int_to_rgba(h);
-            wordspan.css({"border-color": c})
+            wordspan.css({'border-color': c})
         }
     }
     $('<span>')
@@ -430,7 +430,7 @@ function int_to_rgba(num) {
         r = (num & 0xFF0000) >>> 16,
         // a = ( (num & 0xFF000000) >>> 24 ) / 255 ;
         a = 1;
-    return "rgba(" + [r, g, b, a].join(",") + ")";
+    return 'rgba(' + [r, g, b, a].join(',') + ')';
 }
 
 function update_menu(m, idx) {
@@ -466,26 +466,26 @@ function placeThisAtThat(a, b) {
 
     //show the menu directly over the placeholder
     $(a).css({
-        position: "absolute",
-        top: pos.top + "px",
-        left: (pos.left + width) + "px"
+        position: 'absolute',
+        top: pos.top + 'px',
+        left: (pos.left + width) + 'px'
     });
 }
 
 function showErrorAt(msg, e) {
-    var err = $(".error")
+    var err = $('.error')
         .text(msg)
         .show()
     placeThisAtThat(err, e);
-    $(document).trigger("overlay");
+    $(document).trigger('overlay');
 }
 
 function click_word(event) {
     var clicked = $(event.target).closest('.clickable');
     var lang = clicked.data().lang;
     var path = clicked.data().path;
-    var validMenus = clicked.data("valid-menus");
-    var idx = clicked.data("nr");
+    var validMenus = clicked.data('valid-menus');
+    var idx = clicked.data('nr');
     function mark_selected_words(lin, sel) {
         for(var i = 0 ; i < lin.length ; i++) {
             var pword = lin[i].concrete;
@@ -494,15 +494,15 @@ function click_word(event) {
             $('<span>').text(pword)
                 .addClass(marked ? 'marked' : 'greyed')
                 .appendTo(menuitem);
-            $('<span>').text(" ").appendTo(menuitem);
+            $('<span>').text(' ').appendTo(menuitem);
         }
     }
-    if(validMenus === "nothing") {
+    if(validMenus === 'nothing') {
         // Fake an empty menu.
         validMenus = {next: function() {return [[], []];}, reset: function (){}};
     }
     if(validMenus === undefined) {
-        throw "No menu found. Probably because the user clicked a space between words, this is still not supported.";
+        throw 'No menu found. Probably because the user clicked a space between words, this is still not supported.';
     }
 
     if (clicked.hasClass('striked') && $('#menus ul').length > 1) {
@@ -540,12 +540,12 @@ function click_word(event) {
         // component.
         selection    = selsnmen[0];
         var menus    = selsnmen[1];
-        if (menus === null) throw "No menu found";
+        if (menus === null) throw 'No menu found';
 
         clicked.addClass('striked');
         $('#' + lang).find('.word')
             .filter(function(){
-                var idx = $(this).data("nr");
+                var idx = $(this).data('nr');
                 return is_selected(selection, idx);
             })
             .addClass('striked');
@@ -566,7 +566,7 @@ function click_word(event) {
                 }));
             var lin = item;
             if (lin.length == 0) {
-                $('<span>').html("&empty;").appendTo(menuitem);
+                $('<span>').html('&empty;').appendTo(menuitem);
             } else {
                 mark_selected_words(lin, pr[0])
             }
@@ -588,7 +588,7 @@ function click_word(event) {
         'left': left + 'px',
         'max-height': (window.innerHeight - top - 6) + 'px'
     }).show();
-    $(document).trigger("overlay");
+    $(document).trigger('overlay');
 }
 
 // is_selected :: Menu.Seleection -> Int -> Bool
@@ -622,7 +622,7 @@ function iterateMenu(idx, mp) {
     // when we call next we start by incrementing the counter.
     var initial = -1;
     var i = initial;
-    if(a.length === 0) return "nothing";
+    if(a.length === 0) return 'nothing';
     return {
         next: function() {
             i = (i+1) % a.length;
@@ -688,7 +688,7 @@ function select_menuitem(item, lang) {
 // Busy indicator
 
 var BUSY_DELAY = 50;
-var BUSY_STR = "\u25CF";
+var BUSY_STR = '\u25CF';
 // Unicode Character 'BLACK CIRCLE' (U+25CF)
 
 function BUSY(f) {
@@ -714,7 +714,7 @@ function pop_busy() {
         ind.className = ind.className.slice(0, -BUSY_STR.length);
         ind.textContent = ind.textContent.slice(0, -BUSY_STR.length);
     } else {
-        console.error("POP ERROR", ind.className, ind.textContent);
+        console.error('POP ERROR', ind.className, ind.textContent);
     }
 }
 
@@ -723,5 +723,5 @@ function pop_busy() {
 // Error handling
 
 function alert_error(title, description) {
-    console.trace("*** " + title + "***\n" + description);
+    console.trace('*** ' + title + '***\n' + description);
 }
