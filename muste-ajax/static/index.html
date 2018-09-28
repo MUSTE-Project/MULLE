@@ -1,10 +1,10 @@
-<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<!DOCTYPE html>
 <html>
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MUSTE</title>
-  <link rel="stylesheet" href="muste.css" type="text/css"></link>
+  <link rel="stylesheet" href="muste.css" type="text/css"/>
   <script defer type="text/javascript" src="jquery.min.js"></script>
   <script defer type="text/javascript" src="handlebars.min.js"></script>
   <script defer type="text/javascript" src="countdown.js"></script>
@@ -29,7 +29,7 @@
               <div><input type="password" name="pwd"></div>
             </div>
             <div class="spaced">
-              <div><button type="submit">Login</div>
+              <div><button type="submit">Login</button></div>
             </div>
           </div>
         </form>
@@ -40,7 +40,7 @@
     <div class="page" id="lessonspage">
       <div>
         <span>
-          <button class="right backbutton" href="" id="logoutbutton">Logga ut</button>
+          <button class="right backbutton" id="logoutbutton">Logga ut</button>
         </span>
         <h1 class="title">MUSTE: Latinträning</h1>
       </div>
@@ -65,14 +65,14 @@
         <div class="exercise">
           <div id="a" class="sentence prevent-body-click"></div>
           <div class="vertical-separator"></div>
-          <div id="b"class="sentence prevent-body-click"></div>
+          <div id="b" class="sentence prevent-body-click"></div>
         </div>
       </div>
 
       <div>
         <span class="left" id="score"></span>
         <span class="right">Elapsed time: <span id="timer"></span></span>
-        <div hidden class="popup menu" id="menus" class="prevent-body-click"></div>
+        <div hidden class="popup menu prevent-body-click" id="menus"></div>
         <div hidden class="popup error">I'm an error.</div>
         <div hidden class="overlay"></div>
       </div>
