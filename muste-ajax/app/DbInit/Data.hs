@@ -25,21 +25,28 @@ exercises = Vector.fromList $ novomodoExercises ++ exemplumExercises
 -- Novo Modo lessons
 
 novomodoLessons =
-  [ Types.Lesson lesson (Text.concat ["Lektion ", lesson, " från boken 'Novo Modo'"])
-    grammar srcLng trgLng (fromIntegral (Vector.length exs)) True Nothing Nothing True
-  | (grammar, lesson, srcLng, trgLng, exs) <- novomodoExercises
+  [ Types.Lesson lesson (novomodoDescription nr) (novomodoGrammar lesson)
+                 srcLng trgLng nrExercises True depthLimit depthLimit True
+  | (nr, (lesson, srcLng, trgLng, depthLimit, exerciseList)) <- zip [1..] novomodoDB,
+    let nrExercises = fromIntegral (Vector.length exerciseList)
   ]
 
 novomodoExercises =
-  [ (Text.append "novo_modo/" lesson, lesson, Text.append lesson "Lat", Text.append lesson "Swe", exerciseList)
-  | (lesson, exerciseList) <- novomodoDB
+  [ (novomodoGrammar lesson, lesson, srcLng, trgLng, exerciseList)
+  | (lesson, srcLng, trgLng, depthLimit, exerciseList) <- novomodoDB
   ]
 
+novomodoGrammar lesson = Text.concat ["novo_modo/", lesson]
+
+novomodoDescription nr = Text.concat ["Lektion ", Text.pack (show nr), " från boken 'Novo Modo'"]
+
+novomodoDepthLimit = Just 1
+
 novomodoDB =
-    [ ("Prima"  , primaPars)
-    , ("Secunda", secundaPars)
-    -- , ("Tertia" , tertiaPars)
-    -- , ("Quarta" , quartaPars)
+    [ ("Prima"  , "PrimaLat"  , "PrimaSwe"  , novomodoDepthLimit, primaPars  )
+    , ("Secunda", "SecundaLat", "SecundaSwe", novomodoDepthLimit, secundaPars)
+    -- , ("Tertia" , "TertiaLat" , "TertiaSwe" , novomodoDepthLimit, tertiaPars )
+    -- , ("Quarta" , "QuartaLat" , "QuartaSwe" , novomodoDepthLimit, quartaPars )
     ]
 
 primaPars =
@@ -90,17 +97,30 @@ secundaPars =
 -- Exemplum lessons
 
 exemplumLessons =
-  [ Types.Lesson lesson (Text.append "Example grammar: " lesson)
-    grammar srcLng trgLng (fromIntegral (length exs)) True Nothing Nothing True
-  | (grammar, lesson, srcLng, trgLng, exs) <- exemplumExercises
+  [ Types.Lesson lesson (Text.concat ["Example lesson: ", lesson]) exemplumGrammar
+                 srcLng trgLng nrExercises True depthLimit depthLimit True
+  | (lesson, srcLng, trgLng, depthLimit, exerciseList) <- exemplumDB,
+    let nrExercises = fromIntegral (Vector.length exerciseList)
   ]
 
 exemplumExercises =
-  [ ("exemplum/Exemplum", Text.concat ["Exemplum ", l1, "-", l2],
-     Text.append "Exemplum" l1, Text.append "Exemplum" l2, Vector.singleton (s1, s2))
-  | let (l1, s1) = head exemplumSentences,
-    (l2, s2) <- tail exemplumSentences
+  [ (exemplumGrammar, lesson, srcLng, trgLng, exerciseList)
+  | (lesson, srcLng, trgLng, depthLimit, exerciseList) <- exemplumDB
   ]
+
+exemplumGrammar = "exemplum/Exemplum"
+
+exemplumDepthLimit = Just 4
+
+exemplumDB =
+    [ (Text.concat [srcLng, "->", trgLng],
+       Text.concat ["Exemplum", srcLng],
+       Text.concat ["Exemplum", trgLng],
+       exemplumDepthLimit,
+       [(src, trg)])
+    | let (srcLng, src) = head exemplumSentences,
+      (trgLng, trg) <- tail exemplumSentences
+    ]
 
 exemplumSentences =
     [ ("Eng", "many kings love Paris")
