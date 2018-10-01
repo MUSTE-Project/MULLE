@@ -11,6 +11,12 @@ body {
     padding: initial;
 }
 
+html, body, main, .page {
+    /* I feel like this ought to be min-height but that does not acheive
+    the same result for some reason. */
+    height: calc(100% - 2pt);
+}
+
 body, button, input, table, tr, td {
     font-size: inherit;
 }
@@ -26,12 +32,6 @@ main {
     margin: 0 auto;
 }
 
-html, body, main {
-    /* I feel like this ought to be min-height but that does not acheive
-   the same result for some reason. */
-    height: 100%;
-}
-
 #loginform td, input {
     padding: 5px 10px;
 }
@@ -45,7 +45,6 @@ strong {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    height: calc(100% - 1em);
 }
 
 .page .container {
