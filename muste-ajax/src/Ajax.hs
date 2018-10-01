@@ -8,6 +8,7 @@ module Ajax
   , ClientMessage(..)
   , Lesson2(..)
   , User(..)
+  , ChangePwd(..)
   , serverTree
   , unClientTree
   ) where
@@ -193,3 +194,19 @@ instance FromJSON User where
      $ \v -> User
     <$> v .: "name"
     <*> v .: "password"
+
+-- | Like a 'User' but with an old and a new password.
+data ChangePwd = ChangePwd
+  { name        ∷ Text
+  , oldPassword ∷ Text
+  , newPassword ∷ Text
+  }
+
+deriving stock instance Show ChangePwd
+
+instance FromJSON ChangePwd where
+  parseJSON = withObject "user"
+     $ \v -> ChangePwd
+    <$> v .: "name"
+    <*> v .: "old-password"
+    <*> v .: "new-password"

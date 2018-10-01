@@ -46,5 +46,3 @@ Issue #50: User registration
 Added a page for adding new users. TODO
 
 * Handle case when user already exists.
-* Change password.
-* Do smth in the GUI when the user is created.

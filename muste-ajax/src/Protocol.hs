@@ -45,6 +45,7 @@ import Common
 import Ajax
   ( ServerMessage(..), ClientMessage(..)
   , ClientTree(..), ServerTree, User(..)
+  , ChangePwd(..)
   )
 import qualified Ajax
 import Database (MonadDB, getConnection, MonadDatabaseError(..))
@@ -164,6 +165,7 @@ dbErrResponseCode = \case
   Database.MultipleSessions        → 401
   Database.NoExercisesInLesson     → 400
   Database.NonUniqueLesson         → 400
+  Database.NotAuthenticated        → 401
 
 -- | Errors are returned as JSON responses.
 runProtocolT :: MonadSnap m ⇒ ToJSON a ⇒ String → ProtocolT m a → m ()
@@ -198,6 +200,7 @@ apiRoutes db =
   , "lesson"       |> run lessonHandler
   , "menu"         |> run menuHandler
   , "create-user"  |> run createUserHandler
+  , "change-pwd"   |> run changePwdHandler
   -- TODO What are these requests?
   , "MOTDRequest"  |> run (missingApiRoute "MOTDRequest")
   , "DataResponse" |> run (missingApiRoute "DataResponse")
@@ -211,6 +214,15 @@ createUserHandler ∷ MonadProtocol m ⇒ m ()
 createUserHandler = do
   User{..} ← getMessage
   void $ Database.addUser name password True
+
+-- | Change password of the user.  The user currently (as of this
+-- writing) does not need to be authenticated to change their
+-- password.  They must simply provide their old password which is
+-- then checked against the database.
+changePwdHandler ∷ MonadProtocol m ⇒ m ()
+changePwdHandler = do
+  ChangePwd{..} ← getMessage
+  void $ Database.changePassword name oldPassword newPassword
 
 missingApiRoute ∷ MonadError ProtocolError m ⇒ String -> m ()
 missingApiRoute = throwError . MissingApiRoute
@@ -247,8 +259,9 @@ getTokenCookie = Snap.getCookie "LOGIN_TOKEN"
 -- * Handlers
 lessonsHandler :: MonadProtocol m ⇒ m ServerMessage
 lessonsHandler = do
-  token <- getToken
-  handleLessonsRequest token
+  t ← getToken
+  lessons ← Database.listLessons t
+  verifyMessage (SMLessonsList lessons)
 
 lessonHandler :: MonadProtocol m ⇒ m ServerMessage
 lessonHandler = Snap.pathArg $ \p → do
@@ -292,26 +305,21 @@ setLoginCookie tok = Snap.modifyResponse $ Snap.addResponseCookie c
 -- way to go is to use the basic http authentication *on every
 -- request*.  That is, the client submits user/password on every
 -- request.  Security is handled by SSL in the transport layer.
+-- Further thought: Well, we're just sending the authentication token
+-- in stead.  This one also cannot be spoofed.
 handleLoginRequest
   :: MonadProtocol m
   => Text -- ^ Username
   -> Text -- ^ Password
   -> m ServerMessage
 handleLoginRequest user pass = do
-  authed ← Database.authUser user pass
-  token  ← Database.startSession user
-  if authed
-  then SMLoginSuccess token
-    <$ setLoginCookie token
-  else throwError LoginFail
+  Database.authUser user pass
+  token ← Database.startSession user
+  setLoginCookie token
+  pure $ SMLoginSuccess token
 
 askContexts :: MonadProtocol m ⇒ m Contexts
 askContexts = asks contexts
-
-handleLessonsRequest :: MonadProtocol m ⇒ Text -> m ServerMessage
-handleLessonsRequest token = do
-  lessons <- Database.listLessons token
-  verifyMessage token (SMLessonsList lessons)
 
 handleLessonInit
   ∷ ∀ m
@@ -330,7 +338,7 @@ handleLessonInit token lesson = do
     trg ← ann targetTree
     let
       (a,b) = assembleMenus c lesson src trg
-    verifyMessage token (SMMenuList lesson False 0 a b)
+    verifyMessage (SMMenuList lesson False 0 a b)
 
 -- | This request is called after the user selects a new sentence from
 -- the drop-down menu.  A request consists of two 'ClientTree's (the
@@ -354,7 +362,7 @@ handleMenuRequest
   → m ServerMessage
 handleMenuRequest token lesson clicks time src trg = do
   c <- askContexts
-  verifySession token
+  verifySession
   finished ← oneSimiliarTree c lesson src trg
   act <-
     if finished
@@ -368,7 +376,7 @@ handleMenuRequest token lesson clicks time src trg = do
   srcUnamb ← ann src
   trgUnamb ← ann trg
   let (a , b) = act c lesson srcUnamb trgUnamb
-  verifyMessage token (SMMenuList lesson finished (succ clicks) a b)
+  verifyMessage (SMMenuList lesson finished (succ clicks) a b)
 
 annotate
   ∷ MonadError ProtocolError m
@@ -421,23 +429,19 @@ disambiguate cs lesson t = do
 handleLogoutRequest ∷ MonadProtocol m ⇒ Text → m ()
 handleLogoutRequest = Database.endSession
 
--- | @'verifySession' tok@ verifies the user identified by
--- @tok@. Returns 'Nothing' if authentication is successfull and @Just
--- err@ if not. @err@ is a message describing what went wrong.
-verifySession
-  :: MonadProtocol m
-  => Text -- ^ The token of the logged in user
-  -> m ()
-verifySession tok = Database.verifySession tok
+-- | @'verifySession' tok@ verifies the user identified by @tok@.
+-- This method throws (using one of the error instances of
+-- 'MonadProtocol') if the user is not authenticated.
+verifySession ∷ MonadProtocol m ⇒ m ()
+verifySession = getToken >>= Database.verifySession
 
 -- | Returns the same message unmodified if the user is authenticated,
 -- otherwise return 'SMSessionInvalid'.
 verifyMessage
   ∷ MonadProtocol m
-  ⇒ Text              -- ^ The logged in users session id.
-  → ServerMessage     -- ^ The message to verify
+  ⇒ ServerMessage     -- ^ The message to verify
   → m ServerMessage
-verifyMessage tok msg = msg <$ verifySession tok
+verifyMessage msg = msg <$ verifySession
 
 initContexts
   :: Database.MonadDB db

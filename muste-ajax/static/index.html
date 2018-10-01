@@ -31,11 +31,13 @@
       <button type="submit">Login</button>
      </div>
     </form>
-    <p>or</p>
-    <a class="pager button" href="#create-user">Create new user</a>
+    <hr />
+    <a class="pager button" href="#page-create-user">Create new user</a>
+    <a class="pager button" href="#page-change-password">Change password</a>
    </div>
    <div></div>
   </div>
+  <!-- / page-login -->
 
   <div class="page" id="page-lessons">
    <div>
@@ -52,6 +54,7 @@
     <a class="button left instructions button" href="instructions.html" target="_blank">Instructions</a>
    </div>
   </div>
+  <!-- / page-lessons -->
 
   <div class="page" id="page-exercise">
    <div>
@@ -77,7 +80,9 @@
     <div hidden class="overlay"></div>
    </div>
   </div>
-  <div class="page" id="create-user">
+  <!-- / page-exercise -->
+
+  <div class="page" id="page-create-user">
    <div>
     <h1 class="title">Create user</h1>
    </div>
@@ -100,11 +105,48 @@
       <button type="submit">Create user</button>
      </div>
     </form>
-    <p>or</p>
+    <hr />
     <a class="pager button" href="#page-login">Log in with existing user</a>
    </div>
    <div></div>
   </div>
+  <!-- / page-change-password -->
+
+  <div class="page" id="page-change-password">
+   <div>
+    <h1 class="title">Skift lösenord</h1>
+    <p><tt>TODO Maybe this should only be accessible when the user is logged in.  In that case we don't have to ask for the old password.</tt>
+   </div>
+   <div class="container">
+    <form action="change-pwd" method="post">
+     <div>
+      <div><h3>Användare:</h3></div>
+      <div><input type="text" name="name" required></div>
+     </div>
+     <div>
+      <div><h3>Gammalt lösenord:</h3></div>
+      <div><input type="password" name="old-pwd" required></div>
+     </div>
+     <div>
+      <div><h3>Nya lösenord:</h3></div>
+      <div><input type="password" name="pwd" required></div>
+     </div>
+     <div>
+      <div><h3>Gentag nya lösenord:</h3></div>
+      <div><input type="password" name="confirm-pwd" required></div>
+     </div>
+
+     <div class="spaced">
+      <button type="submit">Skift lösenord</button>
+     </div>
+    </form>
+    <hr />
+    <a class="pager button" href="#page-login">Log in with existing user</a>
+   </div>
+   <div></div>
+  </div>
+  <!-- / page-change-passowrd -->
+
  </main>
 </body>
 </html>

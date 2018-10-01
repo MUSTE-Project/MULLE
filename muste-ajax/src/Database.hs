@@ -1,6 +1,6 @@
 -- TODO Fix name shadowing.
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# Language QuasiQuotes, RecordWildCards #-}
+{-# Language QuasiQuotes, RecordWildCards, MultiWayIf #-}
 module Database
   ( MonadDB
   , DbT(DbT)
@@ -66,6 +66,7 @@ data Error
   | MultipleSessions
   | NoExercisesInLesson
   | NonUniqueLesson
+  | NotAuthenticated
 
 instance Show Error where
   show = \case
@@ -80,6 +81,7 @@ instance Show Error where
     MultipleSessions    → "More than one session"
     NoExercisesInLesson → "No exercises for lesson"
     NonUniqueLesson     → "Non unique lesson"
+    NotAuthenticated    → "User is not authenticated"
 
 instance Exception Error
 
@@ -139,34 +141,33 @@ authUser
   :: MonadDB db
   => Text -- ^ Username
   -> Text -- ^ Password
-  -> db Bool
+  -> db ()
 authUser user pass = do
   -- Get password and salt from database
   userList <- query @(ByteString, ByteString, Bool) selectPasswordSaltQuery [user]
   -- Generate new password hash and compare to the stored one
-  if length userList == 1
-  then
-    let (dbPass,dbSalt,enabled) = head userList
-        pwHash = hashPasswd (T.encodeUtf8 pass) dbSalt
-    in pure $ enabled && pwHash == dbPass
-  else pure False
+  let
+    h dbSalt = hashPasswd (T.encodeUtf8 pass) dbSalt
+    p (dbPass, dbSalt, enabled) = enabled && h dbSalt == dbPass
+  case userList of
+    [usr] → if
+      | p usr     → pure ()
+      | otherwise → throwDbError NotAuthenticated
+    _             → throwDbError NoUserFound
   where
   selectPasswordSaltQuery
     = [sql|SELECT Password,Salt,Enabled FROM User WHERE (Username = ?);|]
 
 changePassword
-  :: MonadDB db
-  => Text -- ^ Username
-  -> Text -- ^ Old password
-  -> Text -- ^ New password
-  -> db ()
+  ∷ MonadDB db
+  ⇒ Text -- ^ Username
+  → Text -- ^ Old password
+  → Text -- ^ New password
+  → db ()
 changePassword user oldPass newPass = do
-  authed <- authUser user oldPass
-  if authed
-  then do
-    rmUser user
-    addUser user newPass True
-  else return ()
+  authUser user oldPass
+  rmUser user
+  addUser user newPass True
 
 createSession
   :: MonadDB db

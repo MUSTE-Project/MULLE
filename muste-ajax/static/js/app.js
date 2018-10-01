@@ -36,6 +36,7 @@ function init() {
   register_overlay();
   register_pagers();
   register_create_user_handler();
+  register_change_pwd_handler();
   var tok = window.sessionStorage.getItem('LOGIN_TOKEN');
   // Show login page regardless.
   show_page('#page-login');
@@ -57,16 +58,7 @@ function register_pagers() {
 
 function register_create_user_handler() {
   var $form = $("form[action=create-user]");
-  var $rpt = $form.find('input[name=confirm-pwd]').change(function() {
-    var pwd  = $form.find('input[name=pwd]').val();
-    var cpwd = $(this).val();
-    if(pwd !== cpwd) {
-      this.setCustomValidity('Password must match');
-      return;
-    }
-    // Input value is now valid.
-    this.setCustomValidity('');
-  });
+  password_matcher($form);
   $form.on('submit', function (event) {
     event.preventDefault()
     var data = {
@@ -74,7 +66,41 @@ function register_create_user_handler() {
       'name': $form.find('input[name=name]').val()
     };
     muste_request(data, 'create-user').then(function() {
+      console.aler('That did not work, perhaps you didn\'t enter the correct value for your old password');
+    });
+  });
+}
+
+function password_matcher($form) {
+  $form.find('input').change(function() {
+    var pwd  = $form.find('input[name=pwd]').val();
+    var $pwdC = $form.find('input[name=confirm-pwd]')
+    var cpwd = $pwdC.val();
+    if(pwd !== cpwd) {
+      $pwdC.each(function () {
+          this.setCustomValidity('Password must match');
+        });
+      return;
+    }
+    // Input value is now valid.
+    this.setCustomValidity('');
+  });
+}
+
+function register_change_pwd_handler() {
+  var $form = $("form[action=change-pwd]");
+  password_matcher($form);
+  $form.on('submit', function (event) {
+    event.preventDefault()
+    var data = {
+      'new-password': $form.find('input[name=pwd]').val(),
+      'old-password': $form.find('input[name=old-pwd]').val(),
+      'name': $form.find('input[name=name]').val()
+    };
+    muste_request_raw(data, 'change-pwd').then(function() {
       show_page('#page-login');
+    }).fail(function() {
+      console.error('no way');
     });
   });
 }
@@ -155,15 +181,20 @@ function call_server_new(message, parameters, endpoint) {
 // the protocol.  In contrast with `call_server_new` does not try to
 // guess how to interpret the response.
 function muste_request(data, endpoint) {
-     var req = {
-      cache: false,
-      url: SERVER + endpoint,
-      dataType: 'json',
-      method: 'POST',
-      processData: false,
-      data: JSON.stringify(data)
-    };
-    return $.ajax(req).fail(handle_server_fail);
+  return muste_request_raw(data, endpoint).fail(handle_server_fail);
+}
+
+// Like `emuste_request` but with no error handler.
+function muste_request_raw(data, endpoint) {
+   var req = {
+    cache: false,
+    url: SERVER + endpoint,
+    dataType: 'json',
+    method: 'POST',
+    processData: false,
+    data: JSON.stringify(data)
+  };
+  return $.ajax(req);
 }
 
 function handle_server_fail(resp) {
