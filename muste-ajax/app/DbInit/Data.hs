@@ -129,5 +129,6 @@ exemplumSentences =
     , ("Spa", "un bueno rey lee un libro")
     , ("Chi", " 一 个 好 国 王 读 一 本 书 ")
     , ("Ara", " يَقْرَأُ مَلِكٌ جوَيِّدٌ كِتابً ")
+    , ("Test", "the girl read book")
     ]
 
