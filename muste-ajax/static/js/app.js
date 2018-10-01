@@ -131,13 +131,24 @@ function call_server_new(message, parameters, endpoint) {
 }
 
 function handle_server_fail(resp) {
+  display_error(resp);
   switch(resp.status) {
   case 401:
     show_page('loginpage');
     break;
   case 400:
-  default: console.error(resp.responseJSON);
+  default:
+    break;
   }
+}
+
+function display_error(resp) {
+  if(resp.responseJSON === undefined) {
+    // We've received a response object that we didn't expect.
+    console.error(resp.responseText);
+    return;
+  }
+  console.error(resp.responseJSON);
 }
 
 function register_handlebars_helper() {
