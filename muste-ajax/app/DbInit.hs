@@ -81,11 +81,7 @@ users =
 
 insertLessonQuery ∷ Query
 insertLessonQuery
-  = [sql|
-        INSERT INTO Lesson
-        (Name,Description,Grammar,SourceLanguage,TargetLanguage,ExerciseCount,Enabled,Repeatable)
-        VALUES (?,?,?,?,?,?,?,?);
-     |]
+  = [sql| INSERT INTO Lesson VALUES (?,?,?,?,?,?,?,?,?,?); |]
 
 insertExerciseQuery ∷ Query
 insertExerciseQuery

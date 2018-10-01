@@ -7,66 +7,69 @@ module DbInit.Data (exercises, lessons) where
 import Data.Text (Text)
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
+import qualified Database.Types as Types
 
--- | In order of appearance:
---   * Name
---   * Description
---   * Grammar
---   * SourceLanguage
---   * TargetLanguage
---   * ExerciseCount
---   * Enabled
---   * Repeatable
-type Lesson = (Text,Text,Text,Text,Text,Int,Bool,Bool)
-
-lessons :: Vector Lesson
+lessons :: Vector Types.Lesson
 lessons =
-  [ ( "Exemplum Pars"
-    , "Example grammar with one exercise"
-    , "novo_modo/Exemplum"
-    , "ExemplumEng"
-    , "ExemplumSwe"
-    , Vector.length exemplumPars
-    , True
-    , True
-    )
-  , ( "Prima Pars"
-    , "Den första Lektionen fran boken \"Novo modo\""
-    , "novo_modo/Prima"
-    , "PrimaLat"
-    , "PrimaSwe"
-    , Vector.length primaPars
-    , True
-    , True
-    )
-  , ( "Secunda Pars"
-    , "Den andra Lektionen fran boken \"Novo modo\""
-    , "novo_modo/Secunda"
-    , "SecundaLat"
-    , "SecundaSwe"
-    , Vector.length secundaPars
-    , True
-    , True
-    )
-  , ( "Tertia Pars"
-    , "Den tredje Lektionen fran boken \"Novo modo\""
-    , "novo_modo/Tertia"
-    , "TertiaLat"
-    , "TertiaSwe"
-    , Vector.length tertiaPars
-    , False
-    , True
-    )
-  , ( "Quarta Pars"
-    , "Den fjärde Lektionen fran boken \"Novo modo\""
-    , "novo_modo/Quarta"
-    , "QuartaLat"
-    , "QuartaSwe"
-    , Vector.length quartaPars
-    , False
-    , True
-    )
+  [ Types.Lesson
+    "Exemplum Pars"
+    "Example grammar with one exercise"
+    "novo_modo/Exemplum"
+    "ExemplumEng"
+    "ExemplumSwe"
+    (len exemplumPars)
+    True
+    Nothing
+    Nothing
+    True
+  , Types.Lesson
+    "Prima Pars"
+    "Den första Lektionen fran boken \"Novo modo\""
+    "novo_modo/Prima"
+    "PrimaLat"
+    "PrimaSwe"
+    (len primaPars)
+    True
+    Nothing
+    Nothing
+    True
+  , Types.Lesson
+    "Secunda Pars"
+    "Den andra Lektionen fran boken \"Novo modo\""
+    "novo_modo/Secunda"
+    "SecundaLat"
+    "SecundaSwe"
+    (len secundaPars)
+    True
+    Nothing
+    Nothing
+    True
+  , Types.Lesson
+    "Tertia Pars"
+    "Den tredje Lektionen fran boken \"Novo modo\""
+    "novo_modo/Tertia"
+    "TertiaLat"
+    "TertiaSwe"
+    (len tertiaPars)
+    False
+    Nothing
+    Nothing
+    True
+  , Types.Lesson
+    "Quarta Pars"
+    "Den fjärde Lektionen fran boken \"Novo modo\""
+    "novo_modo/Quarta"
+    "QuartaLat"
+    "QuartaSwe"
+    (len quartaPars)
+    False
+    Nothing
+    Nothing
+    True
   ]
+  where
+  len ∷ Vector a → Integer
+  len = fromIntegral . Vector.length
 
 -- | List of exercises group by the lesson they belong to.  The lesson
 -- is identified by 1. an identifier for the grammar for that lesson

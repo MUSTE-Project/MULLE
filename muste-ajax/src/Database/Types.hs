@@ -111,6 +111,7 @@ data Lesson = Lesson
   , grammar             ∷ Text
   , sourceLanguage      ∷ Text
   , targetLanguage      ∷ Text
+  -- TODO Why not let the dbms manage this?
   , exerciseCount       ∷ Numeric
   , enabled             ∷ Bool
   , searchLimitDepth    ∷ Maybe Int
