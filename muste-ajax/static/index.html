@@ -1,50 +1,152 @@
-<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<!DOCTYPE html>
 <html>
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MUSTE</title>
-  <link rel="stylesheet" href="muste.css" type="text/css"></link>
-  <script type="text/javascript" src="jquery-1.11.1.min.js"></script>
-  <script type="text/javascript" src="muste-gui.js"></script>
+ <title>MUSTE</title>
+ <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1" />
+ <link rel="stylesheet" href="/css/muste.css" />
+ <script defer type="text/javascript" src="/js/jquery.min.js"></script>
+ <script defer type="text/javascript" src="/js/handlebars.min.js"></script>
+ <script defer type="text/javascript" src="/js/countdown.js"></script>
+ <script defer type="text/javascript" src="/js/app.js"></script>
 </head>
 
 <body>
-  <div id="body">
-    <div class="page" id="loginpage">
-      <h1>MUSTE: Latinträning</h1>
-      <form id="loginform">
-        <table>
-          <tr><td><strong>Användare:</strong></td> <td><input type="text" name="name"></td></tr>
-          <tr><td><strong>Lösenord:</strong></td> <td><input type="password" name="pwd"></td>
-            <td><button type="submit">Login</td></tr>
-        </table>
-      </form>      
-    </div>
-
-    <div class="page" id="lessonspage">
-      <button href="" id="logoutbutton">Logga ut</button>
-      <h1>MUSTE: Latinträning</h1>
-      <table id="lessonslist"></table>
-      <a class="button" href="instructions.html" target="_blank">Instructions</a>
-    </div>
-
-    <div class="page" id="exercisepage">
-      <span id="lessoncounter"></span>
-      <span id="score"></span>
-      <span id="timer"></span>
-      <span id="busy-indicator" class="idle"></span>
-      <!-- Unicode Character 'BLACK CIRCLE' (U+25CF) -->
-      <button id="abortlesson">Avbryt lektion</button>
-
-      <div id="container">
-        <div id="a" class="sentence prevent-body-click"></div>
-        <div class="vertical-separator"></div>
-        <div id="b"class="sentence prevent-body-click"></div>
-      </div>
-
-      <div id="menus" class="prevent-body-click"></div>
-    </div>
+ <main>
+  <div class="page" id="page-login">
+   <div>
+    <h1 class="title">MUSTE: Latinträning</h1>
+   </div>
+   <div class="container">
+    <form id="loginform" method="post">
+     <div>
+      <div><h3>Användare:</h3></div>
+      <div><input type="text" name="name"></div>
+     </div>
+     <div>
+      <div><h3>Lösenord:</h3></div>
+      <div><input type="password" name="pwd"></div>
+     </div>
+     <div class="spaced">
+      <button type="submit">Login</button>
+     </div>
+    </form>
+    <hr />
+    <a class="pager button" href="#page-create-user">Create new user</a>
+    <a class="pager button" href="#page-change-password">Change password</a>
+   </div>
+   <div></div>
   </div>
+  <!-- / page-login -->
+
+  <div class="page" id="page-lessons">
+   <div>
+    <span>
+     <button class="right backbutton" id="logoutbutton">Logga ut</button>
+    </span>
+    <h1 class="title">MUSTE: Latinträning</h1>
+   </div>
+   <div>
+    <div class="container" id="lessonslist"></div>
+   </div>
+   <div class="vertical-separator"></div>
+   <div>
+    <a class="button left instructions button" href="instructions.html" target="_blank">Instructions</a>
+   </div>
+  </div>
+  <!-- / page-lessons -->
+
+  <div class="page" id="page-exercise">
+   <div>
+    <span class="left" id="lessoncounter"></span>
+    <span id="busy-indicator" class="idle"></span>
+     <!-- Unicode Character 'BLACK CIRCLE' (U+25CF) -->
+    <button class="right backbutton" id="abortlesson">Avbryt lektion</button>
+   </div>
+
+   <div class="container container-alt">
+    <div class="exercise">
+     <div id="a" class="sentence prevent-body-click"></div>
+     <div class="vertical-separator"></div>
+     <div id="b" class="sentence prevent-body-click"></div>
+    </div>
+   </div>
+
+   <div>
+    <span class="left" id="score"></span>
+    <span class="right">Elapsed time: <span id="timer"></span></span>
+    <div hidden class="popup menu prevent-body-click" id="menus"></div>
+    <div hidden class="popup error"></div>
+    <div hidden class="overlay"></div>
+   </div>
+  </div>
+  <!-- / page-exercise -->
+
+  <div class="page" id="page-create-user">
+   <div>
+    <h1 class="title">Create user</h1>
+   </div>
+   <div class="container">
+    <form action="create-user" method="post">
+     <div>
+      <div><h3>Användare:</h3></div>
+      <div><input type="text" name="name" required></div>
+     </div>
+     <div>
+      <div><h3>Lösenord:</h3></div>
+      <div><input type="password" name="pwd" required></div>
+     </div>
+     <div>
+      <div><h3>Gentag lösenord:</h3></div>
+      <div><input type="password" name="confirm-pwd" required></div>
+     </div>
+
+     <div class="spaced">
+      <button type="submit">Create user</button>
+     </div>
+    </form>
+    <hr />
+    <a class="pager button" href="#page-login">Log in with existing user</a>
+   </div>
+   <div></div>
+  </div>
+  <!-- / page-change-password -->
+
+  <div class="page" id="page-change-password">
+   <div>
+    <h1 class="title">Skift lösenord</h1>
+    <p><tt>TODO Maybe this should only be accessible when the user is logged in.  In that case we don't have to ask for the old password.</tt>
+   </div>
+   <div class="container">
+    <form action="change-pwd" method="post">
+     <div>
+      <div><h3>Användare:</h3></div>
+      <div><input type="text" name="name" required></div>
+     </div>
+     <div>
+      <div><h3>Gammalt lösenord:</h3></div>
+      <div><input type="password" name="old-pwd" required></div>
+     </div>
+     <div>
+      <div><h3>Nya lösenord:</h3></div>
+      <div><input type="password" name="pwd" required></div>
+     </div>
+     <div>
+      <div><h3>Gentag nya lösenord:</h3></div>
+      <div><input type="password" name="confirm-pwd" required></div>
+     </div>
+
+     <div class="spaced">
+      <button type="submit">Skift lösenord</button>
+     </div>
+    </form>
+    <hr />
+    <a class="pager button" href="#page-login">Log in with existing user</a>
+   </div>
+   <div></div>
+  </div>
+  <!-- / page-change-passowrd -->
+
+ </main>
 </body>
 </html>

@@ -8,19 +8,9 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
+import qualified Database.Types as Types
 
--- | In order of appearance:
---   * Name
---   * Description
---   * Grammar
---   * SourceLanguage
---   * TargetLanguage
---   * ExerciseCount
---   * Enabled
---   * Repeatable
-type Lesson = (Text,Text,Text,Text,Text,Int,Bool,Bool)
-
-lessons :: Vector Lesson
+lessons :: Vector Types.Lesson
 lessons = Vector.fromList $ novomodoLessons ++ exemplumLessons
 
 -- | List of exercises group by the lesson they belong to.  The lesson
@@ -35,8 +25,8 @@ exercises = Vector.fromList $ novomodoExercises ++ exemplumExercises
 -- Novo Modo lessons
 
 novomodoLessons =
-  [ (lesson, Text.concat ["Lektion ", lesson, " från boken 'Novo Modo'"],
-     grammar, srcLng, trgLng, Vector.length exs, True, True)
+  [ Types.Lesson lesson (Text.concat ["Lektion ", lesson, " från boken 'Novo Modo'"])
+    grammar srcLng trgLng (fromIntegral (Vector.length exs)) True Nothing Nothing True
   | (grammar, lesson, srcLng, trgLng, exs) <- novomodoExercises
   ]
 
@@ -100,8 +90,8 @@ secundaPars =
 -- Exemplum lessons
 
 exemplumLessons =
-  [ (lesson, Text.append "Example grammar: " lesson,
-     grammar, srcLng, trgLng, length exs, True, True)
+  [ Types.Lesson lesson (Text.append "Example grammar: " lesson)
+    grammar srcLng trgLng (fromIntegral (length exs)) True Nothing Nothing True
   | (grammar, lesson, srcLng, trgLng, exs) <- exemplumExercises
   ]
 

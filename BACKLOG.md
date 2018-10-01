@@ -16,22 +16,6 @@ their session?
 Move more parameters into location or query params
 ---
 
-Issue #2: Improved support for insertion
-----
-
-https://github.com/MUSTE-Project/MULLE/issues/2
-
-We should now correctly be reporting which trees are to be considered
-"insertions", we now need to make the front end act on this.
-
-We need to decide is how to encode an insertion as a `Selection`.
-
-Automatically generate .pgf files
----
-
-Make this a part of the build pipeline.  The user currently needs to
-manually call `make`.
-
 Wide / narrow grammar
 ---
 
@@ -49,9 +33,6 @@ Add `NFData` instance for `Grammar`.
 This will allow for better benchmarking, but unfortunately require an
 `NFData` instance for `PGF`.
 
-Switch to text in Muste.Sentence.Token.Class
----
-
 Consider removing the rows source- and target language
 ---
 
@@ -59,3 +40,9 @@ We're relying on the sentence object given us the correct information
 about the language of that sentence, so we don't really need the
 source- and target- language rows in the DB anymore.
 
+Issue #50: User registration
+---
+
+Added a page for adding new users. TODO
+
+* Handle case when user already exists.

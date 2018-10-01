@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings, UnicodeSyntax, TemplateHaskell, QuasiQuotes, TypeApplications #-}
+{-# LANGUAGE OverloadedStrings, UnicodeSyntax, TemplateHaskell,
+  QuasiQuotes, TypeApplications, RecordWildCards, OverloadedLists #-}
 {-# OPTIONS_GHC -Wall #-}
 module DbInit (initDb) where
 
@@ -46,8 +47,8 @@ initDB conn = do
   let exec ∷ SQL.ToRow q ⇒ Query → q → IO ()
       exec p = SQL.execute conn p
   execRaw conn $ decodeUtf8 initScript
-  mapM_ (addUser conn) users
-  mapM_ (exec insertLessonQuery)   Data.lessons
+  mapM_ (dropRecreateUser conn) users
+  mapM_ (exec insertLessonQuery) Data.lessons
   mapM_ (exec insertExerciseQuery) exercises
 
 exercises ∷ Vector (Unannotated, Unannotated, Text)
@@ -68,23 +69,30 @@ exercises = Data.exercises >>= go
     f ∷ Text → Text → Unannotated
     f l = Unannotated.fromText g l
 
-addUser ∷ Connection → (Text, Text, Bool) → IO ()
-addUser c (usr,psw,active)
-  = Database.runDB (Database.addUser usr psw active) c
+dropRecreateUser ∷ Connection → User → IO ()
+dropRecreateUser c User{..}
+  = void
+  $ Database.runDb act c
+  where
+  act = do
+    Database.rmUser name
+    Database.addUser name password enabled
 
-users ∷ [(Text, Text, Bool)]
+data User = User
+  { name     ∷ Text
+  , password ∷ Text
+  , enabled  ∷ Bool
+  }
+
+users ∷ Vector User
 users =
-  [ ("herbert", "HERBERT", True)
-  , ("peter",   "PETER",   True)
+  [ User "herbert" "HERBERT" True
+  , User "peter"   "PETER"   True
   ]
 
 insertLessonQuery ∷ Query
 insertLessonQuery
-  = [sql|
-        INSERT INTO Lesson
-        (Name,Description,Grammar,SourceLanguage,TargetLanguage,ExerciseCount,Enabled,Repeatable)
-        VALUES (?,?,?,?,?,?,?,?);
-     |]
+  = [sql| INSERT INTO Lesson VALUES (?,?,?,?,?,?,?,?,?,?); |]
 
 insertExerciseQuery ∷ Query
 insertExerciseQuery

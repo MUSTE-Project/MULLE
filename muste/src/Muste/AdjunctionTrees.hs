@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language ConstraintKinds, CPP, OverloadedStrings, NamedFieldPuns,
-  RecordWildCards #-}
+  RecordWildCards, DuplicateRecordFields #-}
 -- | Adjunction trees
 --
 -- Interfacint with 'AdjunctionTrees' is done using the interface for
@@ -38,13 +38,23 @@ import qualified Muste.Tree.Internal as Tree
 
 data BuilderInfo = BuilderInfo
   { searchDepth ∷ Maybe Int
+  -- TODO We're not using this, and I think it cannot (easily) be
+  -- implemented in the reader environment of the builder.  To
+  -- implement this we need to do a breadth first search.  Follow the
+  -- discussion at [issue #46].
+  --
+  -- [issue #46]: https://github.com/MUSTE-Project/MULLE/issues/46
+  , searchSize  ∷ Maybe Int
   }
 
 instance Semigroup BuilderInfo where
-  BuilderInfo a <> BuilderInfo b = BuilderInfo $ (+) <$> a <*> b
+  BuilderInfo a0 a1 <> BuilderInfo b0 b1
+    = BuilderInfo (a0 <+> b0) (a1 <+> b1)
+    where
+    a <+> b = (+) <$> a <*> b
 
 instance Monoid BuilderInfo where
-  mempty = BuilderInfo empty
+  mempty = BuilderInfo empty empty
 
 -- Profiling reveals that this function is really heavy.  Quoting the
 -- relevant bits:
@@ -93,7 +103,7 @@ instance Monoid BuilderInfo where
 -- a mapping from a 'Category' to all trees in the specified 'Grammar'
 -- that have this type.
 getAdjunctionTrees ∷ BuilderInfo → Grammar → AdjunctionTrees
-getAdjunctionTrees BuilderInfo{..} grammar
+getAdjunctionTrees builderInfo@BuilderInfo{..} grammar
   =   dbg diagnose
   $   AdjunctionTrees
   $   Map.fromListWith mappend
@@ -117,10 +127,9 @@ getAdjunctionTrees BuilderInfo{..} grammar
   allRules = Map.fromListWith mappend $ catRule <$> Grammar.getAllRules grammar
   ruleGen ∷ RuleGen
   ruleGen cat = Map.findWithDefault mempty cat allRules
-  depth ∷ Maybe Int
-  depth = searchDepth
+
   bEnv ∷ BuilderEnv
-  bEnv = BuilderEnv { depth , ruleGen }
+  bEnv = BuilderEnv { builderInfo , ruleGen }
 
 dbg ∷ (a → IO b) → a → a
 #ifdef DIAGNOSTICS
@@ -156,7 +165,7 @@ diagnose = error "Not diagnosing"
 #endif
 
 data BuilderEnv = BuilderEnv
-  { depth       ∷ Maybe Int
+  { builderInfo ∷ BuilderInfo
   , ruleGen     ∷ RuleGen
   }
 
@@ -182,12 +191,16 @@ deeper ∷ Builder m ⇒ m a → m a
 deeper = local deeperEnv
 
 deeperEnv ∷ BuilderEnv → BuilderEnv
-deeperEnv env@(BuilderEnv{..}) = env { depth = pred <$> depth }
+deeperEnv env@(BuilderEnv{builderInfo = builderInfo@BuilderInfo{..}})
+  = env { builderInfo = builderInfo { searchDepth = pred <$> searchDepth } }
 
 -- | Determines if we've hit rock bottom. I.e. the search depth limit
 -- specified by the builder has been exceeded.
 hitRockBottom ∷ Builder m ⇒ m Bool
-hitRockBottom = asks (\BuilderEnv{..} → fromMaybe False $ (<= 0) <$> depth)
+hitRockBottom = asks
+  (\BuilderEnv{builderInfo = BuilderInfo{..}}
+   → fromMaybe False $ (<= 0) <$> searchDepth
+  )
 
 -- | Maybe continues building if we haven't hit rock bottom (the
 -- search depth limit specified by the builder). If we are not to
@@ -204,6 +217,7 @@ maybeCutoff act = do
   then pure (empty @alt)
   else deeper act
 
+-- TODO We're not using the size limit!
 -- The next two functions are mutually recursive.
 adjTrees :: ∀ m . Builder m ⇒ Category -> [Category] -> m [(TTree, [Category])]
 adjTrees cat visited = do

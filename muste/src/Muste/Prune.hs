@@ -11,9 +11,7 @@ module Muste.Prune
 
 import Prelude ()
 import Muste.Prelude
-import Data.Map (Map)
 import qualified Data.Containers as Mono
-import qualified Data.Map as M
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.MultiSet (MultiSet)
@@ -76,13 +74,17 @@ replaceTree tree path sim@(_, subtree, _, _)
 
 data PruneOpts = PruneOpts
   { searchDepth ∷ Maybe Int
+  , searchSize  ∷ Maybe Int
   }
 
 instance Semigroup PruneOpts where
-  PruneOpts a <> PruneOpts b = PruneOpts $ (+) <$> a <*> b
+  PruneOpts a0 a1 <> PruneOpts b0 b1
+    = PruneOpts (a0 <+> b0) (a1 <+> b1)
+    where
+    a <+> b = (+) <$> a <*> b
 
 instance Monoid PruneOpts where
-  mempty = PruneOpts empty
+  mempty = PruneOpts empty empty
 
 data Env = Env
   { pruneOpts   ∷ PruneOpts

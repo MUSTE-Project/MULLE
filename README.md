@@ -15,6 +15,8 @@ For the impatient:
     make
     stack install muste-ajax
     muste-ajax --recreate-db
+    cd muste-ajax/static/
+    npm install
 
 And then navigate to
 
@@ -42,6 +44,8 @@ You also have to install the dictionary files `DictEng` and `DictSwe`,
 by running (in the `gf-rgl` directory):
 
     runghc Make install DictEng.gf DictSwe.gf
+
+The front-end dependencies are managed with `npm`.
 
 ### Setup
 
@@ -96,6 +100,17 @@ grammar-files.  This can be achieved with:
 Assuming you have set up `gf-core` and `gf-rgl`.
 
     stack build
+
+The front end dependencies are managed with `npm`.  To fetch all
+dependencies navigate to.
+
+    muste-ajax/static/
+
+And run
+
+    npm install
+
+To get fetch all dependencies.
 
 ### Installing
 
