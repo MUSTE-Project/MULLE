@@ -3,7 +3,7 @@ abstract ExemplumLex = Cat ** {
 fun
 
   theSg_Det, thePl_Det, aSg_Det, aPl_Det : Det ;
-  multus_Det : Det ;
+  many_Det, every_Det, few_Det : Det ;
 
   boy_N, girl_N, father_N, mother_N : N ;
   friend_N, king_N, house_N, book_N, computer_N : N ;
