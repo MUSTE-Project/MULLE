@@ -59,7 +59,7 @@ strong {
 }
 
 /* TODO Not so nice that we've implemented this as a special case. */
-#exercisepage .container {
+.page .container.container-alt {
     text-align: center;
     display: flex;
     flex-direction: column;

@@ -38,7 +38,7 @@ function init() {
   register_create_user_handler();
   var tok = window.sessionStorage.getItem('LOGIN_TOKEN');
   // Show login page regardless.
-  show_page('#loginpage');
+  show_page('#page-login');
   if (tok == null) {
     var loginform = document.getElementById('loginform');
     loginform.name.focus();
@@ -74,7 +74,7 @@ function register_create_user_handler() {
       'name': $form.find('input[name=name]').val()
     };
     muste_request(data, 'create-user').then(function() {
-      throw 'TODO';
+      show_page('#page-login');
     });
   });
 }
@@ -179,7 +179,7 @@ function handle_server_fail(resp) {
 }
 
 function muste_logout() {
-  show_page('#loginpage');
+  show_page('#page-login');
   window.sessionStorage.removeItem('LOGIN_TOKEN');
 }
 
@@ -254,7 +254,7 @@ var lesson_list_template = ' \
 var render_lesson_list = Handlebars.compile(lesson_list_template);
 
 function show_lessons(lessons) {
-  show_page('#lessonspage');
+  show_page('#page-lessons');
   TIMER_START = null;
   var table = $('#lessonslist');
   table.empty();
@@ -280,7 +280,7 @@ function start_lesson(lesson) {
 }
 
 function show_exercise(parameters) {
-  show_page('#exercisepage');
+  show_page('#page-exercise');
   DATA = parameters;
   clean_server_data(DATA.a);
   clean_server_data(DATA.b);
