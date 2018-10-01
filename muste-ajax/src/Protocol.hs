@@ -444,9 +444,14 @@ mkContext Database.Lesson{..}
   = (name, Map.mapKeys f m)
   where
   m ∷ Map Text Context
-  m = Muste.langAndContext (mempty @Linearization.BuilderInfo) grammar
+  m = Muste.langAndContext nfo grammar
   f ∷ Text → Sentence.Language
   f l = Sentence.Language (Sentence.Grammar grammar) l
+  nfo ∷ Linearization.BuilderInfo
+  nfo = Linearization.BuilderInfo
+    { searchDepth = searchLimitDepth
+    , searchSize  = searchLimitSize
+    }
 
 -- | Gets the menus for a lesson.  This consists of a source tree and
 -- a target tree.

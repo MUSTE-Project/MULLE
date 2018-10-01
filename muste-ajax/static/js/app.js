@@ -134,12 +134,17 @@ function handle_server_fail(resp) {
   display_error(resp);
   switch(resp.status) {
   case 401:
-    show_page('loginpage');
+    muste_logout();
     break;
   case 400:
   default:
     break;
   }
+}
+
+function muste_logout() {
+  show_page('loginpage');
+  window.sessionStorage.removeItem('LOGIN_TOKEN');
 }
 
 function display_error(resp) {
@@ -276,8 +281,7 @@ function handle_server_response(response) {
 
   switch (message) {
   case 'SMLogoutResponse':
-    window.sessionStorage.removeItem('LOGIN_TOKEN');
-    location.reload();
+    muste_logout();
     break;
 
   case 'SMLoginSuccess':

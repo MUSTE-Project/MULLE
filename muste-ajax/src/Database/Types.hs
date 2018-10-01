@@ -46,6 +46,7 @@ data User = User
   , enabled             ∷ Bool
   }
 
+deriving stock instance Show    User
 deriving stock instance Generic User
 instance ToRow User where
   toRow = genericToRow
@@ -65,6 +66,7 @@ data Session = Session
   , lastActive          ∷ UTCTime
   }
 
+deriving stock instance Show    Session
 deriving stock instance Generic Session
 instance ToRow Session where
   toRow = genericToRow
@@ -85,6 +87,7 @@ data Exercise = Exercise
   , timeout             ∷ Numeric
   }
 
+deriving stock instance Show    Exercise
 deriving stock instance Generic Exercise
 instance ToRow Exercise where
   toRow = genericToRow
@@ -115,6 +118,7 @@ data Lesson = Lesson
   , repeatable          ∷ Bool
   }
 
+deriving stock instance Show    Lesson
 deriving stock instance Generic Lesson
 instance ToRow Lesson where
   toRow = genericToRow
@@ -141,6 +145,7 @@ data FinishedExercise = FinishedExercise
   , round               ∷ Numeric
   }
 
+deriving stock instance Show    FinishedExercise
 deriving stock instance Generic FinishedExercise
 instance ToRow FinishedExercise where
   toRow = genericToRow
@@ -159,6 +164,7 @@ data StartedLesson = StartedLesson
   , round               ∷ Numeric
   }
 
+deriving stock instance Show    StartedLesson
 deriving stock instance Generic StartedLesson
 instance ToRow StartedLesson where
   toRow = genericToRow
@@ -181,6 +187,7 @@ data FinishedLesson = FinishedLesson
   , round               ∷ Numeric
   }
 
+deriving stock instance Show    FinishedLesson
 deriving stock instance Generic FinishedLesson
 instance ToRow FinishedLesson where
   toRow = genericToRow
@@ -203,6 +210,7 @@ data ExerciseList = ExerciseList
   , round               ∷ Numeric
   }
 
+deriving stock instance Show    ExerciseList
 deriving stock instance Generic ExerciseList
 instance ToRow ExerciseList where
   toRow = genericToRow
