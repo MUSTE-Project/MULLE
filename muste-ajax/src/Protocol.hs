@@ -12,7 +12,8 @@ import Data.Map (Map)
 import qualified Data.Map.Lazy as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Database.SQLite.Simple
+import Database.SQLite.Simple (Connection)
+import qualified Database.SQLite.Simple as SQL
 import Control.Monad.Reader
 import Control.Monad.Except (MonadError(..), ExceptT, runExceptT)
 import qualified Data.ByteString.Lazy as LBS
@@ -168,7 +169,7 @@ dbErrResponseCode = \case
 runProtocolT :: MonadSnap m ⇒ ToJSON a ⇒ String → ProtocolT m a → m ()
 runProtocolT db app = do
   Snap.modifyResponse (Snap.setContentType "application/json")
-  conn ← liftIO $ open db
+  conn ← openConnection db
   env  ← throwLeft <$> getEnv conn
   res  ← runExceptT $ flip runReaderT env $ unProtocolT app
   case res of
@@ -176,6 +177,9 @@ runProtocolT db app = do
        Snap.modifyResponse . Snap.setResponseCode . errResponseCode $ err
        Snap.writeLBS $ encode err
     Right resp → Snap.writeLBS $ encode resp
+
+openConnection ∷ MonadIO io ⇒ String → io Connection
+openConnection = liftIO . SQL.open
 
 getEnv :: MonadIO io => Connection → io (Either Database.Error Env)
 getEnv conn = do

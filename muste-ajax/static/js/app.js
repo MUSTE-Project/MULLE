@@ -1,6 +1,4 @@
 /*global $ Handlebars jQuery Set Map countdown : true*/
-var AjaxTimeout = 1000; // milliseconds
-
 var NOSPACING = '&+';
 var PUNCTUATION = /^[,;.?!)]$/;
 var PREFIXPUNCT = /^[¿¡(]$/;
@@ -117,7 +115,6 @@ function call_server_new(message, parameters, endpoint) {
   else if (typeof(SERVER) === 'string') {
     var req = {
       cache: false,
-      timeout: AjaxTimeout,
       url: SERVER + endpoint,
       dataType: 'json',
       method: 'POST',
