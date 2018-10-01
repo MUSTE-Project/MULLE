@@ -110,6 +110,8 @@ data Lesson = Lesson
   , targetLanguage      ∷ Text
   , exerciseCount       ∷ Numeric
   , enabled             ∷ Bool
+  , searchLimitDepth    ∷ Maybe Int
+  , searchLimitSize     ∷ Maybe Int
   , repeatable          ∷ Bool
   }
 

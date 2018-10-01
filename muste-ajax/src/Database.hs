@@ -32,6 +32,7 @@ import Database.SQLite.Simple
   )
 import Database.SQLite.Simple.QQ (sql)
 import qualified Database.SQLite.Simple as SQL
+import Database.SQLite.Simple.FromRow.Generic
 import Control.Monad.Except (MonadError(..), ExceptT, runExceptT)
 import Control.Exception (catch)
 import Data.String.Conversions (convertString)
@@ -62,17 +63,22 @@ data Error
   | NoCurrentSession
   | SessionTimeout
   | MultipleSessions
+  | NoExercisesInLesson
+  | NonUniqueLesson
 
 instance Show Error where
   show = \case
-    NoUserFound      → "No user found."
-    LangNotFound     → "Could not find the languages."
+    NoUserFound         → "No user found."
+    LangNotFound        → "Could not find the languages."
     MultipleUsers
-      →  "Well this is embarrasing.  It would appear that someone managed "
+      →  "Well this is embarrasing.  "
+      <> "It would appear that someone managed "
       <> "to steal youre identity."
-    NoCurrentSession → "Not current session"
-    SessionTimeout   → "Session timeout"
-    MultipleSessions → "More than one session"
+    NoCurrentSession    → "Not current session"
+    SessionTimeout      → "Session timeout"
+    MultipleSessions    → "More than one session"
+    NoExercisesInLesson → "No exercises for lesson"
+    NonUniqueLesson     → "Non unique lesson"
 
 instance Exception Error
 
@@ -223,14 +229,14 @@ verifySession token = do
 -- | Not like 'Types.Lesson'.  'Types.Lesson' refers to the
 -- representation in the database.  This is the type used in "Ajax".
 data Lesson2 = Lesson2
-  { name :: Text
-  , description :: Text
-  , exercisecount :: Int
-  , passedcount :: Int
-  , score :: Int
-  , time :: NominalDiffTime
-  , finished :: Bool
-  , enabled :: Bool
+  { name          ∷ Text
+  , description   ∷ Text
+  , exercisecount ∷ Int
+  , passedcount   ∷ Int
+  , score         ∷ Int
+  , time          ∷ NominalDiffTime
+  , finished      ∷ Bool
+  , enabled       ∷ Bool
   }
 
 instance FromJSON Lesson2 where
@@ -256,16 +262,11 @@ instance ToJSON Lesson2 where
     , "enabled"       .= enabled
     ]
 
+deriving stock instance Generic Lesson2
+instance ToRow Lesson2 where
+  toRow = genericToRow
 instance FromRow Lesson2 where
-  fromRow = Lesson2
-    <$> SQL.field
-    <*> SQL.field
-    <*> SQL.field
-    <*> SQL.field
-    <*> SQL.field
-    <*> SQL.field
-    <*> SQL.field
-    <*> SQL.field
+  fromRow = genericFromRow
 
 -- | List all the lessons i.e. lesson name, description and exercise
 -- count
@@ -276,6 +277,7 @@ listLessons
   → db [Lesson2]
 listLessons token = do
   user <- getUser token
+  -- TODO Implement this as a view in the database!
   let listLessonsQuery = [sql|
       WITH userName AS (SELECT ?),
       maxRounds AS (SELECT Lesson,IFNULL(MAX(Round),0) AS Round FROM
@@ -424,15 +426,22 @@ newLesson :: MonadDB db ⇒ Text -> Text -> db
   )
 newLesson user lesson = do
   -- get exercise count
-  count <- fromOnly . fromMaybe errNonUniqueLesson . listToMaybe
-    <$> query exerciseCountQuery (Only lesson)
+  -- Only count ← fromMaybe errNonUniqueLesson . listToMaybe
+    -- <$> query @(Only Int) exerciseCountQuery (Only lesson)
+  Only count ← query @(Only Int) exerciseCountQuery (Only lesson)
+    >>= \case
+      []    → throwDbError NonUniqueLesson
+      (x:_) → pure x
   -- get lesson round
   [Only round] <- query lessonRoundQuery [user,lesson]
   trees <- getTreePairs lesson
   -- randomly select
   selectedTrees <- take count <$> shuffle trees
-  let (sourceTree,targetTree)
-        = fromMaybe errNoExercises $ listToMaybe $ selectedTrees
+  (src,trg) ← case selectedTrees of
+    []      → throwDbError NoExercisesInLesson
+
+    (x : _) → pure x
+
   -- save in database
   let startedLesson :: Types.StartedLesson
       startedLesson = Types.StartedLesson lesson user (succ round)
@@ -443,15 +452,13 @@ newLesson user lesson = do
   langs <- query @_ @_ languagesQuery [lesson]
   case langs of
     [(sourceLang, targetLang)] -> do
-      pure (sourceLang, sourceTree, targetLang, targetTree)
+      pure (sourceLang, src, targetLang, trg)
     _ -> throw LangNotFound
   where
   exerciseCountQuery  = [sql|SELECT ExerciseCount FROM Lesson WHERE Name = ?;|]
   lessonRoundQuery    = [sql|SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;|]
   insertStartedLesson = [sql|INSERT INTO StartedLesson (Lesson, User, Round) VALUES (?,?,?);|]
   insertExerciseList  = [sql|INSERT INTO ExerciseList (Lesson,User,SourceTree,TargetTree,Round) VALUES (?,?,?,?,?);|]
-  errNoExercises      = error "Database.newLesson: Invariant violated: No exercises for lesson"
-  errNonUniqueLesson  = error "Database.newLesson: Non unique lesson"
 
 continueLesson
   :: MonadDB db

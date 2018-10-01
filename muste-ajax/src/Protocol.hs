@@ -155,12 +155,14 @@ errResponseCode = \case
 
 dbErrResponseCode ∷ Database.Error → Int
 dbErrResponseCode = \case
-  Database.NoUserFound      → 401
-  Database.LangNotFound     → 400
-  Database.MultipleUsers    → 401
-  Database.NoCurrentSession → 401
-  Database.SessionTimeout   → 401
-  Database.MultipleSessions → 401
+  Database.NoUserFound             → 401
+  Database.LangNotFound            → 400
+  Database.MultipleUsers           → 401
+  Database.NoCurrentSession        → 401
+  Database.SessionTimeout          → 401
+  Database.MultipleSessions        → 401
+  Database.NoExercisesInLesson     → 400
+  Database.NonUniqueLesson         → 400
 
 -- | Errors are returned as JSON responses.
 runProtocolT :: MonadSnap m ⇒ ToJSON a ⇒ String → ProtocolT m a → m ()
@@ -438,7 +440,7 @@ mkContexts = Map.fromList . map mkContext
 mkContext
   ∷ Database.Lesson
   → (Text, Map.Map Sentence.Language Context)
-mkContext (Database.Lesson name _ grammar _ _ _ _ _)
+mkContext Database.Lesson{..}
   = (name, Map.mapKeys f m)
   where
   m ∷ Map Text Context
