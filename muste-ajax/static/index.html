@@ -20,19 +20,19 @@
    <div class="container">
     <form id="loginform" method="post">
      <div>
-      <div>
-       <div><h3>Användare:</h3></div>
-       <div><input type="text" name="name"></div>
-      </div>
-      <div>
-       <div><h3>Lösenord:</h3></div>
-       <div><input type="password" name="pwd"></div>
-      </div>
-      <div class="spaced">
-       <div><button type="submit">Login</button></div>
-      </div>
+      <div><h3>Användare:</h3></div>
+      <div><input type="text" name="name"></div>
+     </div>
+     <div>
+      <div><h3>Lösenord:</h3></div>
+      <div><input type="password" name="pwd"></div>
+     </div>
+     <div class="spaced">
+      <button type="submit">Login</button>
      </div>
     </form>
+    <p>or</p>
+    <a class="pager button" href="#create-user">Create new user</a>
    </div>
    <div></div>
   </div>
@@ -76,6 +76,34 @@
     <div hidden class="popup error"></div>
     <div hidden class="overlay"></div>
    </div>
+  </div>
+  <div class="page" id="create-user">
+   <div>
+    <h1 class="title">Create user</h1>
+   </div>
+   <div class="container">
+    <form action="create-user" method="post">
+     <div>
+      <div><h3>Användare:</h3></div>
+      <div><input type="text" name="name" required></div>
+     </div>
+     <div>
+      <div><h3>Lösenord:</h3></div>
+      <div><input type="password" name="pwd" required></div>
+     </div>
+     <div>
+      <div><h3>Gentag lösenord:</h3></div>
+      <div><input type="password" name="confirm-pwd" required></div>
+     </div>
+
+     <div class="spaced">
+      <button type="submit">Create user</button>
+     </div>
+    </form>
+    <p>or</p>
+    <a class="pager button" href="#loginpage">Log in with existing user</a>
+   </div>
+   <div></div>
   </div>
  </main>
 </body>

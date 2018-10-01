@@ -7,6 +7,7 @@ module Ajax
   , ClientTree(ClientTree)
   , ClientMessage(..)
   , Lesson2(..)
+  , User(..)
   , serverTree
   , unClientTree
   ) where
@@ -179,3 +180,16 @@ instance ToJSON ServerMessage where
     "a" .= sa ,
     "b" .= sb
     ]
+
+data User = User
+  { name     ∷ Text
+  , password ∷ Text
+  }
+
+deriving stock instance Show User
+
+instance FromJSON User where
+  parseJSON = withObject "user"
+     $ \v -> User
+    <$> v .: "name"
+    <*> v .: "password"

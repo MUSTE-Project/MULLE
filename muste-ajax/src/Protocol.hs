@@ -44,7 +44,7 @@ import Common
 
 import Ajax
   ( ServerMessage(..), ClientMessage(..)
-  , ClientTree(..), ServerTree
+  , ClientTree(..), ServerTree, User(..)
   )
 import qualified Ajax
 import Database (MonadDB, getConnection, MonadDatabaseError(..))
@@ -197,6 +197,7 @@ apiRoutes db =
   , "lessons"      |> run lessonsHandler
   , "lesson"       |> run lessonHandler
   , "menu"         |> run menuHandler
+  , "create-user"  |> run createUserHandler
   -- TODO What are these requests?
   , "MOTDRequest"  |> run (missingApiRoute "MOTDRequest")
   , "DataResponse" |> run (missingApiRoute "DataResponse")
@@ -205,6 +206,11 @@ apiRoutes db =
     run ∷ ToJSON a ⇒ ProtocolT (Snap.Handler v w) a → Snap.Handler v w ()
     run = runProtocolT @(Snap.Handler v w) db
     (|>) = (,)
+
+createUserHandler ∷ MonadProtocol m ⇒ m ()
+createUserHandler = do
+  User{..} ← getMessage
+  void $ Database.addUser name password True
 
 missingApiRoute ∷ MonadError ProtocolError m ⇒ String -> m ()
 missingApiRoute = throwError . MissingApiRoute

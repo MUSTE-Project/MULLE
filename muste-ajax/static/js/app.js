@@ -34,9 +34,11 @@ function init() {
   $('#logoutbutton').click(restart_everything);
   register_timer();
   register_overlay();
+  register_pagers();
+  register_create_user_handler();
   var tok = window.sessionStorage.getItem('LOGIN_TOKEN');
   // Show login page regardless.
-  show_page('loginpage');
+  show_page('#loginpage');
   if (tok == null) {
     var loginform = document.getElementById('loginform');
     loginform.name.focus();
@@ -44,6 +46,37 @@ function init() {
     LOGIN_TOKEN = tok;
     retrieve_lessons();
   }
+}
+
+function register_pagers() {
+  $('.pager').click(function() {
+    var pg = $(this).attr('href');
+    show_page(pg);
+  });
+}
+
+function register_create_user_handler() {
+  var $form = $("form[action=create-user]");
+  var $rpt = $form.find('input[name=confirm-pwd]').change(function() {
+    var pwd  = $form.find('input[name=pwd]').val();
+    var cpwd = $(this).val();
+    if(pwd !== cpwd) {
+      this.setCustomValidity('Password must match');
+      return;
+    }
+    // Input value is now valid.
+    this.setCustomValidity('');
+  });
+  $form.on('submit', function (event) {
+    event.preventDefault()
+    var data = {
+      'password': $form.find('input[name=pwd]').val(),
+      'name': $form.find('input[name=name]').val()
+    };
+    muste_request(data, 'create-user').then(function() {
+      throw 'TODO';
+    });
+  });
 }
 
 function register_timer() {
@@ -85,7 +118,7 @@ function clear_errors() {
 
 function show_page(page) {
   $('.page').hide();
-  $('#' + page).show();
+  $(page).show();
 }
 
 
@@ -113,18 +146,24 @@ function call_server_new(message, parameters, endpoint) {
     handle_server_response(SERVER(message, parameters));
   }
   else if (typeof(SERVER) === 'string') {
-    var req = {
+    var data = {message: message, parameters: parameters};
+    muste_request(data, endpoint).done(handle_server_response);
+  }
+}
+
+// Returns a promise with the request.  Reports errors according to
+// the protocol.  In contrast with `call_server_new` does not try to
+// guess how to interpret the response.
+function muste_request(data, endpoint) {
+     var req = {
       cache: false,
       url: SERVER + endpoint,
       dataType: 'json',
       method: 'POST',
       processData: false,
-      data: JSON.stringify({message: message, parameters: parameters})
+      data: JSON.stringify(data)
     };
-    $.ajax(req)
-      .fail(handle_server_fail)
-      .done(handle_server_response);
-  }
+    return $.ajax(req).fail(handle_server_fail);
 }
 
 function handle_server_fail(resp) {
@@ -140,7 +179,7 @@ function handle_server_fail(resp) {
 }
 
 function muste_logout() {
-  show_page('loginpage');
+  show_page('#loginpage');
   window.sessionStorage.removeItem('LOGIN_TOKEN');
 }
 
@@ -215,7 +254,7 @@ var lesson_list_template = ' \
 var render_lesson_list = Handlebars.compile(lesson_list_template);
 
 function show_lessons(lessons) {
-  show_page('lessonspage');
+  show_page('#lessonspage');
   TIMER_START = null;
   var table = $('#lessonslist');
   table.empty();
@@ -241,7 +280,7 @@ function start_lesson(lesson) {
 }
 
 function show_exercise(parameters) {
-  show_page('exercisepage');
+  show_page('#exercisepage');
   DATA = parameters;
   clean_server_data(DATA.a);
   clean_server_data(DATA.b);

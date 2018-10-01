@@ -4,6 +4,8 @@ Change log
 HEAD
 ---
 
+New page for adding a user to the database.
+
 Various styling changes:
 
 * Use `handlebars.js` (a template engine) for creating the layout on the

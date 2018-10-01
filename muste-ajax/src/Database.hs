@@ -21,6 +21,7 @@ module Database
   , addUser
   , changePassword
   , updateActivity
+  , rmUser
   ) where
 
 import Prelude ()
@@ -113,20 +114,26 @@ createUser user pass enabled = do
   let safePw = hashPasswd (T.encodeUtf8 pass) salt
   pure $ Types.User user safePw salt enabled
 
+-- | Adds a new user to the database.
 addUser
-  :: MonadDB db
-  => Text -- ^ Username
-  -> Text -- ^ Password
-  -> Bool -- ^ User enabled
-  -> db ()
+  ∷ MonadDB db
+  ⇒ Text -- ^ Username
+  → Text -- ^ Password
+  → Bool -- ^ User enabled
+  → db ()
 addUser user pass enabled = do
-  u <- createUser user pass enabled
-  -- Remove user if they already exists
-  let deleteQuery = [sql|DELETE FROM User WHERE Username = ?;|] :: Query
-  execute deleteQuery [user]
-  -- Add new user
-  let insertQuery = [sql|INSERT INTO User VALUES (?,?,?,?);|] :: Query
-  execute insertQuery u
+  u ← createUser user pass enabled
+  execute [sql|INSERT INTO User VALUES (?,?,?,?);|] u
+
+-- | Removes an existing user from the database.
+rmUser
+  ∷ MonadDB db
+  ⇒ Text
+  → db ()
+rmUser nm
+  = void
+  $ execute [sql|DELETE FROM User WHERE Username = ?;|]
+  (Only nm)
 
 authUser
   :: MonadDB db
@@ -154,10 +161,12 @@ changePassword
   -> Text -- ^ New password
   -> db ()
 changePassword user oldPass newPass = do
-    authed <- authUser user oldPass
-    if authed
-    then addUser user newPass True
-    else return ()
+  authed <- authUser user oldPass
+  if authed
+  then do
+    rmUser user
+    addUser user newPass True
+  else return ()
 
 createSession
   :: MonadDB db
