@@ -30,7 +30,7 @@ import Data.Traversable          as X (Traversable(..))
 import Control.Monad             as X ((>=>), void, when, guard)
 import Control.Monad.IO.Class    as X (MonadIO(liftIO))
 import Control.Exception         as X
-  (Exception, SomeException, throwIO, displayException, throw)
+  (Exception, SomeException, throwIO, displayException, throw, try)
 import Data.Maybe                as X (fromMaybe, fromJust, listToMaybe)
 import Control.Monad.Fail        as X (MonadFail(fail))
 import Control.Monad.Catch       as X (MonadThrow(throwM))

@@ -166,6 +166,7 @@ dbErrResponseCode = \case
   Database.NoExercisesInLesson     → 400
   Database.NonUniqueLesson         → 400
   Database.NotAuthenticated        → 401
+  Database.DriverError{}           → 500
 
 -- | Errors are returned as JSON responses.
 runProtocolT :: MonadSnap m ⇒ ToJSON a ⇒ String → ProtocolT m a → m ()

@@ -67,6 +67,7 @@ data Error
   | NoExercisesInLesson
   | NonUniqueLesson
   | NotAuthenticated
+  | DriverError SomeException
 
 instance Show Error where
   show = \case
@@ -82,6 +83,9 @@ instance Show Error where
     NoExercisesInLesson → "No exercises for lesson"
     NonUniqueLesson     → "Non unique lesson"
     NotAuthenticated    → "User is not authenticated"
+    DriverError e
+      →  "Unhandled driver error: "
+      <> displayException e
 
 instance Exception Error
 
@@ -390,13 +394,14 @@ type Db a = DbT IO a
 runDb :: Db a -> Connection -> IO (Either Error a)
 runDb (DbT db) c = runExceptT $ runReaderT db c
 
+-- TODO Better maybe to switch to 'SQL.queryNamed'?
 query
   :: ∀ r q db . MonadDB db
   => (ToRow q, FromRow r)
   => Query -> q -> db [r]
 query qry q = do
   c ← getConnection
-  liftIO $ SQL.query c qry q
+  wrapIoError $ SQL.query c qry q
 
 query_
   :: ∀ r db . MonadDB db
@@ -404,17 +409,25 @@ query_
   => Query -> db [r]
 query_ qry = do
   c ← getConnection
-  liftIO $ SQL.query_ c qry
+  wrapIoError $ SQL.query_ c qry
 
 execute
-  :: MonadDB db
-  => ToRow q
-  => Query
-  -> q
-  -> db ()
+  ∷ MonadDB db
+  ⇒ ToRow q
+  ⇒ Query
+  → q
+  → db ()
 execute qry q = do
   c ← getConnection
-  liftIO $ SQL.execute c qry q
+  wrapIoError $ SQL.execute c qry q
+
+-- | Wraps any io error in our application specific 'DriverError'
+-- wrapper.
+wrapIoError ∷ MonadDB db ⇒ IO a → db a
+wrapIoError io =
+  liftIO (try io) >>= \case
+  Left e  → throwDbError $ DriverError e
+  Right a → pure a
 
 shuffle :: MonadIO m => [a] -> m [a]
 shuffle = liftIO . QC.generate . QC.shuffle
