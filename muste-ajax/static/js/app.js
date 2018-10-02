@@ -612,7 +612,7 @@ function click_word(event) {
       })
       .addClass('striked');
 
-    $('#menus').data('selection', selection).hide();
+    $('#menus').data('selection', selection);
     var ul = $('<ul>').appendTo($('#menus'));
     for (var i = 0; i < menus.length; i++) {
       var pr = menus[i];
@@ -639,7 +639,6 @@ function click_word(event) {
 
   var menu = $('.menu').show();
   clicked.popup(menu);
-  $(document).trigger('overlay');
 }
 
 function popup_menu(menu) {
@@ -652,8 +651,12 @@ function popup_menu(menu) {
     'left': mid + 'px',
     'max-height': (window.innerHeight - bot - 6) + 'px'
   };
-  console.info(css);
   menu.css(css).show();
+  $(document)
+    .trigger('overlay')
+    .one('overlay-out', function() {
+      menu.hide();
+    });
 }
 
 // is_selected :: Menu.Seleection -> Int -> Bool

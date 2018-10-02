@@ -134,6 +134,11 @@ a.button {
     padding-top: 0.5em;
     padding-bottom: 0.5em;
     border-color: #acacac;
+    user-select: none;
+}
+.word {
+    z-index: 30;
+    position: relative;
 }
 
 .vertical-separator {
@@ -294,10 +299,6 @@ img {
 .rightspace { background-color: #ddd }
 img { border: 1px dotted blue }
 */
-
-.sentence {
-    user-select: none;
-}
 
 .overlay {
     opacity:    0.1;
