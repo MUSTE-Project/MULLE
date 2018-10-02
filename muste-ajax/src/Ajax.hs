@@ -9,6 +9,8 @@ module Ajax
   , Lesson2(..)
   , User(..)
   , ChangePwd(..)
+  , MenuRequest(..)
+  , MenuList(..)
   , serverTree
   , unClientTree
   ) where
@@ -58,13 +60,6 @@ data ClientMessage
   | CMLessonInit
     { lesson :: Text
     }
-  | CMMenuRequest
-    { lesson :: Text
-    , score :: Integer
-    , time :: NominalDiffTime
-    , a :: ClientTree
-    , b :: ClientTree
-    }
   deriving (Show)
 
 instance FromJSON ClientMessage where
@@ -74,12 +69,6 @@ instance FromJSON ClientMessage where
     case msg of
       "login" -> CMLoginRequest <$> params .: "username" <*> params .: "password"
       "lesson" -> CMLessonInit <$> params .: "lesson"
-      "menu" -> CMMenuRequest
-        <$> params .: "lesson"
-        <*> params .: "score"
-        <*> params .: "time"
-        <*> params .: "a"
-        <*> params .: "b"
       _ -> fail $ "Unexpected message " <> show v
 
 instance ToJSON ClientMessage where
@@ -88,16 +77,35 @@ instance ToJSON ClientMessage where
       [ "username" .= username
       , "password" .= password
       ]
-    (CMMenuRequest lesson score time a b) -> "CMMenuRequest" |> object
-      [ "lesson" .= lesson
-      , "score"  .= score
-      , "time"   .= time
-      , "a"      .= a
-      , "b"      .= b
-      ]
     _ → error "Ajax.toJSON @ClientMessage: Non-exhaustive pattern-match"
     where
       (|>) = createMessageObject
+
+data MenuRequest = MenuRequest
+  { lesson ∷ Text
+  , score  ∷ Integer
+  , time   ∷ NominalDiffTime
+  , src    ∷ ClientTree
+  , trg    ∷ ClientTree
+  }
+
+instance ToJSON MenuRequest where
+  toJSON MenuRequest{..} = object
+    [ "lesson" .= lesson
+    , "score"  .= score
+    , "time"   .= time
+    , "src"    .= src
+    , "trg"    .= trg
+    ]
+
+instance FromJSON MenuRequest where
+  parseJSON = withObject "menu-request"
+    $  \b → MenuRequest
+    <$> b .: "lesson"
+    <*> b .: "score"
+    <*> b .: "time"
+    <*> b .: "src"
+    <*> b .: "trg"
 
 -- | 'ServerTree's represent the data needed to display a sentence in
 -- the GUI.  The naming is maybe not the best, but the reason it is
@@ -134,13 +142,6 @@ data ServerMessage
   | SMLessonsList
     { slessions :: [Lesson2]
     }
-  | SMMenuList
-    { slesson :: Text
-    , spassed :: Bool
-    , sclicks :: Integer
-    , sa      :: ServerTree
-    , sb      :: ServerTree
-    } 
 
 instance FromJSON ServerMessage where
   parseJSON = withObject "ServerMessage" $ \v ->
@@ -155,12 +156,6 @@ instance FromJSON ServerMessage where
               clist <- fromJust params .: "lessons"
               return $ SMLessonsList clist
             ) ;
-        "SMMenuList" -> SMMenuList
-            <$> fromJust params .: "lesson"
-            <*> fromJust params .: "passed"
-            <*> fromJust params .: "clicks"
-            <*> fromJust params .: "a"
-            <*> fromJust params .: "b" ;
         _ → fail "Unknown message"
 
 instance ToJSON ServerMessage where
@@ -173,13 +168,31 @@ instance ToJSON ServerMessage where
     createMessageObject "SMLessonsList" $ object [
     "lessons" .= toJSON slessons
     ]
-  toJSON (SMMenuList slesson spassed sclicks sa sb) =
-    createMessageObject "SMMenuList" $ object [
-    "lesson" .= slesson,
-    "success" .= spassed ,
-    "score" .= sclicks ,
-    "a" .= sa ,
-    "b" .= sb
+
+data MenuList = MenuList
+  { lesson  ∷ Text
+  , passed  ∷ Bool
+  , clicks  ∷ Integer
+  , src     ∷ ServerTree
+  , trg     ∷ ServerTree
+  }
+
+instance FromJSON MenuList where
+  parseJSON = withObject "menu-list"
+    $ \ o → MenuList
+    <$> o .: "lesson"
+    <*> o .: "passed"
+    <*> o .: "clicks"
+    <*> o .: "src"
+    <*> o .: "trg"
+
+instance ToJSON MenuList where
+  toJSON MenuList{..} = object
+    [ "lesson"  .= lesson
+    , "success" .= passed
+    , "score"   .= clicks
+    , "src"     .= src
+    , "trg"     .= trg
     ]
 
 data User = User

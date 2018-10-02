@@ -71,7 +71,7 @@ function register_create_user_handler() {
       'name': $form.find('input[name=name]').val()
     };
     muste_request(data, 'create-user').then(function() {
-      console.aler('That did not work, perhaps you didn\'t enter the correct value for your old password');
+      console.alert('That did not work, perhaps you didn\'t enter the correct value for your old password');
     });
   });
 }
@@ -313,16 +313,18 @@ function select_lesson(evt) { // eslint-disable-line no-unused-vars
 
 function start_lesson(lesson) {
   TIMER_START = new Date().getTime();
-  call_server_new(MESSAGES.LESSON, {token: LOGIN_TOKEN, lesson: lesson}, MESSAGES.LESSON + '/' + lesson);
+  var req = {token: LOGIN_TOKEN, lesson: lesson};
+  muste_request(req, MESSAGES.LESSON + '/' + lesson)
+    .then(show_exercise);
 }
 
 function show_exercise(parameters) {
   show_page('#page-exercise');
   DATA = parameters;
-  clean_server_data(DATA.a);
-  clean_server_data(DATA.b);
+  clean_server_data(DATA.src);
+  clean_server_data(DATA.src);
   build_matching_classes(DATA);
-  show_sentences(DATA.a, DATA.b);
+  show_sentences(DATA.src, DATA.trg);
   $('#score').text(DATA.score);
   $('#lessoncounter').text(DATA.lesson + ': övning ' + EXERCISES[DATA.lesson].passed + ' av ' + EXERCISES[DATA.lesson].total);
   if (parameters.success) {
@@ -399,7 +401,7 @@ function build_matching_classes(data) {
 
   data.matching_classes = {};
   var matching_class = 0;
-  ['a', 'b'].forEach(function(lang) {
+  ['src', 'trg'].forEach(function(lang) {
     ct_linearization(data[lang]).forEach(function(token) {
       if (token.matched && token.matched.length && !data.matching_classes[token.path]) {
         data.matching_classes[token.path] = 'match-' + matching_class;
@@ -414,8 +416,8 @@ function show_sentences(src, trg) {
   var trgL = ct_linearization(trg);
   matchy_magic(srcL, trgL);
   matchy_magic(trgL, srcL);
-  show_lin('a', srcL);
-  show_lin('b', trgL);
+  show_lin('src', srcL);
+  show_lin('trg', trgL);
 }
 
 function all_classes(xs) {
@@ -739,7 +741,7 @@ function select_menuitem(item, lang) {
   ct_setLinearization(DATA[lang], item);
   DATA.token = LOGIN_TOKEN;
   DATA.time = elapsed_time().seconds;
-  call_server(MESSAGES.MENU, DATA);
+  muste_request(DATA, 'menu').then(show_exercise);
   $(document).trigger('overlay-out');
 }
 

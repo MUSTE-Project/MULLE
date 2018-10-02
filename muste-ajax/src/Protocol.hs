@@ -103,6 +103,8 @@ data ProtocolError
   | BadRequest
   | SessionInvalid
   | LoginFail
+  | ErrReadBody
+  | DecodeError String
 
 deriving stock instance Show ProtocolError
 instance Exception ProtocolError where
@@ -115,6 +117,8 @@ instance Exception ProtocolError where
     SessionInvalid    → "Session invalid, please log in again"
     BadRequest        → "Bad request!"
     LoginFail         → "Login failure"
+    ErrReadBody       → "Error reading request body."
+    DecodeError s     → printf "Error decoding JSON: %s" s
 
 instance Semigroup ProtocolError where
   a <> _ = a
@@ -167,6 +171,8 @@ errResponseCode = \case
   SessionInvalid      → 400
   BadRequest          → 400
   LoginFail           → 401
+  ErrReadBody         → 400
+  DecodeError{}       → 400
 
 dbErrResponseCode ∷ Database.Error → HttpStatus
 dbErrResponseCode = \case
@@ -249,22 +255,16 @@ changePwdHandler = do
   void $ Database.changePassword name oldPassword newPassword
 
 -- | Reads the data from the request and deserializes from JSON.
-getMessage :: FromJSON json ⇒ MonadProtocol m => m json
-getMessage = Snap.runRequestBody act
-  where
-    act stream = do
-      s <- fromMaybe errStream <$> Streams.read stream
-      let
-        errDecode e
-          = error
-          $ printf "Protocol.getMessage: Error decoding JSON: %s (%s)" e (convertString @_ @String s)
-      case eitherDecode $ convertString s of
-        Left e ->  errDecode e
-        Right v -> pure v
-    errStream = error $ printf "Protocol.getMessage: Error reading request body."
+getMessage ∷ ∀ json m . FromJSON json ⇒ MonadProtocol m => m json
+getMessage = do
+  s ← Snap.runRequestBody Streams.read >>= \case
+    Nothing → throwError ErrReadBody
+    Just a → pure $ convertString a
+  case eitherDecode @json s of
+    Left e  → throwError $ DecodeError e
+    Right a → pure a
 
 -- TODO Token should be set as an HTTP header.
--- FIXME Use ByteString
 -- | Gets the current session token.
 getToken :: MonadProtocol m ⇒ m Text
 getToken = do
@@ -284,19 +284,16 @@ lessonsHandler = do
   lessons ← Database.listLessons t
   verifyMessage (SMLessonsList lessons)
 
-lessonHandler :: MonadProtocol m ⇒ m ServerMessage
+lessonHandler :: MonadProtocol m ⇒ m Ajax.MenuList
 lessonHandler = Snap.pathArg $ \p → do
   t <- getToken
   handleLessonInit t p
 
-menuHandler :: MonadProtocol m ⇒ m ServerMessage
+menuHandler ∷ MonadProtocol m ⇒ m Ajax.MenuList
 menuHandler = do
-  req <- getMessage
-  token <- getToken
-  case req of
-    (CMMenuRequest lesson score time a b)
-      -> handleMenuRequest token lesson score time a b
-    _ -> throwError BadRequest
+  Ajax.MenuRequest{..} ← getMessage
+  token ← getToken
+  handleMenuRequest token lesson score time src trg
 
 loginHandler :: MonadProtocol m ⇒ m ServerMessage
 loginHandler = Snap.method Snap.POST $ do
@@ -347,19 +344,25 @@ handleLessonInit
   . MonadProtocol m
   ⇒ Text -- ^ Token
   → Text -- ^ Lesson
-  → m ServerMessage
+  → m Ajax.MenuList
 handleLessonInit token lesson = do
-    c <- askContexts
-    (_sourceLang,sourceTree,_targetLang,targetTree)
-      <- Database.startLesson token lesson
-    let
-      ann ∷ MonadError ProtocolError m ⇒ Unannotated → m Annotated
-      ann = annotate c lesson
-    src ← ann sourceTree
-    trg ← ann targetTree
-    let
-      (a,b) = assembleMenus c lesson src trg
-    verifyMessage (SMMenuList lesson False 0 a b)
+  c <- askContexts
+  (_sourceLang,sourceTree,_targetLang,targetTree)
+    <- Database.startLesson token lesson
+  let
+    ann ∷ MonadError ProtocolError m ⇒ Unannotated → m Annotated
+    ann = annotate c lesson
+  src ← ann sourceTree
+  trg ← ann targetTree
+  let
+    (a,b) = assembleMenus c lesson src trg
+  verifyMessage $ Ajax.MenuList
+    { lesson  = lesson
+    , passed  = False
+    , clicks  = 0
+    , src     = a
+    , trg     = b
+    }
 
 -- | This request is called after the user selects a new sentence from
 -- the drop-down menu.  A request consists of two 'ClientTree's (the
@@ -380,7 +383,7 @@ handleMenuRequest
   → NominalDiffTime -- ^ Time elapsed
   → ClientTree      -- ^ Source tree
   → ClientTree      -- ^ Target tree
-  → m ServerMessage
+  → m Ajax.MenuList
 handleMenuRequest token lesson clicks time src trg = do
   c <- askContexts
   verifySession
@@ -397,7 +400,13 @@ handleMenuRequest token lesson clicks time src trg = do
   srcUnamb ← ann src
   trgUnamb ← ann trg
   let (a , b) = act c lesson srcUnamb trgUnamb
-  verifyMessage (SMMenuList lesson finished (succ clicks) a b)
+  verifyMessage $ Ajax.MenuList
+    { lesson = lesson
+    , passed = finished
+    , clicks = succ clicks
+    , src = a
+    , trg = b
+    }
 
 annotate
   ∷ MonadError ProtocolError m
@@ -458,10 +467,7 @@ verifySession = getToken >>= Database.verifySession
 
 -- | Returns the same message unmodified if the user is authenticated,
 -- otherwise return 'SMSessionInvalid'.
-verifyMessage
-  ∷ MonadProtocol m
-  ⇒ ServerMessage     -- ^ The message to verify
-  → m ServerMessage
+verifyMessage ∷ MonadProtocol m ⇒ a → m a
 verifyMessage msg = msg <$ verifySession
 
 initContexts
