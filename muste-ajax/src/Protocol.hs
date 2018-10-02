@@ -107,9 +107,10 @@ data ProtocolError
   | SessionInvalid
   | LoginFail
 
-instance Show ProtocolError where
-  show = \case
-    DatabaseError err → "A database error occurred: " <> show err
+deriving stock instance Show ProtocolError
+instance Exception ProtocolError where
+  displayException = \case
+    DatabaseError err → "A database error occurred: " <> displayException err
     UnspecifiedError  → "Some unspecified error occured"
     MissingApiRoute s → printf "missing api route for `%s`" s
     NoCookie          → "No cookie found"
@@ -117,8 +118,6 @@ instance Show ProtocolError where
     SessionInvalid    → "Session invalid, please log in again"
     BadRequest        → "Bad request!"
     LoginFail         → "Login failure"
-
-deriving anyclass instance Exception ProtocolError
 
 instance Semigroup ProtocolError where
   a <> _ = a
@@ -143,8 +142,25 @@ type MonadProtocol m =
 instance Monad m ⇒ Database.HasConnection (ReaderT Env m) where
   getConnection = asks connection
 
+-- Not all response codes are mapped in `snap`.
+data Reason = UnprocessableEntity
+
+displayReason ∷ Reason → C8.ByteString
+displayReason = \case
+  UnprocessableEntity → "Unprocessable Entity"
+
+data HttpStatus = Code Int | CodeReason Int Reason
+
+instance Num HttpStatus where
+  fromInteger = Code . fromInteger
+  (+) = undefined
+  (*) = undefined
+  abs = undefined
+  signum = undefined
+  negate = undefined
+
 -- Could perhaps pick better error codes.
-errResponseCode ∷ ProtocolError → Int
+errResponseCode ∷ ProtocolError → HttpStatus
 errResponseCode = \case
   DatabaseError err   → dbErrResponseCode err
   UnspecifiedError    → 500
@@ -155,7 +171,7 @@ errResponseCode = \case
   BadRequest          → 400
   LoginFail           → 401
 
-dbErrResponseCode ∷ Database.Error → Int
+dbErrResponseCode ∷ Database.Error → HttpStatus
 dbErrResponseCode = \case
   Database.NoUserFound             → 401
   Database.LangNotFound            → 400
@@ -167,6 +183,15 @@ dbErrResponseCode = \case
   Database.NonUniqueLesson         → 400
   Database.NotAuthenticated        → 401
   Database.DriverError{}           → 500
+  -- Not quite sure what is the right option here.
+  Database.UserAlreadyExists       → 422 |> UnprocessableEntity
+  where
+  (|>) = CodeReason
+
+setResponseCode ∷ HttpStatus → Snap.Response → Snap.Response
+setResponseCode s = case s of
+  Code n → Snap.setResponseCode n
+  CodeReason n r → Snap.setResponseStatus n (displayReason r)
 
 -- | Errors are returned as JSON responses.
 runProtocolT :: MonadSnap m ⇒ ToJSON a ⇒ String → ProtocolT m a → m ()
@@ -177,7 +202,7 @@ runProtocolT db app = do
   res  ← runExceptT $ flip runReaderT env $ unProtocolT app
   case res of
     Left err → do
-       Snap.modifyResponse . Snap.setResponseCode . errResponseCode $ err
+       Snap.modifyResponse . setResponseCode . errResponseCode $ err
        Snap.writeLBS $ encode err
     Right resp → Snap.writeLBS $ encode resp
 

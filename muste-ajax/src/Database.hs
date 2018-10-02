@@ -68,9 +68,11 @@ data Error
   | NonUniqueLesson
   | NotAuthenticated
   | DriverError SomeException
+  | UserAlreadyExists
 
-instance Show Error where
-  show = \case
+deriving stock instance Show Error
+instance Exception Error where
+  displayException = \case
     NoUserFound         → "No user found."
     LangNotFound        → "Could not find the languages."
     MultipleUsers
@@ -86,14 +88,12 @@ instance Show Error where
     DriverError e
       →  "Unhandled driver error: "
       <> displayException e
-
-instance Exception Error
+    UserAlreadyExists → "The username is taken"
 
 -- | hashPasswd returns a SHA512 hash of a PBKDF2 encoded password
 -- (SHA512,10000 iterations,1024 bytes output)
 hashPasswd :: ByteString -> ByteString -> ByteString
-hashPasswd = fastPBKDF2_SHA512
-  (Parameters 10000 1024)
+hashPasswd = fastPBKDF2_SHA512 $ Parameters 10000 1024
 
 -- | createSalt returns a SHA512 hash of 512 bytes of random data as a
 -- bytestring
@@ -108,6 +108,10 @@ getLessons
   => db [Types.Lesson]
 getLessons = query_ [sql|select * from lesson;|]
 
+-- FIXME In this contexts the naming suggests that the user is
+-- persisted.  Consider changin.
+-- | Generates an instance of 'Types.User' suitable for inserting into
+-- the database.  Note that this function does /not/ persist the user.
 createUser
   :: MonadDB db
   => Text -- ^ Username
@@ -129,7 +133,17 @@ addUser
   → db ()
 addUser user pass enabled = do
   u ← createUser user pass enabled
-  execute [sql|INSERT INTO User VALUES (?,?,?,?);|] u
+  execute [sql|INSERT INTO User VALUES (?,?,?,?);|] u `catchDbError` h
+  where
+  h e = case e of
+    -- DriverError e → case fromException @SQL.ResultError $ toException e of
+    DriverError de → case fromException @SQL.SQLError de of
+      Just (SQL.SQLError SQL.ErrorConstraint{} _ _)
+        -- This error is likely due to the fact that the user already
+        -- exists.
+        → throwDbError UserAlreadyExists
+      _ → throwDbError e
+    _ → throwDbError e
 
 -- | Removes an existing user from the database.
 rmUser
