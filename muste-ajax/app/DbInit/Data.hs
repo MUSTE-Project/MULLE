@@ -92,12 +92,12 @@ primaPars =
 
 secundaPars ∷ Vector (Text, Text)
 secundaPars =
-  [ ("(Pers.pron 3rd pers. Pl.) nolite"           ,"de glädjas")
-  , ("(Pers.pron 3rd pers. Pl.) gaudent"          ,"vägra")
+  [ ("nolite"                                     ,"de glädjas")
+  , ("gaudent"                                    ,"vägra")
   , ("Romani eos vincebant"                       ,"de undervisade romarna")
-  , ("(Pers.pron 3rd pers. Pl.) Romanos docebant" ,"romarna besegrade dem")
+  , ("Romanos docebant"                           ,"romarna besegrade dem")
   , ("viri eos rapiebant"                         ,"de inbjöd männen")
-  , ("(Pers.pron 3rd pers. Pl.) viros invitabant" ,"männen rövade dem")
+  , ("viros invitabant"                           ,"männen rövade dem")
   , ("Etrusci auspicia observabant"               ,"de var bönder")
   , ("Romani agricolae erant"                     ,"de iakttog omen")
   , ("rex terras observabat"                      ,"de var män")
