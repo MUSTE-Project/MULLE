@@ -137,7 +137,7 @@ a.button {
     user-select: none;
 }
 .word {
-    z-index: 30;
+    z-index: 15;
     position: relative;
 }
 
