@@ -16,13 +16,10 @@ import Database.SQLite.Simple (Connection)
 import qualified Database.SQLite.Simple as SQL
 import Control.Monad.Reader
 import Control.Monad.Except (MonadError(..), ExceptT, runExceptT)
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Char8 as C8
+import Data.ByteString (ByteString)
 import Snap (MonadSnap)
 import qualified Snap
 import qualified System.IO.Streams as Streams
-import qualified Data.Text.Encoding as T
 import Data.Time
 import Control.Monad.Catch (MonadThrow(throwM))
 import Control.Exception
@@ -145,7 +142,7 @@ instance Monad m ⇒ Database.HasConnection (ReaderT Env m) where
 -- Not all response codes are mapped in `snap`.
 data Reason = UnprocessableEntity
 
-displayReason ∷ Reason → C8.ByteString
+displayReason ∷ Reason → ByteString
 displayReason = \case
   UnprocessableEntity → "Unprocessable Entity"
 
@@ -218,23 +215,27 @@ registerRoutes ∷ String → Snap.Initializer v w ()
 registerRoutes db = Snap.addRoutes (apiRoutes db)
 
 -- | Map requests to various handlers.
-apiRoutes :: ∀ v w . String → [(B.ByteString, Snap.Handler v w ())]
+apiRoutes :: ∀ v w . String → [(ByteString, Snap.Handler v w ())]
 apiRoutes db =
-  [ "login"        |> run loginHandler
-  , "logout"       |> run logoutHandler
-  , "lessons"      |> run lessonsHandler
-  , "lesson"       |> run lessonHandler
-  , "menu"         |> run menuHandler
-  , "create-user"  |> run createUserHandler
-  , "change-pwd"   |> run changePwdHandler
+  [ "login"        |> loginHandler
+  , "logout"       |> logoutHandler
+  , "lessons"      |> lessonsHandler
+  , "lesson"       |> lessonHandler
+  , "menu"         |> menuHandler
+  , "create-user"  |> createUserHandler
+  , "change-pwd"   |> changePwdHandler
   -- TODO What are these requests?
-  , "MOTDRequest"  |> run (missingApiRoute "MOTDRequest")
-  , "DataResponse" |> run (missingApiRoute "DataResponse")
+  , "MOTDRequest"  |> missingApiRoute "MOTDRequest"
+  , "DataResponse" |> missingApiRoute "DataResponse"
   ]
   where
-    run ∷ ToJSON a ⇒ ProtocolT (Snap.Handler v w) a → Snap.Handler v w ()
-    run = runProtocolT @(Snap.Handler v w) db
-    (|>) = (,)
+    (|>) ∷ ∀ txt json snap
+      . ToJSON json
+      ⇒ MonadSnap snap
+      ⇒ txt
+      → ProtocolT snap json
+      → (txt, snap ())
+    t |> act = (t, runProtocolT db act)
 
 createUserHandler ∷ MonadProtocol m ⇒ m ()
 createUserHandler = do
@@ -262,8 +263,8 @@ getMessage = Snap.runRequestBody act
       let
         errDecode e
           = error
-          $ printf "Protocol.getMessage: Error decoding JSON: %s (%s)" e (C8.unpack s)
-      case eitherDecode (LBS.fromStrict s) of
+          $ printf "Protocol.getMessage: Error decoding JSON: %s (%s)" e (convertString @_ @String s)
+      case eitherDecode $ convertString s of
         Left e ->  errDecode e
         Right v -> pure v
     errStream = error $ printf "Protocol.getMessage: Error reading request body."
@@ -324,7 +325,7 @@ setLoginCookie
   -> m ()
 setLoginCookie tok = Snap.modifyResponse $ Snap.addResponseCookie c
   where
-    c = Snap.Cookie "LOGIN_TOKEN" (T.encodeUtf8 tok)
+    c = Snap.Cookie "LOGIN_TOKEN" (convertString tok)
       Nothing Nothing (pure "/") False False
 
 -- TODO I think we shouldn't be using sessions for this.  I think the
