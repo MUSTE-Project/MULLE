@@ -114,6 +114,9 @@ runPrunerI = runReader . unPrunerT
 askSearchDepth ∷ Pruner m ⇒ m (Maybe Int)
 askSearchDepth = asks (\Env{pruneOpts=PruneOpts{..}} → searchDepth)
 
+askPruneOpts ∷ Pruner m ⇒ m PruneOpts
+askPruneOpts = asks (\Env{..} → pruneOpts)
+
 askGrammar ∷ Pruner m ⇒ m Grammar
 askGrammar = asks (\Env{..} → grammar)
 
@@ -343,42 +346,38 @@ insertBranches branches tree = map fst (ins branches tree)
                 [ (tree', tree:trees') | (tree', trees') <- selectBranch cat trees ]
           selectBranch _ _ = error "Muste.Prune.insertBranches: Incomplete pattern match"
 
--- FIXME Certainly something wrong with the wording here "up to a
--- given depth". There is no parameter so surely it should be "up to a
--- fixed depth". I can't verify that this is the case either though
--- from quickly glancing at the implementation.
--- | Calculates all possible pruned trees up to a given depth.  A
--- pruned tree consists of a tree with metavariables and a list of all
--- the pruned branches (subtrees).
+
+-- | Calculates all possible pruned trees, possibly limited by a
+-- given depth or tree size. A pruned tree consists of a tree with
+-- metavariables and a list of all the pruned branches (subtrees).
 pruneTree :: Pruner m ⇒ TTree -> m [(TTree, [TTree])]
 pruneTree tree = do
-  d ← askSearchDepth
-  pure [(t, bs) | (t, bs, _) <- pt d mempty tree]
-  where
-  pt ∷ Maybe Int → Set Category → TTree → [(TTree, [TTree], Set Category)]
-  pt d visited
-    | dun d = mempty
-    | otherwise = \case
-      tree@(TNode _ _ []) → [(tree, [], visited)]
-      tree@(TNode fun typ@(Fun cat _) children)
-        → (TMeta cat, [tree], visited) :
-          [ (TNode fun typ children', branches', visited')
-          | cat `notElem` visited
-          , (children', branches', visited') ← pc d (Set.insert cat visited) children
-          ]
-      _ → error "Muste.Prune.pruneTree: Incomplete pattern match"
-  pc ∷ Maybe Int → Set Category → [TTree] → [([TTree], [TTree], Set Category)]
-  pc d visited = \case
-    []     → [([], [], visited)]
-    (t:ts) →
-      [ (t'  : ts' , bs' <> bs'', visited'')
-      | (t'  , bs' , _visited') ← pt (pred <$> d) visited t
-      -- Should visited be visited'? Or perhaps visited'' above should
-      -- be the union of the two?
-      , (ts' , bs'', visited'') ← pc d visited ts
-      ]
-  dun ∷ Maybe Int → Bool
-  dun = fromMaybe False . fmap (<= 0)
+  opts <- askPruneOpts
+  pure $ getPrunedTrees opts tree
+
+getPrunedTrees :: PruneOpts -> TTree -> [(TTree, [TTree])]
+getPrunedTrees (PruneOpts depthLimit sizeLimit) tree 
+    = [ (tree, branches) | (tree, branches, _, _) <- pruneTs tree [] 0 0 [] ]
+    where pruneTs :: TTree -> [TTree] -> Int -> Int -> [Category] -> [(TTree, [TTree], Int, [Category])]
+          pruneTs tree@(TNode fun typ@(Fun cat _) children) branches depth size visited =
+              (TMeta cat, tree:branches, size, visited) :
+              do guard $ cat `notElem` visited
+                 guardLimit depthLimit depth
+                 guardLimit sizeLimit size
+                 (children', branches', size', visited') <- pruneCs children branches (depth+1) (size+1) (cat : visited)
+                 return (TNode fun typ children', branches', size', visited')
+          pruneTs _ _ _ _ _ = error "Muste.Prune.getPrunedTrees: Incomplete pattern match"
+
+          pruneCs :: [TTree] -> [TTree] -> Int -> Int -> [Category] -> [([TTree], [TTree], Int, [Category])]
+          pruneCs [] branches _depth size visited = return ([], branches, size, visited)
+          pruneCs (tree:trees) branches depth size visited =
+              do (tree', branches', size', visited') <- pruneTs tree branches depth size visited
+                 (trees', branches'', size'', visited'') <- pruneCs trees branches' depth size' visited'
+                 return (tree':trees', branches'', size'', visited'')
+
+          guardLimit (Just limit) value = guard $ value < limit
+          guardLimit Nothing _ = return ()
+  
 
 -- | Edit distance between trees.
 --

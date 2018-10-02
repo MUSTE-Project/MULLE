@@ -14,6 +14,7 @@ module Muste.Tree.Internal
   -- FIXME Are we sure we should export this?
   , selectNode
   , isValid
+  , treeDepth
   , countNodes
   , countMatchedNodes
   , TTree(TNode,TMeta)
@@ -401,9 +402,15 @@ replaceNode _oldTree [] newTree =
 replaceNode oldTree _ _ =
   oldTree -- No more subtrees, cancel search
 
--- | Counts the (internal and external) nodes in the tree.
+-- | Returns the depth of the tree. Metas are not counted.
+treeDepth :: TTree -> Int
+treeDepth (TMeta _) = 0
+treeDepth (TNode _ _ []) = 1
+treeDepth (TNode _ _ ts) = 1 + maximum (map treeDepth ts)
+
+-- | Counts the function nodes in the tree. Metas are not counted.
 countNodes :: TTree -> Int
-countNodes (TMeta _) = 1
+countNodes (TMeta _) = 0
 countNodes (TNode _ _ []) = 1
 countNodes (TNode _ _ ts) = 1 + sum (map countNodes ts)
 
