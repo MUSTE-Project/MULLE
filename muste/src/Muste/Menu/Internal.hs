@@ -210,10 +210,11 @@ collectMenuItems ctxt substs = Menu $ Map.fromListWith Set.union $ do
   let edits = alignSequences oldnodes newnodes
   let (oldselection, newselection) = splitAlignments edits
   let lins = [ Annotated.mkLinearization ctxt t t t |
-                      t <- parseSentence ctxt (Text.unwords newwords) ]
-  let allnewnodes = case lins of
-        []       → error "Muste.Menu.New.collectMenuItems: No linearizations."
-        (x:xs) → foldl Annotated.mergeL x xs
+               t <- parseSentence ctxt (Text.unwords newwords) ]
+  -- if there are no linearisations (e.g. because of the grammar not fully implemented),
+  -- we just skip this menu item:
+  guard $ not (null lins)
+  let allnewnodes = foldl1 Annotated.mergeL lins
   return (oldselection, Set.singleton (newselection, allnewnodes))
 
 

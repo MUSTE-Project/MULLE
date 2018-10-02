@@ -5,131 +5,130 @@
 module DbInit.Data (exercises, lessons) where
 
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
 import qualified Database.Types as Types
 
 lessons :: Vector Types.Lesson
-lessons =
-  [ Types.Lesson
-    "Exemplum Pars"
-    "Example grammar with one exercise"
-    "novo_modo/Exemplum"
-    "ExemplumEng"
-    "ExemplumSwe"
-    (len exemplumPars)
-    True
-    Nothing
-    Nothing
-    True
-  , Types.Lesson
-    "Prima Pars"
-    "Den första Lektionen fran boken \"Novo modo\""
-    "novo_modo/Prima"
-    "PrimaLat"
-    "PrimaSwe"
-    (len primaPars)
-    True
-    Nothing
-    Nothing
-    True
-  , Types.Lesson
-    "Secunda Pars"
-    "Den andra Lektionen fran boken \"Novo modo\""
-    "novo_modo/Secunda"
-    "SecundaLat"
-    "SecundaSwe"
-    (len secundaPars)
-    True
-    Nothing
-    Nothing
-    True
-  , Types.Lesson
-    "Tertia Pars"
-    "Den tredje Lektionen fran boken \"Novo modo\""
-    "novo_modo/Tertia"
-    "TertiaLat"
-    "TertiaSwe"
-    (len tertiaPars)
-    False
-    Nothing
-    Nothing
-    True
-  , Types.Lesson
-    "Quarta Pars"
-    "Den fjärde Lektionen fran boken \"Novo modo\""
-    "novo_modo/Quarta"
-    "QuartaLat"
-    "QuartaSwe"
-    (len quartaPars)
-    False
-    Nothing
-    Nothing
-    True
-  ]
-  where
-  len ∷ Vector a → Integer
-  len = fromIntegral . Vector.length
+lessons = Vector.fromList $ novomodoLessons ++ exemplumLessons
 
 -- | List of exercises group by the lesson they belong to.  The lesson
 -- is identified by 1. an identifier for the grammar for that lesson
 -- and 2. by the name of that lesson (a PK in the DB).  Exercises are
 -- identified by a pair of tree/language pairs.
 exercises ∷ Vector (Text, Text, Text, Text, Vector (Text, Text))
-exercises =
-  [ ( "novo_modo/Exemplum", "Exemplum Pars", "ExemplumEng", "ExemplumSwe", exemplumPars)
-  , ( "novo_modo/Prima"   , "Prima Pars"   , "PrimaLat"   , "PrimaSwe"   , primaPars)
-  , ( "novo_modo/Secunda" , "Secunda Pars" , "SecundaLat" , "SecundaSwe" , secundaPars)
+exercises = Vector.fromList $ novomodoExercises ++ exemplumExercises
+
+
+--------------------------------------------------------------------------------
+-- Novo Modo lessons
+
+novomodoLessons =
+  [ Types.Lesson lesson (novomodoDescription nr) (novomodoGrammar lesson)
+                 srcLng trgLng nrExercises True depthLimit depthLimit True
+  | (nr, (lesson, srcLng, trgLng, depthLimit, exerciseList)) <- zip [1..] novomodoDB,
+    let nrExercises = fromIntegral (Vector.length exerciseList)
   ]
 
-exemplumPars ∷ Vector (Text, Text)
-exemplumPars =
-  [ ("a good king is a blue king"                 ,"kungen \228lskar Paris")
+novomodoExercises =
+  [ (novomodoGrammar lesson, lesson, srcLng, trgLng, exerciseList)
+  | (lesson, srcLng, trgLng, depthLimit, exerciseList) <- novomodoDB
   ]
 
-primaPars ∷ Vector (Text, Text)
+novomodoGrammar lesson = Text.concat ["novo_modo/", lesson]
+
+novomodoDescription nr = Text.concat ["Lektion ", Text.pack (show nr), " från boken 'Novo Modo'"]
+
+novomodoDepthLimit = Just 1
+
+novomodoDB =
+    [ ("Prima"  , "PrimaLat"  , "PrimaSwe"  , novomodoDepthLimit, primaPars  )
+    , ("Secunda", "SecundaLat", "SecundaSwe", novomodoDepthLimit, secundaPars)
+    -- , ("Tertia" , "TertiaLat" , "TertiaSwe" , novomodoDepthLimit, tertiaPars )
+    -- , ("Quarta" , "QuartaLat" , "QuartaSwe" , novomodoDepthLimit, quartaPars )
+    ]
+
 primaPars =
-  [ ("vinum sapiens est"                          ,"han \228r vis")
-  , ("Augustus imperium tenet"                    ,"imperatorn h\229ller riket")
-  , ("Augustus felix est"                         ,"v\228nnen \228r lycklig")
-  , ("Augustus felix est"                         ,"fadern \228r lycklig")
-  , ("Augustus imperator est"                     ,"Augustus \228r v\228nnen")
-  , ("Augustus amicus est"                        ,"Augustus \228r imperatorn")
-  , ("Augustus imperator est"                     ,"Augustus \228r fadern")
-  , ("Augustus pater est"                         ,"Augustus \228r imperatorn")
+  [ ("vinum sapiens est"                          ,"han är vis")
+  , ("Augustus imperium tenet"                    ,"imperatorn håller riket")
+  , ("Augustus felix est"                         ,"vännen är lycklig")
+  , ("Augustus felix est"                         ,"fadern är lycklig")
+  , ("Augustus imperator est"                     ,"Augustus är vännen")
+  , ("Augustus amicus est"                        ,"Augustus är imperatorn")
+  , ("Augustus imperator est"                     ,"Augustus är fadern")
+  , ("Augustus pater est"                         ,"Augustus är imperatorn")
   , ("Caesar Augustus Galliam vincit"             ,"kejsaren Augustus besegrar Afrika")
   , ("Caesar Augustus Africam vincit"             ,"kejsaren Augustus besegrar Gallien")
   ]
 
-secundaPars ∷ Vector (Text, Text)
 secundaPars =
-  [ ("(Pers.pron 3rd pers. Pl.) nolite"           ,"de gl\228djas")
-  , ("(Pers.pron 3rd pers. Pl.) gaudent"          ,"v\228gra")
+  [ ("(Pers.pron 3rd pers. Pl.) nolite"           ,"de glädjas")
+  , ("(Pers.pron 3rd pers. Pl.) gaudent"          ,"vägra")
   , ("Romani eos vincebant"                       ,"de undervisade romarna")
   , ("(Pers.pron 3rd pers. Pl.) Romanos docebant" ,"romarna besegrade dem")
-  , ("viri eos rapiebant"                         ,"de inbj\246d m\228nnen")
-  , ("(Pers.pron 3rd pers. Pl.) viros invitabant" ,"m\228nnen r\246vade dem")
-  , ("Etrusci auspicia observabant"               ,"de var b\246nder")
+  , ("viri eos rapiebant"                         ,"de inbjöd männen")
+  , ("(Pers.pron 3rd pers. Pl.) viros invitabant" ,"männen rövade dem")
+  , ("Etrusci auspicia observabant"               ,"de var bönder")
   , ("Romani agricolae erant"                     ,"de iakttog omen")
-  , ("rex terras observabat"                      ,"de var m\228n")
-  , ("Romani viri erant"                          ,"kungen iakttog l\228nder")
+  , ("rex terras observabat"                      ,"de var män")
+  , ("Romani viri erant"                          ,"kungen iakttog länder")
   , ("autem Sabini feminas habebant"              ,"men var romarna svekfulla")
   , ("autem Romani fallaces erant"                ,"men hade sabinarna kvinnor")
   , ("etiam Sabini religionem habebant"           ,"redan var romarna besegrade")
-  , ("iam Romani victi erant"                     ,"\228ven hade sabinarna religionen")
+  , ("iam Romani victi erant"                     ,"även hade sabinarna religionen")
   , ("Sabini libros amabant"                      ,"de var inte romanska barn")
-  , ("iuvenes libri Romani non erant"             ,"sabinarna \228lskade barnen")
+  , ("iuvenes libri Romani non erant"             ,"sabinarna älskade barnen")
   , ("Sabini mulieres amabant"                    ,"de var sabinska barn")
-  , ("iuvenes libri Sabini erant"                 ,"sabinarna \228lskade fruarna")
-  , ("Sabini viris Romanis dicunt"                ,"de vill d\246da de romanska m\228nnen")
+  , ("iuvenes libri Sabini erant"                 ,"sabinarna älskade fruarna")
+  , ("Sabini viris Romanis dicunt"                ,"de vill döda de romanska männen")
   , ("Romani cum eis contendebant"                ,"de sammandrabbade romarna")
   , ("Romani eos docebant"                        ,"de undervisade romarna")
   ]
 
-tertiaPars ∷ Vector (Text, Text)
-tertiaPars
-  = []
+-- tertiaPars
+--   = []
 
-quartaPars ∷ Vector (Text, Text)
-quartaPars
-  = []
+-- quartaPars
+--   = []
+
+
+--------------------------------------------------------------------------------
+-- Exemplum lessons
+
+exemplumLessons =
+  [ Types.Lesson lesson (Text.concat ["Example lesson: ", lesson]) exemplumGrammar
+                 srcLng trgLng nrExercises True depthLimit depthLimit True
+  | (lesson, srcLng, trgLng, depthLimit, exerciseList) <- exemplumDB,
+    let nrExercises = fromIntegral (Vector.length exerciseList)
+  ]
+
+exemplumExercises =
+  [ (exemplumGrammar, lesson, srcLng, trgLng, exerciseList)
+  | (lesson, srcLng, trgLng, depthLimit, exerciseList) <- exemplumDB
+  ]
+
+exemplumGrammar = "exemplum/Exemplum"
+
+exemplumDepthLimit = Just 4
+
+exemplumDB =
+    [ (Text.concat [srcLng, "->", trgLng],
+       Text.concat ["Exemplum", srcLng],
+       Text.concat ["Exemplum", trgLng],
+       exemplumDepthLimit,
+       [(src, trg)])
+    | let (srcLng, src) = head exemplumSentences,
+      (trgLng, trg) <- tail exemplumSentences
+    ]
+
+exemplumSentences =
+    [ ("Eng", "many kings love Paris")
+    , ("Swe", "en god kung läser en bok")
+    , ("Lat", "rex bonus librum legit")
+    , ("Spa", "un bueno rey lee un libro")
+    , ("Chi", " 一 个 好 国 王 读 一 本 书 ")
+    , ("Ara", " يَقْرَأُ مَلِكٌ جوَيِّدٌ كِتابً ")
+    , ("Test", "the girl read book")
+    ]
+

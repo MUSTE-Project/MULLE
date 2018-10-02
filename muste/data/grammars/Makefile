@@ -1,4 +1,4 @@
-GRAMMARS = novo_modo
+GRAMMARS = novo_modo exemplum
 
 .PHONY: all clean
 

@@ -19,14 +19,14 @@ import qualified Muste.Grammar.Embed as Embed
 --
 -- - @novo_modo/Prima@
 -- - @novo_modo/Secunda@
--- - @novo_modo/Exemplum@
+-- - @exemplum/Exemplum@
 
 {-# INLINE grammars #-}
 grammars :: [(Text, ByteString)]
 grammars = mk <$>
   [ $(Embed.grammar "novo_modo/Prima")
   , $(Embed.grammar "novo_modo/Secunda")
-  , $(Embed.grammar "novo_modo/Exemplum")
+  , $(Embed.grammar "exemplum/Exemplum")
   ]
   where
   mk ∷ (String, ByteString) → (Text, ByteString)

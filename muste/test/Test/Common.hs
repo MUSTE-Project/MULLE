@@ -22,14 +22,14 @@ grammar :: Grammar
 grammar = Grammar.parseGrammar $ LB.fromStrict $ snd grammar'
   where
   grammar' ∷ (String, ByteString)
-  grammar' = $(Embed.grammar "novo_modo/Exemplum")
+  grammar' = $(Embed.grammar "exemplum/Exemplum")
 
 treeIndefinite ∷ TTree
-treeIndefinite = $(tree "novo_modo/Exemplum"
+treeIndefinite = $(tree "exemplum/Exemplum"
   "useS (useCl (simpleCl (detCN aSg_Det (useN friend_N)) (transV love_V (usePN paris_PN))))")
 
 treeDefinite ∷ TTree
-treeDefinite = $(tree "novo_modo/Exemplum"
+treeDefinite = $(tree "exemplum/Exemplum"
   "useS (useCl (simpleCl (detCN theSg_Det (useN friend_N)) (transV love_V (usePN paris_PN))))")
 
 failDoc ∷ Doc a → Assertion

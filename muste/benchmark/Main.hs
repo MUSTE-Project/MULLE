@@ -19,7 +19,7 @@ getGrammar :: IO LB.ByteString
 getGrammar = pure $ LB.fromStrict $ snd grammar'
   where
   grammar' ∷ (String, ByteString)
-  grammar' = $(Embed.grammar "novo_modo/Exemplum")
+  grammar' = $(Embed.grammar "exemplum/Exemplum")
 
 -- theCtxt ∷ IO Context
 -- theCtxt = pure $ Util.unsafeGetContext grammar "ExemplumSwe"

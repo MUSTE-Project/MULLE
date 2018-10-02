@@ -1,6 +1,6 @@
 GFMAKE = gf --make
-LANGS = Lat Eng Swe
-GRAMMARS = Prima.pgf Secunda.pgf
+LANGS = Lat Eng Swe Spa Chi Ara Test
+GRAMMARS = Exemplum.pgf
 
 .PHONY: all clean
 

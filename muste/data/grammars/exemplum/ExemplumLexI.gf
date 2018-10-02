@@ -7,7 +7,9 @@ lin
   thePl_Det = DetQuant DefArt NumPl ;
   aSg_Det = DetQuant IndefArt NumSg ;
   aPl_Det = DetQuant IndefArt NumPl ;
-  multus_Det = Grammar.many_Det ;
+  many_Det = Grammar.many_Det ;
+  every_Det = Grammar.every_Det ;
+  few_Det = Grammar.few_Det ;
 
   boy_N = Lexicon.boy_N ;
   girl_N = Lexicon.girl_N ;
