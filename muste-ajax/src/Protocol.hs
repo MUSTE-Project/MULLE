@@ -39,11 +39,7 @@ import qualified Muste.Linearization as Linearization
 
 import Common
 
-import Ajax
-  ( ServerMessage(..), ClientMessage(..)
-  , ClientTree(..), ServerTree, User(..)
-  , ChangePwd(..)
-  )
+import Ajax (ClientTree, ServerTree)
 import qualified Ajax
 import Database (MonadDB, getConnection, MonadDatabaseError(..))
 import qualified Database
@@ -242,7 +238,7 @@ apiRoutes db =
 
 createUserHandler ∷ MonadProtocol m ⇒ m ()
 createUserHandler = do
-  User{..} ← getMessage
+  Ajax.User{..} ← getMessage
   void $ Database.addUser name password True
 
 -- | Change password of the user.  The user currently (as of this
@@ -251,7 +247,7 @@ createUserHandler = do
 -- then checked against the database.
 changePwdHandler ∷ MonadProtocol m ⇒ m ()
 changePwdHandler = do
-  ChangePwd{..} ← getMessage
+  Ajax.ChangePwd{..} ← getMessage
   void $ Database.changePassword name oldPassword newPassword
 
 -- | Reads the data from the request and deserializes from JSON.
@@ -278,11 +274,11 @@ getTokenCookie = Snap.getCookie "LOGIN_TOKEN"
 
 
 -- * Handlers
-lessonsHandler :: MonadProtocol m ⇒ m ServerMessage
+lessonsHandler :: MonadProtocol m ⇒ m Ajax.LessonList
 lessonsHandler = do
   t ← getToken
   lessons ← Database.listLessons t
-  verifyMessage (SMLessonsList lessons)
+  verifyMessage (Ajax.LessonList lessons)
 
 lessonHandler :: MonadProtocol m ⇒ m Ajax.MenuList
 lessonHandler = Snap.pathArg $ \p → do
@@ -295,20 +291,15 @@ menuHandler = do
   token ← getToken
   handleMenuRequest token lesson score time src trg
 
-loginHandler :: MonadProtocol m ⇒ m ServerMessage
+loginHandler :: MonadProtocol m ⇒ m Ajax.LoginSuccess
 loginHandler = Snap.method Snap.POST $ do
-  (usr, pwd) <- getUser
-  handleLoginRequest usr pwd
+  Ajax.LoginRequest{..} <- getMessage
+  handleLoginRequest username password
 
 logoutHandler ∷ MonadProtocol m ⇒ m ()
 logoutHandler
   = Snap.method Snap.POST
   $ getToken >>= handleLogoutRequest
-
--- TODO Now how this info should be retreived
--- | Returns @(username, password)@.
-getUser :: MonadProtocol m ⇒ m (Text, Text)
-getUser = (\(CMLoginRequest usr pwd) -> (usr, pwd)) <$> getMessage
 
 setLoginCookie
   :: MonadProtocol m
@@ -329,12 +320,12 @@ handleLoginRequest
   :: MonadProtocol m
   => Text -- ^ Username
   -> Text -- ^ Password
-  -> m ServerMessage
+  -> m Ajax.LoginSuccess
 handleLoginRequest user pass = do
   Database.authUser user pass
   token ← Database.startSession user
   setLoginCookie token
-  pure $ SMLoginSuccess token
+  pure $ Ajax.LoginSuccess token
 
 askContexts :: MonadProtocol m ⇒ m Contexts
 askContexts = asks contexts

@@ -1,16 +1,18 @@
-{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall -Wcompat #-}
 {-# language OverloadedStrings, DuplicateRecordFields , RecordWildCards,
   NamedFieldPuns #-}
 module Ajax
   ( ServerTree
-  , ServerMessage(..)
   , ClientTree(ClientTree)
-  , ClientMessage(..)
+  , LessonInit(..)
+  , LoginRequest(..)
   , Lesson2(..)
   , User(..)
   , ChangePwd(..)
   , MenuRequest(..)
   , MenuList(..)
+  , LoginSuccess(..)
+  , LessonList(..)
   , serverTree
   , unClientTree
   ) where
@@ -18,11 +20,8 @@ module Ajax
 import Prelude ()
 import Muste.Prelude
 
-import Data.Aeson
-  ( parseJSON, toJSON, Value, Object, withObject, (.:), object, (.=)
-  , (.:?)
-  )
-import Data.Aeson.Types (Parser)
+import Data.Aeson ((.:), (.=))
+import qualified Data.Aeson as Aeson
 import Data.Text (Text)
 import Data.Time
 
@@ -37,49 +36,45 @@ newtype ClientTree = ClientTree { unClientTree ∷ Unannotated }
 deriving instance Show ClientTree
 
 instance FromJSON ClientTree where
-  parseJSON = withObject "tree"
+  parseJSON = Aeson.withObject "tree"
      $ \v -> ClientTree
     <$> v .: "sentence"
 
 instance ToJSON ClientTree where
-  toJSON (ClientTree sentence) = object
+  toJSON (ClientTree sentence) = Aeson.object
     [ "sentence" .= sentence
     ]
 
-createMessageObject :: String -> Value -> Value
-createMessageObject msg params = object
-  [ "message"    .= msg
-  , "parameters" .= params
-  ]
+data LoginRequest = LoginRequest
+  { username :: Text
+  , password :: Text
+  }
+  
+data LessonInit = LessonInit
+  { lesson :: Text
+  }
 
-data ClientMessage
-  = CMLoginRequest
-    { username :: Text
-    , password :: Text
-    }
-  | CMLessonInit
-    { lesson :: Text
-    }
-  deriving (Show)
+instance FromJSON LoginRequest where
+  parseJSON = Aeson.withObject "login-request"
+    $  \v → LoginRequest
+    <$> v .: "username"
+    <*> v .: "password"
 
-instance FromJSON ClientMessage where
-  parseJSON = withObject "ClientMessage" $ \v -> do
-    msg <- v .: "message" :: Parser Text
-    params <- v .: "parameters" :: Parser Object
-    case msg of
-      "login" -> CMLoginRequest <$> params .: "username" <*> params .: "password"
-      "lesson" -> CMLessonInit <$> params .: "lesson"
-      _ -> fail $ "Unexpected message " <> show v
+instance ToJSON LoginRequest where
+  toJSON LoginRequest{..} = Aeson.object
+    [ "username" .= username
+    , "password" .= password
+    ]
 
-instance ToJSON ClientMessage where
-  toJSON = \case
-    (CMLoginRequest username password) -> "CMLoginRequest" |> object
-      [ "username" .= username
-      , "password" .= password
-      ]
-    _ → error "Ajax.toJSON @ClientMessage: Non-exhaustive pattern-match"
-    where
-      (|>) = createMessageObject
+instance FromJSON LessonInit where
+  parseJSON = Aeson.withObject "lesson-init"
+    $  \v → LessonInit
+    <$> v .: "lesson"
+
+instance ToJSON LessonInit where
+  toJSON (LessonInit lesson) = Aeson.object
+    [ "lesson" .= lesson
+    ]
 
 data MenuRequest = MenuRequest
   { lesson ∷ Text
@@ -90,7 +85,7 @@ data MenuRequest = MenuRequest
   }
 
 instance ToJSON MenuRequest where
-  toJSON MenuRequest{..} = object
+  toJSON MenuRequest{..} = Aeson.object
     [ "lesson" .= lesson
     , "score"  .= score
     , "time"   .= time
@@ -99,7 +94,7 @@ instance ToJSON MenuRequest where
     ]
 
 instance FromJSON MenuRequest where
-  parseJSON = withObject "menu-request"
+  parseJSON = Aeson.withObject "menu-request"
     $  \b → MenuRequest
     <$> b .: "lesson"
     <*> b .: "score"
@@ -122,12 +117,12 @@ data ServerTree = ServerTree
   } deriving (Show)
 
 instance FromJSON ServerTree where
-  parseJSON = withObject "server-tree" $ \v -> ServerTree
+  parseJSON = Aeson.withObject "server-tree" $ \v -> ServerTree
     <$> v .: "sentence"
     <*> v .: "menu"
 
 instance ToJSON ServerTree where
-  toJSON (ServerTree { .. }) = object
+  toJSON (ServerTree { .. }) = Aeson.object
     [ "sentence" .= sentence
     , "menu"     .= menu
     ]
@@ -135,38 +130,28 @@ instance ToJSON ServerTree where
 serverTree ∷ Annotated → Menu → ServerTree
 serverTree = ServerTree
 
-data ServerMessage
-  = SMLoginSuccess
-    { stoken :: Text
-    }
-  | SMLessonsList
-    { slessions :: [Lesson2]
-    }
+data LoginSuccess = LoginSuccess Text
 
-instance FromJSON ServerMessage where
-  parseJSON = withObject "ServerMessage" $ \v ->
-    do
-      msg <- v .: "message" :: Parser Text
-      params <- v .:? "parameters" :: Parser (Maybe Object)
-      case msg of
-        "SMLoginSuccess" ->
-            SMLoginSuccess <$> fromJust params .: "token" ;
-        "SMLessonsList" ->
-            (do
-              clist <- fromJust params .: "lessons"
-              return $ SMLessonsList clist
-            ) ;
-        _ → fail "Unknown message"
+instance FromJSON LoginSuccess where
+  parseJSON = Aeson.withObject "login-success"
+    $ \ v →  LoginSuccess
+    <$> v .: "token"
 
-instance ToJSON ServerMessage where
-    -- this generates a Value
-  toJSON (SMLoginSuccess stoken) =
-    createMessageObject "SMLoginSuccess" $ object [
-    "token" .= stoken
+instance ToJSON LoginSuccess where
+  toJSON (LoginSuccess token) = Aeson.object
+    [ "login-succes" .= token
     ]
-  toJSON (SMLessonsList slessons) =
-    createMessageObject "SMLessonsList" $ object [
-    "lessons" .= toJSON slessons
+
+data LessonList = LessonList [Lesson2]
+
+instance FromJSON LessonList where
+  parseJSON = Aeson.withObject "lesson-list"
+    $ \ v →  LessonList
+    <$> v .: "lessons"
+
+instance ToJSON LessonList where
+  toJSON (LessonList lessons) = Aeson.object
+    [ "lessons" .= lessons
     ]
 
 data MenuList = MenuList
@@ -178,7 +163,7 @@ data MenuList = MenuList
   }
 
 instance FromJSON MenuList where
-  parseJSON = withObject "menu-list"
+  parseJSON = Aeson.withObject "menu-list"
     $ \ o → MenuList
     <$> o .: "lesson"
     <*> o .: "passed"
@@ -187,7 +172,7 @@ instance FromJSON MenuList where
     <*> o .: "trg"
 
 instance ToJSON MenuList where
-  toJSON MenuList{..} = object
+  toJSON MenuList{..} = Aeson.object
     [ "lesson"  .= lesson
     , "success" .= passed
     , "score"   .= clicks
@@ -203,7 +188,7 @@ data User = User
 deriving stock instance Show User
 
 instance FromJSON User where
-  parseJSON = withObject "user"
+  parseJSON = Aeson.withObject "user"
      $ \v -> User
     <$> v .: "name"
     <*> v .: "password"
@@ -218,7 +203,7 @@ data ChangePwd = ChangePwd
 deriving stock instance Show ChangePwd
 
 instance FromJSON ChangePwd where
-  parseJSON = withObject "user"
+  parseJSON = Aeson.withObject "user"
      $ \v -> ChangePwd
     <$> v .: "name"
     <*> v .: "old-password"

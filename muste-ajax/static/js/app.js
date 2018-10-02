@@ -165,7 +165,8 @@ function submit_login(evt) {
     evt.preventDefault();
   }
   var loginform = document.getElementById('loginform');
-  call_server(MESSAGES.LOGIN, {username: loginform.name.value, password: loginform.pwd.value});
+  var req = {username: loginform.name.value, password: loginform.pwd.value};
+  muste_request(req, MESSAGES.LOGIN).then(login_success);
 }
 
 
@@ -262,7 +263,7 @@ function retrieve_lessons(evt) {
   if (evt && evt.preventDefault) {
     evt.preventDefault();
   }
-  call_server(MESSAGES.LESSONS);
+  muste_request({}, MESSAGES.LESSONS).then(show_lessons);
 }
 
 var lesson_list_template = ' \
@@ -290,7 +291,8 @@ var lesson_list_template = ' \
 
 var render_lesson_list = Handlebars.compile(lesson_list_template);
 
-function show_lessons(lessons) {
+function show_lessons(resp) {
+  var lessons = resp.lessons;
   show_page('#page-lessons');
   TIMER_START = null;
   var table = $('#lessonslist');
@@ -359,9 +361,7 @@ function handle_server_response(response) {
     break;
 
   case 'SMLoginSuccess':
-    LOGIN_TOKEN = parameters.token;
-    window.sessionStorage.setItem('LOGIN_TOKEN',LOGIN_TOKEN);
-    retrieve_lessons();
+    login_success(parameters);
     break;
 
   case 'SMLessonsList':
@@ -378,6 +378,12 @@ function handle_server_response(response) {
     alert_error(title, description);
     break;
   }
+}
+
+function login_success(resp) {
+  LOGIN_TOKEN = resp.token;
+  window.sessionStorage.setItem('LOGIN_TOKEN',LOGIN_TOKEN);
+  retrieve_lessons();
 }
 
 function friendly_title(m) {
