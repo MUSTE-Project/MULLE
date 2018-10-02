@@ -155,8 +155,8 @@ function show_page(page) {
 
 
 function restart_everything() {
-  call_server(MESSAGES.LOGOUT);
-  location.reload();
+  muste_request({}, MESSAGES.LOGOUT);
+  show_page('#page-login');
 }
 
 
@@ -167,21 +167,6 @@ function submit_login(evt) {
   var loginform = document.getElementById('loginform');
   var req = {username: loginform.name.value, password: loginform.pwd.value};
   muste_request(req, MESSAGES.LOGIN).then(login_success);
-}
-
-
-function call_server(message, parameters) {
-  call_server_new(message, parameters, message + '/');
-}
-
-function call_server_new(message, parameters, endpoint) {
-  if (typeof(SERVER) === 'function') {
-    handle_server_response(SERVER(message, parameters));
-  }
-  else if (typeof(SERVER) === 'string') {
-    var data = {message: message, parameters: parameters};
-    muste_request(data, endpoint).done(handle_server_response);
-  }
 }
 
 // Returns a promise with the request.  Reports errors according to
@@ -351,49 +336,10 @@ function ct_setLinearization(t, l) {
   t.sentence.linearization = l;
 }
 
-function handle_server_response(response) {
-  var message = response.message;
-  var parameters = response.parameters;
-
-  switch (message) {
-  case 'SMLogoutResponse':
-    muste_logout();
-    break;
-
-  case 'SMLoginSuccess':
-    login_success(parameters);
-    break;
-
-  case 'SMLessonsList':
-    show_lessons(parameters.lessons);
-    break;
-
-  case 'SMMenuList':
-    show_exercise(parameters);
-    break;
-
-  default:
-    var title = friendly_title(message);
-    var description = (parameters && parameters.error ? parameters.error : '');
-    alert_error(title, description);
-    break;
-  }
-}
-
 function login_success(resp) {
   LOGIN_TOKEN = resp.token;
   window.sessionStorage.setItem('LOGIN_TOKEN',LOGIN_TOKEN);
   retrieve_lessons();
-}
-
-function friendly_title(m) {
-  switch (m) {
-  case 'SMLoginFail'      : return 'Login failure, please try again';
-  case 'SMSessionInvalid' : return 'Session invalid, please login again';
-  case 'SMLessonInvalid'  : return 'Lesson invalid, please login again';
-  case 'SMDataInvalid'    : return 'Invalid data, please login again';
-  default                 : return 'Uknown message from server: ' + m;
-  }
 }
 
 function clean_server_data(data) {
@@ -783,12 +729,4 @@ function pop_busy() {
   } else {
     console.error('POP ERROR', ind.className, ind.textContent);
   }
-}
-
-
-//////////////////////////////////////////////////////////////////////
-// Error handling
-
-function alert_error(title, description) {
-  console.trace('*** ' + title + '***\n' + description);
 }
