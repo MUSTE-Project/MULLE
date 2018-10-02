@@ -1,3 +1,16 @@
+-- TODO In stead of using very long ad-hoc types, could we define a
+-- local data-type?  Alternatively, and probably even better, could we
+-- re-write this so to have a more declarative style?  What I mean is
+-- that in stead of defining one chunk of data and then doing
+-- operations on it seperately, could we define a small helper that
+-- does it in place like so:
+--
+--     longPieceOfData =
+--       [ h "..."
+--       , h "..."
+--       ]
+--       where
+--       h = _ -- magic here
 {-# Language TemplateHaskell, OverloadedStrings, OverloadedLists #-}
 {-# OPTIONS_GHC -Wall #-}
 -- | Data used for inititializing the database
@@ -11,37 +24,51 @@ import qualified Data.Vector as Vector
 import qualified Database.Types as Types
 
 lessons :: Vector Types.Lesson
-lessons = Vector.fromList $ novomodoLessons ++ exemplumLessons
+lessons = novomodoLessons <> exemplumLessons
 
 -- | List of exercises group by the lesson they belong to.  The lesson
 -- is identified by 1. an identifier for the grammar for that lesson
 -- and 2. by the name of that lesson (a PK in the DB).  Exercises are
 -- identified by a pair of tree/language pairs.
 exercises ∷ Vector (Text, Text, Text, Text, Vector (Text, Text))
-exercises = Vector.fromList $ novomodoExercises ++ exemplumExercises
+exercises = novomodoExercises <> exemplumExercises
 
 
 --------------------------------------------------------------------------------
 -- Novo Modo lessons
 
-novomodoLessons =
-  [ Types.Lesson lesson (novomodoDescription nr) (novomodoGrammar lesson)
-                 srcLng trgLng nrExercises True depthLimit depthLimit True
-  | (nr, (lesson, srcLng, trgLng, depthLimit, exerciseList)) <- zip [1..] novomodoDB,
-    let nrExercises = fromIntegral (Vector.length exerciseList)
-  ]
+novomodoLessons ∷ Vector Types.Lesson
+novomodoLessons = Vector.zipWith f [1..] novomodoDB
+  where
+  f nr (lesson, srcLng, trgLng, depthLimit, exerciseList)
+    = Types.Lesson
+    lesson (novomodoDescription nr)
+    (novomodoGrammar lesson)
+    srcLng
+    trgLng
+    (fromIntegral (Vector.length exerciseList))
+    True
+    depthLimit
+    depthLimit
+    True
 
-novomodoExercises =
-  [ (novomodoGrammar lesson, lesson, srcLng, trgLng, exerciseList)
-  | (lesson, srcLng, trgLng, depthLimit, exerciseList) <- novomodoDB
-  ]
+-- TODO depthLimit is not used, is this a mistake?
+novomodoExercises ∷ Vector (Text, Text, Text, Text, Vector (Text, Text))
+novomodoExercises = f <$> novomodoDB
+  where
+  f (lesson, srcLng, trgLng, _depthLimit, exerciseList)
+    = (novomodoGrammar lesson, lesson, srcLng, trgLng, exerciseList)
 
-novomodoGrammar lesson = Text.concat ["novo_modo/", lesson]
+novomodoGrammar ∷ Text → Text
+novomodoGrammar = mappend "novo_modo/"
 
+novomodoDescription ∷ Integer → Text
 novomodoDescription nr = Text.concat ["Lektion ", Text.pack (show nr), " från boken 'Novo Modo'"]
 
+novomodoDepthLimit ∷ Maybe Int
 novomodoDepthLimit = Just 1
 
+novomodoDB ∷ Vector (Text, Text, Text, Maybe Int, Vector (Text, Text))
 novomodoDB =
     [ ("Prima"  , "PrimaLat"  , "PrimaSwe"  , novomodoDepthLimit, primaPars  )
     , ("Secunda", "SecundaLat", "SecundaSwe", novomodoDepthLimit, secundaPars)
@@ -49,6 +76,7 @@ novomodoDB =
     -- , ("Quarta" , "QuartaLat" , "QuartaSwe" , novomodoDepthLimit, quartaPars )
     ]
 
+primaPars ∷ Vector (Text, Text)
 primaPars =
   [ ("vinum sapiens est"                          ,"han är vis")
   , ("Augustus imperium tenet"                    ,"imperatorn håller riket")
@@ -62,6 +90,7 @@ primaPars =
   , ("Caesar Augustus Africam vincit"             ,"kejsaren Augustus besegrar Gallien")
   ]
 
+secundaPars ∷ Vector (Text, Text)
 secundaPars =
   [ ("(Pers.pron 3rd pers. Pl.) nolite"           ,"de glädjas")
   , ("(Pers.pron 3rd pers. Pl.) gaudent"          ,"vägra")
@@ -86,42 +115,53 @@ secundaPars =
   , ("Romani eos docebant"                        ,"de undervisade romarna")
   ]
 
--- tertiaPars
---   = []
-
--- quartaPars
---   = []
-
-
 --------------------------------------------------------------------------------
 -- Exemplum lessons
 
-exemplumLessons =
-  [ Types.Lesson lesson (Text.concat ["Example lesson: ", lesson]) exemplumGrammar
-                 srcLng trgLng nrExercises True depthLimit depthLimit True
-  | (lesson, srcLng, trgLng, depthLimit, exerciseList) <- exemplumDB,
-    let nrExercises = fromIntegral (Vector.length exerciseList)
-  ]
+exemplumLessons ∷ Vector Types.Lesson
+exemplumLessons = f <$> exemplumDB
+  where
+  f (lesson, srcLng, trgLng, depthLimit, exerciseList)
+    = Types.Lesson
+      lesson
+      (Text.concat ["Example lesson: ", lesson])
+      exemplumGrammar
+      srcLng
+      trgLng
+      (fromIntegral (Vector.length exerciseList))
+      True
+      depthLimit
+      depthLimit
+      True
 
-exemplumExercises =
-  [ (exemplumGrammar, lesson, srcLng, trgLng, exerciseList)
-  | (lesson, srcLng, trgLng, depthLimit, exerciseList) <- exemplumDB
-  ]
+-- TODO depthLimit is not used, is this a mistake?
+exemplumExercises ∷ Vector (Text, Text, Text, Text, Vector (Text, Text))
+exemplumExercises = f <$> exemplumDB
+  where
+  f (lesson, srcLng, trgLng, _depthLimit, exerciseList)
+    = (exemplumGrammar, lesson, srcLng, trgLng, exerciseList)
+  -- [ (exemplumGrammar, lesson, srcLng, trgLng, exerciseList)
+  -- | (lesson, srcLng, trgLng, _depthLimit, exerciseList) <- exemplumDB
+  -- ]
 
+exemplumGrammar ∷ Text
 exemplumGrammar = "exemplum/Exemplum"
 
+exemplumDepthLimit ∷ Maybe Int
 exemplumDepthLimit = Just 4
 
-exemplumDB =
-    [ (Text.concat [srcLng, "->", trgLng],
+exemplumDB ∷ Vector (Text, Text, Text, Maybe Int, Vector (Text, Text))
+exemplumDB = f <$> Vector.tail exemplumSentences
+  where
+  f (trgLng, trg) = 
+      (Text.concat [srcLng, "->", trgLng],
        Text.concat ["Exemplum", srcLng],
        Text.concat ["Exemplum", trgLng],
        exemplumDepthLimit,
        [(src, trg)])
-    | let (srcLng, src) = head exemplumSentences,
-      (trgLng, trg) <- tail exemplumSentences
-    ]
+  (srcLng, src) = Vector.head exemplumSentences
 
+exemplumSentences ∷ Vector (Text, Text)
 exemplumSentences =
     [ ("Eng", "many kings love Paris")
     , ("Swe", "en god kung läser en bok")
