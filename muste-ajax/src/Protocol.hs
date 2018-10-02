@@ -300,7 +300,7 @@ loginHandler = Snap.method Snap.POST $ do
   (usr, pwd) <- getUser
   handleLoginRequest usr pwd
 
-logoutHandler :: MonadProtocol m ⇒ m ()
+logoutHandler ∷ MonadProtocol m ⇒ m ()
 logoutHandler
   = Snap.method Snap.POST
   $ getToken >>= handleLogoutRequest

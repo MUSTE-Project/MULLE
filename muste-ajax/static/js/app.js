@@ -155,7 +155,7 @@ function show_page(page) {
 
 
 function restart_everything() {
-  call_server(MESSAGES.LOGOUT, {token: LOGIN_TOKEN});
+  call_server(MESSAGES.LOGOUT);
   location.reload();
 }
 
@@ -262,7 +262,7 @@ function retrieve_lessons(evt) {
   if (evt && evt.preventDefault) {
     evt.preventDefault();
   }
-  call_server(MESSAGES.LESSONS, {token: LOGIN_TOKEN});
+  call_server(MESSAGES.LESSONS);
 }
 
 var lesson_list_template = ' \
@@ -313,8 +313,7 @@ function select_lesson(evt) { // eslint-disable-line no-unused-vars
 
 function start_lesson(lesson) {
   TIMER_START = new Date().getTime();
-  var req = {token: LOGIN_TOKEN, lesson: lesson};
-  muste_request(req, MESSAGES.LESSON + '/' + lesson)
+  muste_request({}, MESSAGES.LESSON + '/' + lesson)
     .then(show_exercise);
 }
 
