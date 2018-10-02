@@ -260,7 +260,11 @@ button {
 }
 
 .space {
-    height: 5px;
+    /* This is to ensure that spaces are clickable and that pop-up menus
+    gets placed correctly.  `2ex` is an approximation for the
+    line-height.  Ideally we'd use `lh` here, but it's experimental
+    and has little support. */
+    height: 2ex;
 }
 
 .clickable:hover, button:hover, label:hover {

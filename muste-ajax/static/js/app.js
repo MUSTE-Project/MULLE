@@ -37,6 +37,7 @@ function init() {
   register_pagers();
   register_create_user_handler();
   register_change_pwd_handler();
+  register_popup_menu(jQuery);
   var tok = window.sessionStorage.getItem('LOGIN_TOKEN');
   // Show login page regardless.
   show_page('#page-login');
@@ -47,6 +48,10 @@ function init() {
     LOGIN_TOKEN = tok;
     retrieve_lessons();
   }
+}
+
+function register_popup_menu($) {
+  $.fn.popup = popup_menu;
 }
 
 function register_pagers() {
@@ -662,20 +667,23 @@ function click_word(event) {
     }
   }
 
-  var shown_menu = $('.menu');
-  var top = clicked.offset().top + clicked.height() * 3/4;
-  var left = clicked.offset().top + (clicked.width() - shown_menu.width()) / 2;
-  var striked = $('.striked');
-  if (striked.length) {
-    left = (striked.offset().left + striked.last().offset().left +
-        striked.last().width() - shown_menu.width()) / 2;
-  }
-  shown_menu.css({
-    'top': top + 'px',
-    'left': left + 'px',
-    'max-height': (window.innerHeight - top - 6) + 'px'
-  }).show();
+  var menu = $('.menu').show();
+  clicked.popup(menu);
   $(document).trigger('overlay');
+}
+
+function popup_menu(menu) {
+  var offset = this.offset();
+  var bot = offset.top + this.outerHeight();
+  var diff = this.outerWidth() - menu.outerWidth();
+  var mid = offset.left + diff / 2;
+  var css = {
+    'top': bot + 'px',
+    'left': mid + 'px',
+    'max-height': (window.innerHeight - bot - 6) + 'px'
+  };
+  console.info(css);
+  menu.css(css).show();
 }
 
 // is_selected :: Menu.Seleection -> Int -> Bool
