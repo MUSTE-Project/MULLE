@@ -326,11 +326,11 @@ function show_exercise(parameters) {
   $('#score').text(DATA.score);
   $('#lessoncounter').text(DATA.lesson + ': övning ' + EXERCISES[DATA.lesson].passed + ' av ' + EXERCISES[DATA.lesson].total);
   if (parameters.success) {
-    var elapsed_time = elapsed_time().toString();
+    var t = elapsed_time().toString();
     setTimeout(function(){
       alert('BRAVO!' +
         '    Klick: ' + DATA.score +
-        '    Tid: ' + elapsed_time + ' sekunder');
+        '    Tid: ' + t + ' sekunder');
       if (DATA.exercise < DATA.total) {
         start_lesson(DATA.lesson);
       } else {
