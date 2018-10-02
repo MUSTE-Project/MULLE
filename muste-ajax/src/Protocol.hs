@@ -1,5 +1,5 @@
 {-# Language RecordWildCards, UndecidableInstances, DeriveAnyClass #-}
-{-# OPTIONS_GHC -Wall -Wno-orphans #-}
+{-# OPTIONS_GHC -Wall -Wcompat #-}
 module Protocol
   ( registerRoutes
   ) where

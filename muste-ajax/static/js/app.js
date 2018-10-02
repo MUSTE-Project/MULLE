@@ -125,14 +125,15 @@ function update_timer() {
 // The overlay is shown when the menus pop up.  The click-event on the
 // overlay resets the selection - which hides the menu again.
 function register_overlay() {
+  var $overlay = $('.overlay');
   $(document).on('overlay', function() {
-    $('.overlay').show();
+    $overlay.show();
   });
   $('.overlay').click(function() {
     $(document).trigger('overlay-out');
-    $(this).hide();
   });
   $(document).on('overlay-out', function() {
+    $overlay.hide();
     reset_selection();
     clear_errors();
   });
@@ -767,6 +768,7 @@ function select_menuitem(item, lang) {
   DATA.token = LOGIN_TOKEN;
   DATA.time = elapsed_time().seconds;
   call_server(MESSAGES.MENU, DATA);
+  $(document).trigger('overlay-out');
 }
 
 
