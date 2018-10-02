@@ -224,9 +224,6 @@ apiRoutes db =
   , "menu"         |> menuHandler
   , "create-user"  |> createUserHandler
   , "change-pwd"   |> changePwdHandler
-  -- TODO What are these requests?
-  , "MOTDRequest"  |> missingApiRoute "MOTDRequest"
-  , "DataResponse" |> missingApiRoute "DataResponse"
   ]
   where
     (|>) ∷ ∀ txt json snap
@@ -250,9 +247,6 @@ changePwdHandler ∷ MonadProtocol m ⇒ m ()
 changePwdHandler = do
   ChangePwd{..} ← getMessage
   void $ Database.changePassword name oldPassword newPassword
-
-missingApiRoute ∷ MonadError ProtocolError m ⇒ String -> m ()
-missingApiRoute = throwError . MissingApiRoute
 
 -- | Reads the data from the request and deserializes from JSON.
 getMessage :: FromJSON json ⇒ MonadProtocol m => m json
