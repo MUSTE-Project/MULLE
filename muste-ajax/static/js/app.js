@@ -12,18 +12,18 @@ var VIRTUAL_ROOT = '/';
 var SERVER = VIRTUAL_ROOT + 'api/';
 
 var MESSAGES = {
-    LOGOUT: 'logout'
+  LOGOUT: 'logout',
   // Must set authentication header
-  , LOGIN: 'login'
-  , LESSONS: 'lessons'
+  LOGIN: 'login',
+  LESSONS: 'lessons',
   // Muste request the *name* of the lesson.  E.g:
   //
   //    /lesson/Prima+Pars
   //
   // TODO Would be more convenient if it was an id.
-  , LESSON: 'lesson'
-  , MENU: 'menu'
-  };
+  LESSON: 'lesson',
+  MENU: 'menu',
+};
 
 jQuery().ready(init);
 
@@ -62,10 +62,10 @@ function register_pagers() {
 }
 
 function register_create_user_handler() {
-  var $form = $("form[action=create-user]");
+  var $form = $('form[action=create-user]');
   password_matcher($form);
   $form.on('submit', function (event) {
-    event.preventDefault()
+    event.preventDefault();
     var data = {
       'password': $form.find('input[name=pwd]').val(),
       'name': $form.find('input[name=name]').val()
@@ -79,12 +79,12 @@ function register_create_user_handler() {
 function password_matcher($form) {
   $form.find('input').change(function() {
     var pwd  = $form.find('input[name=pwd]').val();
-    var $pwdC = $form.find('input[name=confirm-pwd]')
+    var $pwdC = $form.find('input[name=confirm-pwd]');
     var cpwd = $pwdC.val();
     if(pwd !== cpwd) {
       $pwdC.each(function () {
-          this.setCustomValidity('Password must match');
-        });
+        this.setCustomValidity('Password must match');
+      });
       return;
     }
     // Input value is now valid.
@@ -93,10 +93,10 @@ function password_matcher($form) {
 }
 
 function register_change_pwd_handler() {
-  var $form = $("form[action=change-pwd]");
+  var $form = $('form[action=change-pwd]');
   password_matcher($form);
   $form.on('submit', function (event) {
-    event.preventDefault()
+    event.preventDefault();
     var data = {
       'new-password': $form.find('input[name=pwd]').val(),
       'old-password': $form.find('input[name=old-pwd]').val(),
@@ -192,7 +192,7 @@ function muste_request(data, endpoint) {
 
 // Like `emuste_request` but with no error handler.
 function muste_request_raw(data, endpoint) {
-   var req = {
+  var req = {
     cache: false,
     url: SERVER + endpoint,
     dataType: 'json',
@@ -302,8 +302,8 @@ function show_lessons(lessons) {
   });
 }
 
-
-function select_lesson(evt) {
+// Warning defined but never used.  What gives?
+function select_lesson(evt) { // eslint-disable-line no-unused-vars
   if (evt && evt.preventDefault) {
     evt.preventDefault();
   }
@@ -372,32 +372,24 @@ function handle_server_response(response) {
     break;
 
   default:
-    var title = (
-        message == 'SMLoginFail'      ? 'Login failure, please try again'     :
-        message == 'SMSessionInvalid' ? 'Session invalid, please login again' :
-        message == 'SMLessonInvalid'  ? 'Lesson invalid, please login again'  :
-        message == 'SMDataInvalid'    ? 'Invalid data, please login again'    :
-        'Uknown message from server: ' + message
-    );
+    var title = friendly_title(message);
     var description = (parameters && parameters.error ? parameters.error : '');
     alert_error(title, description);
     break;
   }
 }
 
-// This method changes the representation of `[Path]`'s to `String`.
-// The side effect of `clean_server_data(data)` occurs at
-// `data.trees[0][0][*].path` and `data.menu`
+function friendly_title(m) {
+  switch (m) {
+  case 'SMLoginFail'      : return 'Login failure, please try again';
+  case 'SMSessionInvalid' : return 'Session invalid, please login again';
+  case 'SMLessonInvalid'  : return 'Lesson invalid, please login again';
+  case 'SMDataInvalid'    : return 'Invalid data, please login again';
+  default                 : return 'Uknown message from server: ' + m;
+  }
+}
+
 function clean_server_data(data) {
-  function convert_path(path) {
-    return path.toString().replace(/[,\[\]]/g,'');
-  }
-  function clean_lin(lin) {
-    lin.forEach(function(pword){
-      pword.path = convert_path(pword.path);
-    });
-  }
-  // clean_lin(data.lin);
   data.menu = new Map(data.menu);
 }
 
@@ -420,8 +412,8 @@ function build_matching_classes(data) {
 function show_sentences(src, trg) {
   var srcL = ct_linearization(src);
   var trgL = ct_linearization(trg);
-  var srcM = matchy_magic(srcL, trgL);
-  var trgM = matchy_magic(trgL, srcL);
+  matchy_magic(srcL, trgL);
+  matchy_magic(trgL, srcL);
   show_lin('a', srcL);
   show_lin('b', trgL);
 }
@@ -548,28 +540,6 @@ function reset_selection() {
   if(window.currentMenu != null) {
     window.currentMenu.menu.reset();
   }
-}
-
-function placeThisAtThat(a, b) {
-  var pos = $(b).position();
-
-  // .outerWidth() takes into account border and padding.
-  var width = $(b).outerWidth();
-
-  //show the menu directly over the placeholder
-  $(a).css({
-    position: 'absolute',
-    top: pos.top + 'px',
-    left: (pos.left + width) + 'px'
-  });
-}
-
-function showErrorAt(msg, e) {
-  var err = $('.error')
-    .text(msg)
-    .show();
-  placeThisAtThat(err, e);
-  $(document).trigger('overlay');
 }
 
 function click_word(event) {
@@ -727,15 +697,6 @@ function iterateMenu(idx, mp) {
       i = initial;
     }
   };
-}
-
-function prefixOf(xs, ys) {
-  for(var i = 0 ; i < xs.length ; i ++) {
-    var x = xs[i];
-    var y = xs[i];
-    if(x != y) return false;
-  }
-  return true;
 }
 
 // Looks up a value in a set of keys. Returns the key and value where
