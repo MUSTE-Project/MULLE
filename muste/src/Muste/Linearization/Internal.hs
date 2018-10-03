@@ -13,8 +13,6 @@ module Muste.Linearization.Internal
   -- Used in test suite:
   , buildContexts
   , stringRep
-  , isInsertion
-  , mkLinSimpl
   , BuilderInfo(..)
   , PGF.Language
   , languages
@@ -47,8 +45,6 @@ import Muste.AdjunctionTrees
 import Muste.Common (enumerate)
 import Muste.Common.SQL (FromField, ToField)
 import qualified Muste.Common.SQL as SQL
-import Muste.Selection (Selection)
-import qualified Muste.Selection as Selection
 
 data LinToken = LinToken
   -- The path refers to the path in the 'TTree'
@@ -278,61 +274,3 @@ disambiguate ctxt = stringRep >>> parse
   where
   parse ∷ Text → [TTree]
   parse = Grammar.parseSentence (ctxtGrammar ctxt) (ctxtLang ctxt)
-
-type CoverNode = (Int, Category, Path)
-
-coverNodes :: Context -> TTree -> [CoverNode]
-coverNodes ctxt t
-  = t
-  & linearizeTree ctxt
-  & otoList
-  & map ltpath
-  & enumerate
-  & map coverNode
-  where
-  coverNode ∷ (Int, Path) → CoverNode
-  coverNode (n, p)
-    = Tree.selectNode t p
-    & fromMaybe errLinCov
-    & cn
-    where
-    cn ∷ TTree → CoverNode
-    cn (TNode fun _ _) = (n, fun, p)
-    cn TMeta{} = errNoMeta
-  -- It's an invariante that 'Linearization.linearizeTree' should only
-  -- return 'LinToken's that we can later look up in the same tree.
-  errLinCov = error
-    $  "Muste.Linearization.Internal.coverNodes: "
-    <> "Linearizations returned a path that does not exist in the tree."
-  errNoMeta = error
-    $  "Muste.Linearization.Internal.coverNodes: "
-    <> "Did not expect an unsaturated tree at this point"
-
--- | @'isInsertion' ctxt src trg@ checks if @src@ is to be considered
--- an insertion into @trg@.  A result of 'Nothing' indicated that this
--- is *not* considered an insertion.  Otherwise the returned selection
--- corresponds to a selection where the words are inserted /before/
--- each word in the selection.
-isInsertion :: Context -> TTree -> TTree -> Maybe Selection
-isInsertion cxt src trg = Selection.fromList <$> inserted
-  where
-  srcnodes = coverNodes cxt src
-  trgnodes = coverNodes cxt trg
-  inserted ∷ Maybe [Int]
-  inserted = map fst <$> getInsertedNodes srcnodes trgnodes
-
-  getInsertedNodes :: [CoverNode] -> [CoverNode] -> Maybe [(Int, CoverNode)]
-  getInsertedNodes [] [] = Just []
-  getInsertedNodes _ [] = Nothing
-  getInsertedNodes srcs@((_,f,_):_) ((_,g,p):trgs@((_,g',p'):_))
-      | f == g && g == g' && p == p'  = getInsertedNodes srcs trgs
-  getInsertedNodes ((_,f,_):srcs) ((_,g,_):trgs)
-      | f == g  = getInsertedNodes srcs trgs
-  getInsertedNodes srcs (node:trgs)
-      = fmap ((getInsertionPosition srcs,node) : ) (getInsertedNodes srcs trgs)
-
-  getInsertionPosition ((n,_,_):_) = n
-  getInsertionPosition [] = length srcnodes
-
-mkLinSimpl ∷ Context → TTree → Linearization
-mkLinSimpl c t = mkLin c t t t
