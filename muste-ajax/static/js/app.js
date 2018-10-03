@@ -413,28 +413,33 @@ function intersection(m, n) {
 }
 
 function show_lin(lang, lin) {
-  var sentence = $('#' + lang).empty();
-  // var tree = parse_tree(DATA[lang].tree);
-  for (var i=0; i<lin.length; i++) {
-    var linTok = lin[i];
-    var previous = i > 0 ? lin[i-1].concrete : null;
-    var current = linTok.concrete;
-    var menu = DATA[lang].menu;
-    var spacing = (previous == NOSPACING || current == NOSPACING || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
-      ? ' ' : ' &emsp; ';
+  function gen_space(validMenus) {
     var spacyData = {
       nr: i,
       lang: lang,
-      'valid-menus': getValidMenusEmpty(i, menu)
+      'valid-menus': validMenus
     };
-    $('<span>')
-      .addClass('space clickable').data(spacyData)
-      .html(spacing).click(click_word)
+    return $('<span>')
+      .addClass('space clickable')
+      .data(spacyData)
+      .click(click_word)
+  }
+  var sentence = $('#' + lang).empty();
+  var menu = DATA[lang].menu;
+  // var tree = parse_tree(DATA[lang].tree);
+  for (var i=0; i < lin.length; i++) {
+    var linTok = lin[i];
+    var previous = i > 0 ? lin[i-1].concrete : null;
+    var current = linTok.concrete;
+    var spacing = (previous == NOSPACING || current == NOSPACING || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
+      ? ' ' : ' &emsp; ';
+    var validMenus = getValidMenus(i, menu);
+    gen_space(validMenus)
+      .html(spacing)
       .appendTo(sentence);
     var classes = linTok['classes'];
     var matchingClasses = linTok['matching-classes'];
     var match = matchingClasses.size > 0;
-    var validMenus = getValidMenus(i, menu);
     var wordData = {
       nr: i,
       lang: lang,
@@ -442,6 +447,7 @@ function show_lin(lang, lin) {
       /* , subtree:subtree */
       'valid-menus': validMenus
     };
+    // Perhaps we could generalize gen_space and use that here as well?
     var wordspan = $('<span>')
       .addClass('word clickable').data(wordData)
       .html(current + '<sub class="debug">' + (match ? '=' : '') + JSON.stringify(classes) /* + ' ' + show_tree(subtree) */ + '</sub>')
@@ -454,8 +460,7 @@ function show_lin(lang, lin) {
       wordspan.css({'border-color': c});
     }
   }
-  $('<span>')
-    .addClass('space clickable').data({nr:lin.length, lang:lang})
+  gen_space(getValidMenus(lin.lengt, menu))
     .html('&emsp;').click(click_word)
     .appendTo(sentence);
 }
@@ -538,7 +543,7 @@ function click_word(event) {
     validMenus = {next: function() {return [[], []];}, reset: function (){}};
   }
   if(validMenus === undefined) {
-    throw 'No menu found. Probably because the user clicked a space between words, this is still not supported.';
+    throw 'No menu found';
   }
 
   if (clicked.hasClass('striked') && $('#menus ul').length > 1) {
