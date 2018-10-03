@@ -190,9 +190,9 @@ highlight (toList → xs) (zip [0..] . map pure → ys)
   = snd <$> closes `weave` opens `weave` ys
   where
   opens  ∷ [(Int, Either Bool a)]
-  opens  = zip (map (pred . fst . Menu.runInterval) xs) (repeat (Left False))
+  opens  = sort $ zip (map (pred . fst . Menu.runInterval) xs) (repeat (Left False))
   closes ∷ [(Int, Either Bool a)]
-  closes  = zip (map (pred . snd . Menu.runInterval) xs) (repeat (Left True))
+  closes  = sort $ zip (map (pred . snd . Menu.runInterval) xs) (repeat (Left True))
 
 weave ∷ [(Int, a)] → [(Int, a)] → [(Int, a)]
 weave [] ys = ys
