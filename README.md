@@ -12,7 +12,7 @@ For the impatient:
 
     git submodule update --init
     ln -s stack-lts-9.21.yaml stack.yaml
-    make
+    make install
     stack install muste-ajax
     muste-ajax --recreate-db
     cd muste-ajax/static/
@@ -91,11 +91,11 @@ Partially/unsupported options:
 
 ### Building
 
-If the grammar-files (in `muste/data/grammars/`) have changed (or
-if you just cloned the repository) you need to build the
-grammar-files.  This can be achieved with:
+If the grammar-files (in `muste/data/grammars/`) have changed (or if
+you just cloned the repository) you need to install the grammar-files.
+This can be achieved with:
 
-    make
+    make install
 
 Assuming you have set up `gf-core` and `gf-rgl`.
 

@@ -23,7 +23,7 @@ import Muste.Common
 
 import Muste.Tree (TTree(..), Path, FunType(..), Category)
 import qualified Muste.Tree.Internal as Tree
-import Muste.Grammar hiding (tree)
+import Muste.Grammar
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees hiding (BuilderInfo(..))
 

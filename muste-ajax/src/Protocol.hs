@@ -57,7 +57,7 @@ data Env = Env
 
 -- | A simple monad transformer for handling responding to requests.
 newtype ProtocolT m a = ProtocolT
-  { unProtocolT ∷ ReaderT Env (ExceptT ProtocolError m) a
+  { unProtocolT ∷ ReaderT Env (ExceptT ProtocolError (Muste.GrammarT m)) a
   }
 
 deriving newtype instance Functor m ⇒ Functor (ProtocolT m)
@@ -72,6 +72,7 @@ deriving newtype instance (MonadSnap m) ⇒ MonadSnap (ProtocolT m)
 deriving newtype instance Monad m ⇒ MonadReader Env (ProtocolT m)
 deriving newtype instance Monad m ⇒ Database.HasConnection (ProtocolT m)
 deriving newtype instance Monad m ⇒ MonadError ProtocolError (ProtocolT m)
+deriving newtype instance MonadIO m ⇒ Muste.MonadGrammar (ProtocolT m)
 
 instance Monad m ⇒ MonadDatabaseError (ProtocolT m) where
   throwDbError = ProtocolT . throwError . DatabaseError
@@ -134,6 +135,7 @@ type MonadProtocol m =
   , Database.MonadDatabaseError m
   , MonadError ProtocolError m
   , MonadSnap m
+  , Muste.MonadGrammar m
   )
 
 instance Monad m ⇒ Database.HasConnection (ReaderT Env m) where
@@ -198,7 +200,9 @@ runProtocolT db app = do
   Snap.modifyResponse (Snap.setContentType "application/json")
   conn ← openConnection db
   env  ← throwLeft <$> getEnv conn
-  res  ← runExceptT $ flip runReaderT env $ unProtocolT app
+  -- TODO We are not utilizing the memoization by "running" the
+  -- 'GrammarT' here.
+  res  ← Muste.runGrammarT $ runExceptT $ flip runReaderT env $ unProtocolT app
   case res of
     Left err → do
        Snap.modifyResponse . setResponseCode . errResponseCode $ err
@@ -213,6 +217,9 @@ getEnv conn = do
   ctxts ← liftIO $ Database.runDb initContexts conn
   pure $ Env conn <$> ctxts
 
+-- I just realize that we're initializing the whole environment on
+-- each connection, this is not necessary, we shuold be able to for
+-- instance keep the database connection alive at all times.
 registerRoutes ∷ String → Snap.Initializer v w ()
 registerRoutes db = Snap.addRoutes (apiRoutes db)
 
@@ -464,19 +471,24 @@ verifyMessage msg = msg <$ verifySession
 initContexts
   :: Database.MonadDB db
   => db Contexts
-initContexts = mkContexts <$> Database.getLessons
+initContexts = Database.getLessons >>= mkContexts
 
-mkContexts ∷ [Database.Lesson] → Contexts
-mkContexts = Map.fromList . map mkContext
+mkContexts
+  ∷ Muste.MonadGrammar m
+  ⇒ [Database.Lesson]
+  → m Contexts
+mkContexts xs = Map.fromList <$> traverse mkContext xs
 
 mkContext
-  ∷ Database.Lesson
-  → (Text, Map.Map Sentence.Language Context)
-mkContext Database.Lesson{..}
-  = (name, Map.mapKeys f m)
+  ∷ Muste.MonadGrammar m
+  ⇒ Database.Lesson
+  → m (Text, Map.Map Sentence.Language Context)
+mkContext Database.Lesson{..} = do
+  m ← getMapping
+  pure $ (name, Map.mapKeys f m)
   where
-  m ∷ Map Text Context
-  m = Muste.langAndContext nfo grammar
+  getMapping ∷ Muste.MonadGrammar m ⇒ m (Map Text Context)
+  getMapping = Muste.getLangAndContext nfo grammar
   f ∷ Text → Sentence.Language
   f l = Sentence.Language (Sentence.Grammar grammar) l
   nfo ∷ Linearization.BuilderInfo

@@ -43,6 +43,10 @@ dependencies:
 - vector
 - deepseq
 - multiset
+- directory
+- monad-control
+- transformers-base
+- snap-core
 
 when:
   - condition: flag(dist)
@@ -88,13 +92,10 @@ library:
     - Muste.Common.SQL
     - Muste.Tree.Internal
     - Muste.Grammar.Internal
-    - Muste.Grammar.TH
     - Muste.Linearization.Internal
     - Muste.AdjunctionTrees
     - Muste.AdjunctionTrees.Internal
     - Muste.Data
-    - Muste.Grammar.Embed
-    - Muste.Grammar.Grammars
     - Muste.Menu.Internal
     - Muste.Selection
     - Muste.Prune

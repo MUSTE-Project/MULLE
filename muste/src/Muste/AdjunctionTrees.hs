@@ -18,7 +18,7 @@ import qualified Data.Map as Map
 import Data.MultiSet (MultiSet)
 
 import Muste.Tree
-import Muste.Grammar hiding (tree)
+import Muste.Grammar
 import Muste.Grammar.Internal (Rule(Function))
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees.Internal

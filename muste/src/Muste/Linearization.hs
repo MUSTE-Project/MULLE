@@ -2,7 +2,7 @@ module Muste.Linearization
   ( Linearization
   , Context(ctxtGrammar, ctxtPrecomputed)
   , buildContext
-  , langAndContext
+  , getLangAndContext
   , mkLin
   , disambiguate
   , BuilderInfo(..)

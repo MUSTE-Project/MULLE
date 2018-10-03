@@ -51,6 +51,8 @@ import qualified Data.Time.Clock        as Time
 import qualified Data.Time.Format       as Time
 import Control.Monad.Reader
 
+import qualified Muste
+
 -- FIXME QuickCheck seems like a heavy dependency just to get access
 -- to `shuffle`.
 import qualified Test.QuickCheck as QC (shuffle, generate)
@@ -387,26 +389,32 @@ instance Monad m ⇒ MonadDatabaseError (DbT m) where
   throwDbError = DbT . throwError
   catchDbError (DbT act) h = DbT $ catchError act (unDbT . h)
 
-type MonadDB m = (HasConnection m, MonadIO m, MonadDatabaseError m)
+type MonadDB m =
+  ( HasConnection m
+  , MonadIO m
+  , MonadDatabaseError m
+  , Muste.MonadGrammar m
+  )
 
 newtype DbT m a = DbT
-  { unDbT ∷ (ReaderT Connection (ExceptT Error m) a)
+  { unDbT ∷ (ReaderT Connection (ExceptT Error (Muste.GrammarT m))) a
   }
 
 deriving newtype instance Functor m ⇒ Functor     (DbT m)
 deriving newtype instance Monad m   ⇒ Applicative (DbT m)
 deriving newtype instance Monad m   ⇒ Monad       (DbT m)
 deriving newtype instance MonadIO m ⇒ MonadIO     (DbT m)
+deriving newtype instance MonadIO m ⇒ Muste.MonadGrammar (DbT m)
 
 instance MonadTrans DbT where
-  lift = DbT . lift . lift
+  lift = DbT . lift . lift . lift
 
 type Db a = DbT IO a
 
 -- instance
 
 runDb :: Db a -> Connection -> IO (Either Error a)
-runDb (DbT db) c = runExceptT $ runReaderT db c
+runDb (DbT db) c = Muste.runGrammarT $ runExceptT $ runReaderT db c
 
 -- TODO Better maybe to switch to 'SQL.queryNamed'?
 query

@@ -46,3 +46,16 @@ Issue #50: User registration
 Added a page for adding new users. TODO
 
 * Handle case when user already exists.
+
+Issue #57: Do not hard code exercises and known grammars.
+---
+
+This is really two issues:
+
+* Do not embed the grammars into the executable, in stead load them from the fs.
+* Do not store exercise in haskell code. Read from yaml file
+
+In `muste-ajax/src/Protocol.hs:203`:
+
+    -- TODO We are not utilizing the memoization by "running" the
+    -- 'GrammarT' here.

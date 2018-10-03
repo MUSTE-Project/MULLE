@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# language DeriveGeneric #-}
+{-# Language DeriveGeneric, UndecidableInstances #-}
 {- | This Module is the internal implementation behind the module 'Muste.Grammar' -}
 module Muste.Grammar.Internal
   ( Grammar(..)
@@ -10,8 +10,11 @@ module Muste.Grammar.Internal
   , getRuleType
   , brackets
   , parseTTree
-  , lookupGrammar
-  , lookupGrammarM
+  , MonadGrammar(..)
+  , GrammarT
+  , runGrammarT
+  , getGrammar
+  , getGrammarOneOff
   , parseGrammar
   , parseSentence
   , getMetas
@@ -24,7 +27,6 @@ import Muste.Prelude
 
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.ByteString as SB (ByteString)
 import qualified Data.ByteString.Lazy as LB
 -- This might be the only place we should know of PGF
 import qualified PGF
@@ -41,11 +43,19 @@ import Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as MultiSet
 import Control.DeepSeq (NFData)
 import qualified Data.Text as Text
+import Control.Monad.Reader
+import qualified Control.Monad.Reader as Reader
+import Control.Monad.Except (ExceptT)
+import Data.IORef (IORef)
+import qualified Data.IORef as IO
+import Control.Monad.Trans.Control (MonadBaseControl)
+import Control.Monad.Base (MonadBase)
+import Snap.Core (MonadSnap)
 
-import qualified Muste.Grammar.Grammars as Grammars
 import Muste.Common
 import Muste.Tree
 import qualified Muste.Tree.Internal as Tree
+import qualified Muste.Data as Data
 
 -- | Type 'Rule' consists of a 'String' representing the function name
 -- and a 'FunType' representing its type.
@@ -112,7 +122,7 @@ getRuleName (Function name _) = name
 
 -- | The function 'pgfToGrammar' transforms a PGF grammar to a simpler grammar data structure
 pgfToGrammar :: PGF -> Grammar
-pgfToGrammar pgf 
+pgfToGrammar pgf
   | isEmptyPGF pgf = emptyGrammar
   | otherwise =
     let
@@ -183,23 +193,80 @@ fromGfTree _ _ = hole
 hole ∷ TTree
 hole = TMeta wildCard
 
-grammars :: Map Text Grammar
-grammars = Map.fromList (uncurry grm <$> Grammars.grammars)
-  where
-  {-# INLINE grm #-}
-  grm :: Text -> SB.ByteString -> (Text, Grammar)
-  grm idf pgf = (idf, parseGrammar $ LB.fromStrict pgf)
+newtype KnownGrammars = KnownGrammars
+  -- No pun.
+  { unKnownGrammars ∷ IORef (Map Text Grammar)
+  }
 
--- | Lookup a grammar amongst the ones that we know of.  The grammars
--- that we know of are the ones linked against this binary at
--- compile-time.  See 'Muste.Grammar.Grammars.grammars'.
-lookupGrammar ∷ Text → Maybe Grammar
-lookupGrammar s = Map.lookup s grammars
+-- | A monad for managing loaded grammars.  @mtl@ style.  I think we
+-- should use something with mutable state rather than `StateT`.
+newtype GrammarT m a = GrammarT ( ReaderT KnownGrammars m a )
 
--- | Lookup a grammar in some fallible monad.  A lifted version of
--- 'lookupGrammar'.
-lookupGrammarM ∷ MonadFail m ⇒ String → Text → m Grammar
-lookupGrammarM err = lookupGrammar >>> maybeFail err
+deriving newtype instance Functor m ⇒ Functor (GrammarT m)
+deriving newtype instance Monad m ⇒ Applicative (GrammarT m)
+deriving newtype instance Monad m ⇒ Monad (GrammarT m)
+deriving newtype instance Monad m ⇒ MonadReader KnownGrammars (GrammarT m)
+deriving newtype instance MonadIO m ⇒ MonadIO (GrammarT m)
+deriving newtype instance MonadTrans GrammarT
+deriving newtype instance MonadBaseControl IO m ⇒ MonadBaseControl IO (GrammarT m)
+deriving newtype instance MonadBase IO m ⇒ MonadBase IO (GrammarT m)
+deriving newtype instance (Alternative m, Monad m) ⇒ Alternative (GrammarT m)
+deriving newtype instance (MonadSnap m) ⇒ MonadSnap (GrammarT m)
+deriving newtype instance MonadPlus m ⇒ MonadPlus (GrammarT m)
+
+class MonadIO m ⇒ MonadGrammar m where
+  -- | Get the known grammars
+  getKnownGrammars ∷ m (Map Text Grammar)
+  -- | Update the known grammars with.
+  insertGrammar ∷ Text → Grammar → m ()
+
+instance MonadIO io ⇒ MonadGrammar (GrammarT io) where
+  getKnownGrammars
+    =   Reader.ask
+    >>= liftIO . IO.readIORef . unKnownGrammars
+  insertGrammar t g = do
+    KnownGrammars ref  ← Reader.ask
+    liftIO $ IO.modifyIORef ref $ Map.insert t g
+
+instance MonadGrammar m ⇒ MonadGrammar (ReaderT r m) where
+  getKnownGrammars = lift getKnownGrammars
+  insertGrammar t g = lift $ insertGrammar t g
+
+instance MonadGrammar m ⇒ MonadGrammar (ExceptT r m) where
+  getKnownGrammars = lift getKnownGrammars
+  insertGrammar t g = lift $ insertGrammar t g
+
+runGrammarT ∷ MonadIO io ⇒ GrammarT io a → io a
+runGrammarT (GrammarT m) = do
+  r ← liftIO $ IO.newIORef mempty
+  Reader.runReaderT m (KnownGrammars r)
+
+readGrammar ∷ MonadIO io ⇒ Text → io Grammar
+readGrammar p = do
+  g ← liftIO $ Data.readGrammar $ Text.unpack p
+  pure $ parseGrammar $ LB.fromStrict g
+
+-- | Looks for a grammar at the specified location.  If the grammar is
+-- found it is added to the known grammars and returned.  If the
+-- grammar is not found a 'FileNotFoundException' is thrown.
+getGrammar ∷ ∀ m . MonadGrammar m ⇒ Text → m Grammar
+getGrammar idf = do
+  m ← getKnownGrammars
+  case Map.lookup idf m of
+    Nothing → loadAndInsert idf
+    Just a → pure a
+
+-- | A convenience method wrapping 'getGrammar' that just gets the
+-- grammar once but without all the nice memoization offered by
+-- 'MonadGrammar'.
+getGrammarOneOff ∷ MonadIO io ⇒ Text → io Grammar
+getGrammarOneOff = runGrammarT . getGrammar
+
+loadAndInsert ∷ ∀ m . MonadGrammar m ⇒ Text → m Grammar
+loadAndInsert idf = do
+  g ← readGrammar idf
+  insertGrammar idf g
+  pure g
 
 -- | Parses a linearized sentence.  Essentially a wrapper around
 -- 'PGF.parse'.

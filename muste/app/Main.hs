@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall -Wcompat #-}
 {-# Language RecordWildCards, NamedFieldPuns, TemplateHaskell,
   DeriveAnyClass, OverloadedStrings, MultiParamTypeClasses,
   DerivingStrategies #-}
@@ -24,17 +24,17 @@ import qualified Muste.Repl             as Repl
 makeEnv ∷ Options → IO Repl.Env
 makeEnv opts@(Options{..}) = Repl.Env <$> getContext
   where
-  g = unsafeLookupGrammar grammar
   getContext ∷ IO Context
-  getContext = case input of
-    Nothing → pure  $ Muste.unsafeGetContext (builderInfo opts) g language
-    Just p → do
-      adj ← Binary.decodeFile @AdjunctionTrees p
-      pure $ Context g (Muste.unsafeGetLang g language) adj
+  getContext = do
+    g ← getGrammar grammar
+    case input of
+      Nothing → pure  $ Muste.unsafeGetContext (builderInfo opts) g language
+      Just p → do
+        adj ← Binary.decodeFile @AdjunctionTrees p
+        pure $ Context g (Muste.unsafeGetLang g language) adj
 
-unsafeLookupGrammar ∷ Text → Grammar
-unsafeLookupGrammar g
-  = fromMaybe (error "Grammar not found") $ Grammar.lookupGrammar g
+getGrammar ∷ MonadIO io ⇒ Text → io Grammar
+getGrammar = Grammar.getGrammarOneOff
 
 builderInfo ∷ Options → BuilderInfo
 builderInfo Options { searchOptions = Options.SearchOptions{..} }
@@ -61,10 +61,12 @@ muste opts@Options{ searchOptions = Options.SearchOptions{..}, ..} = do
     $ Repl.interactively replOpts e (Repl.updateMenu . Text.pack)
 
 precompute ∷ Options.PreComputeOpts → IO ()
-precompute Options.PreComputeOpts{ searchOptions = Options.SearchOptions{..}, ..}
-  = Binary.encodeFile output $ AdjunctionTrees.getAdjunctionTrees opts g
+precompute
+  Options.PreComputeOpts{ searchOptions = Options.SearchOptions{..}, ..}
+  = do
+    g ← getGrammar grammar
+    Binary.encodeFile output $ AdjunctionTrees.getAdjunctionTrees opts g
   where
-  g = unsafeLookupGrammar grammar
   opts ∷ BuilderInfo
   opts = BuilderInfo
     { searchDepth = adjTreeSearchDepth
