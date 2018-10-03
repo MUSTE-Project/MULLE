@@ -209,8 +209,10 @@ collectTreeSubstitutions opts ctxt sentence = do
 
 collectMenuItems :: Context -> [TreeSubst] -> Menu
 collectMenuItems ctxt substs = Menu $ Map.fromListWith Set.union $ do
-  (_cost, (_oldtree, _oldwords, oldnodes), (_newtree, newwords, newnodes)) ← substs
-  let edits = alignSequences oldnodes newnodes
+  (_cost, (_oldtree, oldwords, oldnodes), (_newtree, newwords, newnodes)) ← substs
+  let nodeedits = alignSequences oldnodes newnodes
+  let wordedits = alignSequences oldwords newwords
+  let edits = nodeedits <> wordedits
   let (oldselection, newselection) = splitAlignments edits
   let lins = [ Annotated.mkLinearization ctxt t t t |
                t <- parseSentence ctxt (Text.unwords newwords) ]
