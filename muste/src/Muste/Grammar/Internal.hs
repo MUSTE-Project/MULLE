@@ -20,6 +20,9 @@ module Muste.Grammar.Internal
   , getMetas
   , getFunctions
   , hole
+  , HasKnownGrammars(..)
+  , KnownGrammars
+  , noGrammars
   ) where
 
 import Prelude ()
@@ -50,7 +53,8 @@ import Data.IORef (IORef)
 import qualified Data.IORef as IO
 import Control.Monad.Trans.Control (MonadBaseControl)
 import Control.Monad.Base (MonadBase)
-import Snap.Core (MonadSnap)
+import Snap (MonadSnap)
+import qualified Snap
 
 import Muste.Common
 import Muste.Tree
@@ -198,6 +202,9 @@ newtype KnownGrammars = KnownGrammars
   { unKnownGrammars ∷ IORef (Map Text Grammar)
   }
 
+noGrammars ∷ MonadIO io ⇒ io KnownGrammars
+noGrammars = KnownGrammars <$> liftIO (IO.newIORef mempty)
+
 -- | A monad for managing loaded grammars.  @mtl@ style.  I think we
 -- should use something with mutable state rather than `StateT`.
 newtype GrammarT m a = GrammarT ( ReaderT KnownGrammars m a )
@@ -228,6 +235,8 @@ instance MonadIO io ⇒ MonadGrammar (GrammarT io) where
     KnownGrammars ref  ← Reader.ask
     liftIO $ IO.modifyIORef ref $ Map.insert t g
 
+-- Even though 'GrammarT' is implemented with a reader monad notice
+-- that we pass through it here...
 instance MonadGrammar m ⇒ MonadGrammar (ReaderT r m) where
   getKnownGrammars = lift getKnownGrammars
   insertGrammar t g = lift $ insertGrammar t g
@@ -235,6 +244,22 @@ instance MonadGrammar m ⇒ MonadGrammar (ReaderT r m) where
 instance MonadGrammar m ⇒ MonadGrammar (ExceptT r m) where
   getKnownGrammars = lift getKnownGrammars
   insertGrammar t g = lift $ insertGrammar t g
+
+class HasKnownGrammars g where
+  giveKnownGrammars ∷ g → KnownGrammars
+
+instance HasKnownGrammars w ⇒ MonadGrammar (Snap.Handler v w) where
+  -- Implementation is almost identitcal to that of 'GrammarT'...
+  getKnownGrammars = do
+    ref ← unKnownGrammars . giveKnownGrammars <$> Reader.ask @_ @(Snap.Handler _ _)
+    mp ← liftIO $ IO.readIORef ref
+    liftIO $ do
+      putStrLn "getKnownGrammars @Snap.Handler"
+      print $ Map.size mp
+    pure mp
+  insertGrammar t g = do
+    KnownGrammars ref  ← giveKnownGrammars <$> Reader.ask
+    liftIO $ IO.modifyIORef ref $ Map.insert t g
 
 runGrammarT ∷ MonadIO io ⇒ GrammarT io a → io a
 runGrammarT (GrammarT m) = do

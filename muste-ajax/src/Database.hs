@@ -5,11 +5,12 @@ module Database
   ( MonadDB
   , DbT(DbT)
   , Db
-  , HasConnection(getConnection)
+  , HasConnection(..)
+  , getConnection
   , Error(..)
   , MonadDatabaseError(..)
   , Lesson2(..)
-  , runDb
+  , runDbT
   , getLessons
   , authUser
   , startSession
@@ -106,7 +107,7 @@ getCurrentTime ∷ MonadIO io ⇒ io UTCTime
 getCurrentTime = liftIO Time.getCurrentTime
 
 getLessons
-  :: MonadDB db
+  :: MonadDB r db
   => db [Types.Lesson]
 getLessons = query_ [sql|select * from lesson;|]
 
@@ -115,7 +116,7 @@ getLessons = query_ [sql|select * from lesson;|]
 -- | Generates an instance of 'Types.User' suitable for inserting into
 -- the database.  Note that this function does /not/ persist the user.
 createUser
-  :: MonadDB db
+  :: MonadDB r db
   => Text -- ^ Username
   -> Text -- ^ Password
   -> Bool -- ^ User enabled
@@ -128,7 +129,7 @@ createUser user pass enabled = do
 
 -- | Adds a new user to the database.
 addUser
-  ∷ MonadDB db
+  ∷ MonadDB r db
   ⇒ Text -- ^ Username
   → Text -- ^ Password
   → Bool -- ^ User enabled
@@ -149,7 +150,7 @@ addUser user pass enabled = do
 
 -- | Removes an existing user from the database.
 rmUser
-  ∷ MonadDB db
+  ∷ MonadDB r db
   ⇒ Text
   → db ()
 rmUser nm
@@ -158,7 +159,7 @@ rmUser nm
   (Only nm)
 
 authUser
-  :: MonadDB db
+  :: MonadDB r db
   => Text -- ^ Username
   -> Text -- ^ Password
   -> db ()
@@ -179,7 +180,7 @@ authUser user pass = do
     = [sql|SELECT Password,Salt,Enabled FROM User WHERE (Username = ?);|]
 
 changePassword
-  ∷ MonadDB db
+  ∷ MonadDB r db
   ⇒ Text -- ^ Username
   → Text -- ^ Old password
   → Text -- ^ New password
@@ -190,7 +191,7 @@ changePassword user oldPass newPass = do
   addUser user newPass True
 
 createSession
-  :: MonadDB db
+  :: MonadDB r db
   => Text -- ^ Username
   -> db Types.Session
 createSession user = do
@@ -209,7 +210,7 @@ createSession user = do
 -- | Creates a new session and returns the session token.  At the
 -- moment overly simplified.
 startSession
-  :: MonadDB db
+  :: MonadDB r db
   => Text -- ^ Username
   -> db Text
 startSession user = do
@@ -221,7 +222,7 @@ startSession user = do
 formatTime ∷ UTCTime → String
 formatTime = Time.formatTime Time.defaultTimeLocale "%s"
 
-updateActivity :: MonadDB db ⇒ Text -> db ()
+updateActivity :: MonadDB r db ⇒ Text -> db ()
 updateActivity token = do
   -- We should use to- from- row instances for UTCTime in stead.
   timeStamp ← formatTime <$> getCurrentTime
@@ -230,7 +231,7 @@ updateActivity token = do
 
 -- | Returns @Just err@ if there is an error.
 verifySession
-  :: MonadDB db
+  :: MonadDB r db
   => Text -- ^ Token
   -> db ()
 verifySession token = do
@@ -301,8 +302,8 @@ instance FromRow Lesson2 where
 -- | List all the lessons i.e. lesson name, description and exercise
 -- count
 listLessons
-  ∷ ∀ db
-  . MonadDB db
+  ∷ ∀ r db
+  . MonadDB r db
   ⇒ Text -- Token
   → db [Lesson2]
 listLessons token = do
@@ -335,7 +336,7 @@ listLessons token = do
 -- | Start a new lesson by randomly choosing the right number of
 -- exercises and adding them to the users exercise list
 startLesson
-  :: MonadDB db
+  :: MonadDB r db
   => Text -- ^ Token
   -> Text -- ^ Lesson name
   -- * Source- language and tree, target- langauge and tree.
@@ -351,7 +352,7 @@ startLesson token lesson = do
   checkLessonStartedQuery
     = [sql|SELECT COUNT(*) FROM StartedLesson WHERE User = ? AND Lesson = ?|]
 
-getUser ∷ MonadDB db ⇒ Text → db Text
+getUser ∷ MonadDB r db ⇒ Text → db Text
 getUser token = do
   xs ← query userQuery (Only token)
   case xs of
@@ -362,15 +363,14 @@ getUser token = do
   userQuery
     = [sql|SELECT User FROM Session WHERE Token = ?;|]
 
--- | Like 'MonadReader' but only for 'Connection's.
-class HasConnection m where
-  getConnection ∷ m Connection
+class HasConnection v where
+  giveConnection ∷ v → Connection
 
-instance Monad m ⇒ HasConnection (ReaderT Connection m) where
-  getConnection = ask
+instance HasConnection Connection where
+  giveConnection = identity
 
-instance Monad m ⇒ HasConnection (DbT m) where
-  getConnection = DbT ask
+getConnection ∷ MonadDB r m ⇒ m Connection
+getConnection = giveConnection <$> ask
 
 -- | Like 'MonadError' but only for 'Error's.
 class Monad m ⇒ MonadDatabaseError m where
@@ -389,52 +389,53 @@ instance Monad m ⇒ MonadDatabaseError (DbT m) where
   throwDbError = DbT . throwError
   catchDbError (DbT act) h = DbT $ catchError act (unDbT . h)
 
-type MonadDB m =
-  ( HasConnection m
+type MonadDB r m =
+  ( HasConnection r
+  , MonadReader r m
   , MonadIO m
   , MonadDatabaseError m
-  , Muste.MonadGrammar m
   )
 
 newtype DbT m a = DbT
-  { unDbT ∷ (ReaderT Connection (ExceptT Error (Muste.GrammarT m))) a
+  { unDbT ∷ (ReaderT Connection (ExceptT Error m)) a
   }
 
 deriving newtype instance Functor m ⇒ Functor     (DbT m)
 deriving newtype instance Monad m   ⇒ Applicative (DbT m)
 deriving newtype instance Monad m   ⇒ Monad       (DbT m)
 deriving newtype instance MonadIO m ⇒ MonadIO     (DbT m)
-deriving newtype instance MonadIO m ⇒ Muste.MonadGrammar (DbT m)
+deriving newtype instance Monad m   ⇒ MonadReader Connection (DbT m)
+deriving newtype instance Muste.MonadGrammar m ⇒ Muste.MonadGrammar (DbT m)
 
 instance MonadTrans DbT where
-  lift = DbT . lift . lift . lift
+  lift = DbT . lift . lift
 
 type Db a = DbT IO a
 
 -- instance
 
-runDb :: Db a -> Connection -> IO (Either Error a)
-runDb (DbT db) c = Muste.runGrammarT $ runExceptT $ runReaderT db c
+runDbT ∷ DbT m a -> Connection -> m (Either Error a)
+runDbT (DbT db) c = runExceptT $ runReaderT db c
 
 -- TODO Better maybe to switch to 'SQL.queryNamed'?
 query
-  :: ∀ r q db . MonadDB db
-  => (ToRow q, FromRow r)
-  => Query -> q -> db [r]
+  :: ∀ res q r db . MonadDB r db
+  => (ToRow q, FromRow res)
+  => Query -> q -> db [res]
 query qry q = do
   c ← getConnection
   wrapIoError $ SQL.query c qry q
 
 query_
-  :: ∀ r db . MonadDB db
-  => FromRow r
-  => Query -> db [r]
+  :: ∀ res r db . MonadDB r db
+  => FromRow res
+  => Query -> db [res]
 query_ qry = do
   c ← getConnection
   wrapIoError $ SQL.query_ c qry
 
 execute
-  ∷ MonadDB db
+  ∷ MonadDB r db
   ⇒ ToRow q
   ⇒ Query
   → q
@@ -445,7 +446,7 @@ execute qry q = do
 
 -- | Wraps any io error in our application specific 'DriverError'
 -- wrapper.
-wrapIoError ∷ MonadDB db ⇒ IO a → db a
+wrapIoError ∷ MonadDB r db ⇒ IO a → db a
 wrapIoError io =
   liftIO (try io) >>= \case
   Left e  → throwDbError $ DriverError e
@@ -455,7 +456,7 @@ shuffle :: MonadIO m => [a] -> m [a]
 shuffle = liftIO . QC.generate . QC.shuffle
 
 getTreePairs
-  :: MonadDB db
+  :: MonadDB r db
   => Text
   -> db [(Types.Unannotated, Types.Unannotated)]
 getTreePairs lesson = query exerciseQuery (Only lesson)
@@ -465,7 +466,7 @@ getTreePairs lesson = query exerciseQuery (Only lesson)
           FROM Exercise
           WHERE Lesson = ?;|]
 
-newLesson :: MonadDB db ⇒ Text -> Text -> db
+newLesson :: MonadDB r db ⇒ Text -> Text -> db
   ( Text, Types.Unannotated
   , Text, Types.Unannotated
   )
@@ -506,7 +507,7 @@ newLesson user lesson = do
   insertExerciseList  = [sql|INSERT INTO ExerciseList (Lesson,User,SourceTree,TargetTree,Round) VALUES (?,?,?,?,?);|]
 
 continueLesson
-  :: MonadDB db
+  :: MonadDB r db
   => Text -- ^ Username
   -> Text -- ^ Lesson name
   -> db
@@ -540,7 +541,7 @@ continueLesson user lesson = do
   errLangs = error "Database.continueLesson: Invariant violated: Multiple results for lesson"
 
 finishExercise
-  :: MonadDB db
+  :: MonadDB r db
   => Text -- ^ Token
   -> Text -- ^ Lesson
   -> NominalDiffTime -- ^ Time elapsed
@@ -610,7 +611,7 @@ finishExercise token lesson time clicks = do
       (SELECT * FROM roundCount));
       |]
 
-endSession :: MonadDB db ⇒ Text -> db ()
+endSession :: MonadDB r db ⇒ Text -> db ()
 endSession token = do
   let deleteSessionQuery = [sql|DELETE FROM Session WHERE Token = ?;|]
   execute deleteSessionQuery [token]

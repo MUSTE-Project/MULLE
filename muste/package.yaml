@@ -46,7 +46,7 @@ dependencies:
 - directory
 - monad-control
 - transformers-base
-- snap-core
+- snap
 
 when:
   - condition: flag(dist)

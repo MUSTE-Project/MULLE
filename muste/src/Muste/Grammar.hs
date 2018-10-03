@@ -6,7 +6,9 @@ module Muste.Grammar
   , GrammarT
   , runGrammarT
   , getGrammar
-
+  , HasKnownGrammars(..)
+  , KnownGrammars
+  , noGrammars
   ) where
 
 import Muste.Grammar.Internal

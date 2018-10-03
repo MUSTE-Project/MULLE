@@ -72,8 +72,9 @@ exercises = Data.exercises >>= go
 dropRecreateUser ∷ Connection → User → IO ()
 dropRecreateUser c User{..}
   = void
-  $ Database.runDb act c
+  $ Database.runDbT act c
   where
+  act ∷ Database.Db ()
   act = do
     Database.rmUser name
     Database.addUser name password enabled
