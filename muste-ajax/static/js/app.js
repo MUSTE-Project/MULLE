@@ -413,9 +413,9 @@ function intersection(m, n) {
 }
 
 function show_lin(lang, lin) {
-  function gen_space(validMenus) {
+  function gen_space(validMenus, idx) {
     var spacyData = {
-      nr: i,
+      nr: idx,
       lang: lang,
       'valid-menus': validMenus
     };
@@ -434,7 +434,7 @@ function show_lin(lang, lin) {
     var spacing = (previous == NOSPACING || current == NOSPACING || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
       ? ' ' : ' &emsp; ';
     var validMenus = getValidMenus(i, menu);
-    gen_space(validMenus)
+    gen_space(validMenus, i)
       .html(spacing)
       .appendTo(sentence);
     var classes = linTok['classes'];
@@ -460,7 +460,7 @@ function show_lin(lang, lin) {
       wordspan.css({'border-color': c});
     }
   }
-  gen_space(getValidMenus(lin.lengt, menu))
+  gen_space(getValidMenus(lin.length, menu), lin.length)
     .html('&emsp;').click(click_word)
     .appendTo(sentence);
 }
