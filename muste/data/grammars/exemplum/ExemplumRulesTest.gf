@@ -1,4 +1,9 @@
-concrete ExemplumRulesTest of ExemplumRules = ExemplumCatTest ** open Prelude in {
+concrete ExemplumRulesTest of ExemplumRules =
+  ExemplumCatTest, TenseX-[Pol,Ant,PPos,PNeg,ASimul,AAnter,Adv,Utt] **
+  open Prelude in {
+
+lincat
+  Pol, Ant = {s : Str};
 
 lin
   useN n = n ;
@@ -22,7 +27,13 @@ lin
 
   simpleCl np vp = {s = np.s ++ vp.s} ;
 
-  useCl cl = cl ;
+  useCl pol ant cl = {s = ant.s ++ pol.s ++ cl.s} ;
   useS s = s ;
   focusAdv adv s = {s = adv.s ++ s.s} ;
+
+  
+  PPos   = {s = []} ;
+  PNeg   = {s = "not"} ;
+  ASimul = {s = []} ;
+  AAnter = {s = "has"} ;
 }

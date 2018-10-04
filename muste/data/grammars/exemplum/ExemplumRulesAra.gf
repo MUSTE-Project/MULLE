@@ -1,5 +1,6 @@
-concrete ExemplumRulesAra of ExemplumRules = ExemplumCatAra **
-  ExemplumRulesI - [useS,focusAdv,conjNP,complVA,apposCN]
+concrete ExemplumRulesAra of ExemplumRules =
+  ExemplumCatAra, TenseX-[Utt] **
+  ExemplumRulesI-[useCl,useS,focusAdv,conjNP,complVA,apposCN]
   with (Cat=CatAra), (Conjunction=ConjunctionAra), (Grammar=GrammarAra) **
   open ParadigmsAra, ResAra, Prelude in {
 
@@ -8,6 +9,13 @@ lin
   focusAdv adv s = {s = adv.s ++ s.s} ;
   apposCN cn pn = ApposCNx cn (UsePN pn) ;
   complVA = ComplVAx ;
+
+  -- this is a real hack: transforming Simul/Anter to Pres/Past
+  useCl pol ant cl = 
+    {s = pol.s ++ ant.s ++ case ant.a of {
+       ASimul => cl.s ! ResAra.Pres ! pol.p ! Verbal ;
+       AAnter => cl.s ! ResAra.Past ! pol.p ! Verbal
+       }} ;
 
 oper
 

@@ -1,4 +1,4 @@
-abstract ExemplumRules = Cat ** {
+abstract ExemplumRules = Cat, Tense ** {
 
 fun
   useN     : N    -> CN              ;
@@ -22,7 +22,7 @@ fun
 
   simpleCl : NP   -> VP  -> Cl       ;
 
-  useCl    : Cl   -> S               ;
+  useCl    : Pol  -> Ant -> Cl -> S  ;
   useS     : S    -> Utt             ;
   focusAdv : Adv  -> S   -> Utt      ;
 }

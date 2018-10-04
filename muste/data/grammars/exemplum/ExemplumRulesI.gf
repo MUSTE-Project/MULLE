@@ -1,4 +1,4 @@
-incomplete concrete ExemplumRulesI of ExemplumRules = Cat **
+incomplete concrete ExemplumRulesI of ExemplumRules = Cat, Tense **
   open Grammar, Prelude in {
 
 lin
@@ -24,7 +24,7 @@ lin
 
   simpleCl = PredVP ;
 
-  useCl cl = UseCl (TTAnt TPres ASimul) PPos cl ;
+  useCl pol ant cl = UseCl (TTAnt TPres ant) pol cl ;
   useS = UttS ;
   focusAdv adv s = UttS (AdvS adv s) ;
 
