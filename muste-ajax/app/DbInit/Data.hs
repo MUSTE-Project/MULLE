@@ -26,6 +26,8 @@ data SearchOptions = SearchOptions
   , searchSizeLimit  ∷ Maybe Int
   }
 
+deriving stock instance Show SearchOptions
+
 instance Semigroup SearchOptions where
   SearchOptions a0 b0 <> SearchOptions a1 b1
     = SearchOptions (s a0 a1) (s b0 b1)
@@ -47,6 +49,8 @@ data LessonSettings = LessonSettings
   , repeatable     ∷ Bool
   }
 
+deriving stock instance Show LessonSettings
+
 instance FromJSON LessonSettings where
   parseJSON = Aeson.withObject "search-options"
     $  \v → LessonSettings
@@ -56,12 +60,16 @@ instance FromJSON LessonSettings where
 
 newtype Sentence = Sentence Text
 
+deriving stock instance Show Sentence
+
 deriving newtype instance FromJSON Sentence
 
 data Languages = Languages
   { source ∷ Text
   , target ∷ Text
   }
+
+deriving stock instance Show Languages
 
 instance FromJSON Languages where
   parseJSON = Aeson.withObject "exercise"
@@ -73,6 +81,8 @@ data Exercise = Exercise
   { source ∷ Sentence
   , target ∷ Sentence
   }
+
+deriving stock instance Show Exercise
 
 instance FromJSON Exercise where
   parseJSON = Aeson.withObject "exercise"
@@ -88,6 +98,8 @@ data Lesson = Lesson
   , languages      ∷ Languages
   , exercises'     ∷ [Exercise]
   }
+
+deriving stock instance Show Lesson
 
 instance FromJSON Lesson where
   parseJSON = Aeson.withObject "search-options"

@@ -313,10 +313,8 @@ lessonsHandler = do
   lessons ← Database.listLessons t
   verifyMessage (Ajax.LessonList lessons)
 
-lessonHandler :: MonadProtocol m ⇒ m Ajax.MenuList
-lessonHandler = Snap.pathArg $ \p → do
-  t <- getToken
-  handleLessonInit t p
+lessonHandler ∷ MonadProtocol m ⇒ m Ajax.MenuList
+lessonHandler = Snap.pathArg handleLessonInit
 
 menuHandler ∷ MonadProtocol m ⇒ m Ajax.MenuList
 menuHandler = do
@@ -366,10 +364,10 @@ askContexts = asks contexts
 handleLessonInit
   ∷ ∀ m
   . MonadProtocol m
-  ⇒ Text -- ^ Token
-  → Text -- ^ Lesson
+  ⇒ Text -- ^ Lesson
   → m Ajax.MenuList
-handleLessonInit token lesson = do
+handleLessonInit lesson = do
+  token ← getToken
   c <- askContexts
   (_sourceLang,sourceTree,_targetLang,targetTree)
     <- Database.startLesson token lesson

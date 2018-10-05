@@ -205,8 +205,7 @@ newtype KnownGrammars = KnownGrammars
 noGrammars ∷ MonadIO io ⇒ io KnownGrammars
 noGrammars = KnownGrammars <$> liftIO (IO.newIORef mempty)
 
--- | A monad for managing loaded grammars.  @mtl@ style.  I think we
--- should use something with mutable state rather than `StateT`.
+-- | A monad for managing loaded grammars.
 newtype GrammarT m a = GrammarT ( ReaderT KnownGrammars m a )
 
 deriving newtype instance Functor m ⇒ Functor (GrammarT m)

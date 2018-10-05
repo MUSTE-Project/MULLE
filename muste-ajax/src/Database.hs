@@ -270,6 +270,8 @@ data Lesson2 = Lesson2
   , enabled       ∷ Bool
   }
 
+deriving stock instance Show Lesson2
+
 instance FromJSON Lesson2 where
   parseJSON = withObject "Lesson" $ \v -> Lesson2
     <$> v .: "name"
@@ -419,9 +421,13 @@ runDbT (DbT db) c = runExceptT $ runReaderT db c
 
 -- TODO Better maybe to switch to 'SQL.queryNamed'?
 query
-  :: ∀ res q r db . MonadDB r db
-  => (ToRow q, FromRow res)
-  => Query -> q -> db [res]
+  ∷ ∀ res q r db
+  . MonadDB r db
+  ⇒ ToRow q
+  ⇒ FromRow res
+  ⇒ Query
+  → q
+  → db [res]
 query qry q = do
   c ← getConnection
   wrapIoError $ SQL.query c qry q
@@ -466,10 +472,11 @@ getTreePairs lesson = query exerciseQuery (Only lesson)
           FROM Exercise
           WHERE Lesson = ?;|]
 
-newLesson :: MonadDB r db ⇒ Text -> Text -> db
-  ( Text, Types.Unannotated
-  , Text, Types.Unannotated
-  )
+newLesson
+  :: MonadDB r db
+  => Text
+  -> Text
+  -> db (Text, Types.Unannotated, Text, Types.Unannotated)
 newLesson user lesson = do
   -- get exercise count
   -- Only count ← fromMaybe errNonUniqueLesson . listToMaybe
@@ -479,7 +486,7 @@ newLesson user lesson = do
       []    → throwDbError NonUniqueLesson
       (x:_) → pure x
   -- get lesson round
-  [Only round] <- query lessonRoundQuery [user,lesson]
+  round <- getLessonRound user lesson
   trees <- getTreePairs lesson
   -- randomly select
   selectedTrees <- take count <$> shuffle trees
@@ -493,52 +500,52 @@ newLesson user lesson = do
       startedLesson = Types.StartedLesson lesson user (succ round)
   execute insertStartedLesson startedLesson
   mapM_ (\(sTree,tTree) -> execute insertExerciseList (lesson,user,sTree,tTree,round)) selectedTrees
-  -- get languages
-  let languagesQuery = [sql|SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;|]
-  langs <- query @_ @_ languagesQuery [lesson]
-  case langs of
-    [(sourceLang, targetLang)] -> do
-      pure (sourceLang, src, targetLang, trg)
-    _ -> throw LangNotFound
+  (sourceLang, targetLang) <- getLangs lesson
+  pure (sourceLang, src, targetLang, trg)
   where
   exerciseCountQuery  = [sql|SELECT ExerciseCount FROM Lesson WHERE Name = ?;|]
-  lessonRoundQuery    = [sql|SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;|]
   insertStartedLesson = [sql|INSERT INTO StartedLesson (Lesson, User, Round) VALUES (?,?,?);|]
   insertExerciseList  = [sql|INSERT INTO ExerciseList (Lesson,User,SourceTree,TargetTree,Round) VALUES (?,?,?,?,?);|]
+
+getLangs :: MonadDB r db => Text -> db (Text, Text)
+getLangs lesson = do
+  langs <- query @_ @_ languagesQuery (Only lesson)
+  case langs of
+    [(a, b)] -> pure (a, b)
+    _        -> throw LangNotFound
+  where
+  languagesQuery :: Query
+  languagesQuery
+    = [sql|SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;|]
+
+getLessonRound ∷ MonadDB r db ⇒ Text → Text → db Integer
+getLessonRound user lesson = do
+  [Only round] <- query lessonRoundQuery (user,lesson)
+  pure round
+  where
+  lessonRoundQuery ∷ Query
+  lessonRoundQuery = [sql|SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;|]
 
 continueLesson
   :: MonadDB r db
   => Text -- ^ Username
   -> Text -- ^ Lesson name
-  -> db
-    ( Text
-    , Types.Unannotated
-    , Text
-    , Types.Unannotated
-    )
+  -> db (Text, Types.Unannotated, Text, Types.Unannotated)
 continueLesson user lesson = do
-  [Only round] <- query @(Only Integer)
-    lessonRoundQuery (user,lesson)
+  round <- getLessonRound user lesson
   (sourceTree,targetTree) <- fromMaybe errNoExercises . listToMaybe
     <$> query @(Types.Unannotated, Types.Unannotated)
         selectExerciseListQuery (lesson,user,round)
-  (sourceLang,targetLang)
-    <- fromMaybe errLangs . listToMaybe
-    <$> query languagesQuery (Only lesson)
+  (sourceLang,targetLang) <- getLangs lesson
   pure (sourceLang,sourceTree,targetLang,targetTree)
   where
-  lessonRoundQuery
-    = [sql|SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;|]
   selectExerciseListQuery = [sql|
        SELECT SourceTree,TargetTree FROM ExerciseList
        WHERE Lesson = ? AND User = ?
        AND (User,SourceTree,TargetTree,Lesson) NOT IN
        (SELECT User,SourceTree,TargetTree,Lesson
        FROM FinishedExercise WHERE Round = ?);|]
-  languagesQuery
-    = [sql|SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;|]
   errNoExercises = error "Database.continueLesson: Invariant violated: No exercises for lesson"
-  errLangs = error "Database.continueLesson: Invariant violated: Multiple results for lesson"
 
 finishExercise
   :: MonadDB r db
