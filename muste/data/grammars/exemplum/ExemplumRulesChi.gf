@@ -1,2 +1,2 @@
-concrete ExemplumRulesChi of ExemplumRules = CatChi ** ExemplumRulesI
+concrete ExemplumRulesChi of ExemplumRules = CatChi, TenseChi ** ExemplumRulesI
   with (Cat=CatChi), (Conjunction=ConjunctionChi), (Grammar=GrammarChi) ;
