@@ -50,15 +50,11 @@ Added a page for adding new users. TODO
 Issue #57: Do not hard code exercises and known grammars.
 ---
 
-This is really two issues:
-
-* Do not embed the grammars into the executable, in stead load them from the fs.
-* Do not store exercise in haskell code. Read from yaml file
-
-In `muste-ajax/src/Protocol.hs:203`:
-
-    -- TODO We are not utilizing the memoization by "running" the
-    -- 'GrammarT' here.
+This feature is done.  Unfortunately `f2c10e7` introduces a
+significant performance regression.  I don't really know how this can
+be since it should only impact when the application is being
+initialized.  This should probably be fixed before this feature is
+merged in.
 
 Configuration options
 ---

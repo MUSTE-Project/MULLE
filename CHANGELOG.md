@@ -4,6 +4,11 @@ Change log
 HEAD
 ---
 
+Persist app-state across requests.
+
+Load exercises to seed the database with from a `.yaml` file rather
+than embedding it in source.
+
 New page for adding a user to the database.
 
 Various styling changes:
