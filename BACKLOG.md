@@ -47,15 +47,6 @@ Added a page for adding new users. TODO
 
 * Handle case when user already exists.
 
-Issue #57: Do not hard code exercises and known grammars.
----
-
-This feature is done.  Unfortunately `f2c10e7` introduces a
-significant performance regression.  I don't really know how this can
-be since it should only impact when the application is being
-initialized.  This should probably be fixed before this feature is
-merged in.
-
 Configuration options
 ---
 

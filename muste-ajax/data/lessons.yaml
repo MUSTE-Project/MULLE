@@ -8,8 +8,8 @@
     repeatable: yes
   search-options:
     # Leaving out the key means that the search will be unrestricted.
-    depth: 100
-    size: 100
+    depth: 1
+    size: 1
   languages:
     source: "PrimaLat"
     target: "PrimaSwe"
@@ -39,6 +39,9 @@
   description: "Lektion två från boken 'Novo Modo'"
   settings:
     grammar: "novo_modo/Secunda"
+  search-options:
+    depth: 1
+    size: 1
   languages:
     source: "SecundaLat"
     target: "SecundaSwe"
