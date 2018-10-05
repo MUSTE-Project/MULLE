@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings, UnicodeSyntax, TemplateHaskell, QuasiQuotes, TypeApplications #-}
+{-# LANGUAGE OverloadedStrings, UnicodeSyntax, TemplateHaskell,
+  QuasiQuotes, TypeApplications, RecordWildCards, OverloadedLists #-}
 {-# OPTIONS_GHC -Wall #-}
 module DbInit (initDb) where
 
@@ -15,10 +16,12 @@ import qualified Database.SQLite3 as SQL
 import           System.Directory (createDirectoryIfMissing)
 import           System.FilePath (takeDirectory)
 import           Data.FileEmbed
-import           Data.Vector (Vector)
+import           Data.String.Conversions (convertString)
+import qualified Data.Yaml as Yaml
 
 import qualified DbInit.Data as Data
 import qualified Config
+import qualified Database.Types as Database
 
 import           Muste.Sentence.Unannotated (Unannotated)
 import qualified Muste.Sentence.Unannotated as Unannotated
@@ -43,53 +46,70 @@ execRaw (Connection db) qry = SQL.exec db qry
 
 initDB ∷ Connection → IO ()
 initDB conn = do
-  let exec ∷ SQL.ToRow q ⇒ Query → q → IO ()
-      exec p = SQL.execute conn p
   execRaw conn $ decodeUtf8 initScript
-  mapM_ (addUser conn) users
-  mapM_ (exec insertLessonQuery)   Data.lessons
-  mapM_ (exec insertExerciseQuery) exercises
+  mapM_ (dropRecreateUser conn) Config.users
+  lessons ← Yaml.decodeFileThrow Config.lessons
+  SQL.executeMany @Database.Lesson conn insertLessonQuery
+    $ toDatabaseLesson <$> lessons
+  SQL.executeMany @Database.Exercise conn insertExerciseQuery
+    $ lessons >>= toDatabaseExercise
 
-exercises ∷ Vector (Unannotated, Unannotated, Text)
-exercises = Data.exercises >>= go
+-- | Converts our nested structure from the config file to something
+-- suitable for a RDBMS.
+toDatabaseLesson ∷ Data.Lesson → Database.Lesson
+toDatabaseLesson Data.Lesson{..}
+  = Database.Lesson
+  { name                = name
+  , description         = description
+  , grammar             = grammar
+  , sourceLanguage      = sourceLanguage
+  , targetLanguage      = targetLanguage
+  , exerciseCount       = toInteger $ length exercises'
+  , enabled             = enabled
+  , searchLimitDepth    = searchDepthLimit
+  , searchLimitSize     = searchSizeLimit
+  , repeatable          = repeatable
+  }
   where
-  go ∷ (Text, Text, Text, Text, Vector (Text, Text))
-     → Vector (Unannotated, Unannotated, Text)
-  go (g, n, srcL, trgL, xs) = step g n srcL trgL <$> xs
-  step
-    ∷ Text
-    → Text
-    → Text
-    → Text
-    → (Text, Text)
-    → (Unannotated, Unannotated, Text)
-  step g n srcL trgL (src, trg) = (f srcL src, f trgL trg, n)
-    where
-    f ∷ Text → Text → Unannotated
-    f l = Unannotated.fromText g l
+  Data.LessonSettings{..} = settings
+  Data.Languages sourceLanguage targetLanguage = languages
+  Data.SearchOptions{..} = searchOptions
 
-addUser ∷ Connection → (Text, Text, Bool) → IO ()
-addUser c (usr,psw,active)
-  = Database.runDB (Database.addUser usr psw active) c
+toDatabaseExercise ∷ Data.Lesson → [Database.Exercise]
+toDatabaseExercise Data.Lesson{..} = step <$> exercises'
+  where
+  step Data.Exercise{..}
+    = Database.Exercise
+    { sourceLinearization = lin srcL source
+    , targetLinearization = lin trgL target
+    , lesson              = name
+    , timeout             = 0
+    }
+  Data.LessonSettings{..} = settings
+  Data.Languages srcL trgL = languages
+  lin ∷ Text → Data.Sentence → Unannotated
+  lin l (Data.Sentence t) = Unannotated.fromText grammar l t
 
-users ∷ [(Text, Text, Bool)]
-users =
-  [ ("herbert", "HERBERT", True)
-  , ("peter",   "PETER",   True)
-  ]
+dropRecreateUser ∷ Connection → Config.User → IO ()
+dropRecreateUser c Config.User{..}
+  = void
+  $ Database.runDbT act c
+  where
+  name' = convertString name
+  password' = convertString password
+  act ∷ Database.Db ()
+  act = do
+    Database.rmUser  name'
+    Database.addUser name' password' enabled
 
 insertLessonQuery ∷ Query
 insertLessonQuery
-  = [sql|
-        INSERT INTO Lesson
-        (Name,Description,Grammar,SourceLanguage,TargetLanguage,ExerciseCount,Enabled,Repeatable)
-        VALUES (?,?,?,?,?,?,?,?);
-     |]
+  = [sql| INSERT INTO Lesson VALUES (?,?,?,?,?,?,?,?,?,?); |]
 
 insertExerciseQuery ∷ Query
 insertExerciseQuery
   = [sql|
         INSERT INTO Exercise
-        (SourceTree,TargetTree,Lesson)
-        VALUES (?,?,?);
+        (SourceTree,TargetTree,Lesson,Timeout)
+        VALUES (?,?,?,?);
     |]

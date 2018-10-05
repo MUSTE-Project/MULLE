@@ -12,9 +12,11 @@ For the impatient:
 
     git submodule update --init
     ln -s stack-lts-9.21.yaml stack.yaml
-    make
+    make install
     stack install muste-ajax
     muste-ajax --recreate-db
+    cd muste-ajax/static/
+    npm install
 
 And then navigate to
 
@@ -42,6 +44,8 @@ You also have to install the dictionary files `DictEng` and `DictSwe`,
 by running (in the `gf-rgl` directory):
 
     runghc Make install DictEng.gf DictSwe.gf
+
+The front-end dependencies are managed with `npm`.
 
 ### Setup
 
@@ -85,17 +89,45 @@ Partially/unsupported options:
 * `static-directory` file with the front end (static) files.  Is
   resolved relative to the above option.
 
+#### An abundance of configuration methods
+
+There are quite a few way that configuration options are handlded
+today:
+
+* Some configuration options are embedded into the binary.  This is
+  the case for the file `muste-ajax/config.yaml`.
+* That file in turn identifies some paths.  E.g. the database-file
+  which is created at run-time and seeded by the application (this is
+  probably fine)
+* There are also some file in `muste-ajax/data`.
+  * `data/sql` needed at compile-time
+  * `lessons.yaml` copied at install time and read when `muste-ajax
+    --recreate-db` is invoked.
+* Furhtermore some configuration options are stored as columns in the
+  database.  This is probably also fine.
+
 ### Building
 
-If the grammar-files (in `muste/data/grammars/`) have changed (or
-if you just cloned the repository) you need to build the
-grammar-files.  This can be achieved with:
+If the grammar-files (in `muste/data/grammars/`) have changed (or if
+you just cloned the repository) you need to install the grammar-files.
+This can be achieved with:
 
-    make
+    make install
 
 Assuming you have set up `gf-core` and `gf-rgl`.
 
     stack build
+
+The front end dependencies are managed with `npm`.  To fetch all
+dependencies navigate to.
+
+    muste-ajax/static/
+
+And run
+
+    npm install
+
+To get fetch all dependencies.
 
 ### Installing
 

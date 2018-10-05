@@ -14,6 +14,7 @@ module Muste.Tree.Internal
   -- FIXME Are we sure we should export this?
   , selectNode
   , isValid
+  , treeDepth
   , countNodes
   , countMatchedNodes
   , TTree(TNode,TMeta)
@@ -26,7 +27,7 @@ module Muste.Tree.Internal
 
 -- TODO Do not depend on PGF
 import qualified PGF
-  (CId, mkCId, Tree, wildCId, mkMeta, mkApp, showExpr, showCId)
+  (CId, utf8CId, Tree, wildCId, mkMeta, mkApp, showExpr, showCId)
 
 import Prelude ()
 import Muste.Prelude
@@ -37,6 +38,7 @@ import Data.String.ToString
 import Language.Haskell.TH.Syntax (Lift)
 import Control.DeepSeq (NFData)
 import Data.Data (Typeable, Data(..))
+import Data.String.Conversions (convertString)
 
 import Muste.Common.SQL (FromField, ToField)
 import qualified Muste.Common.SQL as SQL
@@ -309,8 +311,13 @@ ttreeToLTree tree =
     snd $ update 0 $ convert tree
 
 catToCid ∷ Category → PGF.CId
-catToCid = unCategory >>> Text.unpack >>> PGF.mkCId
+catToCid = unCategory >>> convertString >>> PGF.utf8CId
 
+-- FIXME A 'PGF.CId' is just a newtype wrapper around a 'ByteString'.
+-- If we could just get at that somehow.  If [this PR][PR#9] goes
+-- through we will be able to do this.
+--
+-- [PR#9]: https://github.com/GrammaticalFramework/gf-core/pull/9
 cIdToCat ∷ PGF.CId → Category
 cIdToCat = PGF.showCId >>> Text.pack >>> Category
 
@@ -395,9 +402,15 @@ replaceNode _oldTree [] newTree =
 replaceNode oldTree _ _ =
   oldTree -- No more subtrees, cancel search
 
--- | Counts the (internal and external) nodes in the tree.
+-- | Returns the depth of the tree. Metas are not counted.
+treeDepth :: TTree -> Int
+treeDepth (TMeta _) = 0
+treeDepth (TNode _ _ []) = 1
+treeDepth (TNode _ _ ts) = 1 + maximum (map treeDepth ts)
+
+-- | Counts the function nodes in the tree. Metas are not counted.
 countNodes :: TTree -> Int
-countNodes (TMeta _) = 1
+countNodes (TMeta _) = 0
 countNodes (TNode _ _ []) = 1
 countNodes (TNode _ _ ts) = 1 + sum (map countNodes ts)
 

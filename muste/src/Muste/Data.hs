@@ -1,24 +1,26 @@
+{-# OPTIONS_GHC -Wall -Wcompat #-}
 -- | Various helper methods for managing external resources.
-module Muste.Data (embedGrammar) where
+module Muste.Data (readGrammar) where
 
+import Prelude ()
+import Muste.Prelude
 import System.FilePath (FilePath, (</>), (<.>))
-import Data.FileEmbed (embedFile, makeRelativeToProject)
-import Language.Haskell.TH (Q, Exp)
+import qualified System.Directory as Directory
+import Data.ByteString (ByteString)
+import qualified Data.ByteString as ByteString
 
--- | Embed the contents of a @.pgf@-file directly into the source
--- code.  The argument to @embedGrammar@ is an identifier for the
--- grammar-file in the form of @GROUP/GRAMMAR@.  For instance
--- @novo_modo/PrimaLat@.  This function handles path resolution.
-embedGrammar :: String -> Q Exp
-embedGrammar p = do
-  f <- makeRelativeToProject $ grammar p
-  embedFile f
+-- | Read a grammar file from the file system in a portable fashion.
+readGrammar :: String -> IO ByteString
+readGrammar = grammar >=> ByteString.readFile
 
-dataDir :: FilePath
-dataDir = "data"
+grammarDir :: IO FilePath
+grammarDir = (</> "grammars") <$> getDataDir
 
-grammarDir :: FilePath
-grammarDir = dataDir </> "grammars"
+-- | Get's the data directory for this project.
+getDataDir ∷ IO FilePath
+getDataDir = Directory.getXdgDirectory Directory.XdgData "muste"
 
-grammar :: FilePath -> FilePath
-grammar g = grammarDir </> g <.> "pgf"
+grammar :: FilePath -> IO FilePath
+grammar g = do
+  d ← grammarDir
+  pure $ d </> g <.> "pgf"

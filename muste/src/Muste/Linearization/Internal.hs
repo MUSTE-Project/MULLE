@@ -6,15 +6,13 @@ module Muste.Linearization.Internal
   , Linearization(Linearization)
   , LinToken(..)
   , linearizeTree
-  , langAndContext
+  , getLangAndContext
   , mkLin
   , sameOrder
   , disambiguate
   -- Used in test suite:
   , buildContexts
   , stringRep
-  , isInsertion
-  , mkLinSimpl
   , BuilderInfo(..)
   , PGF.Language
   , languages
@@ -23,7 +21,6 @@ module Muste.Linearization.Internal
 import Prelude ()
 import Muste.Prelude
 
-import Data.Maybe (fromMaybe)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Aeson
@@ -44,11 +41,8 @@ import qualified Muste.Tree.Internal as Tree
 import Muste.Grammar
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees
-import Muste.Common (enumerate)
 import Muste.Common.SQL (FromField, ToField)
 import qualified Muste.Common.SQL as SQL
-import Muste.Selection (Selection)
-import qualified Muste.Selection as Selection
 
 data LinToken = LinToken
   -- The path refers to the path in the 'TTree'
@@ -170,20 +164,16 @@ linearizeTree (Context grammar language _) ttree =
 -- creates a mapping from all the languages in that grammar to their
 -- respective 'Context's.
 --
--- This method is unsafe and will throw if we can't find the
--- corresponding grammar.
-langAndContext
-  ∷ BuilderInfo
+-- This method will throw a 'FileNotFoundException' if the grammar
+-- cannot be located.
+getLangAndContext
+  ∷ Grammar.MonadGrammar m
+  ⇒ BuilderInfo
   → Text -- ^ An identitfier for a grammar.  E.g. @novo_modo/Prima@.
-  → Map Text Context
-langAndContext nfo = buildContexts nfo . getGrammar
-  where
-  getGrammar ∷ Text → Grammar
-  getGrammar s = fromMaybe (err s) $ Grammar.lookupGrammar s
-  err s = error $ printf errMsg s
-  errMsg
-    =  "Muste.Linearization.langAndContext: "
-    <> "Couldn't find grammar corresponding for: %s"
+  → m (Map Text Context)
+getLangAndContext nfo idf = do
+  g ← Grammar.getGrammar idf
+  pure $ buildContexts nfo g
 
 -- | Given a grammar creates a mapping from all the languages in that
 -- grammar to their respective 'Context's.
@@ -278,61 +268,3 @@ disambiguate ctxt = stringRep >>> parse
   where
   parse ∷ Text → [TTree]
   parse = Grammar.parseSentence (ctxtGrammar ctxt) (ctxtLang ctxt)
-
-type CoverNode = (Int, Category, Path)
-
-coverNodes :: Context -> TTree -> [CoverNode]
-coverNodes ctxt t
-  = t
-  & linearizeTree ctxt
-  & otoList
-  & map ltpath
-  & enumerate
-  & map coverNode
-  where
-  coverNode ∷ (Int, Path) → CoverNode
-  coverNode (n, p)
-    = Tree.selectNode t p
-    & fromMaybe errLinCov
-    & cn
-    where
-    cn ∷ TTree → CoverNode
-    cn (TNode fun _ _) = (n, fun, p)
-    cn TMeta{} = errNoMeta
-  -- It's an invariante that 'Linearization.linearizeTree' should only
-  -- return 'LinToken's that we can later look up in the same tree.
-  errLinCov = error
-    $  "Muste.Linearization.Internal.coverNodes: "
-    <> "Linearizations returned a path that does not exist in the tree."
-  errNoMeta = error
-    $  "Muste.Linearization.Internal.coverNodes: "
-    <> "Did not expect an unsaturated tree at this point"
-
--- | @'isInsertion' ctxt src trg@ checks if @src@ is to be considered
--- an insertion into @trg@.  A result of 'Nothing' indicated that this
--- is *not* considered an insertion.  Otherwise the returned selection
--- corresponds to a selection where the words are inserted /before/
--- each word in the selection.
-isInsertion :: Context -> TTree -> TTree -> Maybe Selection
-isInsertion cxt src trg = Selection.fromList <$> inserted
-  where
-  srcnodes = coverNodes cxt src
-  trgnodes = coverNodes cxt trg
-  inserted ∷ Maybe [Int]
-  inserted = map fst <$> getInsertedNodes srcnodes trgnodes
-
-  getInsertedNodes :: [CoverNode] -> [CoverNode] -> Maybe [(Int, CoverNode)]
-  getInsertedNodes [] [] = Just []
-  getInsertedNodes _ [] = Nothing
-  getInsertedNodes srcs@((_,f,_):_) ((_,g,p):trgs@((_,g',p'):_))
-      | f == g && g == g' && p == p'  = getInsertedNodes srcs trgs
-  getInsertedNodes ((_,f,_):srcs) ((_,g,_):trgs)
-      | f == g  = getInsertedNodes srcs trgs
-  getInsertedNodes srcs (node:trgs)
-      = fmap ((getInsertionPosition srcs,node) : ) (getInsertedNodes srcs trgs)
-
-  getInsertionPosition ((n,_,_):_) = n
-  getInsertionPosition [] = length srcnodes
-
-mkLinSimpl ∷ Context → TTree → Linearization
-mkLinSimpl c t = mkLin c t t t

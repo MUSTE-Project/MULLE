@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language ConstraintKinds, CPP, OverloadedStrings, NamedFieldPuns,
-  RecordWildCards #-}
+  RecordWildCards, DuplicateRecordFields #-}
 -- | Adjunction trees
 --
 -- Interfacint with 'AdjunctionTrees' is done using the interface for
@@ -15,13 +15,10 @@ import Prelude ()
 import Muste.Prelude
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Control.Monad.Reader
-import Data.Functor.Identity
 import Data.MultiSet (MultiSet)
-import qualified Data.MultiSet as MultiSet
 
 import Muste.Tree
-import Muste.Grammar hiding (tree)
+import Muste.Grammar
 import Muste.Grammar.Internal (Rule(Function))
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees.Internal
@@ -38,13 +35,17 @@ import qualified Muste.Tree.Internal as Tree
 
 data BuilderInfo = BuilderInfo
   { searchDepth ∷ Maybe Int
+  , searchSize  ∷ Maybe Int
   }
 
 instance Semigroup BuilderInfo where
-  BuilderInfo a <> BuilderInfo b = BuilderInfo $ (+) <$> a <*> b
+  BuilderInfo a0 a1 <> BuilderInfo b0 b1
+    = BuilderInfo (a0 <+> b0) (a1 <+> b1)
+    where
+    a <+> b = (+) <$> a <*> b
 
 instance Monoid BuilderInfo where
-  mempty = BuilderInfo empty
+  mempty = BuilderInfo empty empty
 
 -- Profiling reveals that this function is really heavy.  Quoting the
 -- relevant bits:
@@ -89,11 +90,12 @@ instance Monoid BuilderInfo where
 --      getAdjunctionTrees.allCats             Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:66:3-29            20756          1    0.0    0.0     0.0    0.0
 --      getAdjunctionTrees.allRules            Muste.AdjunctionTrees   src/Muste/AdjunctionTrees.hs:61:3-79            20736          1    0.0    0.0     0.0    0.0
 --       ...
+
 -- | Finds all 'AdjunctionTrees' from a specified 'Grammar'.  That is;
 -- a mapping from a 'Category' to all trees in the specified 'Grammar'
 -- that have this type.
 getAdjunctionTrees ∷ BuilderInfo → Grammar → AdjunctionTrees
-getAdjunctionTrees BuilderInfo{..} grammar
+getAdjunctionTrees builderInfo@BuilderInfo{..} grammar
   =   dbg diagnose
   $   AdjunctionTrees
   $   Map.fromListWith mappend
@@ -109,7 +111,7 @@ getAdjunctionTrees BuilderInfo{..} grammar
   treesByMeta ∷ TTree → (MultiSet Category, [TTree])
   treesByMeta t = (Grammar.getMetas t, pure t)
   treesByCat ∷ Category → (Category, [TTree])
-  treesByCat cat = (cat, fst <$> runBuilderI (adjTrees cat []) bEnv)
+  treesByCat cat = (cat, getAdjTrees bEnv cat)
   catRule ∷ Rule → (Category, [Rule])
   catRule r@(Function _ (Fun c _)) = (c, pure r)
   catRule _ = error "Non-exhaustive pattern match"
@@ -117,10 +119,9 @@ getAdjunctionTrees BuilderInfo{..} grammar
   allRules = Map.fromListWith mappend $ catRule <$> Grammar.getAllRules grammar
   ruleGen ∷ RuleGen
   ruleGen cat = Map.findWithDefault mempty cat allRules
-  depth ∷ Maybe Int
-  depth = searchDepth
+
   bEnv ∷ BuilderEnv
-  bEnv = BuilderEnv { depth , ruleGen }
+  bEnv = BuilderEnv { builderInfo , ruleGen }
 
 dbg ∷ (a → IO b) → a → a
 #ifdef DIAGNOSTICS
@@ -131,127 +132,59 @@ dbg _ = identity
 
 diagnose ∷ AdjunctionTrees → IO ()
 #ifdef DIAGNOSTICS
-diagnose (AdjunctionTrees t) = putDocLn $ Doc.sep
-  [ pretty @Text "Occurences:"
-  , indent $ pretty occurs
-  , pretty @Text "Tree sizes:"
+diagnose (AdjunctionTrees adjTrees) = putDocLn $ Doc.sep 
+  [ pretty @Text "Tree sizes [(size, nr.trees)]:"
   , indent $ pretty sizes
+  , pretty @Text "Tree depths [(depth, nr.trees)]:"
+  , indent $ pretty depths
   ]
   where
-  l ∷ [((Category, MultiSet Category), [TTree])]
-  l = Map.toList t
-  occurs ∷ [((Category, [(Category, Int)]), Int)]
-  occurs = (\((c, m), ts) → ((c, Map.toList $ MultiSet.toMap m), length ts)) <$> l
-  trees ∷ [TTree]
-  trees = l >>= \(_, ts) → ts
-  sizes ∷ [(Int, Int)]
-  sizes
-    =   Map.toList
-    $   Map.fromListWith (+)
-    $   (\t0 → (Tree.countNodes t0, 1))
-    <$> trees
-  indent = Doc.indent 2
+  trees  ∷  [TTree]
+  trees  =  Map.toList adjTrees >>= \(_, ts) → ts
+  sizes  ∷  [(Int, Int)]
+  sizes  =  Map.toList
+         $  Map.fromListWith (+)
+         $  (\t0 → (Tree.countNodes t0, 1))
+        <$> trees
+  depths ∷  [(Int, Int)]
+  depths =  Map.toList
+         $  Map.fromListWith (+)
+         $  (\t0 → (Tree.treeDepth t0, 1))
+        <$> trees
+  indent =  Doc.indent 2
 #else
 diagnose = error "Not diagnosing"
 #endif
 
 data BuilderEnv = BuilderEnv
-  { depth       ∷ Maybe Int
+  { builderInfo ∷ BuilderInfo
   , ruleGen     ∷ RuleGen
   }
 
 type RuleGen = Category → [Rule]
 
-type Builder m = MonadReader BuilderEnv m
 
-type BuilderT m a = ReaderT BuilderEnv m a
+getAdjTrees :: BuilderEnv -> Category -> [TTree]
+getAdjTrees (BuilderEnv (BuilderInfo depthLimit sizeLimit) ruleGen) startCat
+    = [ tree | (tree, _, _) <- adjTs startCat 0 0 [] ]
+    where adjTs :: Category -> Int -> Int -> [Category] -> [(TTree, Int, [Category])]
+          adjTs cat depth size visited =
+              (TMeta cat, size, visited) :
+              do guard $ cat `notElem` visited
+                 guardLimit depthLimit depth
+                 guardLimit sizeLimit size
+                 Function fun typ@(Fun _ childcats) <- ruleGen cat
+                 (children, size', visited') <- adjCs childcats (depth+1) (size+1) (cat : visited)
+                 return (TNode fun typ children, size', visited')
 
-type BuilderI a = BuilderT Identity a
+          adjCs :: [Category] -> Int -> Int -> [Category] -> [([TTree], Int, [Category])]
+          adjCs [] _depth size visited = return ([], size, visited)
+          adjCs (cat:cats) depth size visited =
+              do (tree, size', visited') <- adjTs cat depth size visited
+                 (trees, size'', visited'') <- adjCs cats depth size' visited'
+                 return (tree:trees, size'', visited'')
 
-runBuilderI ∷ BuilderI a → BuilderEnv → a
-runBuilderI = runReader
-
-askRuleGen ∷ Builder m ⇒ m RuleGen
-askRuleGen = asks ruleGen
-
-getRulesFor ∷ Builder m ⇒ Category → m [Rule]
-getRulesFor c = ($ c) <$> askRuleGen
-
--- | @'deeper' act@ goes down a level locally within @act@.
-deeper ∷ Builder m ⇒ m a → m a
-deeper = local deeperEnv
-
-deeperEnv ∷ BuilderEnv → BuilderEnv
-deeperEnv env@(BuilderEnv{..}) = env { depth = pred <$> depth }
-
--- | Determines if we've hit rock bottom. I.e. the search depth limit
--- specified by the builder has been exceeded.
-hitRockBottom ∷ Builder m ⇒ m Bool
-hitRockBottom = asks (\BuilderEnv{..} → fromMaybe False $ (<= 0) <$> depth)
-
--- | Maybe continues building if we haven't hit rock bottom (the
--- search depth limit specified by the builder). If we are not to
--- continue we will return 'empty'.
-maybeCutoff
-  ∷ ∀ m alt a
-  . Builder m
-  ⇒ Alternative alt
-  ⇒ m (alt a)
-  → m (alt a)
-maybeCutoff act = do
-  b ← hitRockBottom
-  if b
-  then pure (empty @alt)
-  else deeper act
-
--- The next two functions are mutually recursive.
-adjTrees :: ∀ m . Builder m ⇒ Category -> [Category] -> m [(TTree, [Category])]
-adjTrees cat visited = do
-  rules ← getRulesFor cat
-  let
-    step ∷ Rule → m [(TTree, [Category])]
-    step (Function fun typ@(Fun _ childcats)) = do
-      adjCs ← adjChildren childcats (cat : visited)
-      pure $ do
-        (children, visited') ← adjCs
-        pure $ (TNode fun typ children, visited')
-    step _ = error "AdjunctionTrees.adjTrees: Non-exhaustive pattern match"
-  children ← join <$> traverse step rules
-  pure $ (TMeta cat, visited) : do
-    guard $ cat `notElem` visited
-    children
-
-adjChildren :: Builder m ⇒ [Category] -> [Category] -> m [([TTree], [Category])]
-adjChildren [] visited = pure [([], visited)]
-adjChildren (cat:cats) visited = do
-  adjCs ← maybeCutoff @_ @[] $ adjTrees cat visited
-  -- adjCs ← adjTrees cat visited
-  join <$> adjCs `forM` \(tree, visited') → do
-    let
-      step ∷ ([TTree], [Category]) → ([TTree], [Category])
-      step (trees, visited'') = (tree : trees , visited'')
-      go xs = do { guard $ not $ treeIsRecursive tree ; step <$> xs }
-    go <$> adjChildren cats visited'
-
-treeIsRecursive :: TTree -> Bool
-treeIsRecursive tree@(TNode _ (Fun cat _) children)
-  -- Given the lazy nature of lists it's probably not a problem to
-  -- case on the result of 'toList'.  What's worse is that 'MultiSet'
-  -- uses strict maps internally.  So 'metas' will be fully
-  -- materialized.
-  = case MultiSet.toList metas of
-    []     → cat `elem` cats
-    [cat'] → cat == cat'
-    _      → False
-  where
-  metas = Grammar.getMetas tree
-  cats
-    =   MultiSet.map ruleCat
-    $   mconcat @(MultiSet _)
-    $   Grammar.getFunctions
-    <$> children
-  ruleCat = \case
-    Function _ (Fun c _) → c
-    _ → error "Muste.AdjunctionTrees.treeIsRecursive: Non-exhaustive pattern match"
-treeIsRecursive _ = False
+          guardLimit (Just limit) value = guard $ value < limit
+          guardLimit Nothing _ = return ()
+  
 

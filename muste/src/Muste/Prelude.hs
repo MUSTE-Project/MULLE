@@ -18,11 +18,11 @@ import Prelude as X
   String, FilePath,
 
   (.), ($), ($!), either, pure, (||), (&&), length, otherwise,
-  splitAt, (<$>), fromInteger, uncurry, curry, not, null, filter,
-  zipWith, zip, fst, snd, all, any, reverse, maximum, minimum, max,
-  min, sum, unwords, words, lines, unlines, or, and, notElem, elem,
-  (<*>), foldMap, putStrLn, putStr, flip, const, sequence, take,
-  mapM_, mapM, ioError, error, repeat, foldl, seq, mod, div)
+  splitAt, (<$>), fromInteger, toInteger, uncurry, curry, not, null,
+  filter, zipWith, zip, fst, snd, all, any, reverse, maximum, minimum,
+  max, min, sum, unwords, words, lines, unlines, or, and, notElem,
+  elem, (<*>), foldMap, putStrLn, putStr, flip, const, sequence, take,
+  mapM_, mapM, ioError, error, repeat, foldl, seq, mod, div, print)
 import Data.List                 as X (sort)
 import Data.Bool                 as X (bool)
 import Data.Function             as X ((&), on)
@@ -30,7 +30,8 @@ import Data.Traversable          as X (Traversable(..))
 import Control.Monad             as X ((>=>), void, when, guard)
 import Control.Monad.IO.Class    as X (MonadIO(liftIO))
 import Control.Exception         as X
-  (Exception, SomeException, throwIO, displayException, throw)
+  (Exception, SomeException, throwIO, displayException, throw, try,
+  fromException, toException)
 import Data.Maybe                as X (fromMaybe, fromJust, listToMaybe)
 import Control.Monad.Fail        as X (MonadFail(fail))
 import Control.Monad.Catch       as X (MonadThrow(throwM))

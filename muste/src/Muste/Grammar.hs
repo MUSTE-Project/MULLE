@@ -2,8 +2,13 @@
 module Muste.Grammar
   ( Grammar
   , Rule
-  , Muste.Grammar.TH.tree
+  , MonadGrammar(..)
+  , GrammarT
+  , runGrammarT
+  , getGrammar
+  , HasKnownGrammars(..)
+  , KnownGrammars
+  , noGrammars
   ) where
 
 import Muste.Grammar.Internal
-import qualified Muste.Grammar.TH

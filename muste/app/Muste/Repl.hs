@@ -29,6 +29,7 @@ import Data.Text.Prettyprint.Doc ((<+>))
 import qualified Data.Text.Prettyprint.Doc    as Doc
 import qualified Data.Set                     as Set
 import qualified Data.Containers              as Mono
+import qualified Data.List                    as List
 import Control.Monad.State.Strict
 import Control.Monad.Reader
 import System.CPUTime (getCPUTime)
@@ -175,31 +176,20 @@ prettyMenu verbose ctxt s = Doc.vsep . fmap (uncurry go) . open
     | verbose   = Doc.fill 60 docA <+> docB
     | otherwise = docA
 
-prettyLin ∷ ∀ tok a . Pretty tok => Menu.Selection → [tok] → Doc a
-prettyLin sel tokens = Doc.hsep $ map go $ highlight sel tokens
-  where
-  go ∷ Either Bool tok → Doc a
-  go = \case
-    Left a     → hl a
-    Right tok  → pretty tok
-  hl ∷ Bool → Doc a
-  hl = bool "[" "]" >>> pretty @String
+prettyLin ∷ Pretty tok => Menu.Selection → [tok] → Doc a
+prettyLin sel tokens  = Doc.hsep tokens''
+    where intervals   = [ Menu.runInterval int | int <- toList sel ]
+          insertions  = [ pos  | (pos,pos') <- intervals, pos == pos' ]
+          leftbraces  = [ pos  | (pos,pos') <- intervals, pos < pos' ]
+          rightbraces = [ pos' | (pos,pos') <- intervals, pos < pos' ]
+          count x     = length . filter (x==)
+          tokens'     = [ Doc.hcat (List.replicate (count i leftbraces) "[") <> pretty tok <> 
+                          Doc.hcat (List.replicate (count (i+1) rightbraces) "]")
+                        | (i, tok) <- zip [0..] tokens ]
+          tokens''    = [ if i `elem` insertions then "[]" <+> tok' else tok'
+                        | (i, tok') <- zip [0..] tokens' ] ++
+                        [ "[]" | length tokens `elem` insertions ]
 
-highlight ∷ Menu.Selection → [a] → [Either Bool a]
-highlight (toList → xs) (zip [0..] . map pure → ys)
-  = snd <$> closes `weave` opens `weave` ys
-  where
-  opens  ∷ [(Int, Either Bool a)]
-  opens  = zip (map (pred . fst . Menu.runInterval) xs) (repeat (Left False))
-  closes ∷ [(Int, Either Bool a)]
-  closes  = zip (map (pred . snd . Menu.runInterval) xs) (repeat (Left True))
-
-weave ∷ [(Int, a)] → [(Int, a)] → [(Int, a)]
-weave [] ys = ys
-weave xs [] = xs
-weave xs@(x@(n, _):xss) ys@(y@(m, _):yss)
-  | n < m     = x : weave xss ys
-  | otherwise = y : weave xs  yss
 
 -- | @'getMenu' s@ gets a menu for a sentence @s@.
 getMenuFor
@@ -228,10 +218,6 @@ ini = liftIO $ putStrLn $ unlines
   , "An empty menu will be displayed (just newline) this is likely caused"
   , "by the sentence not being understood by the current grammar."
   , ""
-  , "Also the current grammar is hard-coded to be:"
-  , ""
-  , "    novo_modo/Exemplum"
-  , ""
-  , "The language can be specified on the command line (run with `--help`"
-  , "to see usage)."
+  , "The grammar and language can be specified on the command line"
+  , "(run with `--help` to see usage)."
   ]

@@ -39,6 +39,8 @@ SourceLanguage TEXT NOT NULL,
 TargetLanguage TEXT NOT NULL,
 ExerciseCount NUMERIC NOT NULL,
 Enabled BOOL NOT NULL DEFAULT 0,
+SearchLimitDepth INT DEFAULT NULL,
+SearchLimitSize INT DEFAULT NULL,
 Repeatable BOOL NOT NULL DEFAULT 1,
 PRIMARY KEY(Name));
 

@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# Language TemplateHaskell, UndecidableInstances, OverloadedLists #-}
+{-# Language UndecidableInstances, OverloadedLists #-}
 module Muste.Menu.Internal
   ( Menu(..)
   , getMenu
@@ -22,7 +22,8 @@ import qualified Data.Array as Array
 import Data.MonoTraversable
 import qualified Data.Containers as Mono
 import Data.List (intercalate)
-import Data.Aeson (ToJSONKey, FromJSONKey)
+import Data.Aeson (ToJSONKey, toJSONKey, ToJSONKeyFunction(ToJSONKeyValue), toJSON, toEncoding,
+                   FromJSONKey, fromJSONKey, FromJSONKeyFunction(FromJSONKeyValue), parseJSON)
 import Control.DeepSeq (NFData)
 import qualified Data.Text as Text
 
@@ -64,18 +65,20 @@ instance NFData Interval where
 sizeInterval ∷ Interval → Int
 sizeInterval (Interval (i, j)) = j - i
 
-newtype Selection = Selection { runSelection ∷ [Interval] }
+newtype Selection = Selection { runSelection ∷ Set Interval }
 
 deriving instance Read Selection
-deriving instance ToJSONKey Selection
-deriving instance FromJSONKey Selection
+instance ToJSONKey Selection where
+    toJSONKey = ToJSONKeyValue toJSON toEncoding
+instance FromJSONKey Selection where
+    fromJSONKey = FromJSONKeyValue parseJSON
 deriving instance Show Selection
 deriving instance ToJSON Selection
 deriving instance FromJSON Selection
 instance IsList Selection where
   type Item Selection = Interval
-  fromList = Selection
-  toList = runSelection
+  fromList = Selection . Set.fromList
+  toList = Set.toList . runSelection
 deriving instance Eq Selection
 instance Ord Selection where
   a `compare` b = case size a `compare` size b of
@@ -83,7 +86,7 @@ instance Ord Selection where
     x  → x
     where
     size ∷ Selection → Int
-    size = runSelection >>> fmap sizeInterval >>> sum
+    size = runSelection >>> Set.map sizeInterval >>> sum
 deriving instance Generic Selection
 instance NFData Selection where
 
@@ -91,7 +94,7 @@ deriving instance Semigroup Selection
 deriving instance Monoid Selection
 
 instance Pretty Selection where
-  pretty (Selection sel) = Doc.braces $ pretty $ intercalate "," $ map go sel
+  pretty sel = Doc.braces $ pretty $ intercalate "," $ map go $ Set.toList $ runSelection sel
     where go (Interval (i,j)) = show i ++ "-" ++ show j
 
 -- * First, some basic functions and types:
@@ -206,19 +209,30 @@ collectTreeSubstitutions opts ctxt sentence = do
 
 collectMenuItems :: Context -> [TreeSubst] -> Menu
 collectMenuItems ctxt substs = Menu $ Map.fromListWith Set.union $ do
-  (_cost, (_oldtree, _oldwords, oldnodes), (_newtree, newwords, newnodes)) ← substs
-  let edits = alignSequences oldnodes newnodes
+  (_cost, (_oldtree, oldwords, oldnodes), (_newtree, newwords, newnodes)) ← substs
+  let nodeedits = alignSequences oldnodes newnodes
+  let wordedits = alignSequences oldwords newwords
+  let edits = nodeedits <> wordedits
   let (oldselection, newselection) = splitAlignments edits
   let lins = [ Annotated.mkLinearization ctxt t t t |
-                      t <- parseSentence ctxt (Text.unwords newwords) ]
-  let allnewnodes = case lins of
-        []       → error "Muste.Menu.New.collectMenuItems: No linearizations."
-        (x:xs) → foldl Annotated.mergeL x xs
+               t <- parseSentence ctxt (Text.unwords newwords) ]
+  -- if there are no linearisations (e.g. because of the grammar not fully implemented),
+  -- we just skip this menu item:
+  guard $ not (null lins)
+  let allnewnodes = foldl1 Annotated.mergeL lins
   return (oldselection, Set.singleton (newselection, allnewnodes))
 
 
 filterTreeSubstitutions :: [TreeSubst] -> [TreeSubst]
-filterTreeSubstitutions = identity
+filterTreeSubstitutions = keepWith directMoreExpensive
+
+keepWith :: (a → a → Bool) -> [a] -> [a]
+keepWith p xs = [ x | x <- xs, not (any (p x) xs) ]
+
+directMoreExpensive :: TreeSubst -> TreeSubst -> Bool
+directMoreExpensive (cost, _, xtree) (cost', _, xtree')
+    = cost' < cost && xtree' `xtreeDiff` xtree < cost
+
 
 xtreeDiff :: XTree -> XTree -> Int
 xtreeDiff (t,_,_) (t',_,_) = Tree.flatten t `editDistance` Tree.flatten t'
@@ -226,16 +240,15 @@ xtreeDiff (t,_,_) (t',_,_) = Tree.flatten t `editDistance` Tree.flatten t'
 
 -- * LCS
 
-type Edit a = (([a], Int, Int), ([a], Int, Int))
+type Edit = (Interval, Interval)
 
-splitAlignments :: [Edit a] -> (Selection, Selection)
-splitAlignments [] = mempty
-splitAlignments (((_,i,j), (_,k,l)) : edits)
-  = ([Interval (i, j)] <> oldselection, [Interval (k, l)] <> newselection)
-  where (oldselection, newselection) = splitAlignments edits
+splitAlignments :: [Edit] -> (Selection, Selection)
+splitAlignments [] = (mempty, mempty)
+splitAlignments ((ij, kl) : edits) = ([ij] <> oldselection, [kl] <> newselection)
+    where (oldselection, newselection) = splitAlignments edits
 
-alignSequences :: Eq a => [a] -> [a] -> [Edit a]
-alignSequences xs ys = mergeEdits $ snd $ a Array.! (0,0)
+alignSequences :: Eq a => [a] -> [a] -> [Edit]
+alignSequences xs ys = cleanEdits $ mergeEdits $ snd $ a Array.! (0,0)
     where n = length xs
           m = length ys
           a = Array.array ((0,0),(n,m)) $ l0 ++ l1 ++ l2 ++ l3
@@ -256,7 +269,12 @@ alignSequences xs ys = mergeEdits $ snd $ a Array.! (0,0)
                     (ins, inedits) = a Array.! (i,j+1)
                     (del, dledits) = a Array.! (i+1,j)
 
-mergeEdits :: Eq a => [Edit a] -> [Edit a]
+type Edit' a = (([a], Int, Int), ([a], Int, Int))
+
+cleanEdits :: [Edit' a] -> [Edit]
+cleanEdits eds = [ (Interval (i,j), Interval (k,l)) | ((_,i,j), (_,k,l)) <- eds ]
+
+mergeEdits :: Eq a => [Edit' a] -> [Edit' a]
 mergeEdits [] = []
 mergeEdits (edit@((xs,_,_), (xs',_,_)) : edits)
     | xs == xs' = mergeEdits edits
