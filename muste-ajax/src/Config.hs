@@ -9,12 +9,15 @@ module Config
   ( App.AppConfig
   , appConfig
   , Config.db
+  , Config.lessons
   , Config.accessLog
   , Config.errorLog
   , Config.port
   , Config.staticDir
   , Config.wwwRoot
   , Config.virtualRoot
+  , Config.users
+  , CFG.User(..)
   ) where
 
 import qualified Config.TH as CFG hiding (AppConfig(..))
@@ -29,13 +32,15 @@ appConfig = fromConfig cfg
 
 fromConfig ∷ CFG.Config → AppConfig
 fromConfig (CFG.Config { .. }) = AppConfig
-  { db          = dataDir </> "muste"  <.> "sqlite3"
-  , accessLog   = logDir  </> "access" <.> "log"
-  , errorLog    = logDir  </> "error"  <.> "log"
+  { db          = dataDir </> "muste"     <.> "sqlite3"
+  , lessons     = dataDir </> "lessons"   <.> "yaml"
+  , accessLog   = logDir  </> "access"    <.> "log"
+  , errorLog    = logDir  </> "error"     <.> "log"
   , port        = port
   , staticDir   = staticDir
   , wwwRoot     = wwwRoot
   , virtualRoot = virtualRoot
+  , users       = users
   }
   where
   logDir  = CFG.logDir cfg
@@ -56,8 +61,14 @@ virtualRoot   = App.virtualRoot appConfig
 db            ∷ FilePath
 db            = App.db appConfig
 
+lessons       ∷ FilePath
+lessons       = App.lessons appConfig
+
 accessLog     ∷ FilePath
 accessLog     = App.accessLog appConfig
 
 errorLog      ∷ FilePath
 errorLog      = App.errorLog appConfig
+
+users         ∷ [CFG.User]
+users         = App.users appConfig

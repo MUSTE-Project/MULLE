@@ -46,3 +46,10 @@ Issue #50: User registration
 Added a page for adding new users. TODO
 
 * Handle case when user already exists.
+
+Configuration options
+---
+
+It would be nice to find a simpler way of managing configuration
+options/the environment.  See [the relevant section in the readme
+file](README.md#An abundance of configuration methods).

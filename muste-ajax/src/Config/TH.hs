@@ -6,7 +6,7 @@
   , DuplicateRecordFields
   , TemplateHaskell
 #-}
-module Config.TH (Config(..), config, AppConfig(..)) where
+module Config.TH (Config(..), config, AppConfig(..), User(..)) where
 
 import Prelude ()
 import Muste.Prelude
@@ -16,11 +16,23 @@ import Language.Haskell.TH.Syntax (Lift(lift))
 import Data.Yaml
   ( FromJSON(parseJSON), withObject
   , ToJSON(toJSON), object
-  , (.:?), (.!=), (.=)
+  , (.:), (.:?), (.!=), (.=)
   )
 import Paths_muste_ajax
 import Data.FileEmbed
 import Common (decodeFileThrow)
+
+data User = User
+  { name     ∷ String
+  , password ∷ String
+  , enabled  ∷ Bool
+  } deriving (Show, Lift)
+
+instance FromJSON User where
+  parseJSON = withObject "user" $ \v → User
+    <$> v .: "name"
+    <*> v .: "password"
+    <*> v .: "enabled"
 
 data Config = Config
   { port          ∷ Int
@@ -29,6 +41,7 @@ data Config = Config
   , virtualRoot   ∷ FilePath
   , dataDir       ∷ FilePath
   , logDir        ∷ FilePath
+  , users         ∷ [User]
   } deriving (Lift)
 
 shareDir ∷ FilePath
@@ -60,6 +73,7 @@ instance FromJSON Config where
     <*> v .:? "virtual-root"          .!= defaultVirtualRoot
     <*> v .:? "data-dir"              .!= defaultDataDir
     <*> v .:? "log-dir"               .!= defaultLogDir
+    <*> v .:? "users"                 .!= mempty
 
 decodeConfig ∷ Q Exp
 decodeConfig = do
@@ -72,20 +86,24 @@ config = decodeConfig
 
 data AppConfig = AppConfig
   { db          ∷ FilePath
+  -- A path to the yaml file containing the lessons
+  , lessons     ∷ FilePath
   , accessLog   ∷ FilePath
   , errorLog    ∷ FilePath
   , port        ∷ Int
   , staticDir   ∷ FilePath
   , wwwRoot     ∷ FilePath
   , virtualRoot ∷ FilePath
+  , users       ∷ [User]
   }
 
 instance ToJSON AppConfig where
-  toJSON (AppConfig { .. }) = object
-    [ "db"          .= db
+  toJSON AppConfig{..} = object
+    [ "db"           .= db
+    , "lessons"      .= lessons
     , "access-log"   .= accessLog
     , "error-log"    .= errorLog
-    , "port"        .= port
+    , "port"         .= port
     , "static-dir"   .= staticDir
     , "www-root"     .= wwwRoot
     , "virtual-root" .= virtualRoot

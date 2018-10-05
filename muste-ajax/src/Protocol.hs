@@ -1,7 +1,8 @@
 {-# Language RecordWildCards, UndecidableInstances, DeriveAnyClass #-}
 {-# OPTIONS_GHC -Wall -Wcompat #-}
 module Protocol
-  ( registerRoutes
+  ( apiInit
+  , AppState
   ) where
 
 import Prelude ()
@@ -27,6 +28,7 @@ import Control.Exception
 import Control.Monad.Trans.Control (MonadBaseControl)
 import Control.Monad.Base (MonadBase)
 import Data.String.Conversions (convertString)
+import qualified Snap.Util.CORS as Cors
 
 import Muste (Context, TTree)
 import qualified Muste
@@ -41,7 +43,7 @@ import Common
 
 import Ajax (ClientTree, ServerTree)
 import qualified Ajax
-import Database (MonadDB, getConnection, MonadDatabaseError(..))
+import Database (MonadDB, MonadDatabaseError(..))
 import qualified Database
 import qualified Database.Types as Database
 
@@ -49,15 +51,19 @@ import qualified Database.Types as Database
 -- corresponding contexts.
 type Contexts = Map Text (Map Sentence.Language Context)
 
--- | The data needed for responding to requests.
-data Env = Env
-  { connection :: Connection
-  , contexts   :: Contexts
+-- | The state that the server will have throughout the uptime.
+data AppState = AppState
+  { connection    ∷ Connection
+  , contexts      ∷ Contexts
+  , knownGrammars ∷ Muste.KnownGrammars
   }
+
+instance Muste.HasKnownGrammars AppState where
+  giveKnownGrammars = knownGrammars
 
 -- | A simple monad transformer for handling responding to requests.
 newtype ProtocolT m a = ProtocolT
-  { unProtocolT ∷ ReaderT Env (ExceptT ProtocolError m) a
+  { unProtocolT ∷ ExceptT ProtocolError m a
   }
 
 deriving newtype instance Functor m ⇒ Functor (ProtocolT m)
@@ -69,9 +75,9 @@ deriving newtype instance MonadBase IO m ⇒ MonadBase IO (ProtocolT m)
 deriving newtype instance MonadPlus m ⇒ MonadPlus (ProtocolT m)
 deriving newtype instance Monad m ⇒ Alternative (ProtocolT m)
 deriving newtype instance (MonadSnap m) ⇒ MonadSnap (ProtocolT m)
-deriving newtype instance Monad m ⇒ MonadReader Env (ProtocolT m)
-deriving newtype instance Monad m ⇒ Database.HasConnection (ProtocolT m)
+deriving newtype instance MonadReader AppState m ⇒ MonadReader AppState (ProtocolT m)
 deriving newtype instance Monad m ⇒ MonadError ProtocolError (ProtocolT m)
+deriving newtype instance Muste.MonadGrammar m ⇒ Muste.MonadGrammar (ProtocolT m)
 
 instance Monad m ⇒ MonadDatabaseError (ProtocolT m) where
   throwDbError = ProtocolT . throwError . DatabaseError
@@ -128,16 +134,16 @@ instance ToJSON ProtocolError where
     ]
 
 type MonadProtocol m =
-  ( MonadReader Env m
-  , Database.HasConnection m
+  ( MonadReader AppState m
   , MonadIO m
   , Database.MonadDatabaseError m
   , MonadError ProtocolError m
   , MonadSnap m
+  , Muste.MonadGrammar m
   )
 
-instance Monad m ⇒ Database.HasConnection (ReaderT Env m) where
-  getConnection = asks connection
+instance Database.HasConnection AppState where
+  giveConnection = connection
 
 -- Not all response codes are mapped in `snap`.
 data Reason = UnprocessableEntity
@@ -193,12 +199,10 @@ setResponseCode s = case s of
   CodeReason n r → Snap.setResponseStatus n (displayReason r)
 
 -- | Errors are returned as JSON responses.
-runProtocolT :: MonadSnap m ⇒ ToJSON a ⇒ String → ProtocolT m a → m ()
-runProtocolT db app = do
+runProtocolT :: MonadSnap m ⇒ ToJSON a ⇒ ProtocolT m a → m ()
+runProtocolT app = do
   Snap.modifyResponse (Snap.setContentType "application/json")
-  conn ← openConnection db
-  env  ← throwLeft <$> getEnv conn
-  res  ← runExceptT $ flip runReaderT env $ unProtocolT app
+  res  ← runExceptT $ unProtocolT app
   case res of
     Left err → do
        Snap.modifyResponse . setResponseCode . errResponseCode $ err
@@ -208,17 +212,45 @@ runProtocolT db app = do
 openConnection ∷ MonadIO io ⇒ String → io Connection
 openConnection = liftIO . SQL.open
 
-getEnv :: MonadIO io => Connection → io (Either Database.Error Env)
-getEnv conn = do
-  ctxts ← liftIO $ Database.runDb initContexts conn
-  pure $ Env conn <$> ctxts
+initApp
+  ∷ MonadIO io
+  ⇒ String
+  → io AppState
+initApp db = do
+  liftIO $ putStrLn "Initializing app..."
+  conn ← openConnection db
+  ctxts ← initContexts'' conn
+  knownGs ← Muste.noGrammars
+  liftIO $ putStrLn "Initializing app... Done"
+  pure $ AppState conn ctxts knownGs
 
-registerRoutes ∷ String → Snap.Initializer v w ()
-registerRoutes db = Snap.addRoutes (apiRoutes db)
+initContexts'' ∷ MonadIO io ⇒ Connection → io Contexts
+initContexts'' c = Muste.runGrammarT (initContexts' c)
+
+initContexts' ∷ Muste.MonadGrammar m ⇒ Connection → m Contexts
+initContexts' conn = do
+  Database.runDbT initContexts conn >>= \case
+    Left e → liftIO $ throw e
+    Right a → pure a
+
+
+-- | The main api.  For the protocol see @Protocol.apiRoutes@.
+apiInit ∷ String → Snap.SnapletInit a Protocol.AppState
+apiInit db = Snap.makeSnaplet "api" "MUSTE API" Nothing $ do
+  Snap.wrapSite (Cors.applyCORS Cors.defaultOptions)
+  registerRoutes db
+
+-- I just realize that we're initializing the whole environment on
+-- each connection, this is not necessary, we shuold be able to for
+-- instance keep the database connection alive at all times.
+registerRoutes ∷ String → Snap.Initializer v AppState AppState
+registerRoutes db = do
+  Snap.addRoutes apiRoutes
+  initApp db
 
 -- | Map requests to various handlers.
-apiRoutes :: ∀ v w . String → [(ByteString, Snap.Handler v w ())]
-apiRoutes db =
+apiRoutes ∷ ∀ v . [(ByteString, Snap.Handler v AppState ())]
+apiRoutes =
   [ "login"        |> loginHandler
   , "logout"       |> logoutHandler
   , "lessons"      |> lessonsHandler
@@ -231,10 +263,11 @@ apiRoutes db =
     (|>) ∷ ∀ txt json snap
       . ToJSON json
       ⇒ MonadSnap snap
+      ⇒ Muste.MonadGrammar snap
       ⇒ txt
       → ProtocolT snap json
       → (txt, snap ())
-    t |> act = (t, runProtocolT db act)
+    t |> act = (t, runProtocolT act)
 
 createUserHandler ∷ MonadProtocol m ⇒ m ()
 createUserHandler = do
@@ -280,10 +313,8 @@ lessonsHandler = do
   lessons ← Database.listLessons t
   verifyMessage (Ajax.LessonList lessons)
 
-lessonHandler :: MonadProtocol m ⇒ m Ajax.MenuList
-lessonHandler = Snap.pathArg $ \p → do
-  t <- getToken
-  handleLessonInit t p
+lessonHandler ∷ MonadProtocol m ⇒ m Ajax.MenuList
+lessonHandler = Snap.pathArg handleLessonInit
 
 menuHandler ∷ MonadProtocol m ⇒ m Ajax.MenuList
 menuHandler = do
@@ -333,10 +364,10 @@ askContexts = asks contexts
 handleLessonInit
   ∷ ∀ m
   . MonadProtocol m
-  ⇒ Text -- ^ Token
-  → Text -- ^ Lesson
+  ⇒ Text -- ^ Lesson
   → m Ajax.MenuList
-handleLessonInit token lesson = do
+handleLessonInit lesson = do
+  token ← getToken
   c <- askContexts
   (_sourceLang,sourceTree,_targetLang,targetTree)
     <- Database.startLesson token lesson
@@ -462,21 +493,28 @@ verifyMessage ∷ MonadProtocol m ⇒ a → m a
 verifyMessage msg = msg <$ verifySession
 
 initContexts
-  :: Database.MonadDB db
-  => db Contexts
-initContexts = mkContexts <$> Database.getLessons
+  ∷ MonadDB r m
+  ⇒ Muste.MonadGrammar m
+  ⇒ m Contexts
+initContexts = do
+  lessons ← Database.getLessons
+  mkContexts lessons
 
-mkContexts ∷ [Database.Lesson] → Contexts
-mkContexts = Map.fromList . map mkContext
+mkContexts
+  ∷ MonadDB r m
+  ⇒ Muste.MonadGrammar m
+  ⇒ [Database.Lesson]
+  → m Contexts
+mkContexts xs = Map.fromList <$> traverse mkContext xs
 
 mkContext
-  ∷ Database.Lesson
-  → (Text, Map.Map Sentence.Language Context)
-mkContext Database.Lesson{..}
-  = (name, Map.mapKeys f m)
+  ∷ Muste.MonadGrammar m
+  ⇒ Database.Lesson
+  → m (Text, Map.Map Sentence.Language Context)
+mkContext Database.Lesson{..} = do
+  m ← Muste.getLangAndContext nfo grammar
+  pure $ (name, Map.mapKeys f m)
   where
-  m ∷ Map Text Context
-  m = Muste.langAndContext nfo grammar
   f ∷ Text → Sentence.Language
   f l = Sentence.Language (Sentence.Grammar grammar) l
   nfo ∷ Linearization.BuilderInfo

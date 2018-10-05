@@ -6,7 +6,7 @@ module Muste.Linearization.Internal
   , Linearization(Linearization)
   , LinToken(..)
   , linearizeTree
-  , langAndContext
+  , getLangAndContext
   , mkLin
   , sameOrder
   , disambiguate
@@ -21,7 +21,6 @@ module Muste.Linearization.Internal
 import Prelude ()
 import Muste.Prelude
 
-import Data.Maybe (fromMaybe)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Aeson
@@ -42,7 +41,6 @@ import qualified Muste.Tree.Internal as Tree
 import Muste.Grammar
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees
-import Muste.Common (enumerate)
 import Muste.Common.SQL (FromField, ToField)
 import qualified Muste.Common.SQL as SQL
 
@@ -166,20 +164,16 @@ linearizeTree (Context grammar language _) ttree =
 -- creates a mapping from all the languages in that grammar to their
 -- respective 'Context's.
 --
--- This method is unsafe and will throw if we can't find the
--- corresponding grammar.
-langAndContext
-  ∷ BuilderInfo
+-- This method will throw a 'FileNotFoundException' if the grammar
+-- cannot be located.
+getLangAndContext
+  ∷ Grammar.MonadGrammar m
+  ⇒ BuilderInfo
   → Text -- ^ An identitfier for a grammar.  E.g. @novo_modo/Prima@.
-  → Map Text Context
-langAndContext nfo = buildContexts nfo . getGrammar
-  where
-  getGrammar ∷ Text → Grammar
-  getGrammar s = fromMaybe (err s) $ Grammar.lookupGrammar s
-  err s = error $ printf errMsg s
-  errMsg
-    =  "Muste.Linearization.langAndContext: "
-    <> "Couldn't find grammar corresponding for: %s"
+  → m (Map Text Context)
+getLangAndContext nfo idf = do
+  g ← Grammar.getGrammar idf
+  pure $ buildContexts nfo g
 
 -- | Given a grammar creates a mapping from all the languages in that
 -- grammar to their respective 'Context's.

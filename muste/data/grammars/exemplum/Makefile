@@ -4,7 +4,9 @@ GRAMMARS = Exemplum.pgf
 
 .PHONY: all clean
 
-all: $(GRAMMARS)
+all: build
+
+build: $(GRAMMARS)
 
 clean:
 	rm $(GRAMMARS)

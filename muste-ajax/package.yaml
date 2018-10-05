@@ -36,6 +36,7 @@ default-extensions:
   - DerivingStrategies
 
 data-files:
+  - data/lessons.yaml
   - static/css/muste.css
   - static/favicon.ico
   - static/img/congrats.jpg
@@ -57,6 +58,9 @@ data-files:
   - static/js/handlebars.min.js
   - static/js/jquery.js
   - static/js/jquery.min.js
+
+extra-source-files:
+  - config.yaml
 
 dependencies:
   - QuickCheck           >= 2.9.2    && < 2.12

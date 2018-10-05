@@ -1,3 +1,10 @@
 static-dir: ./muste-ajax/static/
 port: 8080
 log-dir: .
+users:
+  - name: peter
+    password: PETER
+    enabled: yes
+  - name: herbert
+    password: HERBERT
+    enabled: yes

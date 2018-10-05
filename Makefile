@@ -4,11 +4,16 @@ all: grammars
 
 clean: grammars/clean
 
+install: grammars/install
+
 grammars:
 	make -C muste/data/grammars
 
 grammars/clean:
 	make -C muste/data/grammars clean
+
+grammars/install:
+	make -C muste/data/grammars install
 
 # Mainly a reminder to self
 ghcid:

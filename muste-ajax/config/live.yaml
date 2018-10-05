@@ -5,3 +5,4 @@ virtual-root: ""
 serve-static-relative: no
 data-dir: /usr/share/muste/
 log-dir: /var/log/muste
+users: []
