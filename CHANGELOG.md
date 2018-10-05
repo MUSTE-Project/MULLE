@@ -4,6 +4,9 @@ Change log
 HEAD
 ---
 
+0.2.6.0
+---
+
 Persist app-state across requests.
 
 Load exercises to seed the database with from a `.yaml` file rather
