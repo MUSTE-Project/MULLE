@@ -514,11 +514,9 @@ mkContext
   ⇒ Database.Lesson
   → m (Text, Map.Map Sentence.Language Context)
 mkContext Database.Lesson{..} = do
-  m ← getMapping
+  m ← Muste.getLangAndContext nfo grammar
   pure $ (name, Map.mapKeys f m)
   where
-  getMapping ∷ Muste.MonadGrammar m ⇒ m (Map Text Context)
-  getMapping = Muste.getLangAndContext nfo grammar
   f ∷ Text → Sentence.Language
   f l = Sentence.Language (Sentence.Grammar grammar) l
   nfo ∷ Linearization.BuilderInfo

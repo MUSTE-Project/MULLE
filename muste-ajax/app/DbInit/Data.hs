@@ -1,174 +1,100 @@
--- TODO In stead of using very long ad-hoc types, could we define a
--- local data-type?  Alternatively, and probably even better, could we
--- re-write this so to have a more declarative style?  What I mean is
--- that in stead of defining one chunk of data and then doing
--- operations on it seperately, could we define a small helper that
--- does it in place like so:
---
---     longPieceOfData =
---       [ h "..."
---       , h "..."
---       ]
---       where
---       h = _ -- magic here
-{-# Language TemplateHaskell, OverloadedStrings, OverloadedLists #-}
+{-# Language TemplateHaskell, OverloadedStrings, OverloadedLists,
+  DuplicateRecordFields #-}
 {-# OPTIONS_GHC -Wall #-}
 -- | Data used for inititializing the database
 
-module DbInit.Data (exercises, lessons) where
+module DbInit.Data
+  ( SearchOptions(..)
+  , LessonSettings(..)
+  , Sentence(..)
+  , Languages(..)
+  , Exercise(..)
+  , Lesson(..)
+  ) where
 
 import Data.Text (Text)
-import qualified Data.Text as Text
-import Data.Vector (Vector)
-import qualified Data.Vector as Vector
-import qualified Database.Types as Types
+import Data.Aeson ((.:), FromJSON, Object, (.:?), (.!=))
+import Data.Aeson.Types (Parser)
+import qualified Data.Aeson as Aeson
 
-lessons :: Vector Types.Lesson
-lessons = novomodoLessons <> exemplumLessons
+-- | A combinator that defaults to 'mempty' is not value is present.
+(.:*) ∷ FromJSON a ⇒ Monoid a ⇒ Object → Text → Parser a
+o .:* a = o .:? a .!= mempty
 
--- | List of exercises group by the lesson they belong to.  The lesson
--- is identified by 1. an identifier for the grammar for that lesson
--- and 2. by the name of that lesson (a PK in the DB).  Exercises are
--- identified by a pair of tree/language pairs.
-exercises ∷ Vector (Text, Text, Text, Text, Vector (Text, Text))
-exercises = novomodoExercises <> exemplumExercises
+data SearchOptions = SearchOptions
+  { searchDepthLimit ∷ Maybe Int
+  , searchSizeLimit  ∷ Maybe Int
+  }
 
+instance Semigroup SearchOptions where
+  SearchOptions a0 b0 <> SearchOptions a1 b1
+    = SearchOptions (s a0 a1) (s b0 b1)
+    where
+    s a b = (+) <$> a <*> b
 
---------------------------------------------------------------------------------
--- Novo Modo lessons
+instance Monoid SearchOptions where
+  mempty = SearchOptions Nothing Nothing
 
-novomodoLessons ∷ Vector Types.Lesson
-novomodoLessons = Vector.zipWith f [1..] novomodoDB
-  where
-  f nr (lesson, srcLng, trgLng, depthLimit, exerciseList)
-    = Types.Lesson
-    lesson (novomodoDescription nr)
-    (novomodoGrammar lesson)
-    srcLng
-    trgLng
-    (fromIntegral (Vector.length exerciseList))
-    True
-    depthLimit
-    depthLimit
-    True
+instance FromJSON SearchOptions where
+  parseJSON = Aeson.withObject "search-options"
+    $  \v → SearchOptions
+    <$> v .:? "depth"
+    <*> v .:? "size"
 
--- TODO depthLimit is not used, is this a mistake?
-novomodoExercises ∷ Vector (Text, Text, Text, Text, Vector (Text, Text))
-novomodoExercises = f <$> novomodoDB
-  where
-  f (lesson, srcLng, trgLng, _depthLimit, exerciseList)
-    = (novomodoGrammar lesson, lesson, srcLng, trgLng, exerciseList)
+data LessonSettings = LessonSettings
+  { grammar        ∷ Text
+  , enabled        ∷ Bool
+  , repeatable     ∷ Bool
+  }
 
-novomodoGrammar ∷ Text → Text
-novomodoGrammar = mappend "novo_modo/"
+instance FromJSON LessonSettings where
+  parseJSON = Aeson.withObject "search-options"
+    $  \v → LessonSettings
+    <$> v .:  "grammar"
+    <*> v .:? "enabled"    .!= True
+    <*> v .:? "repeatable" .!= True
 
-novomodoDescription ∷ Integer → Text
-novomodoDescription nr = Text.concat ["Lektion ", Text.pack (show nr), " från boken 'Novo Modo'"]
+newtype Sentence = Sentence Text
 
-novomodoDepthLimit ∷ Maybe Int
-novomodoDepthLimit = Just 1
+deriving newtype instance FromJSON Sentence
 
-novomodoDB ∷ Vector (Text, Text, Text, Maybe Int, Vector (Text, Text))
-novomodoDB =
-    [ ("Prima"  , "PrimaLat"  , "PrimaSwe"  , novomodoDepthLimit, primaPars  )
-    , ("Secunda", "SecundaLat", "SecundaSwe", novomodoDepthLimit, secundaPars)
-    -- , ("Tertia" , "TertiaLat" , "TertiaSwe" , novomodoDepthLimit, tertiaPars )
-    -- , ("Quarta" , "QuartaLat" , "QuartaSwe" , novomodoDepthLimit, quartaPars )
-    ]
+data Languages = Languages
+  { source ∷ Text
+  , target ∷ Text
+  }
 
-primaPars ∷ Vector (Text, Text)
-primaPars =
-  [ ("vinum sapiens est"                          ,"han är vis")
-  , ("Augustus imperium tenet"                    ,"imperatorn håller riket")
-  , ("Augustus felix est"                         ,"vännen är lycklig")
-  , ("Augustus felix est"                         ,"fadern är lycklig")
-  , ("Augustus imperator est"                     ,"Augustus är vännen")
-  , ("Augustus amicus est"                        ,"Augustus är imperatorn")
-  , ("Augustus imperator est"                     ,"Augustus är fadern")
-  , ("Augustus pater est"                         ,"Augustus är imperatorn")
-  , ("Caesar Augustus Galliam vincit"             ,"kejsaren Augustus besegrar Afrika")
-  , ("Caesar Augustus Africam vincit"             ,"kejsaren Augustus besegrar Gallien")
-  ]
+instance FromJSON Languages where
+  parseJSON = Aeson.withObject "exercise"
+    $  \v → Languages
+    <$> v .:  "source"
+    <*> v .:  "target"
 
-secundaPars ∷ Vector (Text, Text)
-secundaPars =
-  [ ("nolite"                                     ,"de glädjas")
-  , ("gaudent"                                    ,"vägra")
-  , ("Romani eos vincebant"                       ,"de undervisade romarna")
-  , ("Romanos docebant"                           ,"romarna besegrade dem")
-  , ("viri eos rapiebant"                         ,"de inbjöd männen")
-  , ("viros invitabant"                           ,"männen rövade dem")
-  , ("Etrusci auspicia observabant"               ,"de var bönder")
-  , ("Romani agricolae erant"                     ,"de iakttog omen")
-  , ("rex terras observabat"                      ,"de var män")
-  , ("Romani viri erant"                          ,"kungen iakttog länder")
-  , ("autem Sabini feminas habebant"              ,"men var romarna svekfulla")
-  , ("autem Romani fallaces erant"                ,"men hade sabinarna kvinnor")
-  , ("etiam Sabini religionem habebant"           ,"redan var romarna besegrade")
-  , ("iam Romani victi erant"                     ,"även hade sabinarna religionen")
-  , ("Sabini libros amabant"                      ,"de var inte romanska barn")
-  , ("iuvenes libri Romani non erant"             ,"sabinarna älskade barnen")
-  , ("Sabini mulieres amabant"                    ,"de var sabinska barn")
-  , ("iuvenes libri Sabini erant"                 ,"sabinarna älskade fruarna")
-  , ("Sabini viris Romanis dicunt"                ,"de vill döda de romanska männen")
-  , ("Romani cum eis contendebant"                ,"de sammandrabbade romarna")
-  , ("Romani eos docebant"                        ,"de undervisade romarna")
-  ]
+data Exercise = Exercise
+  { source ∷ Sentence
+  , target ∷ Sentence
+  }
 
---------------------------------------------------------------------------------
--- Exemplum lessons
+instance FromJSON Exercise where
+  parseJSON = Aeson.withObject "exercise"
+    $  \v → Exercise
+    <$> v .:  "source"
+    <*> v .:  "target"
 
-exemplumLessons ∷ Vector Types.Lesson
-exemplumLessons = f <$> exemplumDB
-  where
-  f (lesson, srcLng, trgLng, depthLimit, exerciseList)
-    = Types.Lesson
-      lesson
-      (Text.concat ["Example lesson: ", lesson])
-      exemplumGrammar
-      srcLng
-      trgLng
-      (fromIntegral (Vector.length exerciseList))
-      True
-      depthLimit
-      depthLimit
-      True
+data Lesson = Lesson
+  { name           ∷ Text
+  , description    ∷ Text
+  , settings       ∷ LessonSettings
+  , searchOptions  ∷ SearchOptions
+  , languages      ∷ Languages
+  , exercises'     ∷ [Exercise]
+  }
 
--- TODO depthLimit is not used, is this a mistake?
-exemplumExercises ∷ Vector (Text, Text, Text, Text, Vector (Text, Text))
-exemplumExercises = f <$> exemplumDB
-  where
-  f (lesson, srcLng, trgLng, _depthLimit, exerciseList)
-    = (exemplumGrammar, lesson, srcLng, trgLng, exerciseList)
-  -- [ (exemplumGrammar, lesson, srcLng, trgLng, exerciseList)
-  -- | (lesson, srcLng, trgLng, _depthLimit, exerciseList) <- exemplumDB
-  -- ]
-
-exemplumGrammar ∷ Text
-exemplumGrammar = "exemplum/Exemplum"
-
-exemplumDepthLimit ∷ Maybe Int
-exemplumDepthLimit = Just 4
-
-exemplumDB ∷ Vector (Text, Text, Text, Maybe Int, Vector (Text, Text))
-exemplumDB = f <$> Vector.tail exemplumSentences
-  where
-  f (trgLng, trg) = 
-      (Text.concat [srcLng, "->", trgLng],
-       Text.concat ["Exemplum", srcLng],
-       Text.concat ["Exemplum", trgLng],
-       exemplumDepthLimit,
-       [(src, trg)])
-  (srcLng, src) = Vector.head exemplumSentences
-
-exemplumSentences ∷ Vector (Text, Text)
-exemplumSentences =
-    [ ("Eng", "many kings love Paris")
-    , ("Swe", "en god kung läser en bok")
-    , ("Lat", "rex bonus librum legit")
-    , ("Spa", "un bueno rey lee un libro")
-    , ("Chi", " 一 个 好 国 王 读 一 本 书 ")
-    , ("Ara", " يَقْرَأُ مَلِكٌ جوَيِّدٌ كِتابً ")
-    , ("Test", "the girl read book")
-    ]
-
+instance FromJSON Lesson where
+  parseJSON = Aeson.withObject "search-options"
+    $  \v → Lesson
+    <$> v .:  "name"
+    <*> v .:  "description"
+    <*> v .:  "settings"
+    <*> v .:* "search-options"
+    <*> v .:  "languages"
+    <*> v .:  "exercises"

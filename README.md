@@ -89,6 +89,23 @@ Partially/unsupported options:
 * `static-directory` file with the front end (static) files.  Is
   resolved relative to the above option.
 
+#### An abundance of configuration methods
+
+There are quite a few way that configuration options are handlded
+today:
+
+* Some configuration options are embedded into the binary.  This is
+  the case for the file `muste-ajax/config.yaml`.
+* That file in turn identifies some paths.  E.g. the database-file
+  which is created at run-time and seeded by the application (this is
+  probably fine)
+* There are also some file in `muste-ajax/data`.
+  * `data/sql` needed at compile-time
+  * `lessons.yaml` copied at install time and read when `muste-ajax
+    --recreate-db` is invoked.
+* Furhtermore some configuration options are stored as columns in the
+  database.  This is probably also fine.
+
 ### Building
 
 If the grammar-files (in `muste/data/grammars/`) have changed (or if

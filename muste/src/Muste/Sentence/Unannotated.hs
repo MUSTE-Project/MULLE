@@ -134,7 +134,11 @@ unannotated c l src trg t
 stringRep ∷ Unannotated → Text
 stringRep = linearization >>> Linearization.stringRep
 
-fromText ∷ Text → Text → Text → Unannotated
+fromText
+  ∷ Text -- ^ An identifier for the grammar
+  → Text -- ^ The language
+  → Text -- ^ The sentence
+  → Unannotated
 fromText g l xs
   = Unannotated (Language (Grammar g) l) (fromList (go <$> Text.words xs))
   where

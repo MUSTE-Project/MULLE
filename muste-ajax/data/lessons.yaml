@@ -1,0 +1,155 @@
+- name: "Prima"
+  description: "Lektion et från boken 'Novo Modo'"
+  settings:
+    grammar: "novo_modo/Prima"
+    # Defaults to true
+    enabled: yes
+    # Defaults to true
+    repeatable: yes
+  search-options:
+    # Leaving out the key means that the search will be unrestricted.
+    depth: 100
+    size: 100
+  languages:
+    source: "PrimaLat"
+    target: "PrimaSwe"
+  exercises:
+    - source: vinum sapiens est
+      target: han är vis
+    - source: Augustus imperium tenet
+      target: imperatorn håller riket
+    - source: Augustus felix est
+      target: vännen är lycklig
+    - source: Augustus felix est
+      target: fadern är lycklig
+    - source: Augustus imperator est
+      target: Augustus är vännen
+    - source: Augustus amicus est
+      target: Augustus är imperatorn
+    - source: Augustus imperator est
+      target: Augustus är fadern
+    - source: Augustus pater est
+      target: Augustus är imperatorn
+    - source: Caesar Augustus Galliam vincit
+      target: kejsaren Augustus besegrar Afrika
+    - source: Caesar Augustus Africam vincit
+      target: kejsaren Augustus besegrar Gallien
+
+- name: "Secunda"
+  description: "Lektion två från boken 'Novo Modo'"
+  settings:
+    grammar: "novo_modo/Secunda"
+  languages:
+    source: "SecundaLat"
+    target: "SecundaSwe"
+  exercises:
+    # There's an error here:
+    - source: nolite
+      target: de glädjas
+    - source: gaudent
+      target: vägra
+    - source: Romani eos vincebant
+      target: de undervisade romarna
+    - source: Romanos docebant
+      target: romarna besegrade dem
+    - source: viri eos rapiebant
+      target: de inbjöd männen
+    - source: viros invitabant
+      target: männen rövade dem
+    - source: Etrusci auspicia observabant
+      target: de var bönder
+    - source: Romani agricolae erant
+      target: de iakttog omen
+    - source: rex terras observabat
+      target: de var män
+    - source: Romani viri erant
+      target: kungen iakttog länder
+    - source: autem Sabini feminas habebant
+      target: men var romarna svekfulla
+    - source: autem Romani fallaces erant
+      target: men hade sabinarna kvinnor
+    - source: etiam Sabini religionem habebant
+      target: redan var romarna besegrade
+    - source: iam Romani victi erant
+      target: även hade sabinarna religionen
+    - source: Sabini libros amabant
+      target: de var inte romanska barn
+    - source: iuvenes libri Romani non erant
+      target: sabinarna älskade barnen
+    - source: Sabini mulieres amabant
+      target: de var sabinska barn
+    - source: iuvenes libri Sabini erant
+      target: sabinarna älskade fruarna
+    - source: Sabini viris Romanis dicunt
+      target: de vill döda de romanska männen
+    - source: Romani cum eis contendebant
+      target: de sammandrabbade romarna
+    - source: Romani eos docebant
+      target: de undervisade romarna
+
+- name: "Eng->Swe"
+  description: "Eng->Swe"
+  settings:
+    grammar: "exemplum/Exemplum"
+  languages:
+    source: "ExemplumEng"
+    target: "ExemplumSwe"
+  exercises:
+    - source: many kings love Paris
+      target: en god kung läser en bok
+
+- name: "Eng->Lat"
+  description: "Eng->Lat"
+  settings:
+    grammar: "exemplum/Exemplum"
+  languages:
+    source: "ExemplumEng"
+    target: "ExemplumLat"
+  exercises:
+    - source: many kings love Paris
+      target: rex bonus librum legit
+
+- name: "Eng->Spa"
+  description: "Eng->Spa"
+  settings:
+    grammar: "exemplum/Exemplum"
+  languages:
+    source: "ExemplumEng"
+    target: "ExemplumSpa"
+  exercises:
+    - source: many kings love Paris
+      # My girfriend says that it's "un buen rey lee un libro"...
+      target: un bueno rey lee un libro
+
+- name: "Eng->Chi"
+  description: "Eng->Chi"
+  settings:
+    grammar: "exemplum/Exemplum"
+  languages:
+    source: "ExemplumEng"
+    target: "ExemplumChi"
+  exercises:
+    - source: many kings love Paris
+      target:  一 个 好 国 王 读 一 本 书 
+
+- name: "Eng->Ara"
+  description: "Eng->Ara"
+  settings:
+    grammar: "exemplum/Exemplum"
+  languages:
+    source: "ExemplumEng"
+    target: "ExemplumAra"
+  exercises:
+    - source: many kings love Paris
+      target:  يَقْرَأُ مَلِكٌ جوَيِّدٌ كِتابً 
+
+- name: "Eng->Test"
+  description: "Eng->Test"
+  settings:
+    grammar: "exemplum/Exemplum"
+  languages:
+    source: "ExemplumEng"
+    target: "ExemplumTest"
+  exercises:
+    - source: many kings love Paris
+      target: the girl read book

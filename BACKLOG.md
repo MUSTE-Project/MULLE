@@ -59,3 +59,10 @@ In `muste-ajax/src/Protocol.hs:203`:
 
     -- TODO We are not utilizing the memoization by "running" the
     -- 'GrammarT' here.
+
+Configuration options
+---
+
+It would be nice to find a simpler way of managing configuration
+options/the environment.  See [the relevant section in the readme
+file](README.md#An abundance of configuration methods).
