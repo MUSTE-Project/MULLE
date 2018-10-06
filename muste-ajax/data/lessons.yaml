@@ -8,8 +8,8 @@
     repeatable: yes
   search-options:
     # Leaving out the key means that the search will be unrestricted.
-    depth: 1
-    size: 1
+    # depth: 4
+    size: 8
   languages:
     source: "PrimaLat"
     target: "PrimaSwe"
@@ -40,15 +40,14 @@
   settings:
     grammar: "novo_modo/Secunda"
   search-options:
-    depth: 1
-    size: 1
+    size: 6
   languages:
     source: "SecundaLat"
     target: "SecundaSwe"
   exercises:
-    # There's an error here:
-    - source: nolite
-      target: de glädjas
+    # Imperative has been removed from SecundaLat, because the RGL has changed:
+    # - source: nolite
+    #   target: de glädjas
     - source: gaudent
       target: vägra
     - source: Romani eos vincebant
@@ -92,6 +91,8 @@
 
 - name: "Eng->Swe"
   description: "Eng->Swe"
+  search-options:
+    size: 7
   settings:
     grammar: "exemplum/Exemplum"
   languages:
@@ -103,6 +104,9 @@
 
 - name: "Eng->Lat"
   description: "Eng->Lat"
+  search-options:
+    # The Latin grammar is extremely ambiguous
+    size: 1
   settings:
     grammar: "exemplum/Exemplum"
   languages:
@@ -114,6 +118,8 @@
 
 - name: "Eng->Spa"
   description: "Eng->Spa"
+  search-options:
+    size: 7
   settings:
     grammar: "exemplum/Exemplum"
   languages:
@@ -126,6 +132,8 @@
 
 - name: "Eng->Chi"
   description: "Eng->Chi"
+  search-options:
+    size: 7
   settings:
     grammar: "exemplum/Exemplum"
   languages:
@@ -137,6 +145,8 @@
 
 - name: "Eng->Ara"
   description: "Eng->Ara"
+  search-options:
+    size: 7
   settings:
     grammar: "exemplum/Exemplum"
   languages:
@@ -148,6 +158,8 @@
 
 - name: "Eng->Test"
   description: "Eng->Test"
+  search-options:
+    size: 7
   settings:
     grammar: "exemplum/Exemplum"
   languages:
