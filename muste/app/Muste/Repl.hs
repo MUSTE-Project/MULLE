@@ -19,7 +19,7 @@ module Muste.Repl
   , Env(..)
   ) where
 
-import Prelude (Float)
+import Prelude ()
 import Muste.Prelude
 import System.Console.Repline
   (HaskelineT, runHaskelineT)
@@ -32,8 +32,6 @@ import qualified Data.Containers              as Mono
 import qualified Data.List                    as List
 import Control.Monad.State.Strict
 import Control.Monad.Reader
-import System.CPUTime (getCPUTime)
-import Text.Printf (printf)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 
@@ -106,21 +104,19 @@ askPruneOpts = lift $ asks @Options pruneOpts
 updateMenu ∷ Text → Repl ()
 updateMenu s = do
   ctxt ← getContext
-  liftIO $ timeCommand "Precalculate adjunction trees" $ do
-    let adjtrees = Mono.mapToList $ Linearization.ctxtPrecomputed ctxt
-    let adjsizes = [ (cat, length trees) | (cat, trees) <- adjtrees ]
-    printf "\nN:o adjunction trees = %d\n" (sum (map snd adjsizes))
   m ← getMenuFor s
   verb ← getPrintNodes
   comp ← getCompact
+  let menuList = Mono.mapToList m
   let compDoc = Doc.vsep
-        $  [ Doc.fill 60 "Selection" <+> "N:o menu items"
+        $  [ Doc.fill 60 "Selection" <+> "N:o menu items, total:" 
+             <+> pretty (sum (map (length . snd) menuList))
            ]
-        <> (purdy <$> Mono.mapToList m)
+        <> (purdy <$> menuList)
   let doc = if
         | comp      → compDoc
         | otherwise → prettyMenu verb ctxt s m
-  liftIO $ timeCommand "Update menu" $ do
+  liftIO $ do
     Text.putStrLn $ "Sentence is now: " <> s
     putDocLn doc
     where
@@ -128,15 +124,6 @@ updateMenu s = do
       = Doc.fill 60
             (pretty sel <> ":" <+> prettyLin sel (Text.words s))
         <+> pretty (length items)
-
-timeCommand :: String -> IO a -> IO a
-timeCommand title cmd = do
-    time0 <- getCPUTime
-    result <- cmd
-    time1 <- getCPUTime
-    let secs :: Float = fromInteger (time1-time0) * 1e-12
-    printf "\n>>> %s: %.2f s <<<\n\n" title secs
-    return result
 
 prettyMenu ∷ ∀ a . Bool → Context → Text → Menu → Doc a
 prettyMenu verbose ctxt s = Doc.vsep . fmap (uncurry go) . open

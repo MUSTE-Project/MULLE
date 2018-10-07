@@ -13,7 +13,7 @@ import Prelude as X
   Enum(..), Num(..),
 
   -- Data
-  IO, Int, Integer, Maybe(..), Either(..), Bool(..), Char,
+  IO, Int, Integer, Float, Maybe(..), Either(..), Bool(..), Char,
   -- Aliases
   String, FilePath,
 

@@ -24,10 +24,10 @@ import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees.Internal
 
 #ifdef DIAGNOSTICS
-import Muste.Common
-import qualified Data.Text.Prettyprint.Doc as Doc
 import System.IO.Unsafe
-
+import System.CPUTime (getCPUTime)
+import Muste.Common (putDocLn)
+import qualified Data.Text.Prettyprint.Doc as Doc
 import qualified Muste.Tree.Internal as Tree
 #endif
 
@@ -36,7 +36,7 @@ import qualified Muste.Tree.Internal as Tree
 data BuilderInfo = BuilderInfo
   { searchDepth ∷ Maybe Int
   , searchSize  ∷ Maybe Int
-  }
+  } deriving Show
 
 instance Semigroup BuilderInfo where
   BuilderInfo a0 a1 <> BuilderInfo b0 b1
@@ -52,7 +52,7 @@ instance Monoid BuilderInfo where
 -- that have this type.
 getAdjunctionTrees ∷ BuilderInfo → Grammar → AdjunctionTrees
 getAdjunctionTrees builderInfo@BuilderInfo{..} grammar
-  =   dbg diagnose
+  =   diagnose builderInfo
   $   AdjunctionTrees
   $   Map.fromListWith mappend
   $   (>>= regroup)
@@ -79,37 +79,23 @@ getAdjunctionTrees builderInfo@BuilderInfo{..} grammar
   bEnv ∷ BuilderEnv
   bEnv = BuilderEnv { builderInfo , ruleGen }
 
-dbg ∷ (a → IO b) → a → a
+diagnose ∷ BuilderInfo → AdjunctionTrees → AdjunctionTrees
 #ifdef DIAGNOSTICS
-dbg f a = unsafePerformIO (f a) `seq` a
+diagnose builderInfo ats@(AdjunctionTrees adjTrees) = unsafePerformIO $ do
+  printf ">> Building adjunction trees, %s\n" (show builderInfo)
+  time0 <- getCPUTime
+  let trees  = Map.toList adjTrees >>= \(_, ts) → ts
+  let sizes  = Map.toList $ Map.fromListWith (+) $ (\t0 → (Tree.countNodes t0, 1)) <$> trees
+  let depths = Map.toList $ Map.fromListWith (+) $ (\t0 → (Tree.treeDepth  t0, 1)) <$> trees
+  printf "   Sizes  [(size, nr.trees)]: %s\n" (show sizes)
+  printf "   Depths [(depth,nr.trees)]: %s\n" (show depths)
+  printf "   Total number of adj.trees: %d\n" (length trees)
+  time1 <- getCPUTime
+  let secs :: Float = fromInteger (time1-time0) * 1e-12
+  printf "<< Building adjunction trees: %.2f s\n\n" secs
+  return ats
 #else
-dbg _ = identity
-#endif
-
-diagnose ∷ AdjunctionTrees → IO ()
-#ifdef DIAGNOSTICS
-diagnose (AdjunctionTrees adjTrees) = putDocLn $ Doc.sep 
-  [ pretty @Text "Tree sizes [(size, nr.trees)]:"
-  , indent $ pretty sizes
-  , pretty @Text "Tree depths [(depth, nr.trees)]:"
-  , indent $ pretty depths
-  ]
-  where
-  trees  ∷  [TTree]
-  trees  =  Map.toList adjTrees >>= \(_, ts) → ts
-  sizes  ∷  [(Int, Int)]
-  sizes  =  Map.toList
-         $  Map.fromListWith (+)
-         $  (\t0 → (Tree.countNodes t0, 1))
-        <$> trees
-  depths ∷  [(Int, Int)]
-  depths =  Map.toList
-         $  Map.fromListWith (+)
-         $  (\t0 → (Tree.treeDepth t0, 1))
-        <$> trees
-  indent =  Doc.indent 2
-#else
-diagnose = error "Not diagnosing"
+diagnose = identity
 #endif
 
 data BuilderEnv = BuilderEnv
