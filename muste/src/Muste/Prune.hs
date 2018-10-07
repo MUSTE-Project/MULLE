@@ -174,24 +174,6 @@ collectSimilarTrees = do
         getSimTrees = onlyKeepCheapest <$> similarTreesForSubtree tree
   traverse go $ Tree.getAllPaths basetree
 
--- FIXME Quadratic in the length of 'simtrees'.  Even though this is
--- quadratic, profiling shows that this is negliciable.
---
--- FIXME Shouldn't the condition that the edge between two nodes is
--- less than or equal to the cost be vacously true? -- No! This is the
--- whole point.  Consider the following graph of costs:
---
---     orig: [(a, 2), (b, 4)]
---     a   : [(b, 1)]
---
--- After calculating the shortest path (which I assume is what is
--- stored in a 'SimTree'.  We get the folloing graph:
---
---     orig: [(a, 2), (b, 3)]
---
--- And here it can be seen that the shortest path from @orig@ to @b@
--- is cheaper than the edge cost.  So therefore, we must *exclude* the
--- edge @(orig, b)@ from the result.
 -- | If the direct edge to another node is more expensive than the
 -- shortest path, then it means we can reach this tree via a series of
 -- other edits, so we exclude this.
@@ -213,56 +195,6 @@ keepWith p xs = do
 directMoreExpensive ∷ SimTree → SimTree → Bool
 directMoreExpensive (cost, t, _, _) (cost', t', _, _)
   = cost' < cost && t' `treeDiff` t < cost
-
--- Profiling reveals that this function is really heavy.  Quoting the
--- relevant bits:
---
---                                                                                                     individual      inherited
---     COST CENTRE                                 MODULE                         no.       entries  %time %alloc   %time %alloc
---     collectSimilarTrees                         Muste.Prune                    20648          2    0.0    0.0    32.6   45.3
---      collectSimilarTrees.go                     Muste.Prune                    20651         29    0.0    0.0    32.5   45.3
---       compare                                   Muste.Tree.Internal            20955        437    0.0    0.0     0.0    0.0
---        compare                                  Muste.Tree.Internal            20956        264    0.0    0.0     0.0    0.0
---       collectSimilarTrees.go.simtrees           Muste.Prune                    20664         29    0.0    0.0    32.5   45.3
---        similarTreesForSubtree                   Muste.Prune                    20668         29    0.0    0.0    32.2   44.8
---         similarTreesForSubtree.cat              Muste.Prune                    20835         29    0.0    0.0     0.0    0.0
---         similarTreesForSubtree.metas            Muste.Prune                    20838         29    0.0    0.0     0.0    0.0
---          ...
---         similarTreesForSubtree.trees            Muste.Prune                    20731         29    0.0    0.0     0.0    0.0
---          ...
---         similarTrees                            Muste.Prune                    20669         29    0.0    0.0    32.2   44.8
---          insertBranches                         Muste.Prune                    20920        461    0.0    0.0     0.0    0.0
---           insertBranches.ins                    Muste.Prune                    20921        461    0.0    0.0     0.0    0.0
---          treeDiff                               Muste.Prune                    20923        461    0.0    0.0     0.0    0.0
---           ...
---          filterTrees                            Muste.Prune                    20730        139    0.1    0.0    32.2   44.7
---           heuristics                            Muste.Prune                    20846     417034    0.2    0.2    32.1   44.7
---            disjoint                             Muste.Prune                    20847     417034    0.1    0.2     8.7    6.6
---             ...
---            heuristics.funs'                     Muste.Prune                    20887     389737    0.1    0.0    22.6   37.3
---             getFunctions                        Muste.Grammar.Internal         20888          0    1.2    0.0    22.5   37.3
---              getFunctions.\                     Muste.Grammar.Internal         20889    4065372    3.8   15.4    21.3   37.3
---               mconcat                           Data.MultiSet                  20890    4065372    0.4    0.0    17.4   21.9
---                unions                           Data.MultiSet                  20891    4065372    0.3    0.0    17.0   21.9
---                 foldlStrict                     Data.MultiSet                  20892   11806379    1.9    0.0    16.7   21.9
---                  foldlStrict.z'                 Data.MultiSet                  20893    7741007    0.7    0.0    14.9   21.9
---                   union                         Data.MultiSet                  20894    7741007   11.1   21.9    14.2   21.9
---                    compare                      Muste.Grammar.Internal         20896    9833223    3.1    0.0     3.1    0.0
---               singleton                         Data.MultiSet                  20895    4065372    0.0    0.0     0.0    0.0
---            ==                                   Data.MultiSet                  20857      41678    0.0    0.0     0.0    0.0
---             unMS                                Data.MultiSet                  20867      83356    0.0    0.0     0.0    0.0
---            heuristics.funs                      Muste.Prune                    20852        139    0.0    0.0     0.0    0.0
---             ...
---            getMetas                             Muste.Grammar.Internal         20868          0    0.1    0.0     0.6    0.6
---             ...
---          pruneTree                              Muste.Prune                    20670         29    0.0    0.0     0.0    0.0
---           ...
---        onlyKeepCheapest                         Muste.Prune                    20666          0    0.0    0.0     0.3    0.6
---         ...
---       collectSimilarTrees.go.tree               Muste.Prune                    20672         29    0.0    0.0     0.0    0.0
---        ...
---      getAllPaths                                Muste.Tree.Internal            20649          2    0.0    0.0     0.0    0.0
---       ...
 
 similarTreesForSubtree ∷ Pruner m ⇒ TTree → m [SimTree]
 similarTreesForSubtree tree = do
