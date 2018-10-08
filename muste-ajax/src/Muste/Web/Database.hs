@@ -1,7 +1,7 @@
 -- TODO Fix name shadowing.
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
 {-# Language QuasiQuotes, RecordWildCards, MultiWayIf #-}
-module Database
+module Muste.Web.Database
   ( MonadDB
   , DbT(DbT)
   , Db
@@ -52,14 +52,14 @@ import qualified Data.Time.Clock        as Time
 import qualified Data.Time.Format       as Time
 import Control.Monad.Reader
 
-import qualified Muste
-
 -- FIXME QuickCheck seems like a heavy dependency just to get access
 -- to `shuffle`.
 import qualified Test.QuickCheck as QC (shuffle, generate)
 
-import qualified Database.Types as Types
-import Types as Types
+import qualified Muste
+
+import qualified Muste.Web.Database.Types as Types
+import           Muste.Web.Types          as Types
 
 data Error
   = NoUserFound

@@ -122,15 +122,17 @@ library:
     - src
 
   exposed-modules:
-    - Ajax
-    - Database
-    - Database.Types
-    - Config
-    - Config.TH
-    - Protocol
-    - Common
+    - Muste.Web.Ajax
+    - Muste.Web.Database
+    - Muste.Web.Database.Types
+    - Muste.Web.Config
+    - Muste.Web.Config.Types
+    - Muste.Web.Config.AppConfig
+    - Muste.Web.Config.TH
+    - Muste.Web.Protocol
+    - Muste.Web.Common
+    - Muste.Web.Types
     - Database.SQLite.Simple.FromRow.Generic
-    - Types
 
   other-modules:
     - Paths_muste_ajax

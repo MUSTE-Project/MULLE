@@ -1,6 +1,6 @@
 {-# Language RecordWildCards, UndecidableInstances, DeriveAnyClass #-}
 {-# OPTIONS_GHC -Wall -Wcompat #-}
-module Protocol
+module Muste.Web.Protocol
   ( apiInit
   , AppState
   ) where
@@ -29,22 +29,22 @@ import Control.Monad.Base (MonadBase)
 import Data.String.Conversions (convertString)
 import qualified Snap.Util.CORS as Cors
 
-import Muste (Context, TTree)
+import           Muste (Context, TTree)
 import qualified Muste
 import qualified Muste.Sentence as Sentence
-import Muste.Sentence.Annotated (Annotated)
-import Muste.Sentence.Unannotated (Unannotated)
+import           Muste.Sentence.Annotated (Annotated)
+import           Muste.Sentence.Unannotated (Unannotated)
 import qualified Muste.Sentence.Unannotated as Unannotated
 import qualified Muste.Menu as Menu
 import qualified Muste.Linearization as Linearization
 
-import Common
+import           Muste.Web.Common
 
-import Ajax (ClientTree, ServerTree)
-import qualified Ajax
-import Database (MonadDB, MonadDatabaseError(..))
-import qualified Database
-import qualified Database.Types as Database
+import           Muste.Web.Ajax (ClientTree, ServerTree)
+import qualified Muste.Web.Ajax            as Ajax
+import           Muste.Web.Database (MonadDB, MonadDatabaseError(..))
+import qualified Muste.Web.Database        as Database
+import qualified Muste.Web.Database.Types  as Database
 
 -- | Maps a lesson to a map from grammars(-identifiers) to their
 -- corresponding contexts.
@@ -264,7 +264,7 @@ initContexts' conn = do
 
 
 -- | The main api.  For the protocol see @Protocol.apiRoutes@.
-apiInit ∷ String → Snap.SnapletInit a Protocol.AppState
+apiInit ∷ String → Snap.SnapletInit a AppState
 apiInit db = Snap.makeSnaplet "api" "MUSTE API" Nothing $ do
   Snap.wrapSite (Cors.applyCORS Cors.defaultOptions)
   registerRoutes db

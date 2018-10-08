@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wall -Wcompat #-}
 {-# language OverloadedStrings, DuplicateRecordFields , RecordWildCards,
   NamedFieldPuns #-}
-module Ajax
+module Muste.Web.Ajax
   ( ServerTree
   , ClientTree(ClientTree)
   , LessonInit(..)
@@ -29,8 +29,8 @@ import Muste
 import Muste.Sentence.Unannotated (Unannotated)
 import Muste.Sentence.Annotated (Annotated)
 
-import Database (Lesson2(..))
-import Types
+import Muste.Web.Database (Lesson2(..))
+import Muste.Web.Types
 
 newtype ClientTree = ClientTree { unClientTree ∷ Unannotated }
 

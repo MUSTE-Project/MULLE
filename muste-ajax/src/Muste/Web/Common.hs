@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language CPP #-}
-module Common
+module Muste.Web.Common
   ( showPretty
   , tracePretty
   , tracePrettyId
