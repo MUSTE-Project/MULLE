@@ -59,7 +59,8 @@ import qualified Test.QuickCheck as QC (shuffle, generate)
 import qualified Muste
 
 import qualified Muste.Web.Database.Types as Types
-import           Muste.Web.Types          as Types
+import           Muste.Web.Types.Score (Score)
+import qualified Muste.Web.Types.Score    as Score
 
 data Error
   = NoUserFound
@@ -553,7 +554,7 @@ finishExercise
   ⇒ Text            -- ^ Token
   → Text            -- ^ Lesson
   → NominalDiffTime -- ^ Time elapsed
-  → Types.Score     -- ^ Score
+  → Score     -- ^ Score
   → db ()
 finishExercise token lesson time clicks = do
   -- get user name
@@ -563,7 +564,7 @@ finishExercise token lesson time clicks = do
   ((sourceTree,targetTree):_)
     <- query @(Types.Unannotated, Types.Unannotated) selectExerciseListQuery (lesson,user,round)
   execute insertFinishedExerciseQuery
-    (user, lesson, sourceTree, targetTree, time, clicks + 1, round)
+    (user, lesson, sourceTree, targetTree, time, Score.incrScore clicks, round)
   -- check if all exercises finished
   [Only finishedCount] <- query @(Only Integer) countFinishesExercisesQuery (user,lesson)
   [Only exerciseCount] <- query @(Only Integer) countExercisesInLesson (Only lesson)

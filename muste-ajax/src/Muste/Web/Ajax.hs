@@ -29,8 +29,8 @@ import Muste
 import Muste.Sentence.Unannotated (Unannotated)
 import Muste.Sentence.Annotated (Annotated)
 
-import Muste.Web.Database (Lesson2(..))
-import Muste.Web.Types
+import           Muste.Web.Database (Lesson2(..))
+import           Muste.Web.Types.Score (Score)
 
 newtype ClientTree = ClientTree { unClientTree ∷ Unannotated }
 

@@ -124,7 +124,7 @@ library:
   exposed-modules:
     - Muste.Web.Ajax
     - Muste.Web.Database
-    - Muste.Web.Database.Types
+    - Muste.Web.Database.Types.Score
     - Muste.Web.Config
     - Muste.Web.Config.Types
     - Muste.Web.Config.AppConfig

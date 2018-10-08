@@ -45,6 +45,7 @@ import qualified Muste.Web.Ajax            as Ajax
 import           Muste.Web.Database (MonadDB, MonadDatabaseError(..))
 import qualified Muste.Web.Database        as Database
 import qualified Muste.Web.Database.Types  as Database
+import qualified Muste.Web.Types.Score     as Score
 
 -- | Maps a lesson to a map from grammars(-identifiers) to their
 -- corresponding contexts.
@@ -405,7 +406,7 @@ handleLessonInit lesson = do
   verifyMessage $ Ajax.MenuList
     { lesson  = lesson
     , passed  = False
-    , score   = 0
+    , score   = mempty
     , src     = a
     , trg     = b
     }
@@ -444,7 +445,7 @@ handleMenuRequest Ajax.MenuRequest{..} = do
   verifyMessage $ Ajax.MenuList
     { lesson = lesson
     , passed = finished
-    , score  = succ score
+    , score  = Score.incrScore score
     , src    = a
     , trg    = b
     }
