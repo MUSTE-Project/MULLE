@@ -60,7 +60,6 @@ import qualified Muste
 
 import qualified Muste.Web.Database.Types as Types
 import           Muste.Web.Types.Score (Score)
-import qualified Muste.Web.Types.Score    as Score
 
 data Error
   = NoUserFound
@@ -556,7 +555,7 @@ finishExercise
   → NominalDiffTime -- ^ Time elapsed
   → Score     -- ^ Score
   → db ()
-finishExercise token lesson time clicks = do
+finishExercise token lesson time score = do
   -- get user name
   user ← getUser token
   -- get lesson round
@@ -564,7 +563,7 @@ finishExercise token lesson time clicks = do
   ((sourceTree,targetTree):_)
     <- query @(Types.Unannotated, Types.Unannotated) selectExerciseListQuery (lesson,user,round)
   execute insertFinishedExerciseQuery
-    (user, lesson, sourceTree, targetTree, time, Score.incrScore clicks, round)
+    (user, lesson, sourceTree, targetTree, time, score, round)
   -- check if all exercises finished
   [Only finishedCount] <- query @(Only Integer) countFinishesExercisesQuery (user,lesson)
   [Only exerciseCount] <- query @(Only Integer) countExercisesInLesson (Only lesson)

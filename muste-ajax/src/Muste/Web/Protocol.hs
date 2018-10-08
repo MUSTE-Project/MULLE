@@ -430,11 +430,12 @@ handleMenuRequest Ajax.MenuRequest{..} = do
   verifySession
   c        ← askContexts
   finished ← oneSimiliarTree c lesson src trg
+  let newScore = Score.incrScore score
   act      ←
     if finished
     then do
       token ← getToken
-      Database.finishExercise token lesson time score
+      Database.finishExercise token lesson time newScore
       pure (\_ _ → emptyMenus)
     else pure assembleMenus
   let ann ∷ ClientTree → m Annotated
@@ -445,7 +446,7 @@ handleMenuRequest Ajax.MenuRequest{..} = do
   verifyMessage $ Ajax.MenuList
     { lesson = lesson
     , passed = finished
-    , score  = Score.incrScore score
+    , score  = newScore
     , src    = a
     , trg    = b
     }
