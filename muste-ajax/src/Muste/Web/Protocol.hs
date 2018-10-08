@@ -235,8 +235,26 @@ setResponseCode s = case s of
   Code n → Snap.setResponseCode n
   CodeReason n r → Snap.setResponseStatus n (displayReason r)
 
+data Response a = Response
+  { body   ∷ a
+  , status ∷ Maybe HttpStatus
+  }
+
+instance Functor Response where
+  fmap f (Response b s) = Response (f b) s
+
+instance Applicative Response where
+  Response f0 b0 <*> Response a1 b1 = Response (f0 a1) (b0 *> b1)
+  pure a = Response a Nothing
+
+instance Semigroup a ⇒ Semigroup (Response a) where
+  Response a0 b0 <> Response a1 b1 = Response (a0 <> a1) (b0 *> b1)
+
+instance Monoid a ⇒ Monoid (Response a) where
+  mempty = Response mempty Nothing
+
 -- | Errors are returned as JSON responses.
-runProtocolT :: MonadSnap m ⇒ ToJSON a ⇒ ProtocolT m a → m ()
+runProtocolT :: MonadSnap m ⇒ ToJSON a ⇒ ProtocolT m (Response a) → m ()
 runProtocolT app = do
   Snap.modifyResponse (Snap.setContentType "application/json")
   res  ← runExceptT $ unProtocolT app
@@ -244,7 +262,10 @@ runProtocolT app = do
     Left err → do
        Snap.modifyResponse . setResponseCode . errResponseCode $ err
        Snap.writeLBS $ encode err
-    Right resp → Snap.writeLBS $ encode resp
+    Right resp → respond resp
+
+respond ∷ MonadSnap m ⇒ ToJSON a ⇒ Response a → m ()
+respond Response{..} = Snap.writeLBS $ encode body
 
 openConnection ∷ MonadIO io ⇒ String → io Connection
 openConnection = liftIO . SQL.open
@@ -269,7 +290,6 @@ initContexts' conn = do
   Database.runDbT initContexts conn >>= \case
     Left e → liftIO $ throw e
     Right a → pure a
-
 
 -- | The main api.  For the protocol see @Protocol.apiRoutes@.
 apiInit ∷ String → Snap.SnapletInit a AppState
@@ -302,23 +322,25 @@ apiRoutes =
       ⇒ MonadSnap snap
       ⇒ Muste.MonadGrammar snap
       ⇒ txt
-      → ProtocolT snap json
+      → ProtocolT snap (Response json)
       → (txt, snap ())
     t |> act = (t, runProtocolT act)
 
-createUserHandler ∷ MonadProtocol m ⇒ m ()
+createUserHandler ∷ MonadProtocol m ⇒ m (Response ())
 createUserHandler = do
   Ajax.User{..} ← getMessage
-  void $ Database.addUser name password True
+  Database.addUser name password True
+  pure mempty
 
 -- | Change password of the user.  The user currently (as of this
 -- writing) does not need to be authenticated to change their
 -- password.  They must simply provide their old password which is
 -- then checked against the database.
-changePwdHandler ∷ MonadProtocol m ⇒ m ()
+changePwdHandler ∷ MonadProtocol m ⇒ m (Response ())
 changePwdHandler = do
   Ajax.ChangePwd{..} ← getMessage
-  void $ Database.changePassword name oldPassword newPassword
+  Database.changePassword name oldPassword newPassword
+  pure mempty
 
 -- | Reads the data from the request and deserializes from JSON.
 getMessage ∷ ∀ json m . FromJSON json ⇒ MonadProtocol m => m json
@@ -344,26 +366,26 @@ getTokenCookie = Snap.getCookie "LOGIN_TOKEN"
 
 
 -- * Handlers
-lessonsHandler :: MonadProtocol m ⇒ m Ajax.LessonList
+lessonsHandler :: MonadProtocol m ⇒ m (Response Ajax.LessonList)
 lessonsHandler = do
   t ← getToken
   lessons ← Database.listLessons t
-  verifyMessage (Ajax.LessonList lessons)
+  pure <$> verifyMessage (Ajax.LessonList lessons)
 
-lessonHandler ∷ MonadProtocol m ⇒ m Ajax.MenuResponse
-lessonHandler = Snap.pathArg handleLessonInit
+lessonHandler ∷ MonadProtocol m ⇒ m (Response Ajax.MenuResponse)
+lessonHandler = pure <$> Snap.pathArg handleLessonInit
 
-menuHandler ∷ MonadProtocol m ⇒ m Ajax.MenuResponse
-menuHandler = getMessage >>= handleMenuRequest
+menuHandler ∷ MonadProtocol m ⇒ m (Response Ajax.MenuResponse)
+menuHandler = getMessage >>= fmap pure . handleMenuRequest
 
-loginHandler :: MonadProtocol m ⇒ m Ajax.LoginSuccess
+loginHandler :: MonadProtocol m ⇒ m (Response Ajax.LoginSuccess)
 loginHandler = Snap.method Snap.POST
-  $ getMessage >>= handleLoginRequest
+  $ getMessage >>= fmap pure . handleLoginRequest
 
-logoutHandler ∷ MonadProtocol m ⇒ m ()
+logoutHandler ∷ MonadProtocol m ⇒ m (Response ())
 logoutHandler
   = Snap.method Snap.POST
-  $ getToken >>= handleLogoutRequest
+  $ getToken >>= fmap pure . handleLogoutRequest
 
 setLoginCookie
   :: MonadProtocol m
@@ -400,19 +422,13 @@ handleLessonInit
   → m Ajax.MenuResponse
 handleLessonInit lesson = do
   token ← getToken
-  c <- askContexts
   (_sourceLang,sourceTree,_targetLang,targetTree)
     <- Database.startLesson token lesson
-  let
-    ann ∷ MonadError ProtocolError m ⇒ Unannotated → m Annotated
-    ann = annotate c lesson
-  src ← ann sourceTree
-  trg ← ann targetTree
-  let menu = assembleMenus c lesson src trg
+  menu ← assembleMenus lesson sourceTree targetTree
   verifyMessage $ Ajax.MenuResponse
     { lesson = lesson
     , score = mempty
-    , menu = Just menu
+    , menu = menu
     }
 
 -- | This request is called after the user selects a new sentence from
@@ -433,49 +449,45 @@ handleMenuRequest
 handleMenuRequest Ajax.MenuRequest{..} = do
   verifySession
   let newScore = Score.incrScore score
-  c        ← askContexts
-  finished ← oneSimiliarTree c lesson src trg
+  finished ← oneSimiliarTree lesson src trg
   menu ←
     if finished
     then do
       token ← getToken
       Database.finishExercise token lesson time newScore
       pure Nothing
-    else do
-      let ann ∷ ClientTree → m Annotated
-          ann (Ajax.ClientTree x) = annotate c lesson $ x
-      srcUnamb ← ann src
-      trgUnamb ← ann trg
-      pure $ Just $ assembleMenus c lesson srcUnamb trgUnamb
+    else assembleMenus lesson (un src) (un trg)
   verifyMessage $ Ajax.MenuResponse
     { lesson = lesson
     , score  = newScore
     , menu   = menu
     }
+  where
+  un (Ajax.ClientTree t) = t
 
 annotate
-  ∷ MonadError ProtocolError m
-  ⇒ Contexts
-  → Text
+  ∷ MonadProtocol m
+  ⇒ Text
   → Unannotated
   → m Annotated
-annotate cs lesson s = liftEither $ do
-  ctxt ← getContext cs lesson $ l
-  Unannotated.annotate
-    (ErrorCall $ "Unable to parse: " <> show s) ctxt s
-  where
-  l ∷ Sentence.Language
-  l = Sentence.language s
+annotate lesson s = do
+  cs ← askContexts
+  liftEither $ do
+    ctxt ← getContext cs lesson $ l
+    Unannotated.annotate
+      (ErrorCall $ "Unable to parse: " <> show s) ctxt s
+    where
+    l ∷ Sentence.Language
+    l = Sentence.language s
 
 oneSimiliarTree
   ∷ ∀ m
-  . MonadError ProtocolError m
-  ⇒ Contexts
-  → Text
+  . MonadProtocol m
+  ⇒ Text
   → ClientTree
   → ClientTree
   → m Bool
-oneSimiliarTree cs lesson src trg = do
+oneSimiliarTree lesson src trg = do
   srcS ← parse src
   trgS ← parse trg
   pure $ oneInCommon srcS trgS
@@ -483,21 +495,21 @@ oneSimiliarTree cs lesson src trg = do
   oneInCommon ∷ Ord a ⇒ Set a → Set a → Bool
   oneInCommon a b = not $ Set.null $ Set.intersection a b
   parse ∷ ClientTree → m (Set TTree)
-  parse = fmap Set.fromList . disambiguate cs lesson
+  parse = fmap Set.fromList . disambiguate lesson
 
 disambiguate
   ∷ ∀ m
-  . MonadError ProtocolError m
-  ⇒ Contexts
-  → Text
+  . MonadProtocol m
+  ⇒ Text
   → ClientTree
   → m [TTree]
-disambiguate cs lesson (Ajax.ClientTree t) = do
-  c ← getC t
-  pure $ Sentence.disambiguate c t
-    where
+disambiguate lesson (Ajax.ClientTree t) = do
+  cs ← askContexts
+  let
     getC ∷ Unannotated → m Context
     getC u = liftEither $ getContext cs lesson (Sentence.language u)
+  c ← getC t
+  pure $ Sentence.disambiguate c t
 
 handleLogoutRequest ∷ MonadProtocol m ⇒ Text → m ()
 handleLogoutRequest = Database.endSession
@@ -547,17 +559,21 @@ mkContext Database.Lesson{..} = do
 -- | Gets the menus for a lesson.  This consists of a source tree and
 -- a target tree.
 assembleMenus
-  ∷ Contexts
-  → Text
-  → Annotated
-  → Annotated
-  → Ajax.MenuList
-assembleMenus c lesson src trg = Ajax.MenuList
-  { src = mkTree src
-  , trg = mkTree trg
-  }
-  where
-  mkTree = makeTree c lesson
+  ∷ MonadProtocol m
+  ⇒ Text
+  → Unannotated
+  → Unannotated
+  → m (Maybe Ajax.MenuList)
+assembleMenus lesson sourceTree targetTree = do
+  c ← askContexts
+  let mkTree = makeTree c lesson
+  let ann = annotate lesson
+  src ← ann sourceTree
+  trg ← ann targetTree
+  pure $ Just $ Ajax.MenuList
+    { src = mkTree src
+    , trg = mkTree trg
+    }
 
 getContext
   ∷ MonadThrow m
