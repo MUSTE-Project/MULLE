@@ -106,23 +106,23 @@ type RuleGen = Category → [Rule]
 
 getAdjTrees :: BuilderEnv -> Category -> [TTree]
 getAdjTrees (BuilderEnv (BuilderInfo depthLimit sizeLimit) ruleGen) startCat
-    = [ tree | (tree, _, _) <- adjTs startCat 0 0 [] ]
-    where adjTs :: Category -> Int -> Int -> [Category] -> [(TTree, Int, [Category])]
+    = [ tree | (tree, _) <- adjTs startCat 0 0 [] ]
+    where adjTs :: Category -> Int -> Int -> [Category] -> [(TTree, Int)]
           adjTs cat depth size visited =
-              (TMeta cat, size, visited) :
+              (TMeta cat, size) :
               do guard (depth `less` depthLimit &&
                         size `less` sizeLimit &&
                         cat `notElem` visited)
                  Function fun typ@(Fun _cat childcats) <- ruleGen cat
-                 (children, size', visited') <- adjCs childcats (depth+1) (size+1) (cat : visited)
-                 return (TNode fun typ children, size', visited')
+                 (children, size') <- adjCs childcats (depth+1) (size+1) (cat : visited)
+                 return (TNode fun typ children, size')
 
-          adjCs :: [Category] -> Int -> Int -> [Category] -> [([TTree], Int, [Category])]
-          adjCs [] _depth size visited = return ([], size, visited)
+          adjCs :: [Category] -> Int -> Int -> [Category] -> [([TTree], Int)]
+          adjCs [] _depth size _visited = return ([], size)
           adjCs (cat:cats) depth size visited =
-              do (tree, size', visited') <- adjTs cat depth size visited
-                 (trees, size'', visited'') <- adjCs cats depth size' visited'
-                 return (tree:trees, size'', visited'')
+              do (tree, size') <- adjTs cat depth size visited
+                 (trees, size'') <- adjCs cats depth size' visited
+                 return (tree:trees, size'')
 
           value `less` Just limit = value < limit
           _     `less` Nothing    = True
