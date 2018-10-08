@@ -16,6 +16,7 @@ import Muste.Prelude
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.MultiSet (MultiSet)
+import Data.Text (isPrefixOf)
 
 import Muste.Tree
 import Muste.Grammar
@@ -23,10 +24,11 @@ import Muste.Grammar.Internal (Rule(Function))
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees.Internal
 
+import qualified Muste.Tree.Internal as Tree
+
 #ifdef DIAGNOSTICS
 import System.IO.Unsafe
 import System.CPUTime (getCPUTime)
-import qualified Muste.Tree.Internal as Tree
 #endif
 
 -- * Creating adjunction trees.
@@ -73,9 +75,14 @@ getAdjunctionTrees builderInfo@BuilderInfo{..} grammar
   allRules = Map.fromListWith mappend $ catRule <$> Grammar.getAllRules grammar
   ruleGen ∷ RuleGen
   ruleGen cat = Map.findWithDefault mempty cat allRules
+  defaultTree ∷ Map Category TTree
+  defaultTree = Map.fromList [ (cat, TNode fun typ []) |
+                               (cat, rules) <- Map.toList allRules,
+                               rule@(Function fun typ) <- rules,
+                               isDefaultRule rule ]
 
   bEnv ∷ BuilderEnv
-  bEnv = BuilderEnv { builderInfo , ruleGen }
+  bEnv = BuilderEnv { builderInfo , ruleGen , defaultTree }
 
 diagnose ∷ BuilderInfo → AdjunctionTrees → AdjunctionTrees
 #ifdef DIAGNOSTICS
@@ -99,23 +106,37 @@ diagnose = identity
 data BuilderEnv = BuilderEnv
   { builderInfo ∷ BuilderInfo
   , ruleGen     ∷ RuleGen
+  , defaultTree ∷ Map Category TTree 
   }
 
 type RuleGen = Category → [Rule]
 
 
+-- | A default rule is hard-coded to be a grammar rule whose name starts with "default".
+-- The rule is not allowed to have any children.
+-- TODO: This is a bit hacky, hoping there is a better solution.
+isDefaultRule ∷ Rule → Bool
+isDefaultRule (Function fun (Fun _cat childcats))
+    | "default" `isPrefixOf` Tree.unCategory fun 
+        = null childcats ||
+          error ("Default rule " ++ show fun ++ ": must have empty children")
+isDefaultRule _ = False
+
+
 getAdjTrees :: BuilderEnv -> Category -> [TTree]
-getAdjTrees (BuilderEnv (BuilderInfo depthLimit sizeLimit) ruleGen) startCat
+getAdjTrees (BuilderEnv (BuilderInfo depthLimit sizeLimit) ruleGen defaultTree) startCat
     = [ tree | (tree, _) <- adjTs startCat 0 0 [] ]
     where adjTs :: Category -> Int -> Int -> [Category] -> [(TTree, Int)]
           adjTs cat depth size visited =
               (TMeta cat, size) :
-              do guard (depth `less` depthLimit &&
-                        size `less` sizeLimit &&
-                        cat `notElem` visited)
-                 Function fun typ@(Fun _cat childcats) <- ruleGen cat
-                 (children, size') <- adjCs childcats (depth+1) (size+1) (cat : visited)
-                 return (TNode fun typ children, size')
+              case (depth > 0, Map.lookup cat defaultTree) of
+                (True, Just tree) -> return (tree, size+1)
+                _ -> do guard (depth `less` depthLimit &&
+                               size `less` sizeLimit &&
+                               cat `notElem` visited)
+                        Function fun typ@(Fun _cat childcats) <- ruleGen cat
+                        (children, size') <- adjCs childcats (depth+1) (size+1) (cat : visited)
+                        return (TNode fun typ children, size')
 
           adjCs :: [Category] -> Int -> Int -> [Category] -> [([TTree], Int)]
           adjCs [] _depth size _visited = return ([], size)
