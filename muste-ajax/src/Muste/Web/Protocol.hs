@@ -432,24 +432,21 @@ handleMenuRequest
   → m Ajax.MenuResponse
 handleMenuRequest Ajax.MenuRequest{..} = do
   verifySession
+  let newScore = Score.incrScore score
   c        ← askContexts
   finished ← oneSimiliarTree c lesson src trg
-  let newScore = Score.incrScore score
-  act      ←
+  menu ←
     if finished
     then do
       token ← getToken
       Database.finishExercise token lesson time newScore
-      pure (\_ _ → emptyMenus)
-    else pure assembleMenus
-  let ann ∷ ClientTree → m Annotated
-      ann (Ajax.ClientTree x) = annotate c lesson $ x
-  srcUnamb ← ann src
-  trgUnamb ← ann trg
-  let menuList = act c lesson srcUnamb trgUnamb
-  let menu = if finished
-        then Nothing
-        else Just $ menuList
+      pure Nothing
+    else do
+      let ann ∷ ClientTree → m Annotated
+          ann (Ajax.ClientTree x) = annotate c lesson $ x
+      srcUnamb ← ann src
+      trgUnamb ← ann trg
+      pure $ Just $ assembleMenus c lesson srcUnamb trgUnamb
   verifyMessage $ Ajax.MenuResponse
     { lesson = lesson
     , score  = newScore
@@ -600,22 +597,3 @@ makeTree c lesson s
   menu = Muste.getMenu (mempty @Menu.PruneOpts) ctxt (Sentence.linearization s)
   ctxt = throwLeft $ getContext c lesson language
   language = Sentence.language s
-
-emptyMenus
-  ∷ Annotated -- ^ Source sentence
-  → Annotated -- ^ Target sentence
-  → Ajax.MenuList
-emptyMenus src trg = Ajax.MenuList
-  { src = mkTree src
-  , trg = mkTree trg
-  }
-  where
-  -- FIXME In 'assembleMenus' we actually use the language of the tree
-  -- we're building.  Investigate if this may be a bug.  Similiarly
-  -- for 'lin'.  This is the reason we are not using 'makeTree' here.
-  mkTree ∷ Annotated → ServerTree
-  mkTree s
-    = Ajax.ServerTree (Sentence.sentence language lin) mempty
-    where
-    lin = Sentence.linearization s
-    language = Sentence.language s
