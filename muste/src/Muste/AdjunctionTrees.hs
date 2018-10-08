@@ -26,8 +26,6 @@ import Muste.AdjunctionTrees.Internal
 #ifdef DIAGNOSTICS
 import System.IO.Unsafe
 import System.CPUTime (getCPUTime)
-import Muste.Common (putDocLn)
-import qualified Data.Text.Prettyprint.Doc as Doc
 import qualified Muste.Tree.Internal as Tree
 #endif
 
@@ -84,9 +82,9 @@ diagnose ∷ BuilderInfo → AdjunctionTrees → AdjunctionTrees
 diagnose builderInfo ats@(AdjunctionTrees adjTrees) = unsafePerformIO $ do
   printf ">> Building adjunction trees, %s\n" (show builderInfo)
   time0 <- getCPUTime
-  let trees  = Map.toList adjTrees >>= \(_, ts) → ts
-  let sizes  = Map.toList $ Map.fromListWith (+) $ (\t0 → (Tree.countNodes t0, 1)) <$> trees
-  let depths = Map.toList $ Map.fromListWith (+) $ (\t0 → (Tree.treeDepth  t0, 1)) <$> trees
+  let trees  ∷ [TTree]     = Map.toList adjTrees >>= \(_, ts) → ts
+  let sizes  ∷ [(Int,Int)] = Map.toList $ Map.fromListWith (+) $ (\t0 → (Tree.countNodes t0, 1)) <$> trees
+  let depths ∷ [(Int,Int)] = Map.toList $ Map.fromListWith (+) $ (\t0 → (Tree.treeDepth  t0, 1)) <$> trees
   printf "   Sizes  [(size, nr.trees)]: %s\n" (show sizes)
   printf "   Depths [(depth,nr.trees)]: %s\n" (show depths)
   printf "   Total number of adj.trees: %d\n" (length trees)
@@ -112,10 +110,10 @@ getAdjTrees (BuilderEnv (BuilderInfo depthLimit sizeLimit) ruleGen) startCat
     where adjTs :: Category -> Int -> Int -> [Category] -> [(TTree, Int, [Category])]
           adjTs cat depth size visited =
               (TMeta cat, size, visited) :
-              do guard $ cat `notElem` visited
-                 guardLimit depthLimit depth
-                 guardLimit sizeLimit size
-                 Function fun typ@(Fun _ childcats) <- ruleGen cat
+              do guard (depth `less` depthLimit &&
+                        size `less` sizeLimit &&
+                        cat `notElem` visited)
+                 Function fun typ@(Fun _cat childcats) <- ruleGen cat
                  (children, size', visited') <- adjCs childcats (depth+1) (size+1) (cat : visited)
                  return (TNode fun typ children, size', visited')
 
@@ -126,7 +124,7 @@ getAdjTrees (BuilderEnv (BuilderInfo depthLimit sizeLimit) ruleGen) startCat
                  (trees, size'', visited'') <- adjCs cats depth size' visited'
                  return (tree:trees, size'', visited'')
 
-          guardLimit (Just limit) value = guard $ value < limit
-          guardLimit Nothing _ = return ()
+          value `less` Just limit = value < limit
+          _     `less` Nothing    = True
   
 
