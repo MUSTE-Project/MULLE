@@ -21,7 +21,6 @@ import Data.ByteString (ByteString)
 import Snap (MonadSnap)
 import qualified Snap
 import qualified System.IO.Streams as Streams
-import Data.Time
 import Control.Monad.Catch (MonadThrow(throwM))
 import Control.Exception
   (Exception, ErrorCall(ErrorCall))
@@ -347,10 +346,7 @@ lessonHandler ∷ MonadProtocol m ⇒ m Ajax.MenuList
 lessonHandler = Snap.pathArg handleLessonInit
 
 menuHandler ∷ MonadProtocol m ⇒ m Ajax.MenuList
-menuHandler = do
-  Ajax.MenuRequest{..} ← getMessage
-  token ← getToken
-  handleMenuRequest token lesson score time src trg
+menuHandler = getMessage >>= handleMenuRequest
 
 loginHandler :: MonadProtocol m ⇒ m Ajax.LoginSuccess
 loginHandler = Snap.method Snap.POST $ do
@@ -429,21 +425,17 @@ handleLessonInit lesson = do
 handleMenuRequest
   ∷ ∀ m
   . MonadProtocol m
-  ⇒ Text            -- ^ Token
-  → Text            -- ^ Lesson
-  → Integer         -- ^ Clicks
-  → NominalDiffTime -- ^ Time elapsed
-  → ClientTree      -- ^ Source tree
-  → ClientTree      -- ^ Target tree
+  ⇒ Ajax.MenuRequest
   → m Ajax.MenuList
-handleMenuRequest token lesson clicks time src trg = do
+handleMenuRequest Ajax.MenuRequest{..} = do
+  token ← getToken
   c <- askContexts
   verifySession
   finished ← oneSimiliarTree c lesson src trg
   act <-
     if finished
     then do
-      Database.finishExercise token lesson time clicks
+      Database.finishExercise token lesson time score
       pure (\_ _ → emptyMenus)
     else pure assembleMenus
   -- Lift 'unambiguous' into 'IO' to enable throwing (IO) exceptions.
@@ -455,7 +447,7 @@ handleMenuRequest token lesson clicks time src trg = do
   verifyMessage $ Ajax.MenuList
     { lesson = lesson
     , passed = finished
-    , clicks = succ clicks
+    , clicks = succ score
     , src = a
     , trg = b
     }
