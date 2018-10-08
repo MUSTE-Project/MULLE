@@ -310,7 +310,7 @@ function show_exercise(parameters) {
   clean_server_data(DATA.src);
   clean_server_data(DATA.src);
   build_matching_classes(DATA);
-  show_sentences(DATA.src, DATA.trg);
+  show_sentences(DATA);
   $('#score').text(DATA.score);
   $('#lessoncounter').text(DATA.lesson + ': övning ' + EXERCISES[DATA.lesson].passed + ' av ' + EXERCISES[DATA.lesson].total);
   if (parameters.success) {
@@ -362,13 +362,15 @@ function build_matching_classes(data) {
   });
 }
 
-function show_sentences(src, trg) {
+function show_sentences(data) {
+  var src = data.src;
+  var trg = data.trg;
   var srcL = ct_linearization(src);
   var trgL = ct_linearization(trg);
   matchy_magic(srcL, trgL);
   matchy_magic(trgL, srcL);
-  show_lin('src', srcL);
-  show_lin('trg', trgL);
+  show_lin('src', srcL, src.menu);
+  show_lin('trg', trgL, trg.menu);
 }
 
 function all_classes(xs) {
@@ -412,31 +414,25 @@ function intersection(m, n) {
   return new Set([...m].filter(function(x) {return n.has(x);}));
 }
 
-function show_lin(lang, lin) {
-  function gen_space(validMenus, idx) {
+function show_lin(lang, lin, menu) {
+
+  function gen_item(validMenus, idx) {
     var spacyData = {
       nr: idx,
       lang: lang,
       'valid-menus': validMenus
     };
     return $('<span>')
-      .addClass('space clickable')
+      .addClass('clickable')
       .data(spacyData)
-      .click(click_word)
+      .click(click_word);
   }
-  var sentence = $('#' + lang).empty();
-  var menu = DATA[lang].menu;
-  // var tree = parse_tree(DATA[lang].tree);
-  for (var i=0; i < lin.length; i++) {
-    var linTok = lin[i];
-    var previous = i > 0 ? lin[i-1].concrete : null;
-    var current = linTok.concrete;
-    var spacing = (previous == NOSPACING || current == NOSPACING || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
-      ? ' ' : ' &emsp; ';
-    var validMenus = getValidMenus(i, menu);
-    gen_space(validMenus, i)
-      .html(spacing)
-      .appendTo(sentence);
+
+  function gen_space(validMenus, idx) {
+    return gen_item(validMenus, idx).addClass('space');
+  }
+
+  function gen_word(validMenus, idx, linTok) {
     var classes = linTok['classes'];
     var matchingClasses = linTok['matching-classes'];
     var match = matchingClasses.size > 0;
@@ -459,6 +455,24 @@ function show_lin(lang, lin) {
       var c = int_to_rgba(h);
       wordspan.css({'border-color': c});
     }
+    return gen_item(validMenus, idx).addClass('word');
+  }
+
+  var sentence = $('#' + lang).empty();
+  // var tree = parse_tree(DATA[lang].tree);
+  for (var i=0; i < lin.length; i++) {
+    var linTok = lin[i];
+    var previous = i > 0 ? lin[i-1].concrete : null;
+    var current = linTok.concrete;
+    var spacing = (previous == NOSPACING || current == NOSPACING || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
+      ? ' ' : ' &emsp; ';
+    var validMenus = getValidMenus(i, menu);
+
+    gen_space(validMenus, i)
+      .html(spacing)
+      .appendTo(sentence);
+
+    gen_word(validMenus, i, linTok);
   }
   gen_space(getValidMenus(lin.length, menu), lin.length)
     .html('&emsp;').click(click_word)
