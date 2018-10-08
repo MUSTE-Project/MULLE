@@ -173,11 +173,6 @@ function submit_login(evt) {
 // the protocol.  In contrast with `call_server_new` does not try to
 // guess how to interpret the response.
 function muste_request(data, endpoint) {
-  return muste_request_raw(data, endpoint).fail(handle_server_fail);
-}
-
-// Like `emuste_request` but with no error handler.
-function muste_request_raw(data, endpoint) {
   var req = {
     cache: false,
     url: SERVER + endpoint,
@@ -186,7 +181,7 @@ function muste_request_raw(data, endpoint) {
     processData: false,
     data: JSON.stringify(data)
   };
-  return $.ajax(req);
+  return $.ajax(req).fail(handle_server_fail);
 }
 
 function handle_server_fail(resp) {

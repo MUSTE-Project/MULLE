@@ -101,7 +101,7 @@ data ProtocolError
   | UnspecifiedError
   | ∀ e . Exception e ⇒ SomeProtocolError e
   | MissingApiRoute String
-  | NoCookie
+  | NoAccessToken
   | BadRequest
   | SessionInvalid
   | LoginFail
@@ -114,7 +114,7 @@ instance Exception ProtocolError where
     DatabaseError err → "A database error occurred: " <> displayException err
     UnspecifiedError  → "Some unspecified error occured"
     MissingApiRoute s → printf "missing api route for `%s`" s
-    NoCookie          → "No cookie found"
+    NoAccessToken     → "No cookie found"
     SomeProtocolError e → displayException e
     SessionInvalid    → "Session invalid, please log in again"
     BadRequest        → "Bad request!"
@@ -168,7 +168,7 @@ errResponseCode = \case
   DatabaseError err   → dbErrResponseCode err
   UnspecifiedError    → 500
   MissingApiRoute{}   → 501
-  NoCookie            → 400
+  NoAccessToken       → 401
   SomeProtocolError{} → 400
   SessionInvalid      → 400
   BadRequest          → 400
@@ -300,7 +300,7 @@ getToken = do
   m <- getTokenCookie
   case m of
     Just c -> pure $ convertString $ Snap.cookieValue c
-    Nothing -> throwError NoCookie
+    Nothing -> throwError NoAccessToken
 
 getTokenCookie :: MonadProtocol m ⇒ m (Maybe Snap.Cookie)
 getTokenCookie = Snap.getCookie "LOGIN_TOKEN"
