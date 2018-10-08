@@ -75,7 +75,7 @@ replaceTree tree path sim@(_, subtree, _, _)
 data PruneOpts = PruneOpts
   { searchDepth ∷ Maybe Int
   , searchSize  ∷ Maybe Int
-  }
+  } deriving Show
 
 instance Semigroup PruneOpts where
   PruneOpts a0 a1 <> PruneOpts b0 b1

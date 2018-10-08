@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# Language UndecidableInstances, OverloadedLists #-}
+{-# Language CPP, UndecidableInstances, OverloadedLists #-}
 module Muste.Menu.Internal
   ( Menu(..)
   , getMenu
@@ -42,6 +42,12 @@ import qualified Muste.Sentence as Sentence
 import qualified Muste.Sentence.Linearization as Sentence (Linearization)
 import qualified Muste.Sentence.Token as Token
 import qualified Muste.Sentence.Annotated as Annotated
+
+#ifdef DIAGNOSTICS
+import System.IO.Unsafe (unsafePerformIO)
+import System.CPUTime (getCPUTime)
+import Muste.AdjunctionTrees.Internal (AdjunctionTrees(AdjunctionTrees))
+#endif
 
 type Tokn = Text
 type Node = Category
@@ -189,17 +195,51 @@ getMenu opts c l
   & getMenuItems opts c
 
 getMenuItems ∷ Prune.PruneOpts → Context → Text → Menu
-getMenuItems opts ctxt str
-  = collectTreeSubstitutions opts ctxt str
-  & filterTreeSubstitutions
-  & collectMenuItems ctxt
+getMenuItems opts ctxt sentence
+  = parseSentence ctxt sentence
+  & diagnoseContext opts ctxt
+  & diagnose "Collect tree substs" (collectTreeSubstitutions opts ctxt)
+  & diagnose "Filter tree substs"  (filterTreeSubstitutions)
+  & diagnose "Collect menu items"  (collectMenuItems ctxt)
+  & buildMenu
+
+buildMenu ∷ [(Selection, Selection, Sentence.Linearization Token.Annotated)] → Menu
+buildMenu items = Menu $ Map.fromListWith Set.union $
+                  [ (old, Set.singleton (new, nodes)) | (old, new, nodes) <- items ]
+
+diagnoseContext ∷ Prune.PruneOpts → Context → a → a
+#ifdef DIAGNOSTICS
+diagnoseContext opts ctxt input = unsafePerformIO $ do
+  let AdjunctionTrees adjMap = ctxtPrecomputed ctxt
+  let adjTrees = Map.toList adjMap >>= \(_, ts) → ts
+  printf ">> Number of adjunction keys: %d,  adjunction trees: %d\n" (length adjMap) (length adjTrees)
+  printf "<< Prune options: %s\n\n" (show opts)
+  return input
+#else
+diagnoseContext _ _ input = input
+#endif
+
+diagnose ∷ Ord a => Ord b => String → ([a] → [b]) → ([a] → [b])
+#ifdef DIAGNOSTICS
+diagnose title convert input = unsafePerformIO $ do
+  printf ">> %s, input: %d\n" title (length input)
+  time0 <- getCPUTime
+  let output = convert input
+  printf "   %s, output: %d\n" title (length output)
+  time1 <- getCPUTime
+  let secs :: Float = fromInteger (time1-time0) * 1e-12
+  printf "<< %s: %.2f s\n\n" title secs
+  return output
+#else
+diagnose _ conv input = conv input
+#endif
 
 type TreeSubst = (Int, XTree, XTree)
 type XTree = (TTree, [Tokn], [Node])
 
-collectTreeSubstitutions ∷ Prune.PruneOpts → Context → Text → [TreeSubst]
-collectTreeSubstitutions opts ctxt sentence = do
-  oldtree ← parseSentence ctxt sentence
+collectTreeSubstitutions ∷ Prune.PruneOpts → Context → [TTree] → [TreeSubst]
+collectTreeSubstitutions opts ctxt oldtrees = do
+  oldtree ← oldtrees
   let (oldwords, oldnodes) = linTree ctxt oldtree
   let old = (oldtree, oldwords, oldnodes)
   newtree ← Set.toList $ similarTrees opts ctxt oldtree
@@ -207,8 +247,8 @@ collectTreeSubstitutions opts ctxt sentence = do
   let new = (newtree, newwords, newnodes)
   pure (old `xtreeDiff` new, old, new)
 
-collectMenuItems :: Context -> [TreeSubst] -> Menu
-collectMenuItems ctxt substs = Menu $ Map.fromListWith Set.union $ do
+collectMenuItems :: Context -> [TreeSubst] -> [(Selection, Selection, Sentence.Linearization Token.Annotated)]
+collectMenuItems ctxt substs = do
   (_cost, (_oldtree, oldwords, oldnodes), (_newtree, newwords, newnodes)) ← substs
   let nodeedits = alignSequences oldnodes newnodes
   let wordedits = alignSequences oldwords newwords
@@ -220,7 +260,7 @@ collectMenuItems ctxt substs = Menu $ Map.fromListWith Set.union $ do
   -- we just skip this menu item:
   guard $ not (null lins)
   let allnewnodes = foldl1 Annotated.mergeL lins
-  return (oldselection, Set.singleton (newselection, allnewnodes))
+  return (oldselection, newselection, allnewnodes)
 
 
 filterTreeSubstitutions :: [TreeSubst] -> [TreeSubst]
