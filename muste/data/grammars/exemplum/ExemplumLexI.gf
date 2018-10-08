@@ -3,6 +3,8 @@ incomplete concrete ExemplumLexI of ExemplumLex = Cat **
 
 lin
 
+  default_NP = Grammar.something_NP ;
+
   theSg_Det = DetQuant DefArt NumSg ;
   thePl_Det = DetQuant DefArt NumPl ;
   aSg_Det = DetQuant IndefArt NumSg ;

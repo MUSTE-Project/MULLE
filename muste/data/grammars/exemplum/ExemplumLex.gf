@@ -2,6 +2,8 @@ abstract ExemplumLex = Cat ** {
 
 fun
 
+  default_NP : NP ;
+
   theSg_Det, thePl_Det, aSg_Det, aPl_Det : Det ;
   many_Det, every_Det, few_Det : Det ;
 
