@@ -107,21 +107,25 @@ data ProtocolError
   | LoginFail
   | ErrReadBody
   | DecodeError String
+  | LessonNotFound Text
+  | LanguageNotFound Sentence.Language
 
 deriving stock instance Show ProtocolError
 
 instance Exception ProtocolError where
   displayException = \case
-    DatabaseError err → "A database error occurred: " <> displayException err
-    UnspecifiedError  → "Some unspecified error occured"
-    MissingApiRoute s → printf "missing api route for `%s`" s
-    NoAccessToken     → "No cookie found"
+    DatabaseError err   → "A database error occurred: " <> displayException err
+    UnspecifiedError    → "Some unspecified error occured"
+    MissingApiRoute s   → printf "missing api route for `%s`" s
+    NoAccessToken       → "No cookie found"
     SomeProtocolError e → displayException e
-    SessionInvalid    → "Session invalid, please log in again"
-    BadRequest        → "Bad request!"
-    LoginFail         → "Login failure"
-    ErrReadBody       → "Error reading request body."
-    DecodeError s     → printf "Error decoding JSON: %s" s
+    SessionInvalid      → "Session invalid, please log in again"
+    BadRequest          → "Bad request!"
+    LoginFail           → "Login failure"
+    ErrReadBody         → "Error reading request body."
+    DecodeError s       → printf "Error decoding JSON: %s" s
+    LessonNotFound l    → printf "Lesson now found %s" (convertString @_ @String l)
+    LanguageNotFound l  → printf "Language not found %s" (show l)
 
 instance Semigroup ProtocolError where
   a <> _ = a
@@ -155,7 +159,8 @@ errorIdentifier = \case
   LoginFail                       → 17
   ErrReadBody                     → 18
   DecodeError{}                   → 19
-
+  LessonNotFound{}                → 20
+  LanguageNotFound{}              → 21
 
 instance ToJSON ProtocolError where
   toJSON err = object
@@ -207,6 +212,8 @@ errResponseCode = \case
   LoginFail           → 401
   ErrReadBody         → 400
   DecodeError{}       → 400
+  LessonNotFound{}    → 400
+  LanguageNotFound{}  → 400
 
 dbErrResponseCode ∷ Database.Error → HttpStatus
 dbErrResponseCode = \case
@@ -558,14 +565,6 @@ assembleMenus c lesson src trg =
   )
   where
   mkTree = makeTree c lesson
-
-data ProtocolException
-  = LessonNotFound Text
-  | LanguageNotFound Sentence.Language
-
-deriving instance Show ProtocolException
-
-instance Exception ProtocolException where
 
 getContext
   ∷ MonadThrow m
