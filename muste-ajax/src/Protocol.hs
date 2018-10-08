@@ -189,9 +189,7 @@ dbErrResponseCode = \case
   Database.NotAuthenticated        → 401
   Database.DriverError{}           → 500
   -- Not quite sure what is the right option here.
-  Database.UserAlreadyExists       → 422 |> UnprocessableEntity
-  where
-  (|>) = CodeReason
+  Database.UserAlreadyExists       → 400
 
 setResponseCode ∷ HttpStatus → Snap.Response → Snap.Response
 setResponseCode s = case s of
