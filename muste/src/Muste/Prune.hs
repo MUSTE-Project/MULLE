@@ -289,26 +289,27 @@ pruneTree tree = do
 
 getPrunedTrees :: PruneOpts -> TTree -> [(TTree, [TTree])]
 getPrunedTrees (PruneOpts depthLimit sizeLimit) tree 
-    = [ (tree, branches) | (tree, branches, _, _) <- pruneTs tree [] 0 0 [] ]
-    where pruneTs :: TTree -> [TTree] -> Int -> Int -> [Category] -> [(TTree, [TTree], Int, [Category])]
+    = [ (tree, branches) | (tree, branches, _) <- pruneTs tree [] 0 0 [] ]
+    where pruneTs :: TTree -> [TTree] -> Int -> Int -> [Category] -> [(TTree, [TTree], Int)]
           pruneTs tree@(TNode fun typ@(Fun cat _) children) branches depth size visited =
-              (TMeta cat, tree:branches, size, visited) :
-              do guard $ cat `notElem` visited
-                 guardLimit depthLimit depth
-                 guardLimit sizeLimit size
-                 (children', branches', size', visited') <- pruneCs children branches (depth+1) (size+1) (cat : visited)
-                 return (TNode fun typ children', branches', size', visited')
+              (TMeta cat, tree:branches, size) :
+              do guard (depth `less` depthLimit &&
+                        size `less` sizeLimit &&
+                        cat `notElem` visited)
+                 (children', branches', size') <- pruneCs children branches (depth+1) (size+1) (cat : visited)
+                 return (TNode fun typ children', branches', size')
           pruneTs _ _ _ _ _ = error "Muste.Prune.getPrunedTrees: Incomplete pattern match"
 
-          pruneCs :: [TTree] -> [TTree] -> Int -> Int -> [Category] -> [([TTree], [TTree], Int, [Category])]
-          pruneCs [] branches _depth size visited = return ([], branches, size, visited)
+          pruneCs :: [TTree] -> [TTree] -> Int -> Int -> [Category] -> [([TTree], [TTree], Int)]
+          pruneCs [] branches _depth size _visited = return ([], branches, size)
           pruneCs (tree:trees) branches depth size visited =
-              do (tree', branches', size', visited') <- pruneTs tree branches depth size visited
-                 (trees', branches'', size'', visited'') <- pruneCs trees branches' depth size' visited'
-                 return (tree':trees', branches'', size'', visited'')
+              do (tree', branches', size') <- pruneTs tree branches depth size visited
+                 (trees', branches'', size'') <- pruneCs trees branches' depth size' visited
+                 return (tree':trees', branches'', size'')
 
-          guardLimit (Just limit) value = guard $ value < limit
-          guardLimit Nothing _ = return ()
+          value `less` Just limit = value < limit
+          _     `less` Nothing    = True
+
   
 
 -- | Edit distance between trees.
