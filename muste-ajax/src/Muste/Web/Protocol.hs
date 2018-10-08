@@ -66,17 +66,17 @@ newtype ProtocolT m a = ProtocolT
   { unProtocolT ∷ ExceptT ProtocolError m a
   }
 
-deriving newtype instance Functor m ⇒ Functor (ProtocolT m)
-deriving newtype instance Monad m ⇒ Applicative (ProtocolT m)
-deriving newtype instance Monad m ⇒ Monad (ProtocolT m)
-deriving newtype instance MonadIO m ⇒ MonadIO (ProtocolT m)
+deriving newtype instance Functor m      ⇒ Functor      (ProtocolT m)
+deriving newtype instance Monad m        ⇒ Applicative  (ProtocolT m)
+deriving newtype instance Monad m        ⇒ Monad        (ProtocolT m)
+deriving newtype instance MonadIO m      ⇒ MonadIO      (ProtocolT m)
 deriving newtype instance MonadBaseControl IO m ⇒ MonadBaseControl IO (ProtocolT m)
 deriving newtype instance MonadBase IO m ⇒ MonadBase IO (ProtocolT m)
-deriving newtype instance MonadPlus m ⇒ MonadPlus (ProtocolT m)
-deriving newtype instance Monad m ⇒ Alternative (ProtocolT m)
-deriving newtype instance (MonadSnap m) ⇒ MonadSnap (ProtocolT m)
 deriving newtype instance MonadReader AppState m ⇒ MonadReader AppState (ProtocolT m)
-deriving newtype instance Monad m ⇒ MonadError ProtocolError (ProtocolT m)
+deriving newtype instance MonadPlus m    ⇒ MonadPlus    (ProtocolT m)
+deriving newtype instance Monad m        ⇒ Alternative  (ProtocolT m)
+deriving newtype instance MonadSnap m    ⇒ MonadSnap    (ProtocolT m)
+deriving newtype instance Monad m        ⇒ MonadError ProtocolError (ProtocolT m)
 deriving newtype instance Muste.MonadGrammar m ⇒ Muste.MonadGrammar (ProtocolT m)
 
 instance Monad m ⇒ MonadDatabaseError (ProtocolT m) where
@@ -446,7 +446,7 @@ handleMenuRequest Ajax.MenuRequest{..} = do
       pure (\_ _ → emptyMenus)
     else pure assembleMenus
   let ann ∷ ClientTree → m Annotated
-      ann = annotate c lesson . Ajax.unClientTree
+      ann (Ajax.ClientTree x) = annotate c lesson $ x
   srcUnamb ← ann src
   trgUnamb ← ann trg
   let (a , b) = act c lesson srcUnamb trgUnamb
@@ -497,12 +497,10 @@ disambiguate
   → Text
   → ClientTree
   → m [TTree]
-disambiguate cs lesson t = do
-  c ← getC s
-  pure $ Sentence.disambiguate c s
+disambiguate cs lesson (Ajax.ClientTree t) = do
+  c ← getC t
+  pure $ Sentence.disambiguate c t
     where
-    s ∷ Unannotated
-    s = Ajax.unClientTree t
     getC ∷ Unannotated → m Context
     getC u = liftEither $ getContext cs lesson (Sentence.language u)
 
@@ -599,7 +597,7 @@ makeTree
   → Annotated
   → ServerTree
 makeTree c lesson s
-  = Ajax.serverTree s menu
+  = Ajax.ServerTree s menu
   where
   menu = Muste.getMenu (mempty @Menu.PruneOpts) ctxt (Sentence.linearization s)
   ctxt = throwLeft $ getContext c lesson language
@@ -619,7 +617,7 @@ emptyMenus src trg =
   -- for 'lin'.  This is the reason we are not using 'makeTree' here.
   mkTree ∷ Annotated → ServerTree
   mkTree s
-    = Ajax.serverTree (Sentence.sentence language lin) mempty
+    = Ajax.ServerTree (Sentence.sentence language lin) mempty
     where
     lin = Sentence.linearization s
     language = Sentence.language s

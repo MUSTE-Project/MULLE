@@ -2,8 +2,8 @@
 {-# language OverloadedStrings, DuplicateRecordFields , RecordWildCards,
   NamedFieldPuns #-}
 module Muste.Web.Ajax
-  ( ServerTree
-  , ClientTree(ClientTree)
+  ( ServerTree(..)
+  , ClientTree(..)
   , LessonInit(..)
   , LoginRequest(..)
   , Lesson2(..)
@@ -13,8 +13,6 @@ module Muste.Web.Ajax
   , MenuList(..)
   , LoginSuccess(..)
   , LessonList(..)
-  , serverTree
-  , unClientTree
   ) where
 
 import Prelude ()
@@ -127,9 +125,6 @@ instance ToJSON ServerTree where
     [ "sentence" .= sentence
     , "menu"     .= menu
     ]
-
-serverTree ∷ Annotated → Menu → ServerTree
-serverTree = ServerTree
 
 data LoginSuccess = LoginSuccess Text
 
