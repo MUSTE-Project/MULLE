@@ -72,6 +72,15 @@ function register_create_user_handler() {
     };
     muste_request(data, 'create-user').then(function() {
       show_page('#page-login');
+    }).fail(function(err) {
+      var appErr = err.responseJSON.error;
+      switch(appErr.id) {
+      case 10:
+        alert('User name is already taken');
+        break;
+      default:
+        break;
+      }
     });
   });
 }
@@ -104,8 +113,6 @@ function register_change_pwd_handler() {
     };
     muste_request_raw(data, 'change-pwd').then(function() {
       show_page('#page-login');
-    }).fail(function() {
-      console.error('no way');
     });
   });
 }
@@ -194,6 +201,7 @@ function handle_server_fail(resp) {
   default:
     break;
   }
+  resp.fail();
 }
 
 function muste_logout() {

@@ -109,6 +109,7 @@ data ProtocolError
   | DecodeError String
 
 deriving stock instance Show ProtocolError
+
 instance Exception ProtocolError where
   displayException = \case
     DatabaseError err → "A database error occurred: " <> displayException err
@@ -128,9 +129,40 @@ instance Semigroup ProtocolError where
 instance Monoid ProtocolError where
   mempty = UnspecifiedError
 
+-- There might be better ways of handling this I suppose...  Another
+-- idea would be to generate a tree (since errors can be nested).
+-- | Application specific unique error code for responses.
+errorIdentifier ∷ ProtocolError → Int
+errorIdentifier = \case
+  DatabaseError err → case err of
+    Database.NoUserFound          → 0
+    Database.LangNotFound        → 1
+    Database.MultipleUsers       → 2
+    Database.NoCurrentSession    → 3
+    Database.SessionTimeout      → 4
+    Database.MultipleSessions    → 5
+    Database.NoExercisesInLesson → 6
+    Database.NonUniqueLesson     → 7
+    Database.NotAuthenticated    → 8
+    Database.DriverError{}       → 9
+    Database.UserAlreadyExists   → 10
+  UnspecifiedError                → 11
+  MissingApiRoute{}               → 12
+  NoAccessToken                   → 13
+  SomeProtocolError{}             → 14
+  SessionInvalid                  → 15
+  BadRequest                      → 16
+  LoginFail                       → 17
+  ErrReadBody                     → 18
+  DecodeError{}                   → 19
+
+
 instance ToJSON ProtocolError where
   toJSON err = object
-    [ "error" .= displayException err
+    [ "error" .= object
+      [ "message" .= displayException err
+      , "id"      .= errorIdentifier err
+      ]
     ]
 
 type MonadProtocol m =

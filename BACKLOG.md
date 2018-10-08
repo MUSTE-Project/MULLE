@@ -40,13 +40,6 @@ We're relying on the sentence object given us the correct information
 about the language of that sentence, so we don't really need the
 source- and target- language rows in the DB anymore.
 
-Issue #50: User registration
----
-
-Added a page for adding new users. TODO
-
-* Handle case when user already exists.
-
 Configuration options
 ---
 

@@ -34,6 +34,7 @@ default-extensions:
   - UnicodeSyntax
   - ViewPatterns
   - DerivingStrategies
+  - EmptyCase
 
 data-files:
   - data/lessons.yaml
