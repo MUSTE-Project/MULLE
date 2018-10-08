@@ -13,12 +13,13 @@ module Muste.Web.Ajax
   , MenuList(..)
   , LoginSuccess(..)
   , LessonList(..)
+  , MenuResponse(..)
   ) where
 
 import Prelude ()
 import Muste.Prelude
 
-import Data.Aeson ((.:), (.=))
+import Data.Aeson ((.:), (.=), (.:?))
 import qualified Data.Aeson as Aeson
 import Data.Text (Text)
 import Data.Time
@@ -150,29 +151,42 @@ instance ToJSON LessonList where
     [ "lessons" .= lessons
     ]
 
+data MenuResponse = MenuResponse
+  { lesson     ∷ Text
+  , score      ∷ Score
+  , menu       ∷ Maybe MenuList
+  }
+
+instance FromJSON MenuResponse where
+  parseJSON = Aeson.withObject "menu"
+    $ \ o → MenuResponse
+    <$> o .:  "lesson"
+    <*> o .:  "score"
+    <*> o .:? "menu"
+
+instance ToJSON MenuResponse where
+  toJSON MenuResponse{..} =
+    Aeson.object
+      [ "lesson" .= lesson
+      , "score"  .= score
+      , "menu" .= menu
+      ]
+
+-- Better name might be menus?
 data MenuList = MenuList
-  { lesson  ∷ Text
-  , passed  ∷ Bool
-  , score   ∷ Score
-  , src     ∷ ServerTree
+  { src     ∷ ServerTree
   , trg     ∷ ServerTree
   }
 
 instance FromJSON MenuList where
-  parseJSON = Aeson.withObject "menu-list"
+  parseJSON = Aeson.withObject "menu"
     $ \ o → MenuList
-    <$> o .: "lesson"
-    <*> o .: "passed"
-    <*> o .: "clicks"
-    <*> o .: "src"
+    <$> o .: "src"
     <*> o .: "trg"
 
 instance ToJSON MenuList where
   toJSON MenuList{..} = Aeson.object
-    [ "lesson"  .= lesson
-    , "success" .= passed
-    , "score"   .= score
-    , "src"     .= src
+    [ "src"     .= src
     , "trg"     .= trg
     ]
 

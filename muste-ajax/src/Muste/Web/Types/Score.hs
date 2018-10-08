@@ -11,7 +11,7 @@ import Database.SQLite.Simple.ToField
 newtype Score = Score Int
 
 incrScore ∷ Score → Score
-incrScore = undefined
+incrScore (Score n) = Score $ succ n
 
 instance Semigroup Score where
   Score a <> Score b = Score $ a + b

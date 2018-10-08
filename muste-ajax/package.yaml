@@ -124,14 +124,14 @@ library:
   exposed-modules:
     - Muste.Web.Ajax
     - Muste.Web.Database
-    - Muste.Web.Database.Types.Score
+    - Muste.Web.Database.Types
+    - Muste.Web.Types.Score
     - Muste.Web.Config
     - Muste.Web.Config.Types
     - Muste.Web.Config.AppConfig
     - Muste.Web.Config.TH
     - Muste.Web.Protocol
     - Muste.Web.Common
-    - Muste.Web.Types
     - Database.SQLite.Simple.FromRow.Generic
 
   other-modules:

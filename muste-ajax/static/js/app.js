@@ -304,31 +304,43 @@ function select_lesson(evt) { // eslint-disable-line no-unused-vars
 function start_lesson(lesson) {
   TIMER_START = new Date().getTime();
   muste_request({}, MESSAGES.LESSON + '/' + lesson)
-    .then(show_exercise);
+    .then(handle_menu_response);
 }
 
-function show_exercise(parameters) {
+function handle_menu_response(menuResponse) {
   show_page('#page-exercise');
-  DATA = parameters;
-  clean_server_data(DATA.src);
-  clean_server_data(DATA.src);
-  build_matching_classes(DATA);
-  show_sentences(DATA);
-  $('#score').text(DATA.score);
-  $('#lessoncounter').text(DATA.lesson + ': övning ' + EXERCISES[DATA.lesson].passed + ' av ' + EXERCISES[DATA.lesson].total);
-  if (parameters.success) {
-    var t = elapsed_time().toString();
-    setTimeout(function(){
-      alert('BRAVO!' +
-        '    Klick: ' + DATA.score +
-        '    Tid: ' + t + ' sekunder');
-      if (DATA.exercise < DATA.total) {
-        start_lesson(DATA.lesson);
-      } else {
-        retrieve_lessons();
-      }
-    }, 500);
+  DATA = menuResponse;
+  var menu = menuResponse.menu
+  if(menu !== null) {
+    show_exercise(menuResponse);
+  } else {
+    show_exercise_complete(menuResponse);
   }
+}
+
+function show_exercise(resp) {
+  var lesson = resp.lesson;
+  var menu = resp.menu;
+  clean_server_data(menu.src);
+  clean_server_data(menu.src);
+  build_matching_classes(menu);
+  show_sentences(menu);
+  $('#score').text(menu.score);
+  $('#lessoncounter').text(lesson + ': övning ' + EXERCISES[lesson].passed + ' av ' + EXERCISES[lesson].total);
+}
+
+function show_exercise_complete(resp) {
+  var lesson = resp.lesson;
+  var score = resp.score;
+  var t = elapsed_time().toString();
+  setTimeout(function(){
+    alert('BRAVO!' +
+      '    Klick: ' + score +
+      '    Tid: ' + t + ' sekunder');
+    // There used to be a way of figuring out if we should just start
+    // the next exercise.  This is no longer possible.
+    retrieve_lessons();
+  }, 500);
 }
 
 // ct_linearization :: ClientTree -> Sentence.Linearization
@@ -717,16 +729,17 @@ function to_client_tree(t) {
 }
 
 function select_menuitem(item, lang) {
-  ct_setLinearization(DATA[lang], item);
+  ct_setLinearization(DATA.menu[lang], item);
   var data = DATA;
+  var menu = data.menu;
   var menuRequest = {
     'lesson': data.lesson,
     'score': data.score,
     'time': elapsed_time().seconds,
-    'src': to_client_tree(data.src),
-    'trg': to_client_tree(data.trg)
+    'src': to_client_tree(menu.src),
+    'trg': to_client_tree(menu.trg)
   };
-  muste_request(menuRequest, 'menu').then(show_exercise);
+  muste_request(menuRequest, 'menu').then(handle_menu_response);
   $(document).trigger('overlay-out');
 }
 

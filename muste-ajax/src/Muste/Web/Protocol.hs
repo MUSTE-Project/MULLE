@@ -350,10 +350,10 @@ lessonsHandler = do
   lessons ← Database.listLessons t
   verifyMessage (Ajax.LessonList lessons)
 
-lessonHandler ∷ MonadProtocol m ⇒ m Ajax.MenuList
+lessonHandler ∷ MonadProtocol m ⇒ m Ajax.MenuResponse
 lessonHandler = Snap.pathArg handleLessonInit
 
-menuHandler ∷ MonadProtocol m ⇒ m Ajax.MenuList
+menuHandler ∷ MonadProtocol m ⇒ m Ajax.MenuResponse
 menuHandler = getMessage >>= handleMenuRequest
 
 loginHandler :: MonadProtocol m ⇒ m Ajax.LoginSuccess
@@ -397,7 +397,7 @@ handleLessonInit
   ∷ ∀ m
   . MonadProtocol m
   ⇒ Text -- ^ Lesson
-  → m Ajax.MenuList
+  → m Ajax.MenuResponse
 handleLessonInit lesson = do
   token ← getToken
   c <- askContexts
@@ -408,14 +408,11 @@ handleLessonInit lesson = do
     ann = annotate c lesson
   src ← ann sourceTree
   trg ← ann targetTree
-  let
-    (a,b) = assembleMenus c lesson src trg
-  verifyMessage $ Ajax.MenuList
-    { lesson  = lesson
-    , passed  = False
-    , score   = mempty
-    , src     = a
-    , trg     = b
+  let menu = assembleMenus c lesson src trg
+  verifyMessage $ Ajax.MenuResponse
+    { lesson = lesson
+    , score = mempty
+    , menu = Just menu
     }
 
 -- | This request is called after the user selects a new sentence from
@@ -432,7 +429,7 @@ handleMenuRequest
   ∷ ∀ m
   . MonadProtocol m
   ⇒ Ajax.MenuRequest
-  → m Ajax.MenuList
+  → m Ajax.MenuResponse
 handleMenuRequest Ajax.MenuRequest{..} = do
   verifySession
   c        ← askContexts
@@ -449,13 +446,14 @@ handleMenuRequest Ajax.MenuRequest{..} = do
       ann (Ajax.ClientTree x) = annotate c lesson $ x
   srcUnamb ← ann src
   trgUnamb ← ann trg
-  let (a , b) = act c lesson srcUnamb trgUnamb
-  verifyMessage $ Ajax.MenuList
+  let menuList = act c lesson srcUnamb trgUnamb
+  let menu = if finished
+        then Nothing
+        else Just $ menuList
+  verifyMessage $ Ajax.MenuResponse
     { lesson = lesson
-    , passed = finished
     , score  = newScore
-    , src    = a
-    , trg    = b
+    , menu   = menu
     }
 
 annotate
@@ -556,11 +554,11 @@ assembleMenus
   → Text
   → Annotated
   → Annotated
-  → (ServerTree,ServerTree)
-assembleMenus c lesson src trg =
-  ( mkTree src
-  , mkTree trg
-  )
+  → Ajax.MenuList
+assembleMenus c lesson src trg = Ajax.MenuList
+  { src = mkTree src
+  , trg = mkTree trg
+  }
   where
   mkTree = makeTree c lesson
 
@@ -606,11 +604,11 @@ makeTree c lesson s
 emptyMenus
   ∷ Annotated -- ^ Source sentence
   → Annotated -- ^ Target sentence
-  → (ServerTree, ServerTree)
-emptyMenus src trg =
-  ( mkTree src
-  , mkTree trg
-  )
+  → Ajax.MenuList
+emptyMenus src trg = Ajax.MenuList
+  { src = mkTree src
+  , trg = mkTree trg
+  }
   where
   -- FIXME In 'assembleMenus' we actually use the language of the tree
   -- we're building.  Investigate if this may be a bug.  Similiarly
