@@ -59,6 +59,7 @@ import qualified Muste
 import qualified Test.QuickCheck as QC (shuffle, generate)
 
 import qualified Database.Types as Types
+import Types as Types
 
 data Error
   = NoUserFound
@@ -548,12 +549,12 @@ continueLesson user lesson = do
   errNoExercises = error "Database.continueLesson: Invariant violated: No exercises for lesson"
 
 finishExercise
-  :: MonadDB r db
-  => Text -- ^ Token
-  -> Text -- ^ Lesson
-  -> NominalDiffTime -- ^ Time elapsed
-  -> Integer -- ^ Clicks
-  -> db ()
+  ∷ MonadDB r db
+  ⇒ Text            -- ^ Token
+  → Text            -- ^ Lesson
+  → NominalDiffTime -- ^ Time elapsed
+  → Types.Score     -- ^ Score
+  → db ()
 finishExercise token lesson time clicks = do
   -- get user name
   user ← getUser token

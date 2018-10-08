@@ -349,9 +349,8 @@ menuHandler ∷ MonadProtocol m ⇒ m Ajax.MenuList
 menuHandler = getMessage >>= handleMenuRequest
 
 loginHandler :: MonadProtocol m ⇒ m Ajax.LoginSuccess
-loginHandler = Snap.method Snap.POST $ do
-  Ajax.LoginRequest{..} <- getMessage
-  handleLoginRequest username password
+loginHandler = Snap.method Snap.POST
+  $ getMessage >>= handleLoginRequest
 
 logoutHandler ∷ MonadProtocol m ⇒ m ()
 logoutHandler
@@ -374,13 +373,12 @@ setLoginCookie tok = Snap.modifyResponse $ Snap.addResponseCookie c
 -- Further thought: Well, we're just sending the authentication token
 -- in stead.  This one also cannot be spoofed.
 handleLoginRequest
-  :: MonadProtocol m
-  => Text -- ^ Username
-  -> Text -- ^ Password
-  -> m Ajax.LoginSuccess
-handleLoginRequest user pass = do
-  Database.authUser user pass
-  token ← Database.startSession user
+  ∷ MonadProtocol m
+  ⇒ Ajax.LoginRequest
+  → m Ajax.LoginSuccess
+handleLoginRequest Ajax.LoginRequest{..} = do
+  Database.authUser username password
+  token ← Database.startSession username
   setLoginCookie token
   pure $ Ajax.LoginSuccess token
 
@@ -407,7 +405,7 @@ handleLessonInit lesson = do
   verifyMessage $ Ajax.MenuList
     { lesson  = lesson
     , passed  = False
-    , clicks  = 0
+    , score   = 0
     , src     = a
     , trg     = b
     }
@@ -428,17 +426,16 @@ handleMenuRequest
   ⇒ Ajax.MenuRequest
   → m Ajax.MenuList
 handleMenuRequest Ajax.MenuRequest{..} = do
-  token ← getToken
-  c <- askContexts
   verifySession
+  c        ← askContexts
   finished ← oneSimiliarTree c lesson src trg
-  act <-
+  act      ←
     if finished
     then do
+      token ← getToken
       Database.finishExercise token lesson time score
       pure (\_ _ → emptyMenus)
     else pure assembleMenus
-  -- Lift 'unambiguous' into 'IO' to enable throwing (IO) exceptions.
   let ann ∷ ClientTree → m Annotated
       ann = annotate c lesson . Ajax.unClientTree
   srcUnamb ← ann src
@@ -447,9 +444,9 @@ handleMenuRequest Ajax.MenuRequest{..} = do
   verifyMessage $ Ajax.MenuList
     { lesson = lesson
     , passed = finished
-    , clicks = succ score
-    , src = a
-    , trg = b
+    , score  = succ score
+    , src    = a
+    , trg    = b
     }
 
 annotate

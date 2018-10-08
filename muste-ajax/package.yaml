@@ -130,6 +130,7 @@ library:
     - Protocol
     - Common
     - Database.SQLite.Simple.FromRow.Generic
+    - Types
 
   other-modules:
     - Paths_muste_ajax

@@ -30,6 +30,7 @@ import Muste.Sentence.Unannotated (Unannotated)
 import Muste.Sentence.Annotated (Annotated)
 
 import Database (Lesson2(..))
+import Types
 
 newtype ClientTree = ClientTree { unClientTree ∷ Unannotated }
 
@@ -78,7 +79,7 @@ instance ToJSON LessonInit where
 
 data MenuRequest = MenuRequest
   { lesson ∷ Text
-  , score  ∷ Integer
+  , score  ∷ Score
   , time   ∷ NominalDiffTime
   , src    ∷ ClientTree
   , trg    ∷ ClientTree
@@ -157,7 +158,7 @@ instance ToJSON LessonList where
 data MenuList = MenuList
   { lesson  ∷ Text
   , passed  ∷ Bool
-  , clicks  ∷ Integer
+  , score   ∷ Score
   , src     ∷ ServerTree
   , trg     ∷ ServerTree
   }
@@ -175,7 +176,7 @@ instance ToJSON MenuList where
   toJSON MenuList{..} = Aeson.object
     [ "lesson"  .= lesson
     , "success" .= passed
-    , "score"   .= clicks
+    , "score"   .= score
     , "src"     .= src
     , "trg"     .= trg
     ]
