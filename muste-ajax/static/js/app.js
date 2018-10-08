@@ -710,11 +710,23 @@ function* lookupKeySetWith(idx, map, f) {
   }
 }
 
+function to_client_tree(t) {
+  return {
+    'sentence': t.sentence
+  };
+}
+
 function select_menuitem(item, lang) {
   ct_setLinearization(DATA[lang], item);
-  DATA.token = LOGIN_TOKEN;
-  DATA.time = elapsed_time().seconds;
-  muste_request(DATA, 'menu').then(show_exercise);
+  var data = DATA;
+  var menuRequest = {
+    'lesson': data.lesson,
+    'score': data.score,
+    'time': elapsed_time().seconds,
+    'src': to_client_tree(data.src),
+    'trg': to_client_tree(data.trg)
+  };
+  muste_request(menuRequest, 'menu').then(show_exercise);
   $(document).trigger('overlay-out');
 }
 
