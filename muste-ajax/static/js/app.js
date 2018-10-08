@@ -71,7 +71,7 @@ function register_create_user_handler() {
       'name': $form.find('input[name=name]').val()
     };
     muste_request(data, 'create-user').then(function() {
-      console.alert('That did not work, perhaps you didn\'t enter the correct value for your old password');
+      show_page('#page-login');
     });
   });
 }
