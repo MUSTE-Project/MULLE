@@ -71,7 +71,16 @@ function register_create_user_handler() {
       'name': $form.find('input[name=name]').val()
     };
     muste_request(data, 'create-user').then(function() {
-      console.alert('That did not work, perhaps you didn\'t enter the correct value for your old password');
+      show_page('#page-login');
+    }).fail(function(err) {
+      var appErr = err.responseJSON.error;
+      switch(appErr.id) {
+      case 10:
+        alert('User name is already taken');
+        break;
+      default:
+        break;
+      }
     });
   });
 }
@@ -104,8 +113,6 @@ function register_change_pwd_handler() {
     };
     muste_request_raw(data, 'change-pwd').then(function() {
       show_page('#page-login');
-    }).fail(function() {
-      console.error('no way');
     });
   });
 }
@@ -166,18 +173,17 @@ function submit_login(evt) {
   }
   var loginform = document.getElementById('loginform');
   var req = {username: loginform.name.value, password: loginform.pwd.value};
-  muste_request(req, MESSAGES.LOGIN).then(login_success);
+  muste_request(req, MESSAGES.LOGIN)
+    .then(login_success)
+    .fail(function() {
+      alert('User name or password incorrect');
+    });
 }
 
 // Returns a promise with the request.  Reports errors according to
 // the protocol.  In contrast with `call_server_new` does not try to
 // guess how to interpret the response.
 function muste_request(data, endpoint) {
-  return muste_request_raw(data, endpoint).fail(handle_server_fail);
-}
-
-// Like `emuste_request` but with no error handler.
-function muste_request_raw(data, endpoint) {
   var req = {
     cache: false,
     url: SERVER + endpoint,
@@ -186,7 +192,7 @@ function muste_request_raw(data, endpoint) {
     processData: false,
     data: JSON.stringify(data)
   };
-  return $.ajax(req);
+  return $.ajax(req).fail(handle_server_fail);
 }
 
 function handle_server_fail(resp) {
@@ -199,6 +205,7 @@ function handle_server_fail(resp) {
   default:
     break;
   }
+  resp.fail();
 }
 
 function muste_logout() {
@@ -301,31 +308,43 @@ function select_lesson(evt) { // eslint-disable-line no-unused-vars
 function start_lesson(lesson) {
   TIMER_START = new Date().getTime();
   muste_request({}, MESSAGES.LESSON + '/' + lesson)
-    .then(show_exercise);
+    .then(handle_menu_response);
 }
 
-function show_exercise(parameters) {
+function handle_menu_response(menuResponse) {
   show_page('#page-exercise');
-  DATA = parameters;
-  clean_server_data(DATA.src);
-  clean_server_data(DATA.src);
-  build_matching_classes(DATA);
-  show_sentences(DATA.src, DATA.trg);
-  $('#score').text(DATA.score);
-  $('#lessoncounter').text(DATA.lesson + ': övning ' + EXERCISES[DATA.lesson].passed + ' av ' + EXERCISES[DATA.lesson].total);
-  if (parameters.success) {
-    var t = elapsed_time().toString();
-    setTimeout(function(){
-      alert('BRAVO!' +
-        '    Klick: ' + DATA.score +
-        '    Tid: ' + t + ' sekunder');
-      if (DATA.exercise < DATA.total) {
-        start_lesson(DATA.lesson);
-      } else {
-        retrieve_lessons();
-      }
-    }, 500);
+  DATA = menuResponse;
+  var menu = menuResponse.menu
+  if(menu !== null) {
+    show_exercise(menuResponse);
+  } else {
+    show_exercise_complete(menuResponse);
   }
+}
+
+function show_exercise(resp) {
+  var lesson = resp.lesson;
+  var menu = resp.menu;
+  clean_server_data(menu.src);
+  clean_server_data(menu.src);
+  build_matching_classes(menu);
+  show_sentences(menu);
+  $('#score').text(menu.score);
+  $('#lessoncounter').text(lesson + ': övning ' + EXERCISES[lesson].passed + ' av ' + EXERCISES[lesson].total);
+}
+
+function show_exercise_complete(resp) {
+  var lesson = resp.lesson;
+  var score = resp.score;
+  var t = elapsed_time().toString();
+  setTimeout(function(){
+    alert('BRAVO!' +
+      '    Klick: ' + score +
+      '    Tid: ' + t + ' sekunder');
+    // There used to be a way of figuring out if we should just start
+    // the next exercise.  This is no longer possible.
+    retrieve_lessons();
+  }, 500);
 }
 
 // ct_linearization :: ClientTree -> Sentence.Linearization
@@ -362,13 +381,15 @@ function build_matching_classes(data) {
   });
 }
 
-function show_sentences(src, trg) {
+function show_sentences(data) {
+  var src = data.src;
+  var trg = data.trg;
   var srcL = ct_linearization(src);
   var trgL = ct_linearization(trg);
   matchy_magic(srcL, trgL);
   matchy_magic(trgL, srcL);
-  show_lin('src', srcL);
-  show_lin('trg', trgL);
+  show_lin('src', srcL, src.menu);
+  show_lin('trg', trgL, trg.menu);
 }
 
 function all_classes(xs) {
@@ -412,31 +433,25 @@ function intersection(m, n) {
   return new Set([...m].filter(function(x) {return n.has(x);}));
 }
 
-function show_lin(lang, lin) {
-  function gen_space(validMenus, idx) {
+function show_lin(lang, lin, menu) {
+
+  function gen_item(validMenus, idx) {
     var spacyData = {
       nr: idx,
       lang: lang,
       'valid-menus': validMenus
     };
     return $('<span>')
-      .addClass('space clickable')
+      .addClass('clickable')
       .data(spacyData)
-      .click(click_word)
+      .click(click_word);
   }
-  var sentence = $('#' + lang).empty();
-  var menu = DATA[lang].menu;
-  // var tree = parse_tree(DATA[lang].tree);
-  for (var i=0; i < lin.length; i++) {
-    var linTok = lin[i];
-    var previous = i > 0 ? lin[i-1].concrete : null;
-    var current = linTok.concrete;
-    var spacing = (previous == NOSPACING || current == NOSPACING || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
-      ? ' ' : ' &emsp; ';
-    var validMenus = getValidMenus(i, menu);
-    gen_space(validMenus, i)
-      .html(spacing)
-      .appendTo(sentence);
+
+  function gen_space(validMenus, idx) {
+    return gen_item(validMenus, idx).addClass('space');
+  }
+
+  function gen_word(validMenus, idx, linTok) {
     var classes = linTok['classes'];
     var matchingClasses = linTok['matching-classes'];
     var match = matchingClasses.size > 0;
@@ -459,6 +474,24 @@ function show_lin(lang, lin) {
       var c = int_to_rgba(h);
       wordspan.css({'border-color': c});
     }
+    return gen_item(validMenus, idx).addClass('word');
+  }
+
+  var sentence = $('#' + lang).empty();
+  // var tree = parse_tree(DATA[lang].tree);
+  for (var i=0; i < lin.length; i++) {
+    var linTok = lin[i];
+    var previous = i > 0 ? lin[i-1].concrete : null;
+    var current = linTok.concrete;
+    var spacing = (previous == NOSPACING || current == NOSPACING || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
+      ? ' ' : ' &emsp; ';
+    var validMenus = getValidMenus(i, menu);
+
+    gen_space(validMenus, i)
+      .html(spacing)
+      .appendTo(sentence);
+
+    gen_word(validMenus, i, linTok);
   }
   gen_space(getValidMenus(lin.length, menu), lin.length)
     .html('&emsp;').click(click_word)
@@ -623,7 +656,7 @@ function is_selected(sel, idx) {
     var a = intval[0];
     var b = intval[1];
     if(i < a) return false;
-    if(i > b) return false;
+    if(i >= b) return false;
     return true;
   }
   for(var intval of sel) {
@@ -693,11 +726,24 @@ function* lookupKeySetWith(idx, map, f) {
   }
 }
 
+function to_client_tree(t) {
+  return {
+    'sentence': t.sentence
+  };
+}
+
 function select_menuitem(item, lang) {
-  ct_setLinearization(DATA[lang], item);
-  DATA.token = LOGIN_TOKEN;
-  DATA.time = elapsed_time().seconds;
-  muste_request(DATA, 'menu').then(show_exercise);
+  ct_setLinearization(DATA.menu[lang], item);
+  var data = DATA;
+  var menu = data.menu;
+  var menuRequest = {
+    'lesson': data.lesson,
+    'score': data.score,
+    'time': elapsed_time().seconds,
+    'src': to_client_tree(menu.src),
+    'trg': to_client_tree(menu.trg)
+  };
+  muste_request(menuRequest, 'menu').then(handle_menu_response);
   $(document).trigger('overlay-out');
 }
 

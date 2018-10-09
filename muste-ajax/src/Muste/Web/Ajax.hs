@@ -1,9 +1,9 @@
 {-# OPTIONS_GHC -Wall -Wcompat #-}
 {-# language OverloadedStrings, DuplicateRecordFields , RecordWildCards,
   NamedFieldPuns #-}
-module Ajax
-  ( ServerTree
-  , ClientTree(ClientTree)
+module Muste.Web.Ajax
+  ( ServerTree(..)
+  , ClientTree(..)
   , LessonInit(..)
   , LoginRequest(..)
   , Lesson2(..)
@@ -13,14 +13,13 @@ module Ajax
   , MenuList(..)
   , LoginSuccess(..)
   , LessonList(..)
-  , serverTree
-  , unClientTree
+  , MenuResponse(..)
   ) where
 
 import Prelude ()
 import Muste.Prelude
 
-import Data.Aeson ((.:), (.=))
+import Data.Aeson ((.:), (.=), (.:?))
 import qualified Data.Aeson as Aeson
 import Data.Text (Text)
 import Data.Time
@@ -29,7 +28,8 @@ import Muste
 import Muste.Sentence.Unannotated (Unannotated)
 import Muste.Sentence.Annotated (Annotated)
 
-import Database (Lesson2(..))
+import           Muste.Web.Database (Lesson2(..))
+import           Muste.Web.Types.Score (Score)
 
 newtype ClientTree = ClientTree { unClientTree ∷ Unannotated }
 
@@ -78,7 +78,7 @@ instance ToJSON LessonInit where
 
 data MenuRequest = MenuRequest
   { lesson ∷ Text
-  , score  ∷ Integer
+  , score  ∷ Score
   , time   ∷ NominalDiffTime
   , src    ∷ ClientTree
   , trg    ∷ ClientTree
@@ -127,9 +127,6 @@ instance ToJSON ServerTree where
     , "menu"     .= menu
     ]
 
-serverTree ∷ Annotated → Menu → ServerTree
-serverTree = ServerTree
-
 data LoginSuccess = LoginSuccess Text
 
 instance FromJSON LoginSuccess where
@@ -154,29 +151,42 @@ instance ToJSON LessonList where
     [ "lessons" .= lessons
     ]
 
+data MenuResponse = MenuResponse
+  { lesson     ∷ Text
+  , score      ∷ Score
+  , menu       ∷ Maybe MenuList
+  }
+
+instance FromJSON MenuResponse where
+  parseJSON = Aeson.withObject "menu"
+    $ \ o → MenuResponse
+    <$> o .:  "lesson"
+    <*> o .:  "score"
+    <*> o .:? "menu"
+
+instance ToJSON MenuResponse where
+  toJSON MenuResponse{..} =
+    Aeson.object
+      [ "lesson" .= lesson
+      , "score"  .= score
+      , "menu" .= menu
+      ]
+
+-- Better name might be menus?
 data MenuList = MenuList
-  { lesson  ∷ Text
-  , passed  ∷ Bool
-  , clicks  ∷ Integer
-  , src     ∷ ServerTree
+  { src     ∷ ServerTree
   , trg     ∷ ServerTree
   }
 
 instance FromJSON MenuList where
-  parseJSON = Aeson.withObject "menu-list"
+  parseJSON = Aeson.withObject "menu"
     $ \ o → MenuList
-    <$> o .: "lesson"
-    <*> o .: "passed"
-    <*> o .: "clicks"
-    <*> o .: "src"
+    <$> o .: "src"
     <*> o .: "trg"
 
 instance ToJSON MenuList where
   toJSON MenuList{..} = Aeson.object
-    [ "lesson"  .= lesson
-    , "success" .= passed
-    , "score"   .= clicks
-    , "src"     .= src
+    [ "src"     .= src
     , "trg"     .= trg
     ]
 

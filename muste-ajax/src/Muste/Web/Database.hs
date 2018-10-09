@@ -1,7 +1,7 @@
 -- TODO Fix name shadowing.
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
 {-# Language QuasiQuotes, RecordWildCards, MultiWayIf #-}
-module Database
+module Muste.Web.Database
   ( MonadDB
   , DbT(DbT)
   , Db
@@ -52,13 +52,14 @@ import qualified Data.Time.Clock        as Time
 import qualified Data.Time.Format       as Time
 import Control.Monad.Reader
 
-import qualified Muste
-
 -- FIXME QuickCheck seems like a heavy dependency just to get access
 -- to `shuffle`.
 import qualified Test.QuickCheck as QC (shuffle, generate)
 
-import qualified Database.Types as Types
+import qualified Muste
+
+import qualified Muste.Web.Database.Types as Types
+import           Muste.Web.Types.Score (Score)
 
 data Error
   = NoUserFound
@@ -548,13 +549,13 @@ continueLesson user lesson = do
   errNoExercises = error "Database.continueLesson: Invariant violated: No exercises for lesson"
 
 finishExercise
-  :: MonadDB r db
-  => Text -- ^ Token
-  -> Text -- ^ Lesson
-  -> NominalDiffTime -- ^ Time elapsed
-  -> Integer -- ^ Clicks
-  -> db ()
-finishExercise token lesson time clicks = do
+  ∷ MonadDB r db
+  ⇒ Text            -- ^ Token
+  → Text            -- ^ Lesson
+  → NominalDiffTime -- ^ Time elapsed
+  → Score     -- ^ Score
+  → db ()
+finishExercise token lesson time score = do
   -- get user name
   user ← getUser token
   -- get lesson round
@@ -562,7 +563,7 @@ finishExercise token lesson time clicks = do
   ((sourceTree,targetTree):_)
     <- query @(Types.Unannotated, Types.Unannotated) selectExerciseListQuery (lesson,user,round)
   execute insertFinishedExerciseQuery
-    (user, lesson, sourceTree, targetTree, time, clicks + 1, round)
+    (user, lesson, sourceTree, targetTree, time, score, round)
   -- check if all exercises finished
   [Only finishedCount] <- query @(Only Integer) countFinishesExercisesQuery (user,lesson)
   [Only exerciseCount] <- query @(Only Integer) countExercisesInLesson (Only lesson)

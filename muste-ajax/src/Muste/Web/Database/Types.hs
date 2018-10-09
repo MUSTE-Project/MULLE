@@ -5,7 +5,7 @@
 --
 -- The reason I'm using type aliases is to inherit the `FromRow` and
 -- `ToRow` instances defined for these types.
-module Database.Types
+module Muste.Web.Database.Types
   ( User(..)
   , Session(..)
   , Exercise(..)

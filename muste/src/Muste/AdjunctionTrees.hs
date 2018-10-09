@@ -100,7 +100,7 @@ diagnose builderInfo ats@(AdjunctionTrees adjTrees) = unsafePerformIO $ do
   printf "<< Building adjunction trees: %.2f s\n\n" secs
   return ats
 #else
-diagnose = identity
+diagnose _ = identity
 #endif
 
 data BuilderEnv = BuilderEnv

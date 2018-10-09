@@ -8,7 +8,6 @@ import           Muste.Prelude
 import           Data.ByteString (ByteString)
 import           Data.FileEmbed (embedFile)
 import           Data.Text.Encoding (decodeUtf8)
-import qualified Database
 import           Database.SQLite.Simple (Connection(Connection), Query)
 import qualified Database.SQLite.Simple as SQL
 import           Database.SQLite.Simple.QQ (sql)
@@ -19,12 +18,14 @@ import           Data.FileEmbed
 import           Data.String.Conversions (convertString)
 import qualified Data.Yaml as Yaml
 
-import qualified DbInit.Data as Data
-import qualified Config
-import qualified Database.Types as Database
-
 import           Muste.Sentence.Unannotated (Unannotated)
 import qualified Muste.Sentence.Unannotated as Unannotated
+
+import qualified Muste.Web.Config         as Config
+import qualified Muste.Web.Database       as Database
+import qualified Muste.Web.Database.Types as Database
+
+import qualified DbInit.Data as Data
 
 initDb :: IO ()
 initDb = do

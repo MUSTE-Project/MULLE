@@ -1,3 +1,7 @@
+-- | This module described the configuration options as they are read
+-- from the config file.  Further processing is then performed on
+-- these options.  See the module "Muste.Web.Config.AppConfig" for
+-- more information about that.
 {-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE
     OverloadedStrings
@@ -6,33 +10,22 @@
   , DuplicateRecordFields
   , TemplateHaskell
 #-}
-module Config.TH (Config(..), config, AppConfig(..), User(..)) where
+module Muste.Web.Config.TH
+  ( Config(..), config) where
 
 import Prelude ()
 import Muste.Prelude
 import System.FilePath
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (Lift(lift))
-import Data.Yaml
-  ( FromJSON(parseJSON), withObject
-  , ToJSON(toJSON), object
-  , (.:), (.:?), (.!=), (.=)
-  )
+import Data.Aeson (FromJSON(..), (.:?), (.!=))
+import qualified Data.Aeson as Aeson
+
 import Paths_muste_ajax
 import Data.FileEmbed
-import Common (decodeFileThrow)
 
-data User = User
-  { name     ∷ String
-  , password ∷ String
-  , enabled  ∷ Bool
-  } deriving (Show, Lift)
-
-instance FromJSON User where
-  parseJSON = withObject "user" $ \v → User
-    <$> v .: "name"
-    <*> v .: "password"
-    <*> v .: "enabled"
+import Muste.Web.Common (decodeFileThrow)
+import qualified Muste.Web.Config.Types as Types
 
 data Config = Config
   { port          ∷ Int
@@ -41,7 +34,7 @@ data Config = Config
   , virtualRoot   ∷ FilePath
   , dataDir       ∷ FilePath
   , logDir        ∷ FilePath
-  , users         ∷ [User]
+  , users         ∷ [Types.User]
   } deriving (Lift)
 
 shareDir ∷ FilePath
@@ -66,7 +59,7 @@ defaultLogDir ∷ FilePath
 defaultLogDir = shareDir </> "log"
 
 instance FromJSON Config where
-  parseJSON = withObject "config" $ \v → Config
+  parseJSON = Aeson.withObject "config" $ \v → Config
     <$> v .:? "port"                  .!= defaultPort
     <*> v .:? "www-root"              .!= defaultWwwRoot
     <*> v .:? "static-dir"            .!= defaultStaticDir
@@ -83,28 +76,3 @@ decodeConfig = do
 
 config ∷ Q Exp
 config = decodeConfig
-
-data AppConfig = AppConfig
-  { db          ∷ FilePath
-  -- A path to the yaml file containing the lessons
-  , lessons     ∷ FilePath
-  , accessLog   ∷ FilePath
-  , errorLog    ∷ FilePath
-  , port        ∷ Int
-  , staticDir   ∷ FilePath
-  , wwwRoot     ∷ FilePath
-  , virtualRoot ∷ FilePath
-  , users       ∷ [User]
-  }
-
-instance ToJSON AppConfig where
-  toJSON AppConfig{..} = object
-    [ "db"           .= db
-    , "lessons"      .= lessons
-    , "access-log"   .= accessLog
-    , "error-log"    .= errorLog
-    , "port"         .= port
-    , "static-dir"   .= staticDir
-    , "www-root"     .= wwwRoot
-    , "virtual-root" .= virtualRoot
-    ]

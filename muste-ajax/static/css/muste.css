@@ -136,7 +136,7 @@ a.button {
     border-color: #acacac;
     user-select: none;
 }
-.word {
+.clickable {
     z-index: 15;
     position: relative;
 }

@@ -34,6 +34,7 @@ default-extensions:
   - UnicodeSyntax
   - ViewPatterns
   - DerivingStrategies
+  - EmptyCase
 
 data-files:
   - data/lessons.yaml
@@ -121,13 +122,16 @@ library:
     - src
 
   exposed-modules:
-    - Ajax
-    - Database
-    - Database.Types
-    - Config
-    - Config.TH
-    - Protocol
-    - Common
+    - Muste.Web.Ajax
+    - Muste.Web.Database
+    - Muste.Web.Database.Types
+    - Muste.Web.Types.Score
+    - Muste.Web.Config
+    - Muste.Web.Config.Types
+    - Muste.Web.Config.AppConfig
+    - Muste.Web.Config.TH
+    - Muste.Web.Protocol
+    - Muste.Web.Common
     - Database.SQLite.Simple.FromRow.Generic
 
   other-modules:
