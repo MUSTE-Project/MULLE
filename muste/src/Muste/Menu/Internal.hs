@@ -60,10 +60,7 @@ deriving instance ToJSON Interval
 deriving instance FromJSON Interval
 deriving instance Show Interval
 deriving instance Eq Interval
-instance Ord Interval where
-  a `compare` b = case sizeInterval a `compare` sizeInterval b of
-    EQ → runInterval a `compare` runInterval b
-    x  → x
+deriving instance Ord Interval
 deriving instance Read Interval
 deriving instance Generic Interval
 instance NFData Interval where
