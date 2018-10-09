@@ -103,6 +103,7 @@ dependencies:
   - transformers-base
   - string-conversions
   - memory
+  - binary
 
 library:
   default-extensions:

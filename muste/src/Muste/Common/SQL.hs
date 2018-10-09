@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wall #-}
 -- | I got a bit sick of having to import 3 different modules to use
 -- the SQL-backend, hence this module.
 module Muste.Common.SQL
@@ -9,6 +10,7 @@ module Muste.Common.SQL
   , SQL.ResultError(..)
   , fromBlob
   , toBlob
+  , fromNullableBlob
   ) where
 
 import qualified Database.SQLite.Simple           as SQL
@@ -23,8 +25,15 @@ import Muste.Common (binaryToText, binaryFromText)
 
 fromBlob ∷ Typeable b ⇒ Binary b ⇒ SQL.Field → SQL.Ok b
 fromBlob fld = case SQL.fieldData fld of
-    SQL.SQLBlob t -> pure $ binaryFromText t
-    _ -> SQL.returnError SQL.ConversionFailed fld mempty
+  SQL.SQLBlob t -> pure $ binaryFromText t
+  _ -> SQL.returnError SQL.ConversionFailed fld mempty
 
 toBlob ∷ ∀ b . Binary b ⇒ b → SQL.SQLData
 toBlob = SQL.SQLBlob . binaryToText @b @ByteString
+
+-- | Safe conversion of blob columns that may be null.
+fromNullableBlob ∷ Typeable b ⇒ Binary b ⇒ Monoid b ⇒ SQL.Field → SQL.Ok b
+fromNullableBlob fld = case SQL.fieldData fld of
+  SQL.SQLBlob t -> pure $ binaryFromText t
+  SQL.SQLNull → pure mempty
+  _ -> SQL.returnError SQL.ConversionFailed fld mempty

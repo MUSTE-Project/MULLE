@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language StandaloneDeriving , GeneralizedNewtypeDeriving ,
-    TypeOperators , DuplicateRecordFields, DeriveAnyClass #-}
+    TypeOperators , DuplicateRecordFields, DeriveAnyClass, RecordWildCards #-}
 -- | One type per table
 --
 -- The reason I'm using type aliases is to inherit the `FromRow` and
@@ -14,20 +14,26 @@ module Muste.Web.Database.Types
   , StartedLesson(..)
   , FinishedLesson(..)
   , ExerciseList(..)
+  , ActiveLesson(..)
   , Muste.TTree
   , Sentence.Unannotated
+  , Numeric
+  , Blob
   ) where
 
 import Prelude ()
 import Muste.Prelude
 import Data.ByteString (ByteString)
 import Data.Time
+import Data.Aeson (FromJSON(..), withObject, (.:), ToJSON(toJSON), object, (.=))
 
 import qualified Muste (TTree)
 import qualified Muste.Sentence.Unannotated as Sentence (Unannotated)
 import Muste.Sentence.Unannotated (Unannotated)
 import Database.SQLite.Simple.FromRow
 import Database.SQLite.Simple.ToRow
+
+import           Muste.Web.Types.Score (Score)
 
 type Blob = ByteString
 type Numeric = Integer
@@ -68,7 +74,6 @@ deriving stock instance Generic Session
 deriving anyclass instance ToRow Session
 deriving anyclass instance FromRow Session
 
--- Probably should be @(Blob, Blob, Text, Numeric)@
 -- | Representation of an 'Exercise' in the database.  Consists of:
 --
 -- * The source sentence.
@@ -129,11 +134,10 @@ deriving anyclass instance FromRow Lesson
 -- * The round it was in the lesson.
 data FinishedExercise = FinishedExercise
   { user                ∷ Text
-  , sourceLinearization ∷ Unannotated
-  , targetLinearization ∷ Unannotated
   , lesson              ∷ Text
-  , time                ∷ NominalDiffTime
-  , clickCount          ∷ Numeric
+  , sourceSentence      ∷ Unannotated
+  , targetSentence      ∷ Unannotated
+  , score               ∷ Score
   , round               ∷ Numeric
   }
 
@@ -190,9 +194,9 @@ deriving anyclass instance FromRow FinishedLesson
 -- * The round.
 data ExerciseList = ExerciseList
   { user                ∷ Text
-  , sourceLinearization ∷ Unannotated
-  , targetLinearization ∷ Unannotated
   , lesson              ∷ Text
+  , sourceSentence      ∷ Unannotated
+  , targetSentence      ∷ Unannotated
   , round               ∷ Numeric
   }
 
@@ -200,4 +204,43 @@ deriving stock instance Show    ExerciseList
 deriving stock instance Generic ExerciseList
 deriving anyclass instance ToRow ExerciseList
 deriving anyclass instance FromRow ExerciseList
-b
+
+
+-- | Not like 'Types.Lesson'.  'Types.Lesson' refers to the
+-- representation in the database.  This is the type used in "Ajax".
+data ActiveLesson = ActiveLesson
+  { name          ∷ Text
+  , description   ∷ Text
+  , exercisecount ∷ Int
+  , passedcount   ∷ Int
+  , score         ∷ Maybe Score
+  , finished      ∷ Bool
+  , enabled       ∷ Bool
+  }
+
+deriving stock instance Show ActiveLesson
+
+instance FromJSON ActiveLesson where
+  parseJSON = withObject "Lesson" $ \v -> ActiveLesson
+    <$> v .: "name"
+    <*> v .: "description"
+    <*> v .: "exercisecount"
+    <*> v .: "passedcount"
+    <*> v .: "score"
+    <*> v .: "passed"
+    <*> v .: "enabled"
+
+instance ToJSON ActiveLesson where
+  toJSON ActiveLesson{..} = object
+    [ "name"          .= name
+    , "description"   .= description
+    , "exercisecount" .= exercisecount
+    , "passedcount"   .= passedcount
+    , "score"         .= score
+    , "passed"        .= passedcount
+    , "enabled"       .= enabled
+    ]
+
+deriving stock instance Generic ActiveLesson
+deriving anyclass instance ToRow ActiveLesson
+deriving anyclass instance FromRow ActiveLesson

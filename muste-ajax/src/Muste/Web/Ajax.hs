@@ -6,7 +6,7 @@ module Muste.Web.Ajax
   , ClientTree(..)
   , LessonInit(..)
   , LoginRequest(..)
-  , ActiveLesson(..)
+  , Database.ActiveLesson(..)
   , User(..)
   , ChangePwd(..)
   , MenuRequest(..)
@@ -21,14 +21,14 @@ import Muste.Prelude
 
 import Data.Aeson ((.:), (.=), (.:?))
 import qualified Data.Aeson as Aeson
-import Data.Text (Text)
 import Data.Time
 
 import Muste
 import Muste.Sentence.Unannotated (Unannotated)
 import Muste.Sentence.Annotated (Annotated)
 
-import           Muste.Web.Database (ActiveLesson(..))
+import qualified Muste.Web.Database.Types as Database
+
 import           Muste.Web.Types.Score (Score)
 
 newtype ClientTree = ClientTree { unClientTree ∷ Unannotated }
@@ -82,6 +82,7 @@ data MenuRequest = MenuRequest
   -- In stead we should store the score along with the users session,
   -- and only when the exercise is done respond with the final score.
   , score  ∷ Score
+  -- The time the user has been working on the exercise.
   , time   ∷ NominalDiffTime
   , src    ∷ ClientTree
   , trg    ∷ ClientTree
@@ -125,7 +126,7 @@ instance FromJSON ServerTree where
     <*> v .: "menu"
 
 instance ToJSON ServerTree where
-  toJSON (ServerTree { .. }) = Aeson.object
+  toJSON ServerTree{..} = Aeson.object
     [ "sentence" .= sentence
     , "menu"     .= menu
     ]
@@ -142,7 +143,7 @@ instance ToJSON LoginSuccess where
     [ "login-succes" .= token
     ]
 
-data LessonList = LessonList [ActiveLesson]
+data LessonList = LessonList [Database.ActiveLesson]
 
 instance FromJSON LessonList where
   parseJSON = Aeson.withObject "lesson-list"

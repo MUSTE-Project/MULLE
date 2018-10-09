@@ -46,17 +46,22 @@ Repeatable BOOL NOT NULL DEFAULT 1,
 PRIMARY KEY(Name));
 
 CREATE TABLE FinishedExercise (
-User TEXT,
-SourceTree BLOB,
-TargetTree BLOB,
-Lesson TEXT,
--- FIXME Remove this.  It's stored in the score blob now.
-Time NUMERIC NOT NULL,
-Score BLOB NOT NULL,
-Round NUMERIC NOT NULL,
-PRIMARY KEY (User,SourceTree, TargetTree, Lesson, Round),
-FOREIGN KEY (User) REFERENCES User(Username),
-FOREIGN KEY(SourceTree, TargetTree, Lesson) REFERENCES Exercise(SourceTree, TargetTree, Lesson));
+  User TEXT,
+  SourceTree BLOB,
+  TargetTree BLOB,
+  Lesson TEXT,
+  Score BLOB NOT NULL,
+  Round NUMERIC NOT NULL,
+  PRIMARY
+    KEY (User,SourceTree, TargetTree, Lesson, Round),
+  FOREIGN
+    KEY (User)
+    REFERENCES User(Username),
+  FOREIGN
+    KEY (SourceTree, TargetTree, Lesson)
+    REFERENCES Exercise(SourceTree, TargetTree, Lesson)
+  UNIQUE (User, Lesson)
+);
 
 CREATE TABLE StartedLesson (
 Lesson TEXT,
@@ -65,18 +70,10 @@ Round NUMERIC NOT NULL DEFAULT 1,
 PRIMARY KEY(Lesson, User, Round),
 FOREIGN KEY(Lesson) REFERENCES Lesson(Name), FOREIGN KEY(User) REFERENCES User(Username));
 
-SELECT *
-FROM StartedLesson
-LEFT JOIN FinishedExercise ON StartedLesson.Lesson = FinishedExercise.Lesson
-LEFT JOIN FinishedLesson   ON StartedLesson.Lesson = FinishedLesson.Lesson;
-
 CREATE TABLE FinishedLesson (
 Lesson TEXT,
 User TEXT,
-Time NUMERIC NOT NULL,
--- Perhaps this should be a computed value as well?  I'm guessing this
--- is supposed to be the mconcat of the scores from the exercise.
-ClickCount NUMERIC NOT NULL,
+Score BLOB NOT NULL,
 Round NUMERIC NOT NULL DEFAULT 1,
 PRIMARY KEY (Lesson, User, Round),
 FOREIGN KEY (User) REFERENCES User(Username),
@@ -116,11 +113,12 @@ SELECT
   Lesson.Name,
   Lesson.Description,
   Lesson.ExerciseCount,
+  -- FIXME Perhaps this can be implemented with some defaulting rules
+  -- for joining.
   COALESCE(PassedExercise.Passed, 0) as PassedCount,
-  PassedExercise.ClickCount AS Score,
-  COALESCE(PassedExercise.Time, "0s") as Time,
-  -- PassedLesson.Passed AS Finished,
-  0 AS Finished,
+  PassedExercise.Score as Score,
+  -- FIXME Same as above.
+  COALESCE(PassedLesson.Passed, 0) AS Finished,
   Lesson.Enabled,
   StartedLesson.User
 FROM Lesson

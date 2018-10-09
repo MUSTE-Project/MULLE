@@ -2,6 +2,7 @@
 module Muste.Web.Types.Score
   ( Score(..)
   , addClick
+  , setTime
   ) where
 
 import Prelude ()
@@ -13,6 +14,7 @@ import Data.Aeson ((.:), (.=), (.:?))
 import qualified Data.Aeson as Aeson
 import Muste.Common.SQL (FromField, ToField)
 import qualified Muste.Common.SQL as SQL
+import Data.Binary (Binary(..))
 
 data Score = Score
   -- Does not represent the clicks in the UI, but the time a menu has
@@ -21,8 +23,17 @@ data Score = Score
   , time   ∷ NominalDiffTime
   }
 
-addClick ∷ Score → Score
-addClick s@Score{..} = s { clicks = succ clicks }
+instance Binary Score where
+  put Score{..} = put clicks <> put (fromEnum time)
+  get = Score <$> get <*> (toEnum <$> get)
+
+deriving stock instance Show Score
+
+addClick ∷ Int → Score → Score
+addClick n s@Score{..} = s { clicks = clicks + n }
+
+setTime ∷ NominalDiffTime → Score → Score
+setTime t s@Score{..} = s { time = t }
 
 instance Semigroup Score where
   a <> b
@@ -51,13 +62,7 @@ instance FromJSON Score where
 -- @(Int, Int)@ using the 'Enum' instance for 'NominalDiffTime' in the
 -- process.
 instance FromField Score where
-  fromField = fmap conv <$> SQL.fromBlob @(Int, Int)
-    where
-    conv ∷ (Int, Int) → Score
-    conv (a, b) = Score a (toEnum b)
+  fromField = SQL.fromNullableBlob
 
 instance ToField Score where
-  toField = SQL.toBlob @(Int, Int) . conv
-    where
-    conv ∷ Score → (Int, Int)
-    conv Score{..} = (clicks, fromEnum time)
+  toField = SQL.toBlob

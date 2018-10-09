@@ -1,6 +1,14 @@
 BACKLOG
 =======
 
+Database changes
+---
+
+I've removed the score column from the FinishedLesson table.  We
+should in stead implement this as a view.  One idea is to select all
+scores across all exercises for a lesson, pull them all into Haskell
+and mconcat them together.
+
 Use front end framework
 ---
 

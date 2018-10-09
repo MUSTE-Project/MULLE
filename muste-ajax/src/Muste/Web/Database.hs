@@ -1,6 +1,8 @@
+-- FIXME So many methods need access to a lesson and a user.  Perhaps
+-- we should just add this to the database monad.
 -- TODO Fix name shadowing.
--- {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# Language QuasiQuotes, RecordWildCards, MultiWayIf, DeriveAnyClass #-}
+{-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
+{-# Language QuasiQuotes, RecordWildCards, MultiWayIf, DeriveAnyClass, NamedFieldPuns #-}
 module Muste.Web.Database
   ( MonadDB
   , DbT(DbT)
@@ -9,7 +11,6 @@ module Muste.Web.Database
   , getConnection
   , Error(..)
   , MonadDatabaseError(..)
-  , ActiveLesson(..)
   , runDbT
   , getLessons
   , authUser
@@ -34,12 +35,9 @@ import Database.SQLite.Simple
   )
 import Database.SQLite.Simple.QQ (sql)
 import qualified Database.SQLite.Simple as SQL
-import qualified Database.SQLite.Simple.FromField as SQL
 import Control.Monad.Except (MonadError(..), ExceptT, runExceptT)
 import Control.Exception (catch)
 import Data.String.Conversions (convertString)
-import Data.Aeson
-  ( FromJSON(parseJSON), withObject, (.:), ToJSON(toJSON), object, (.=))
 
 import Crypto.Random.API (getSystemRandomGen, genRandomBytes)
 import Crypto.KDF.PBKDF2 (fastPBKDF2_SHA512, Parameters(Parameters))
@@ -47,7 +45,7 @@ import Crypto.Hash (SHA3_512, hash)
 
 import Data.ByteString (ByteString)
 import qualified Data.Text.Encoding     as T
-import Data.Time.Clock (NominalDiffTime, UTCTime)
+import Data.Time.Clock (UTCTime)
 import qualified Data.Time.Clock        as Time
 import qualified Data.Time.Format       as Time
 import Control.Monad.Reader
@@ -258,62 +256,24 @@ verifySession token = do
     execute deleteSessionQuery [token]
     throwDbError error
 
--- | Not like 'Types.Lesson'.  'Types.Lesson' refers to the
--- representation in the database.  This is the type used in "Ajax".
-data ActiveLesson = ActiveLesson
-  { name          ∷ Text
-  , description   ∷ Text
-  , exercisecount ∷ Int
-  , passedcount   ∷ Int
-  -- Compount the next two items
-  , score         ∷ Int
-  , time          ∷ NominalDiffTime
-  , finished      ∷ Bool
-  , enabled       ∷ Bool
-  , user          ∷ Text
-  }
-
-deriving stock instance Show ActiveLesson
-
-instance FromJSON ActiveLesson where
-  parseJSON = withObject "Lesson" $ \v -> ActiveLesson
-    <$> v .: "name"
-    <*> v .: "description"
-    <*> v .: "exercisecount"
-    <*> v .: "passedcount"
-    <*> v .: "score"
-    <*> v .: "time"
-    <*> v .: "passed"
-    <*> v .: "enabled"
-    <*> v .: "user"
-
-instance ToJSON ActiveLesson where
-  toJSON ActiveLesson{..} = object
-    [ "name"          .= name
-    , "description"   .= description
-    , "exercisecount" .= exercisecount
-    , "passedcount"   .= passedcount
-    , "score"         .= score
-    , "time"          .= time
-    , "passed"        .= passedcount
-    , "enabled"       .= enabled
-    , "user"          .= user
-    ]
-
-deriving stock instance Generic ActiveLesson
-deriving anyclass instance ToRow ActiveLesson
-deriving anyclass instance FromRow ActiveLesson
-
 -- | List all the lessons i.e. lesson name, description and exercise
 -- count
 getActiveLessons
   ∷ ∀ r db
   . MonadDB r db
   ⇒ Text -- Token
-  → db [ActiveLesson]
+  → db [Types.ActiveLesson]
 getActiveLessons token = do
   user <- getUser token
-  query [sql|SELECT * FROM ActiveLesson WHERE User = ?;|] (Only user)
+  getActiveLessonsForUser user
+
+getActiveLessonsForUser
+  ∷ ∀ r db
+  . MonadDB r db
+  ⇒ Text
+  → db [Types.ActiveLesson]
+getActiveLessonsForUser user =
+  query [sql|SELECT Name, Description, ExerciseCount, PassedCount, Score, Finished, Enabled FROM ActiveLesson WHERE User IS NULL OR User = ?;|] (Only user)
 
 -- | Start a new lesson by randomly choosing the right number of
 -- exercises and adding them to the users exercise list
@@ -325,14 +285,21 @@ startLesson
   -> db (Text, Types.Unannotated, Text, Types.Unannotated)
 startLesson token lesson = do
   user ← getUser token
-  isRunning <- (0 /=) . fromOnly . head
-    <$> (query @(Only Int) checkLessonStartedQuery [user,lesson])
+  isRunning <- checkStarted user lesson
   if isRunning
   then continueLesson user lesson
   else newLesson      user lesson
+
+checkStarted
+  ∷ MonadDB r db
+  ⇒ Text -- ^ User
+  → Text -- ^ Lesson
+  → db Bool
+checkStarted user lesson
+  =   (0 /=) . fromOnly . head
+  <$> query @(Only Int) q (user,lesson)
   where
-  checkLessonStartedQuery
-    = [sql|SELECT COUNT(*) FROM StartedLesson WHERE User = ? AND Lesson = ?|]
+  q = [sql|SELECT COUNT(*) FROM StartedLesson WHERE User = ? AND Lesson = ?|]
 
 getUser ∷ MonadDB r db ⇒ Text → db Text
 getUser token = do
@@ -430,6 +397,16 @@ execute qry q = do
   c ← getConnection
   wrapIoError $ SQL.execute c qry q
 
+executeMany
+  ∷ MonadDB r db
+  ⇒ ToRow q
+  ⇒ Query
+  → [q]
+  → db ()
+executeMany qry qs = do
+  c ← getConnection
+  wrapIoError $ SQL.executeMany c qry qs
+
 -- | Wraps any io error in our application specific 'DriverError'
 -- wrapper.
 wrapIoError ∷ MonadDB r db ⇒ IO a → db a
@@ -479,13 +456,34 @@ newLesson user lesson = do
   let startedLesson :: Types.StartedLesson
       startedLesson = Types.StartedLesson lesson user (succ round)
   execute insertStartedLesson startedLesson
-  mapM_ (\(sTree,tTree) -> execute insertExerciseList (lesson,user,sTree,tTree,round)) selectedTrees
+  let
+    step ∷ (Types.Unannotated, Types.Unannotated) → Types.ExerciseList
+    step (src, trg)
+      = Types.ExerciseList
+      { user
+      , lesson
+      , sourceSentence = src
+      , targetSentence = trg
+      , round = round
+      }
+  executeMany @_ @_ @Types.ExerciseList insertExerciseList $ step <$> selectedTrees
   (sourceLang, targetLang) <- getLangs lesson
   pure (sourceLang, src, targetLang, trg)
   where
-  exerciseCountQuery  = [sql|SELECT ExerciseCount FROM Lesson WHERE Name = ?;|]
-  insertStartedLesson = [sql|INSERT INTO StartedLesson (Lesson, User, Round) VALUES (?,?,?);|]
-  insertExerciseList  = [sql|INSERT INTO ExerciseList (Lesson,User,SourceTree,TargetTree,Round) VALUES (?,?,?,?,?);|]
+  exerciseCountQuery =
+    [sql|
+      SELECT ExerciseCount FROM Lesson WHERE Name = ?;
+    |]
+  insertStartedLesson =
+    [sql|
+      INSERT INTO StartedLesson (Lesson, User, Round)
+      VALUES (?,?,?);
+    |]
+  insertExerciseList =
+    [sql|
+      INSERT INTO ExerciseList (User,Lesson,SourceTree,TargetTree,Round)
+      VALUES (?,?,?,?,?);
+    |]
 
 getLangs :: MonadDB r db => Text -> db (Text, Text)
 getLangs lesson = do
@@ -531,25 +529,33 @@ finishExercise
   ∷ MonadDB r db
   ⇒ Text            -- ^ Token
   → Text            -- ^ Lesson
-  → NominalDiffTime -- ^ Time elapsed
-  → Score     -- ^ Score
+  → Score           -- ^ Score
   → db ()
-finishExercise token lesson time score = do
+finishExercise token lesson score = do
   -- get user name
   user ← getUser token
   -- get lesson round
   [Only round] <- query @(Only Integer) lessonRoundQuery (user,lesson)
-  ((sourceTree,targetTree):_)
-    <- query @(Types.Unannotated, Types.Unannotated) selectExerciseListQuery (lesson,user,round)
+  ((sourceSentence,targetSentence):_)
+    <- query selectExerciseListQuery (lesson,user,round)
   execute insertFinishedExerciseQuery
-    (user, lesson, sourceTree, targetTree, time, score, round)
+    $ Types.FinishedExercise
+      { user
+      , lesson
+      , sourceSentence
+      , targetSentence
+      , score
+      , round
+      }
   -- check if all exercises finished
-  [Only finishedCount] <- query @(Only Integer) countFinishesExercisesQuery (user,lesson)
-  [Only exerciseCount] <- query @(Only Integer) countExercisesInLesson (Only lesson)
+  finishedCount ← getFinishedExercises user lesson
+  exerciseCount ← getExerciseCount lesson
   if finishedCount >= exerciseCount
   then do
-    execute insertFinishedLessonQuery (user,lesson)
-    execute deleteStartedLessonQuery (user,lesson)
+    score ← getScore user lesson
+    round ← getCurrentRound user lesson
+    execute insertFinishedLessonQuery (user, lesson, score, round)
+    execute deleteStartedLessonQuery (user, lesson)
   else return ()
   where
     lessonRoundQuery = [sql|
@@ -567,38 +573,74 @@ finishExercise token lesson time score = do
       |]
     insertFinishedExerciseQuery = [sql|
       INSERT INTO FinishedExercise
-        (User,Lesson,SourceTree,TargetTree,Time,ClickCount,Round)
-      VALUES (?,?,?,?,?,?,?);
-      |]
-    countFinishesExercisesQuery = [sql|
-      SELECT COUNT(*)
-      FROM FinishedExercise F
-      WHERE User = ? AND Lesson = ? AND Round =
-        (SELECT MAX(Round)
-        FROM StartedLesson
-        WHERE User = F.User AND Lesson = F.Lesson);
-      |]
-    countExercisesInLesson = [sql|
-      SELECT ExerciseCount FROM Lesson WHERE Name = ?;
+        (User,Lesson,SourceTree,TargetTree,Score,Round)
+      VALUES (?,?,?,?,?,?);
       |]
     deleteStartedLessonQuery = [sql|
       DELETE FROM StartedLesson
       WHERE User = ? AND Lesson = ? ;
       |]
     insertFinishedLessonQuery = [sql|
-      WITH userName AS (SELECT ?),
-      lessonName AS (SELECT ?),
-      roundCount as (SELECT MAX(Round)
-      FROM StartedLesson WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName))
-      INSERT INTO FinishedLesson (User,Lesson,Time,ClickCount,Round) VALUES
-      ((SELECT * FROM userName),
-      (SELECT * FROM lessonName),
-      (SELECT SUM(Time) FROM FinishedExercise WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName) AND Round = (SELECT * FROM roundCount)),
-      (SELECT SUM(clickcount) FROM FinishedExercise WHERE User = (SELECT * FROM userName) AND Lesson = (SELECT * FROM lessonName) AND Round = (SELECT * FROM roundCount)),
-      (SELECT * FROM roundCount));
+      INSERT INTO FinishedLesson (User,Lesson,Score,Round) VALUES (?, ?, ?, ?);
       |]
+
+getFinishedExercises
+  ∷ MonadDB r db
+  ⇒ Text -- ^ User
+  → Text -- ^ Lesson
+  → db Types.Numeric
+getFinishedExercises user lesson =
+  fromOnly . head <$> query @(Only Integer) countFinishesExercisesQuery (user,lesson)
+  where
+  countFinishesExercisesQuery
+    = [sql|
+      SELECT COUNT(*)
+      FROM FinishedExercise F
+      WHERE User = ?
+      AND Lesson = ?
+    |]
+
+getExerciseCount
+  ∷ MonadDB r db
+  ⇒ Text -- ^ Lesson
+  → db Types.Numeric
+getExerciseCount lesson =
+  fromOnly . head <$> query @(Only Integer) countExercisesInLesson (Only lesson)
+  where
+  countExercisesInLesson = [sql|
+    SELECT ExerciseCount FROM Lesson WHERE Name = ?;
+    |]
 
 endSession :: MonadDB r db ⇒ Text -> db ()
 endSession token = do
   let deleteSessionQuery = [sql|DELETE FROM Session WHERE Token = ?;|]
   execute deleteSessionQuery [token]
+
+getCurrentRound
+  ∷ MonadDB r db
+  ⇒ Text -- ^ User
+  → Text -- ^ Lesson
+  → db (Maybe Types.Numeric)
+getCurrentRound user lesson =
+  fromOnly . head <$> query
+    [sql|
+        SELECT MAX(Round)
+        FROM StartedLesson
+        WHERE User = ?
+        AND Lesson = ?
+    |] (user, lesson)
+
+-- TODO Stub
+-- | Get the score for the user and lesson.
+getScore
+  ∷ MonadDB r db
+  ⇒ Text -- ^ User
+  → Text -- ^ Lesson
+  → db Score
+getScore user lesson = mconcat . fmap fromOnly <$> query @(Only Score)
+  [sql|
+      SELECT Score
+      FROM FinishedExercise
+      WHERE User = ?
+      AND Lesson = ?
+  |] (user, lesson)

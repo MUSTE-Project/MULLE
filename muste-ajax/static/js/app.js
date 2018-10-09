@@ -247,6 +247,9 @@ function register_handlebars_helper() {
     },
     or: function () {
       return Array.prototype.slice.call(arguments, 0, -1).some(Boolean);
+    },
+    json: function(context) {
+      return JSON.stringify(context);
     }
   });
 }
@@ -262,15 +265,20 @@ var lesson_list_template = ' \
 <div class="lessons"> \
 {{#each .}} \
  <div class="{{#if (or passed (gte passed total))}}finished{{/if}} {{#if enabled}}{{else}}disabled{{/if}}"> \
-  <h2>{{name}}</h2> \
+  <h3>{{name}}</h3> \
   <div class="lesson-info"> \
    <div> \
-    <span> \
-     {{passedcount}} avklarade av {{exercisecount}} övningar, {{lsn.score}}  klick i {{lsn.time}} sekunder \
-    </span> \
-    <div> \
+    <p> \
+     {{passedcount}} avklarade av {{exercisecount}} övningar \
+    </p> \
+    {{#if score}} \
+    <p> \
+     Your score so far: <span>{{score.clicks}} klick i {{score.time}} sekunder</span> \
+    </p> \
+    {{/if}} \
+    <p> \
      {{description}} \
-    </div> \
+    </p> \
    </div> \
    <div class="lesson-info-button"> \
     <button {{#if enabled}}{{else}}disabled{{/if}} onclick="start_lesson(\'{{name}}\');">Solve</button> \

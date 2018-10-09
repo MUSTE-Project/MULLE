@@ -448,13 +448,17 @@ handleMenuRequest
   → m Ajax.MenuResponse
 handleMenuRequest Ajax.MenuRequest{..} = do
   verifySession
-  let newScore = Score.addClick score
+  token ← getToken
+  let
+    newScore
+      = score
+      & Score.addClick 1
+      & Score.setTime time
   finished ← oneSimiliarTree lesson src trg
   menu ←
     if finished
     then do
-      token ← getToken
-      Database.finishExercise token lesson time newScore
+      Database.finishExercise token lesson newScore
       pure Nothing
     else assembleMenus lesson (un src) (un trg)
   verifyMessage $ Ajax.MenuResponse

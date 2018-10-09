@@ -4,6 +4,19 @@ Change log
 HEAD
 ---
 
+Update to latest version of our fork of `sqlite-simple`.
+
+### Database changes
+
+This change contains a lot of changes to the data model.  Regressions
+are likely!
+
+Compunded the time column with the click count column to make a new
+"score" column.  The data in it is stored a binary blob.  For one
+thing this for instance means that we cannot use aggregate functions
+on the column.  In stead we need to pull out all score values and
+e.g. mconcat them together.
+
 0.2.6.0
 ---
 
