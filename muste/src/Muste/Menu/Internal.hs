@@ -71,6 +71,9 @@ instance NFData Interval where
 sizeInterval ∷ Interval → Int
 sizeInterval (Interval (i, j)) = j - i
 
+emptyInterval ∷ Interval → Bool
+emptyInterval (Interval (i, j)) = i == j
+
 newtype Selection = Selection { runSelection ∷ Set Interval }
 
 deriving instance Read Selection
@@ -250,8 +253,10 @@ collectTreeSubstitutions opts ctxt oldtrees = do
 collectMenuItems :: Context -> [TreeSubst] -> [(Selection, Selection, Sentence.Linearization Token.Annotated)]
 collectMenuItems ctxt substs = do
   (_cost, (_oldtree, oldwords, oldnodes), (_newtree, newwords, newnodes)) ← substs
-  let nodeedits = alignSequences oldnodes newnodes
-  let wordedits = alignSequences oldwords newwords
+  -- the nodes are used for finding insertion points,
+  -- while the words are used for finding which words have changed:
+  let nodeedits = filter (      emptyInterval . fst) $ alignSequences oldnodes newnodes
+  let wordedits = filter (not . emptyInterval . fst) $ alignSequences oldwords newwords
   let edits = nodeedits <> wordedits
   let (oldselection, newselection) = splitAlignments edits
   let lins = [ Annotated.mkLinearization ctxt t t t |
