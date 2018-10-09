@@ -6,7 +6,7 @@ module Muste.Web.Ajax
   , ClientTree(..)
   , LessonInit(..)
   , LoginRequest(..)
-  , Lesson2(..)
+  , ActiveLesson(..)
   , User(..)
   , ChangePwd(..)
   , MenuRequest(..)
@@ -28,7 +28,7 @@ import Muste
 import Muste.Sentence.Unannotated (Unannotated)
 import Muste.Sentence.Annotated (Annotated)
 
-import           Muste.Web.Database (Lesson2(..))
+import           Muste.Web.Database (ActiveLesson(..))
 import           Muste.Web.Types.Score (Score)
 
 newtype ClientTree = ClientTree { unClientTree ∷ Unannotated }
@@ -139,7 +139,7 @@ instance ToJSON LoginSuccess where
     [ "login-succes" .= token
     ]
 
-data LessonList = LessonList [Lesson2]
+data LessonList = LessonList [ActiveLesson]
 
 instance FromJSON LessonList where
   parseJSON = Aeson.withObject "lesson-list"

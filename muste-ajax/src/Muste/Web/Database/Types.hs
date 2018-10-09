@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language StandaloneDeriving , GeneralizedNewtypeDeriving ,
-    TypeOperators , LambdaCase, DuplicateRecordFields #-}
+    TypeOperators , DuplicateRecordFields, DeriveAnyClass #-}
 -- | One type per table
 --
 -- The reason I'm using type aliases is to inherit the `FromRow` and
@@ -28,7 +28,6 @@ import qualified Muste.Sentence.Unannotated as Sentence (Unannotated)
 import Muste.Sentence.Unannotated (Unannotated)
 import Database.SQLite.Simple.FromRow
 import Database.SQLite.Simple.ToRow
-import Database.SQLite.Simple.FromRow.Generic
 
 type Blob = ByteString
 type Numeric = Integer
@@ -46,12 +45,10 @@ data User = User
   , enabled             ∷ Bool
   }
 
-deriving stock instance Show    User
-deriving stock instance Generic User
-instance ToRow User where
-  toRow = genericToRow
-instance FromRow User where
-  fromRow = genericFromRow
+deriving stock    instance Show    User
+deriving stock    instance Generic User
+deriving anyclass instance ToRow User
+deriving anyclass instance FromRow User
 
 -- | Representation of a 'Session' in the database.  Consists of:
 --
@@ -68,10 +65,8 @@ data Session = Session
 
 deriving stock instance Show    Session
 deriving stock instance Generic Session
-instance ToRow Session where
-  toRow = genericToRow
-instance FromRow Session where
-  fromRow = genericFromRow
+deriving anyclass instance ToRow Session
+deriving anyclass instance FromRow Session
 
 -- Probably should be @(Blob, Blob, Text, Numeric)@
 -- | Representation of an 'Exercise' in the database.  Consists of:
@@ -89,10 +84,8 @@ data Exercise = Exercise
 
 deriving stock instance Show    Exercise
 deriving stock instance Generic Exercise
-instance ToRow Exercise where
-  toRow = genericToRow
-instance FromRow Exercise where
-  fromRow = genericFromRow
+deriving anyclass instance ToRow Exercise
+deriving anyclass instance FromRow Exercise
 
 -- | Representation of a 'Leson' in the database.  Consists of:
 --
@@ -121,10 +114,8 @@ data Lesson = Lesson
 
 deriving stock instance Show    Lesson
 deriving stock instance Generic Lesson
-instance ToRow Lesson where
-  toRow = genericToRow
-instance FromRow Lesson where
-  fromRow = genericFromRow
+deriving anyclass instance ToRow Lesson
+deriving anyclass instance FromRow Lesson
 
 -- | Representation of a 'FinishedExercise' in the database.  Consists
 -- of:
@@ -148,10 +139,8 @@ data FinishedExercise = FinishedExercise
 
 deriving stock instance Show    FinishedExercise
 deriving stock instance Generic FinishedExercise
-instance ToRow FinishedExercise where
-  toRow = genericToRow
-instance FromRow FinishedExercise where
-  fromRow = genericFromRow
+deriving anyclass instance ToRow FinishedExercise
+deriving anyclass instance FromRow FinishedExercise
 
 -- | Representation of a 'StartedLesson' in the
 -- database.  Consists of:
@@ -167,10 +156,8 @@ data StartedLesson = StartedLesson
 
 deriving stock instance Show    StartedLesson
 deriving stock instance Generic StartedLesson
-instance ToRow StartedLesson where
-  toRow = genericToRow
-instance FromRow StartedLesson where
-  fromRow = genericFromRow
+deriving anyclass instance ToRow StartedLesson
+deriving anyclass instance FromRow StartedLesson
 
 -- | Representation of a 'FinishedLesson' in the
 -- database.  Consists of:
@@ -190,10 +177,8 @@ data FinishedLesson = FinishedLesson
 
 deriving stock instance Show    FinishedLesson
 deriving stock instance Generic FinishedLesson
-instance ToRow FinishedLesson where
-  toRow = genericToRow
-instance FromRow FinishedLesson where
-  fromRow = genericFromRow
+deriving anyclass instance ToRow FinishedLesson
+deriving anyclass instance FromRow FinishedLesson
 
 -- | Representation of an 'ExerciseList' in the database.  Consists
 -- of:
@@ -213,7 +198,5 @@ data ExerciseList = ExerciseList
 
 deriving stock instance Show    ExerciseList
 deriving stock instance Generic ExerciseList
-instance ToRow ExerciseList where
-  toRow = genericToRow
-instance FromRow ExerciseList where
-  fromRow = genericFromRow
+deriving anyclass instance ToRow ExerciseList
+deriving anyclass instance FromRow ExerciseList

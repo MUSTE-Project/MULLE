@@ -1,6 +1,6 @@
 -- TODO Fix name shadowing.
-{-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# Language QuasiQuotes, RecordWildCards, MultiWayIf #-}
+-- {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
+{-# Language QuasiQuotes, RecordWildCards, MultiWayIf, DeriveAnyClass #-}
 module Muste.Web.Database
   ( MonadDB
   , DbT(DbT)
@@ -9,12 +9,12 @@ module Muste.Web.Database
   , getConnection
   , Error(..)
   , MonadDatabaseError(..)
-  , Lesson2(..)
+  , ActiveLesson(..)
   , runDbT
   , getLessons
   , authUser
   , startSession
-  , listLessons
+  , getActiveLessons
   , startLesson
   , finishExercise
   , endSession
@@ -34,7 +34,7 @@ import Database.SQLite.Simple
   )
 import Database.SQLite.Simple.QQ (sql)
 import qualified Database.SQLite.Simple as SQL
-import Database.SQLite.Simple.FromRow.Generic
+import qualified Database.SQLite.Simple.FromField as SQL
 import Control.Monad.Except (MonadError(..), ExceptT, runExceptT)
 import Control.Exception (catch)
 import Data.String.Conversions (convertString)
@@ -260,21 +260,23 @@ verifySession token = do
 
 -- | Not like 'Types.Lesson'.  'Types.Lesson' refers to the
 -- representation in the database.  This is the type used in "Ajax".
-data Lesson2 = Lesson2
+data ActiveLesson = ActiveLesson
   { name          ∷ Text
   , description   ∷ Text
   , exercisecount ∷ Int
   , passedcount   ∷ Int
+  -- Compount the next two items
   , score         ∷ Int
   , time          ∷ NominalDiffTime
   , finished      ∷ Bool
   , enabled       ∷ Bool
+  , user          ∷ Text
   }
 
-deriving stock instance Show Lesson2
+deriving stock instance Show ActiveLesson
 
-instance FromJSON Lesson2 where
-  parseJSON = withObject "Lesson" $ \v -> Lesson2
+instance FromJSON ActiveLesson where
+  parseJSON = withObject "Lesson" $ \v -> ActiveLesson
     <$> v .: "name"
     <*> v .: "description"
     <*> v .: "exercisecount"
@@ -283,9 +285,10 @@ instance FromJSON Lesson2 where
     <*> v .: "time"
     <*> v .: "passed"
     <*> v .: "enabled"
+    <*> v .: "user"
 
-instance ToJSON Lesson2 where
-  toJSON Lesson2{..} = object
+instance ToJSON ActiveLesson where
+  toJSON ActiveLesson{..} = object
     [ "name"          .= name
     , "description"   .= description
     , "exercisecount" .= exercisecount
@@ -294,47 +297,34 @@ instance ToJSON Lesson2 where
     , "time"          .= time
     , "passed"        .= passedcount
     , "enabled"       .= enabled
+    , "user"          .= user
     ]
 
-deriving stock instance Generic Lesson2
-instance ToRow Lesson2 where
-  toRow = genericToRow
-instance FromRow Lesson2 where
-  fromRow = genericFromRow
+deriving stock instance Generic ActiveLesson
+deriving anyclass instance ToRow ActiveLesson
+deriving anyclass instance FromRow ActiveLesson
 
 -- | List all the lessons i.e. lesson name, description and exercise
 -- count
-listLessons
+getActiveLessons
   ∷ ∀ r db
   . MonadDB r db
   ⇒ Text -- Token
-  → db [Lesson2]
-listLessons token = do
+  → db [ActiveLesson]
+getActiveLessons token = do
   user <- getUser token
-  -- TODO Implement this as a view in the database!
-  let listLessonsQuery = [sql|
-      WITH userName AS (SELECT ?),
-      maxRounds AS (SELECT Lesson,IFNULL(MAX(Round),0) AS Round FROM
-          (SELECT * FROM StartedLesson UNION SELECT Lesson,User,Round FROM FinishedLesson)
-      WHERE User = (SELECT * FROM userName) GROUP BY Lesson)
-      SELECT Name, Description, ExerciseCount,
-      (SELECT COUNT(*) AS Passed FROM FinishedExercise WHERE
-      User = (SELECT * FROM userName) AND Lesson = Name AND Round =
-          (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)
-      ) AS Passed,
-      (SELECT IFNULL(SUM(ClickCount),0) FROM FinishedExercise F WHERE
-      User = (SELECT * from UserName) AND Lesson = Name  AND Round =
-          (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)
-      ) AS Score,
-      (SELECT IFNULL(SUM(Time),0) FROM FinishedExercise F WHERE
-      User = (SELECT * from UserName) AND Lesson = Name  AND Round =
-          (SELECT Round FROM maxRounds WHERE User = (SELECT * FROM userName) AND Lesson = Name)
-      ) AS Time,
-      (SELECT MIN(IFNULL(COUNT(*),0),1) FROM FinishedLesson WHERE
-      User = (SELECT * from UserName) AND Lesson = Name) AS Passed,
-      Enabled
-      FROM Lesson;|]
-  query listLessonsQuery (Only user)
+  query [sql|SELECT * FROM ActiveLesson WHERE User = ?;|] (Only user)
+
+db ∷ FilePath
+db = "/home/fredefox/git/MUSTE-Project/MULLE/.stack-work/install/x86_64-linux/15f0267747c5d7582a9f4feaa56e852d312d1790f584a6c9077902f187ce5508/8.4.3/share/x86_64-linux-ghc-8.4.3/muste-ajax-0.2.6.0/data/muste.sqlite3"
+
+test ∷ IO ()
+test = do
+  c ← SQL.open db
+  xs ← runDbT (query @ActiveLesson @(Only Text) q (Only "peter")) c
+  print xs
+  where
+  q = [sql|SELECT * FROM ActiveLesson WHERE IS NULL User OR User = ?;|]
 
 -- | Start a new lesson by randomly choosing the right number of
 -- exercises and adding them to the users exercise list

@@ -37,6 +37,7 @@ Description TEXT NOT NULL,
 Grammar TEXT NOT NULL,
 SourceLanguage TEXT NOT NULL,
 TargetLanguage TEXT NOT NULL,
+-- TODO Create a view where this is a computed column.
 ExerciseCount NUMERIC NOT NULL,
 Enabled BOOL NOT NULL DEFAULT 0,
 SearchLimitDepth INT DEFAULT NULL,
@@ -67,6 +68,8 @@ CREATE TABLE FinishedLesson (
 Lesson TEXT,
 User TEXT,
 Time NUMERIC NOT NULL,
+-- Perhaps this should be a computed value as well?  I'm guessing this
+-- is supposed to be the mconcat of the scores from the exercise.
 ClickCount NUMERIC NOT NULL,
 Round NUMERIC NOT NULL DEFAULT 1,
 PRIMARY KEY (Lesson, User, Round),
@@ -82,5 +85,41 @@ Round NUMERIC NOT NULL DEFAULT 1,
 PRIMARY KEY (User, SourceTree, TargetTree, Lesson, Round),
 FOREIGN KEY(User) REFERENCES User(Username),
 FOREIGN KEY(SourceTree,TargetTree, Lesson) REFERENCES Exercise (SourceTree, TargetTree, Lesson));
+
+-- The passed exercises by user and lesson
+DROP VIEW IF EXISTS PassedExercise;
+CREATE VIEW PassedExercise AS
+SELECT
+  FinishedExercise.*,
+  COUNT(*) AS Passed
+FROM FinishedExercise
+GROUP BY Lesson, User;
+
+-- The passed exercises by user and lesson
+DROP VIEW IF EXISTS PassedLesson;
+CREATE VIEW PassedLesson AS
+SELECT
+  FinishedLesson.*,
+  MIN(IFNULL(COUNT(*),0),1) AS Passed
+FROM FinishedLesson
+GROUP BY Lesson, User;
+
+DROP VIEW IF EXISTS ActiveLesson;
+CREATE VIEW ActiveLesson AS
+SELECT
+  Lesson.Name,
+  Lesson.Description,
+  Lesson.ExerciseCount,
+  COALESCE(PassedExercise.Passed, 0) as PassedCount,
+  PassedExercise.ClickCount AS Score,
+  COALESCE(PassedExercise.Time, "0s") as Time,
+  -- PassedLesson.Passed AS Finished,
+  0 AS Finished,
+  Lesson.Enabled,
+  StartedLesson.User
+FROM Lesson
+LEFT JOIN StartedLesson    ON Lesson.Name = StartedLesson.Lesson
+LEFT JOIN PassedExercise   ON Lesson.Name = PassedExercise.Lesson
+LEFT JOIN PassedLesson     ON Lesson.Name = PassedLesson.Lesson;
 
 COMMIT TRANSACTION;

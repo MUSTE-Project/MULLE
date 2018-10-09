@@ -369,7 +369,7 @@ getTokenCookie = Snap.getCookie "LOGIN_TOKEN"
 lessonsHandler :: MonadProtocol m ⇒ m (Response Ajax.LessonList)
 lessonsHandler = do
   t ← getToken
-  lessons ← Database.listLessons t
+  lessons ← Database.getActiveLessons t
   pure <$> verifyMessage (Ajax.LessonList lessons)
 
 lessonHandler ∷ MonadProtocol m ⇒ m (Response Ajax.MenuResponse)
