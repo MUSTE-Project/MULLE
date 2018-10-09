@@ -173,7 +173,11 @@ function submit_login(evt) {
   }
   var loginform = document.getElementById('loginform');
   var req = {username: loginform.name.value, password: loginform.pwd.value};
-  muste_request(req, MESSAGES.LOGIN).then(login_success);
+  muste_request(req, MESSAGES.LOGIN)
+    .then(login_success)
+    .fail(function() {
+      alert('User name or password incorrect');
+    });
 }
 
 // Returns a promise with the request.  Reports errors according to
