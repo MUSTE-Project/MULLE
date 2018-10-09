@@ -50,8 +50,9 @@ User TEXT,
 SourceTree BLOB,
 TargetTree BLOB,
 Lesson TEXT,
+-- FIXME Remove this.  It's stored in the score blob now.
 Time NUMERIC NOT NULL,
-ClickCount NUMERIC NOT NULL,
+Score BLOB NOT NULL,
 Round NUMERIC NOT NULL,
 PRIMARY KEY (User,SourceTree, TargetTree, Lesson, Round),
 FOREIGN KEY (User) REFERENCES User(Username),
@@ -63,6 +64,11 @@ User TEXT,
 Round NUMERIC NOT NULL DEFAULT 1,
 PRIMARY KEY(Lesson, User, Round),
 FOREIGN KEY(Lesson) REFERENCES Lesson(Name), FOREIGN KEY(User) REFERENCES User(Username));
+
+SELECT *
+FROM StartedLesson
+LEFT JOIN FinishedExercise ON StartedLesson.Lesson = FinishedExercise.Lesson
+LEFT JOIN FinishedLesson   ON StartedLesson.Lesson = FinishedLesson.Lesson;
 
 CREATE TABLE FinishedLesson (
 Lesson TEXT,

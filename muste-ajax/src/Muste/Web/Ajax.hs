@@ -72,12 +72,15 @@ instance FromJSON LessonInit where
     <$> v .: "lesson"
 
 instance ToJSON LessonInit where
-  toJSON (LessonInit lesson) = Aeson.object
+  toJSON LessonInit{..} = Aeson.object
     [ "lesson" .= lesson
     ]
 
 data MenuRequest = MenuRequest
   { lesson ∷ Text
+  -- FIXME I feel like this should not be a part of the menu response.
+  -- In stead we should store the score along with the users session,
+  -- and only when the exercise is done respond with the final score.
   , score  ∷ Score
   , time   ∷ NominalDiffTime
   , src    ∷ ClientTree

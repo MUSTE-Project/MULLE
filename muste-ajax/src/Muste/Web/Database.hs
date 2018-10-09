@@ -315,17 +315,6 @@ getActiveLessons token = do
   user <- getUser token
   query [sql|SELECT * FROM ActiveLesson WHERE User = ?;|] (Only user)
 
-db ∷ FilePath
-db = "/home/fredefox/git/MUSTE-Project/MULLE/.stack-work/install/x86_64-linux/15f0267747c5d7582a9f4feaa56e852d312d1790f584a6c9077902f187ce5508/8.4.3/share/x86_64-linux-ghc-8.4.3/muste-ajax-0.2.6.0/data/muste.sqlite3"
-
-test ∷ IO ()
-test = do
-  c ← SQL.open db
-  xs ← runDbT (query @ActiveLesson @(Only Text) q (Only "peter")) c
-  print xs
-  where
-  q = [sql|SELECT * FROM ActiveLesson WHERE IS NULL User OR User = ?;|]
-
 -- | Start a new lesson by randomly choosing the right number of
 -- exercises and adding them to the users exercise list
 startLesson

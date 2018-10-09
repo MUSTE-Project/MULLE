@@ -448,7 +448,7 @@ handleMenuRequest
   → m Ajax.MenuResponse
 handleMenuRequest Ajax.MenuRequest{..} = do
   verifySession
-  let newScore = Score.incrScore score
+  let newScore = Score.addClick score
   finished ← oneSimiliarTree lesson src trg
   menu ←
     if finished

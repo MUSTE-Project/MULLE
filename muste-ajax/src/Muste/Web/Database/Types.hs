@@ -200,3 +200,4 @@ deriving stock instance Show    ExerciseList
 deriving stock instance Generic ExerciseList
 deriving anyclass instance ToRow ExerciseList
 deriving anyclass instance FromRow ExerciseList
+b
