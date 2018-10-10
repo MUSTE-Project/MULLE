@@ -21,6 +21,12 @@ module Muste.Prelude.SQL
   , SQL.execute
   , SQL.executeMany
   , SQL.open
+  , SQL.Connection(Connection)
+  , SQL.Query
+  , SQL.withConnection
+  , SQL.sql
+  , SQL.Only(Only)
+  , SQL.fromOnly
   ) where
 
 import Prelude ()
@@ -31,6 +37,7 @@ import qualified Database.SQLite.Simple           as SQL
 import qualified Database.SQLite.Simple.Ok        as SQL
 import qualified Database.SQLite.Simple.ToField   as SQL
 import qualified Database.SQLite.Simple.FromField as SQL
+import qualified Database.SQLite.Simple.QQ        as SQL
 import Data.Binary (Binary)
 import Data.Typeable (Typeable)
 import Data.ByteString (ByteString)

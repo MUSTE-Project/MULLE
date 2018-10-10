@@ -8,26 +8,21 @@ module Muste.Web.Protocol
 import Prelude ()
 import Muste.Prelude
 import Muste.Prelude.Extra
+import Muste.Prelude.SQL (Connection)
+import qualified Muste.Prelude.SQL as SQL
 
 import Data.Aeson
 import Data.Map (Map)
 import qualified Data.Map.Lazy as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Database.SQLite.Simple (Connection)
-import qualified Database.SQLite.Simple as SQL
 import Control.Monad.Reader
-import Control.Monad.Except (MonadError(..), ExceptT, runExceptT)
 import Data.ByteString (ByteString)
 import Snap (MonadSnap)
 import qualified Snap
 import qualified System.IO.Streams as Streams
-import Control.Monad.Catch (MonadThrow(throwM))
-import Control.Exception
-  (Exception, ErrorCall(ErrorCall))
 import Control.Monad.Trans.Control (MonadBaseControl)
 import Control.Monad.Base (MonadBase)
-import Data.String.Conversions (convertString)
 import qualified Snap.Util.CORS as Cors
 
 import           Muste (Context, TTree)

@@ -37,12 +37,7 @@ import qualified Muste.Prelude.SQL as SQL
 
 import Data.Aeson
 import qualified Data.Text as Text
-import Data.String (fromString)
 import Data.String.ToString
-import Language.Haskell.TH.Syntax (Lift)
-import Control.DeepSeq (NFData)
-import Data.Data (Typeable, Data(..))
-import Data.String.Conversions (convertString)
 
 -- * Trees
 

@@ -18,8 +18,8 @@ import Muste.Prelude
 import Muste.Prelude.Extra
 
 import System.FilePath
-import Language.Haskell.TH
-import Language.Haskell.TH.Syntax (Lift(lift))
+import Language.Haskell.TH (Q, Exp, runIO)
+import qualified Language.Haskell.TH.Syntax as TH
 import Data.Aeson (FromJSON(..), (.:?), (.!=))
 import qualified Data.Aeson as Aeson
 
@@ -39,7 +39,7 @@ data Config = Config
   } deriving (Lift)
 
 shareDir ∷ FilePath
-shareDir = $( runIO getDataDir >>= lift )
+shareDir = $( runIO getDataDir >>= TH.lift )
 
 defaultPort ∷ Int
 defaultPort = 80
@@ -73,7 +73,7 @@ decodeConfig ∷ Q Exp
 decodeConfig = do
   p ← makeRelativeToProject "config.yaml"
   cfg ← runIO $ decodeFileThrow @_ @Config p
-  lift cfg
+  TH.lift cfg
 
 config ∷ Q Exp
 config = decodeConfig

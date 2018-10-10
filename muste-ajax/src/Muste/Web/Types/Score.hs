@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wall -Wcompat #-}
 {-# Language RecordWildCards, DeriveAnyClass #-}
 module Muste.Web.Types.Score
   ( Score(..)
@@ -10,10 +11,7 @@ import Muste.Prelude
 import Muste.Prelude.SQL (FromField, ToField)
 import qualified Muste.Prelude.SQL as SQL
 
-import Database.SQLite.Simple.FromField
-import Database.SQLite.Simple.ToField
-import Data.Time (NominalDiffTime)
-import Data.Aeson ((.:), (.=), (.:?))
+import Data.Aeson ((.:), (.=))
 import qualified Data.Aeson as Aeson
 import Data.Binary (Binary(..))
 

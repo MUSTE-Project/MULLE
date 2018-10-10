@@ -45,9 +45,7 @@ import qualified Data.Text.Prettyprint.Doc as Doc
 import Control.DeepSeq
 import Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as MultiSet
-import Control.DeepSeq (NFData)
 import qualified Data.Text as Text
-import Control.Monad.Reader
 import qualified Control.Monad.Reader as Reader
 import Control.Monad.Except (ExceptT)
 import Data.IORef (IORef)

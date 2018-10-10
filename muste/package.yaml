@@ -48,6 +48,7 @@ dependencies:
   - transformers-base
   - snap
   - yaml
+  - time
 
 when:
   - condition: flag(dist)

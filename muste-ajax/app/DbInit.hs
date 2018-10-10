@@ -5,17 +5,15 @@ module DbInit (initDb) where
 
 import           Prelude ()
 import           Muste.Prelude
+import           Muste.Prelude.SQL (Connection(Connection), Query, sql)
+import qualified Muste.Prelude.SQL as SQL
+
 import           Data.ByteString (ByteString)
-import           Data.FileEmbed (embedFile)
+import           Data.FileEmbed (embedFile, makeRelativeToProject)
 import           Data.Text.Encoding (decodeUtf8)
-import           Database.SQLite.Simple (Connection(Connection), Query)
-import qualified Database.SQLite.Simple as SQL
-import           Database.SQLite.Simple.QQ (sql)
 import qualified Database.SQLite3 as SQL
 import           System.Directory (createDirectoryIfMissing)
 import           System.FilePath (takeDirectory)
-import           Data.FileEmbed
-import           Data.String.Conversions (convertString)
 import qualified Data.Yaml as Yaml
 
 import           Muste.Sentence.Unannotated (Unannotated)

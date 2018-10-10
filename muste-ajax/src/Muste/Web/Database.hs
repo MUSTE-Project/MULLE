@@ -29,17 +29,13 @@ module Muste.Web.Database
 import Prelude ()
 import Muste.Prelude
 import Muste.Prelude.Extra
+import Muste.Prelude.SQL
+  ( Query, Connection, Only(Only), fromOnly
+  , ToRow, FromRow, sql
+  )
 import qualified Muste.Prelude.SQL as SQL
 
 import qualified Data.List.NonEmpty as NonEmpty
-import Database.SQLite.Simple
-  ( Query, Connection, Only(Only), fromOnly
-  , ToRow, FromRow
-  )
-import Database.SQLite.Simple.QQ (sql)
-import Control.Monad.Except (MonadError(..), ExceptT, runExceptT)
-import Control.Exception (catch)
-import Data.String.Conversions (convertString)
 
 import Crypto.Random.API (getSystemRandomGen, genRandomBytes)
 import Crypto.KDF.PBKDF2 (fastPBKDF2_SHA512, Parameters(Parameters))
@@ -47,7 +43,6 @@ import Crypto.Hash (SHA3_512, hash)
 
 import Data.ByteString (ByteString)
 import qualified Data.Text.Encoding     as T
-import Data.Time.Clock (UTCTime)
 import qualified Data.Time.Clock        as Time
 import qualified Data.Time.Format       as Time
 import Control.Monad.Reader
