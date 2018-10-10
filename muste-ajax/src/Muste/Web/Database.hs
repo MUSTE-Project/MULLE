@@ -28,13 +28,14 @@ module Muste.Web.Database
 
 import Prelude ()
 import Muste.Prelude
+import Muste.Common
 
+import qualified Data.List.NonEmpty as NonEmpty
 import Database.SQLite.Simple
   ( Query, Connection, Only(Only), fromOnly
   , ToRow, FromRow
   )
 import Database.SQLite.Simple.QQ (sql)
-import qualified Database.SQLite.Simple as SQL
 import Control.Monad.Except (MonadError(..), ExceptT, runExceptT)
 import Control.Exception (catch)
 import Data.String.Conversions (convertString)
@@ -55,8 +56,10 @@ import Control.Monad.Reader
 import qualified Test.QuickCheck as QC (shuffle, generate)
 
 import qualified Muste
+import qualified Muste.Common.SQL as SQL
 
 import qualified Muste.Web.Database.Types as Types
+import qualified Muste.Web.Database.Types as ActiveLesson0 (ActiveLesson0(..))
 import           Muste.Web.Types.Score (Score)
 
 data Error
@@ -265,15 +268,39 @@ getActiveLessons
   → db [Types.ActiveLesson]
 getActiveLessons token = do
   user <- getUser token
-  getActiveLessonsForUser user
+  fmap step . groupOn ActiveLesson0.name <$> getActiveLessonsForUser user
+  where
+  step ∷ (NonEmpty Types.ActiveLesson0) → Types.ActiveLesson
+  step xs@(Types.ActiveLesson0{..} :| _) = Types.ActiveLesson
+    { name          = name
+    , description   = description
+    , exercisecount = exercisecount
+    , score         = foldMap (SQL.runNullable . ActiveLesson0.score) xs
+    , finished      = finished
+    , enabled       = enabled
+    , passedcount   = NonEmpty.length xs
+    }
 
 getActiveLessonsForUser
   ∷ ∀ r db
   . MonadDB r db
   ⇒ Text
-  → db [Types.ActiveLesson]
+  → db [Types.ActiveLesson0]
 getActiveLessonsForUser user =
-  query [sql|SELECT Name, Description, ExerciseCount, PassedCount, Score, Finished, Enabled FROM ActiveLesson WHERE User IS NULL OR User = ?;|] (Only user)
+  query
+    [sql|
+      SELECT
+        Name,
+        Description,
+        ExerciseCount,
+        Score,
+        Finished,
+        Enabled
+      FROM ActiveLesson
+      WHERE
+        User IS NULL
+        OR User = ?;
+    |] (Only user)
 
 -- | Start a new lesson by randomly choosing the right number of
 -- exercises and adding them to the users exercise list

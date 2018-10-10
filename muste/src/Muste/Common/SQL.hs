@@ -11,6 +11,16 @@ module Muste.Common.SQL
   , fromBlob
   , toBlob
   , fromNullableBlob
+  , SQL.FromRow(..)
+  , SQL.ToRow(..)
+  , Nullable(..)
+  , SQL.SQLError(..)
+  , SQL.Error(..)
+  , SQL.query
+  , SQL.query_
+  , SQL.execute
+  , SQL.executeMany
+  , SQL.open
   ) where
 
 import qualified Database.SQLite.Simple           as SQL
@@ -37,3 +47,12 @@ fromNullableBlob fld = case SQL.fieldData fld of
   SQL.SQLBlob t -> pure $ binaryFromText t
   SQL.SQLNull → pure mempty
   _ -> SQL.returnError SQL.ConversionFailed fld mempty
+
+newtype Nullable a = Nullable { runNullable ∷ a }
+
+deriving stock   instance Show a ⇒ Show (Nullable a)
+deriving newtype instance Binary a ⇒ Binary (Nullable a)
+instance (Monoid a, Binary a, Typeable a) ⇒ SQL.FromField (Nullable a) where
+  fromField = fmap Nullable . fromNullableBlob
+instance Binary a ⇒ SQL.ToField (Nullable a) where
+  toField = toBlob

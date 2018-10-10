@@ -24,6 +24,7 @@ import Prelude as X
   elem, (<*>), foldMap, putStrLn, putStr, flip, const, sequence, take,
   mapM_, mapM, ioError, error, repeat, foldl, seq, mod, div, print)
 import Data.List                 as X (sort)
+import Data.List.NonEmpty        as X (NonEmpty(..), groupBy)
 import Data.Bool                 as X (bool)
 import Data.Function             as X ((&), on)
 import Data.Traversable          as X (Traversable(..))
@@ -61,7 +62,7 @@ import Prelude as Extraneous
 
 -- We could maybe emit a warning when using these?
 import Prelude as Unsafe
-  -- Use pattern-matching or perhaps 'listToMaybe'.
+  -- Use pattern-matching, 'listToMaybe' or the version from 'NonEmpty'.
   ( head
   -- Use 'readMaybe', 'readEither' os similiar.
   , read

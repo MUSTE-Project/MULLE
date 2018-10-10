@@ -14,6 +14,7 @@ module Muste.Web.Database.Types
   , StartedLesson(..)
   , FinishedLesson(..)
   , ExerciseList(..)
+  , ActiveLesson0(..)
   , ActiveLesson(..)
   , Muste.TTree
   , Sentence.Unannotated
@@ -33,8 +34,9 @@ import qualified Muste.Sentence.Unannotated as Sentence (Unannotated)
 import Muste.Sentence.Unannotated (Unannotated)
 import Database.SQLite.Simple.FromRow
 import Database.SQLite.Simple.ToRow
+import Muste.Common.SQL (Nullable)
 
-import           Muste.Web.Types.Score (Score)
+import Muste.Web.Types.Score (Score)
 
 type Blob = ByteString
 type Numeric = Integer
@@ -206,6 +208,21 @@ deriving stock    instance Generic ExerciseList
 deriving anyclass instance ToRow   ExerciseList
 deriving anyclass instance FromRow ExerciseList
 
+-- Like below but wuthout passedcount
+-- FIXME Better name
+data ActiveLesson0 = ActiveLesson0
+  { name          ∷ Text
+  , description   ∷ Text
+  , exercisecount ∷ Int
+  , score         ∷ Nullable Score
+  , finished      ∷ Bool
+  , enabled       ∷ Bool
+  }
+
+deriving stock    instance Show    ActiveLesson0
+deriving stock    instance Generic ActiveLesson0
+deriving anyclass instance ToRow   ActiveLesson0
+deriving anyclass instance FromRow ActiveLesson0
 
 -- | Not like 'Types.Lesson'.  'Types.Lesson' refers to the
 -- representation in the database.  This is the type used in "Ajax".
@@ -214,7 +231,7 @@ data ActiveLesson = ActiveLesson
   , description   ∷ Text
   , exercisecount ∷ Int
   , passedcount   ∷ Int
-  , score         ∷ Maybe Score
+  , score         ∷ Score
   , finished      ∷ Bool
   , enabled       ∷ Bool
   }

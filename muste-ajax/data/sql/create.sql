@@ -91,15 +91,6 @@ FOREIGN KEY(User) REFERENCES User(Username),
 FOREIGN KEY(SourceTree,TargetTree, Lesson) REFERENCES Exercise (SourceTree, TargetTree, Lesson));
 
 -- The passed exercises by user and lesson
-DROP VIEW IF EXISTS PassedExercise;
-CREATE VIEW PassedExercise AS
-SELECT
-  FinishedExercise.*,
-  COUNT(*) AS Passed
-FROM FinishedExercise
-GROUP BY Lesson, User;
-
--- The passed exercises by user and lesson
 DROP VIEW IF EXISTS PassedLesson;
 CREATE VIEW PassedLesson AS
 SELECT
@@ -114,17 +105,25 @@ SELECT
   Lesson.Name,
   Lesson.Description,
   Lesson.ExerciseCount,
-  -- FIXME Perhaps this can be implemented with some defaulting rules
-  -- for joining.
-  COALESCE(PassedExercise.Passed, 0) as PassedCount,
-  PassedExercise.Score as Score,
+  FinishedExercise.Score,
   -- FIXME Same as above.
   COALESCE(PassedLesson.Passed, 0) AS Finished,
   Lesson.Enabled,
   StartedLesson.User
 FROM Lesson
 LEFT JOIN StartedLesson    ON Lesson.Name = StartedLesson.Lesson
-LEFT JOIN PassedExercise   ON Lesson.Name = PassedExercise.Lesson
+LEFT JOIN FinishedExercise ON Lesson.Name = FinishedExercise.Lesson
 LEFT JOIN PassedLesson     ON Lesson.Name = PassedLesson.Lesson;
+
+
+DROP VIEW IF EXISTS ActiveLesson;
+CREATE VIEW ActiveLesson AS
+SELECT
+  Lesson.*,
+  FinishedExercise.Score AS ExerciseScore,
+FROM Lesson
+LEFT JOIN StartedLesson      ON Lesson.Name = StartedLesson.Lesson
+LEFT JOIN FinishedExercise   ON Lesson.Name = FinishedExercise.Lesson
+LEFT JOIN FinishedLesson     ON Lesson.Name = FinishedLesson.Lesson;
 
 COMMIT TRANSACTION;

@@ -38,7 +38,6 @@ import Muste.Prelude
 
 import Prelude hiding (fail)
 import qualified Data.Set as Set
-import Data.List (groupBy)
 import Text.Read (readEither)
 import Data.Binary (Binary)
 import qualified Data.Binary as Binary
@@ -50,6 +49,7 @@ import Data.Text.Prettyprint.Doc (Doc, Pretty)
 import qualified Data.Text.Prettyprint.Doc as Doc
 import Data.Text.Prettyprint.Doc.Render.String (renderString)
 import qualified Data.Text.Prettyprint.Doc.Render.Text as Doc
+import qualified Data.List.NonEmpty as NonEmpty
 
 import qualified Debug.Trace
 
@@ -124,17 +124,12 @@ editDistance a b = last (if lab == 0 then mainDiag
           lab = length a - length b
           min3 x y z = if x < y then x else min y z
 
--- | 'groupOn p' groups a list by using the 'Eq' instance of the
--- projection @p@.
-groupOn ∷ Eq b ⇒ (a → b) → [a] → [[a]]
+groupOn ∷ Eq b => (a -> b) -> [a] -> [NonEmpty a]
 groupOn p = groupBy ((==) `on` p)
 
--- NB: Even though we're using the unsafe method 'head' we shuold be
--- safe since 'groupOn' should not return any empty lists.
--- | Like 'groupOn' but just with a single element from each
--- group.
+-- | Like 'groupOn' but just with a single element from each group.
 groupOnSingle ∷ Eq b ⇒ (a → b) → [a] → [a]
-groupOnSingle p = map head . groupOn p
+groupOnSingle p = map NonEmpty.head . groupOn p
 
 -- | @'isSublistOf' xs ys@ checks if @xs@ is a sub list (disregarding
 -- the order) of @ys@.
