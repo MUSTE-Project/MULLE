@@ -77,6 +77,8 @@ instance ToJSON LessonInit where
 
 data MenuRequest = MenuRequest
   { lesson ∷ Text
+  -- Identifier for the lesson
+  , key    ∷ Database.Key
   -- FIXME I feel like this should not be a part of the menu response.
   -- In stead we should store the score along with the users session,
   -- and only when the exercise is done respond with the final score.
@@ -88,6 +90,7 @@ data MenuRequest = MenuRequest
 instance ToJSON MenuRequest where
   toJSON MenuRequest{..} = Aeson.object
     [ "lesson" .= lesson
+    , "key"    .= key
     , "score"  .= score
     , "src"    .= src
     , "trg"    .= trg
@@ -97,6 +100,7 @@ instance FromJSON MenuRequest where
   parseJSON = Aeson.withObject "menu-request"
     $  \b → MenuRequest
     <$> b .: "lesson"
+    <*> b .: "key"
     <*> b .: "score"
     <*> b .: "src"
     <*> b .: "trg"
@@ -151,7 +155,9 @@ instance ToJSON LessonList where
     ]
 
 data MenuResponse = MenuResponse
-  { lesson     ∷ Text
+  -- A key to the lesson
+  { key        ∷ Database.Key
+  , lesson     ∷ Text
   , score      ∷ Score
   , menu       ∷ Maybe MenuList
   }
@@ -159,16 +165,18 @@ data MenuResponse = MenuResponse
 instance FromJSON MenuResponse where
   parseJSON = Aeson.withObject "menu"
     $ \ o → MenuResponse
-    <$> o .:  "lesson"
+    <$> o .:  "key"
+    <*> o .:  "lesson"
     <*> o .:  "score"
     <*> o .:? "menu"
 
 instance ToJSON MenuResponse where
   toJSON MenuResponse{..} =
     Aeson.object
-      [ "lesson" .= lesson
+      [ "key"    .= key
+      , "lesson" .= lesson
       , "score"  .= score
-      , "menu" .= menu
+      , "menu"   .= menu
       ]
 
 -- Better name might be menus?

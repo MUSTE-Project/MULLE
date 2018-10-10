@@ -48,6 +48,8 @@ import qualified Data.Time.Clock        as Time
 import qualified Data.Time.Format       as Time
 import Control.Monad.Reader
 
+import System.IO.Unsafe (unsafePerformIO)
+
 -- FIXME QuickCheck seems like a heavy dependency just to get access
 -- to `shuffle`.
 import qualified Test.QuickCheck as QC (shuffle, generate)
@@ -107,7 +109,22 @@ getCurrentTime = liftIO Time.getCurrentTime
 getLessons
   :: MonadDB r db
   => db [Types.Lesson]
-getLessons = query_ [sql|select * from lesson;|]
+getLessons = query_ 
+  [sql|
+    SELECT
+        Id
+      , Name
+      , Description
+      , Grammar
+      , SourceLanguage
+      , TargetLanguage
+      , ExerciseCount
+      , Enabled
+      , SearchLimitDepth
+      , SearchLimitSize
+      , Repeatable
+    FROM Lesson
+  |]
 
 -- FIXME In this contexts the naming suggests that the user is
 -- persisted.  Consider changin.
@@ -134,7 +151,7 @@ addUser
   → db ()
 addUser user pass enabled = do
   u ← createUser user pass enabled
-  execute [sql|INSERT INTO User VALUES (?,?,?,?);|] u `catchDbError` h
+  execute [sql|INSERT INTO User (Username, Password, Salt, Enabled) VALUES (?,?,?,?);|] u `catchDbError` h
   where
   h e = case e of
     -- DriverError e → case fromException @SQL.ResultError $ toException e of
@@ -213,9 +230,13 @@ startSession
   -> db Text
 startSession user = do
   session@(Types.Session _ token _ _) <- createSession user
-  let insertSessionQuery = [sql|INSERT INTO Session VALUES (?,?,?,?);|]
-  execute insertSessionQuery session
+  execute q session
   return token
+  where
+  q = [sql|
+    INSERT INTO Session (User, Token, Starttime, LastActive)
+    VALUES (?,?,?,?);
+  |]
 
 formatTime ∷ UTCTime → String
 formatTime = Time.formatTime Time.defaultTimeLocale "%s"
@@ -268,44 +289,79 @@ getActiveLessons token = do
   where
   step ∷ (NonEmpty Types.ActiveLesson0) → Types.ActiveLesson
   step xs@(Types.ActiveLesson0{..} :| _) = Types.ActiveLesson
-    { name          = name
+    { lesson        = lesson
+    , name          = name
     , description   = description
     , exercisecount = exercisecount
     , score         = foldMap (SQL.runNullable . ActiveLesson0.score) xs
-    , finished      = finished
+    , finished      = passedcount == exercisecount
     , enabled       = enabled
-    , passedcount   = NonEmpty.length xs
+    -- , passedcount   = NonEmpty.length xs
+    , passedcount   = passedcount
     }
+    where
+    passedcount = length $ NonEmpty.filter ActiveLesson0.finished xs
 
 getActiveLessonsForUser
   ∷ ∀ r db
   . MonadDB r db
-  ⇒ Text
+  ⇒ Types.Key
   → db [Types.ActiveLesson0]
-getActiveLessonsForUser user =
-  query
-    [sql|
+getActiveLessonsForUser user = query q (Only user)
+  where
+  q = [sql|
+    SELECT
+      Lesson.Id,
+      Lesson.Name,
+      Lesson.Description,
+      COALESCE(ExerciseCount,0),
+      Score,
+      FinishedExercise.Exercise IS NOT NULL AS Finished,
+      -- Exercise.Id,
+      -- User.Id
+      Lesson.Enabled
+      ExerciseList
+
+    FROM Exercise
+    JOIN Lesson ON Exercise.Lesson = Lesson.Id
+    LEFT JOIN ExerciseList ON ExerciseList.Exercise = Exercise.Id
+
+    -- FROM Exercise
+    -- JOIN ExerciseList ON ExerciseList.Exercise = Exercise.Id
+    -- JOIN Lesson on Lesson = Lesson.Id
+    -- LEFT JOIN User ON ExerciseList.User = User.Id
+
+    LEFT JOIN FinishedExercise
+      ON FinishedExercise.User = ExerciseList.User
+      AND FinishedExercise.Exercise = Exercise.Id
+    WHERE
+      ExerciseList.User IS NULL
+      OR ExerciseList.User = ?;
+    |]
+  q' = [sql|
       SELECT
+        Id,
         Name,
         Description,
         ExerciseCount,
-        Score,
-        Finished,
+        ExerciseScore,
+        -- Finished,
+        -- TODO STUB!
+        1 AS Finished,
         Enabled
       FROM ActiveLesson
       WHERE
         User IS NULL
         OR User = ?;
-    |] (Only user)
-
+    |]
 -- | Start a new lesson by randomly choosing the right number of
 -- exercises and adding them to the users exercise list
 startLesson
   :: MonadDB r db
-  => Text -- ^ Token
-  -> Text -- ^ Lesson name
+  => Text      -- ^ Token
+  -> Types.Key -- ^ Lesson name
   -- * Source- language and tree, target- langauge and tree.
-  -> db (Text, Types.Unannotated, Text, Types.Unannotated)
+  -> db (Text, Types.Unannotated, Types.Unannotated)
 startLesson token lesson = do
   user ← getUser token
   isRunning <- checkStarted user lesson
@@ -315,8 +371,8 @@ startLesson token lesson = do
 
 checkStarted
   ∷ MonadDB r db
-  ⇒ Text -- ^ User
-  → Text -- ^ Lesson
+  ⇒ Types.Key -- ^ User
+  → Types.Key -- ^ Lesson
   → db Bool
 checkStarted user lesson
   =   (0 /=) . fromOnly . Unsafe.head
@@ -324,7 +380,7 @@ checkStarted user lesson
   where
   q = [sql|SELECT COUNT(*) FROM StartedLesson WHERE User = ? AND Lesson = ?|]
 
-getUser ∷ MonadDB r db ⇒ Text → db Text
+getUser ∷ MonadDB r db ⇒ Text → db Types.Key
 getUser token = do
   xs ← query userQuery (Only token)
   case xs of
@@ -333,7 +389,7 @@ getUser token = do
     _        → throwDbError MultipleUsers
   where
   userQuery
-    = [sql|SELECT User FROM Session WHERE Token = ?;|]
+    = [sql|SELECT Id FROM Session WHERE Token = ?;|]
 
 class HasConnection v where
   giveConnection ∷ v → Connection
@@ -398,7 +454,7 @@ query
   ⇒ Query
   → q
   → db [res]
-query qry q = do
+query (dbg → qry) q = do
   c ← getConnection
   wrapIoError $ SQL.query c qry q
 
@@ -406,7 +462,7 @@ query_
   :: ∀ res r db . MonadDB r db
   => FromRow res
   => Query -> db [res]
-query_ qry = do
+query_ (dbg → qry) = do
   c ← getConnection
   wrapIoError $ SQL.query_ c qry
 
@@ -416,9 +472,12 @@ execute
   ⇒ Query
   → q
   → db ()
-execute qry q = do
+execute (dbg → qry) q = do
   c ← getConnection
   wrapIoError $ SQL.execute c qry q
+
+dbg ∷ Query → Query
+dbg q = unsafePerformIO (putStrLn $ Unsafe.read @String $ show q) `seq` q
 
 executeMany
   ∷ MonadDB r db
@@ -426,7 +485,7 @@ executeMany
   ⇒ Query
   → [q]
   → db ()
-executeMany qry qs = do
+executeMany (dbg → qry) qs = do
   c ← getConnection
   wrapIoError $ SQL.executeMany c qry qs
 
@@ -443,20 +502,22 @@ shuffle = liftIO . QC.generate . QC.shuffle
 
 getTreePairs
   :: MonadDB r db
-  => Text
-  -> db [(Types.Unannotated, Types.Unannotated)]
-getTreePairs lesson = query exerciseQuery (Only lesson)
+  => Types.Key
+  -> db [(Types.Key, Text, Types.Unannotated, Types.Unannotated)]
+getTreePairs lesson = query q (Only lesson)
   where
-  exerciseQuery =
-    [sql| SELECT SourceTree, TargetTree
-          FROM Exercise
-          WHERE Lesson = ?;|]
+  q = [sql|
+    SELECT Exercise.Id, Lesson.Name, SourceTree, TargetTree
+    FROM Exercise
+    JOIN Lesson ON Lesson = Lesson.Id
+    WHERE Lesson = ?;
+    |]
 
 newLesson
   :: MonadDB r db
-  => Text
-  -> Text
-  -> db (Text, Types.Unannotated, Text, Types.Unannotated)
+  => Types.Key
+  -> Types.Key
+  -> db (Text, Types.Unannotated, Types.Unannotated)
 newLesson user lesson = do
   -- get exercise count
   -- Only count ← fromMaybe errNonUniqueLesson . listToMaybe
@@ -470,7 +531,7 @@ newLesson user lesson = do
   trees <- getTreePairs lesson
   -- randomly select
   selectedTrees <- take count <$> shuffle trees
-  (src,trg) ← case selectedTrees of
+  (_exercise, name, src, trg) ← case selectedTrees of
     []      → throwDbError NoExercisesInLesson
 
     (x : _) → pure x
@@ -480,78 +541,96 @@ newLesson user lesson = do
       startedLesson = Types.StartedLesson lesson user (succ round)
   execute insertStartedLesson startedLesson
   let
-    step ∷ (Types.Unannotated, Types.Unannotated) → Types.ExerciseList
-    step (src, trg)
+    -- step ∷ Types.Key → Types.ExerciseList
+    step (exercise, _name, _, _)
       = Types.ExerciseList
-      { user
-      , lesson
-      , sourceSentence = src
-      , targetSentence = trg
+      { user = user
+      , exercise = exercise
       , round = round
       }
-  executeMany @_ @_ @Types.ExerciseList insertExerciseList $ step <$> selectedTrees
-  (sourceLang, targetLang) <- getLangs lesson
-  pure (sourceLang, src, targetLang, trg)
+      -- = Types.ExerciseList
+      -- { user
+      -- -- TODO Stub
+      -- -- , lesson
+      -- , lesson = _
+      -- , sourceSentence = src
+      -- , targetSentence = trg
+      -- , round = round
+      -- }
+  insertExercises $ step <$> selectedTrees
+  pure (name, src, trg)
   where
   exerciseCountQuery =
     [sql|
-      SELECT ExerciseCount FROM Lesson WHERE Name = ?;
+      SELECT ExerciseCount FROM Lesson WHERE Id = ?;
     |]
   insertStartedLesson =
     [sql|
       INSERT INTO StartedLesson (Lesson, User, Round)
       VALUES (?,?,?);
     |]
-  insertExerciseList =
-    [sql|
-      INSERT INTO ExerciseList (User,Lesson,SourceTree,TargetTree,Round)
-      VALUES (?,?,?,?,?);
-    |]
 
-getLangs :: MonadDB r db => Text -> db (Text, Text)
-getLangs lesson = do
-  langs <- query @_ @_ languagesQuery (Only lesson)
-  case langs of
-    [(a, b)] -> pure (a, b)
-    _        -> throw LangNotFound
+insertExercises ∷ MonadDB r db ⇒ [Types.ExerciseList] → db ()
+insertExercises = executeMany q
   where
-  languagesQuery :: Query
-  languagesQuery
-    = [sql|SELECT SourceLanguage, TargetLanguage FROM Lesson WHERE Name = ?;|]
+  q = [sql|
+    INSERT INTO ExerciseList (User,Exercise,Round)
+    VALUES (?,?,?);
+  |]
 
-getLessonRound ∷ MonadDB r db ⇒ Text → Text → db Integer
+getLessonRound
+  ∷ MonadDB r db
+  ⇒ Types.Key
+  → Types.Key
+  → db Integer
 getLessonRound user lesson = do
-  [Only round] <- query lessonRoundQuery (user,lesson)
+  [Only round] <- query q (user,lesson)
   pure round
   where
-  lessonRoundQuery ∷ Query
-  lessonRoundQuery = [sql|SELECT ifnull(MAX(Round),0) FROM FinishedExercise WHERE User = ? AND Lesson = ?;|]
+  q ∷ Query
+  q = [sql|
+    SELECT ifnull(MAX(Round),0)
+    FROM FinishedExercise
+    JOIN Exercise ON Exercise = Exercise.Id
+    WHERE
+      User = ?
+      AND Lesson = ?;
+    |]
 
 continueLesson
   :: MonadDB r db
-  => Text -- ^ Username
-  -> Text -- ^ Lesson name
-  -> db (Text, Types.Unannotated, Text, Types.Unannotated)
+  => Types.Key -- ^ Username
+  -> Types.Key -- ^ Lesson name
+  -> db (Text, Types.Unannotated, Types.Unannotated)
 continueLesson user lesson = do
   round <- getLessonRound user lesson
-  (sourceTree,targetTree) <- fromMaybe errNoExercises . listToMaybe
-    <$> query @(Types.Unannotated, Types.Unannotated)
-        selectExerciseListQuery (lesson,user,round)
-  (sourceLang,targetLang) <- getLangs lesson
-  pure (sourceLang,sourceTree,targetLang,targetTree)
+  (name, sourceTree, targetTree) <- fromMaybe errNoExercises . listToMaybe
+    <$> query q (lesson,user,round)
+  pure (name,sourceTree,targetTree)
   where
-  selectExerciseListQuery = [sql|
-       SELECT SourceTree,TargetTree FROM ExerciseList
-       WHERE Lesson = ? AND User = ?
-       AND (User,SourceTree,TargetTree,Lesson) NOT IN
-       (SELECT User,SourceTree,TargetTree,Lesson
-       FROM FinishedExercise WHERE Round = ?);|]
+  -- selectExerciseListQuery = [sql|
+  --      SELECT Lesson.Name, SourceTree,TargetTree FROM ExerciseList
+  --      WHERE Lesson = ? AND User = ?
+  --      AND (User,SourceTree,TargetTree,Lesson) NOT IN
+  --      (SELECT User,SourceTree,TargetTree,Lesson
+  --      FROM FinishedExercise WHERE Round = ?);|]
+  q = [sql|
+    SELECT Lesson.Name, SourceTree,TargetTree
+    FROM ExerciseList
+    JOIN Exercise ON Exercise = Exercise.Id
+    JOIN Lesson   ON Lesson   = Lesson.Id
+    WHERE Lesson = ? AND User = ?
+    AND (User, Exercise) NOT IN (
+      SELECT User, Exercise
+      FROM FinishedExercise
+      WHERE Round = ?
+    );|]
   errNoExercises = error "Database.continueLesson: Invariant violated: No exercises for lesson"
 
 finishExercise
   ∷ MonadDB r db
   ⇒ Text            -- ^ Token
-  → Text            -- ^ Lesson
+  → Types.Key       -- ^ Lesson
   → Score           -- ^ Score
   → db ()
 finishExercise token lesson score = do
@@ -559,17 +638,9 @@ finishExercise token lesson score = do
   user ← getUser token
   -- get lesson round
   [Only round] <- query @(Only Integer) lessonRoundQuery (user,lesson)
-  ((sourceSentence,targetSentence):_)
+  (Only exercise:_)
     <- query selectExerciseListQuery (lesson,user,round)
-  execute insertFinishedExerciseQuery
-    $ Types.FinishedExercise
-      { user
-      , lesson
-      , sourceSentence
-      , targetSentence
-      , score
-      , round
-      }
+  finishExerciseAux user exercise score round
   -- check if all exercises finished
   finishedCount ← getFinishedExercises user lesson
   exerciseCount ← getExerciseCount lesson
@@ -587,17 +658,14 @@ finishExercise token lesson score = do
       WHERE User = ? AND Lesson = ?;
       |]
     selectExerciseListQuery = [sql|
-      SELECT SourceTree,TargetTree
+      SELECT Exercise
       FROM ExerciseList
+      JOIN Exercise ON Exercise = Exercise.Id
+      JOIN Lesson   ON Lesson = Lesson.Id
       WHERE Lesson = ? AND User = ? AND
-      (User,SourceTree,TargetTree,Lesson) NOT IN
-        (SELECT User,SourceTree,TargetTree,Lesson
+      (User,Exercise) NOT IN
+        (SELECT User,Exercise
          FROM FinishedExercise WHERE Round = ?);
-      |]
-    insertFinishedExerciseQuery = [sql|
-      INSERT INTO FinishedExercise
-        (User,Lesson,SourceTree,TargetTree,Score,Round)
-      VALUES (?,?,?,?,?,?);
       |]
     deleteStartedLessonQuery = [sql|
       DELETE FROM StartedLesson
@@ -607,31 +675,47 @@ finishExercise token lesson score = do
       INSERT INTO FinishedLesson (User,Lesson,Score,Round) VALUES (?, ?, ?, ?);
       |]
 
+finishExerciseAux
+  ∷ MonadDB r db
+  ⇒ Types.Key
+  → Types.Key
+  → Score
+  → Integer
+  → db ()
+finishExerciseAux user exercise score round
+  = execute q (user, exercise, score, round)
+  where
+  q = [sql|
+      INSERT INTO FinishedExercise
+        (User, Exercise, Score, Round)
+      VALUES (?,?,?,?);
+      |]
+
 getFinishedExercises
   ∷ MonadDB r db
-  ⇒ Text -- ^ User
-  → Text -- ^ Lesson
+  ⇒ Types.Key -- ^ User
+  → Types.Key -- ^ Exercise
   → db Types.Numeric
 getFinishedExercises user lesson =
-  fromOnly . Unsafe.head <$> query @(Only Integer) countFinishesExercisesQuery (user,lesson)
+  fromOnly . Unsafe.head <$> query @(Only Integer) q (user,lesson)
   where
-  countFinishesExercisesQuery
+  q
     = [sql|
       SELECT COUNT(*)
       FROM FinishedExercise F
       WHERE User = ?
-      AND Lesson = ?
+      AND Exercise = ?
     |]
 
 getExerciseCount
   ∷ MonadDB r db
-  ⇒ Text -- ^ Lesson
+  ⇒ Types.Key -- ^ Lesson
   → db Types.Numeric
 getExerciseCount lesson =
   fromOnly . Unsafe.head <$> query @(Only Integer) countExercisesInLesson (Only lesson)
   where
   countExercisesInLesson = [sql|
-    SELECT ExerciseCount FROM Lesson WHERE Name = ?;
+    SELECT ExerciseCount FROM Lesson WHERE Id = ?;
     |]
 
 endSession :: MonadDB r db ⇒ Text -> db ()
@@ -641,8 +725,8 @@ endSession token = do
 
 getCurrentRound
   ∷ MonadDB r db
-  ⇒ Text -- ^ User
-  → Text -- ^ Lesson
+  ⇒ Types.Key -- ^ User
+  → Types.Key -- ^ Lesson
   → db (Maybe Types.Numeric)
 getCurrentRound user lesson =
   fromOnly . Unsafe.head <$> query
@@ -657,13 +741,32 @@ getCurrentRound user lesson =
 -- | Get the score for the user and lesson.
 getScore
   ∷ MonadDB r db
-  ⇒ Text -- ^ User
-  → Text -- ^ Lesson
+  ⇒ Types.Key -- ^ User
+  → Types.Key -- ^ Lesson
   → db Score
-getScore user lesson = mconcat . fmap fromOnly <$> query @(Only Score)
+getScore user lesson = mconcat . fmap (traceShowId . fromOnly) <$> query @(Only Score)
   [sql|
       SELECT Score
       FROM FinishedExercise
       WHERE User = ?
       AND Lesson = ?
   |] (user, lesson)
+
+-- -- | The user and their score on each excercise.  If score and user is
+-- -- null this means that /no/ user has completed the exercise.  If a
+-- -- given exercise/user combination is not present in the output, then
+-- -- this means that /this/ user has not completed the exercise.
+-- getUserExerciseScores
+--   ∷ MonadDB r db
+--   ⇒ db [Types.UserExerciseScore]
+-- getUserExerciseScores = query_
+--   [sql|
+--     SELECT
+--       ExerciseLesson.Name,
+--       ExerciseLesson.Lesson,
+--       User,
+--       Score
+--     FROM ExerciseLesson
+--     LEFT JOIN FinishedExercise
+--       ON ExerciseLesson.Lesson = FinishedExercise.Lesson;
+--   |]

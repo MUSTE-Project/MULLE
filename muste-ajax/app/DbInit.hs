@@ -5,10 +5,11 @@ module DbInit (initDb) where
 
 import           Prelude ()
 import           Muste.Prelude
-import           Muste.Prelude.SQL (Connection(Connection), Query, sql)
+import           Muste.Prelude.SQL (Connection(Connection), sql)
 import qualified Muste.Prelude.SQL as SQL
 
 import           Data.ByteString (ByteString)
+import qualified Data.ByteString.Char8 as ByteString
 import           Data.FileEmbed (embedFile, makeRelativeToProject)
 import           Data.Text.Encoding (decodeUtf8)
 import qualified Database.SQLite3 as SQL
@@ -40,25 +41,32 @@ mkParDir = createDirectoryIfMissing True . takeDirectory
 initScript ∷ ByteString
 initScript = $(makeRelativeToProject "data/sql/create.sql" >>= embedFile)
 
+seedScript ∷ ByteString
+seedScript = $(makeRelativeToProject "data/sql/seed.sql" >>= embedFile)
+
 execRaw ∷ Connection → Text → IO ()
 execRaw (Connection db) qry = SQL.exec db qry
 
 initDB ∷ Connection → IO ()
 initDB conn = do
-  execRaw conn $ decodeUtf8 initScript
+  void $ traverse @[] go [ initScript, seedScript ]
   mapM_ (dropRecreateUser conn) Config.users
   lessons ← Yaml.decodeFileThrow Config.lessons
-  SQL.executeMany @Database.Lesson conn insertLessonQuery
-    $ toDatabaseLesson <$> lessons
-  SQL.executeMany @Database.Exercise conn insertExerciseQuery
-    $ lessons >>= toDatabaseExercise
+  insertLessons conn   $ toDatabaseLesson <$> lessons
+  insertExercises conn $ lessons >>= toDatabaseExercise
+  where
+  go ∷ ByteString → IO ()
+  go t = do
+    ByteString.putStrLn t
+    execRaw conn $ decodeUtf8 t
 
 -- | Converts our nested structure from the config file to something
 -- suitable for a RDBMS.
 toDatabaseLesson ∷ Data.Lesson → Database.Lesson
 toDatabaseLesson Data.Lesson{..}
   = Database.Lesson
-  { name                = name
+  { key                 = key
+  , name                = name
   , description         = description
   , grammar             = grammar
   , sourceLanguage      = sourceLanguage
@@ -81,7 +89,7 @@ toDatabaseExercise Data.Lesson{..} = step <$> exercises'
     = Database.Exercise
     { sourceLinearization = lin srcL source
     , targetLinearization = lin trgL target
-    , lesson              = name
+    , lesson              = key
     , timeout             = 0
     }
   Data.LessonSettings{..} = settings
@@ -101,14 +109,29 @@ dropRecreateUser c Config.User{..}
     Database.rmUser  name'
     Database.addUser name' password' enabled
 
-insertLessonQuery ∷ Query
-insertLessonQuery
-  = [sql| INSERT INTO Lesson VALUES (?,?,?,?,?,?,?,?,?,?); |]
+insertLessons ∷ Connection → [Database.Lesson] → IO ()
+insertLessons c = SQL.executeMany c q
+  where
+  q = [sql|INSERT INTO Lesson
+    ( Id
+    , Name
+    , Description
+    , Grammar
+    , SourceLanguage
+    , TargetLanguage
+    , ExerciseCount
+    , Enabled
+    , SearchLimitDepth
+    , SearchLimitSize
+    , Repeatable
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?);
+  |]
 
-insertExerciseQuery ∷ Query
-insertExerciseQuery
-  = [sql|
-        INSERT INTO Exercise
-        (SourceTree,TargetTree,Lesson,Timeout)
-        VALUES (?,?,?,?);
-    |]
+insertExercises ∷ Connection → [Database.Exercise] → IO ()
+insertExercises c = SQL.executeMany c q
+  where
+  q = [sql|
+    INSERT INTO Exercise
+    (SourceTree,TargetTree,Lesson,Timeout)
+    VALUES (?,?,?,?);
+  |]

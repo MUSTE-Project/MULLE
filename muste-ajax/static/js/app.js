@@ -317,7 +317,7 @@ var lesson_list_template = ' \
     </p> \
    </div> \
    <div class="lesson-info-button"> \
-    <button {{#if enabled}}{{else}}disabled{{/if}} onclick="start_lesson(\'{{name}}\');">Solve</button> \
+    <button {{#if enabled}}{{else}}disabled{{/if}} onclick="start_lesson(\'{{lesson}}\');">Solve</button> \
    </div> \
   </div> \
  </div> \
@@ -781,6 +781,7 @@ function select_menuitem(item, lang) {
   var menu = data.menu;
   var score = data.score;
   var menuRequest = {
+    'key': data.key,
     'lesson': data.lesson,
     'score': {
       'clicks': score.clicks,

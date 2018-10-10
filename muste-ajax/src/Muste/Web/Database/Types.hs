@@ -16,6 +16,8 @@ module Muste.Web.Database.Types
   , ExerciseList(..)
   , ActiveLesson0(..)
   , ActiveLesson(..)
+  , UserExerciseScore(..)
+  , Key(..)
   , Muste.TTree
   , Sentence.Unannotated
   , Numeric
@@ -24,7 +26,8 @@ module Muste.Web.Database.Types
 
 import Prelude ()
 import Muste.Prelude
-import Muste.Prelude.SQL (FromRow, ToRow, Nullable)
+import Muste.Prelude.SQL (FromRow, ToRow, Nullable, ToField, FromField)
+import Data.Int (Int64)
 
 import Data.ByteString (ByteString)
 import Data.Aeson (FromJSON(..), (.:), ToJSON(..), (.=))
@@ -38,6 +41,14 @@ import Muste.Web.Types.Score (Score)
 
 type Blob = ByteString
 type Numeric = Integer
+
+newtype Key = Key Int64
+
+deriving stock   instance Show      Key
+deriving newtype instance ToField   Key
+deriving newtype instance FromField Key
+deriving newtype instance ToJSON    Key
+deriving newtype instance FromJSON  Key
 
 -- | Representation of a 'User' in the database.  Consists of:
 --
@@ -84,7 +95,7 @@ deriving anyclass instance FromRow Session
 data Exercise = Exercise
   { sourceLinearization ∷ Unannotated
   , targetLinearization ∷ Unannotated
-  , lesson              ∷ Text
+  , lesson              ∷ Key
   , timeout             ∷ Numeric
   }
 
@@ -105,7 +116,8 @@ deriving anyclass instance FromRow Exercise
 -- * Is it enabled.
 -- * Is it repeatable.
 data Lesson = Lesson
-  { name                ∷ Text
+  { key                 ∷ Key
+  , name                ∷ Text
   , description         ∷ Text
   , grammar             ∷ Text
   , sourceLanguage      ∷ Text
@@ -134,10 +146,8 @@ deriving anyclass instance FromRow Lesson
 -- * The amount of clicks it took.
 -- * The round it was in the lesson.
 data FinishedExercise = FinishedExercise
-  { user                ∷ Text
-  , lesson              ∷ Text
-  , sourceSentence      ∷ Unannotated
-  , targetSentence      ∷ Unannotated
+  { user                ∷ Key
+  , exercise            ∷ Key
   , score               ∷ Score
   , round               ∷ Numeric
   }
@@ -154,8 +164,8 @@ deriving anyclass instance FromRow FinishedExercise
 -- * The (name of the) user that started the lessson.
 -- * The round.
 data StartedLesson = StartedLesson
-  { lesson              ∷ Text
-  , user                ∷ Text
+  { lesson              ∷ Key
+  , user                ∷ Key
   , round               ∷ Numeric
   }
 
@@ -194,11 +204,9 @@ deriving anyclass instance FromRow FinishedLesson
 -- * The lesson it belongs to.
 -- * The round.
 data ExerciseList = ExerciseList
-  { user                ∷ Text
-  , lesson              ∷ Text
-  , sourceSentence      ∷ Unannotated
-  , targetSentence      ∷ Unannotated
-  , round               ∷ Numeric
+  { user     ∷ Key
+  , exercise ∷ Key
+  , round    ∷ Numeric
   }
 
 deriving stock    instance Show    ExerciseList
@@ -209,7 +217,8 @@ deriving anyclass instance FromRow ExerciseList
 -- Like below but wuthout passedcount
 -- FIXME Better name
 data ActiveLesson0 = ActiveLesson0
-  { name          ∷ Text
+  { lesson        ∷ Key
+  , name          ∷ Text
   , description   ∷ Text
   , exercisecount ∷ Int
   , score         ∷ Nullable Score
@@ -225,7 +234,8 @@ deriving anyclass instance FromRow ActiveLesson0
 -- | Not like 'Types.Lesson'.  'Types.Lesson' refers to the
 -- representation in the database.  This is the type used in "Ajax".
 data ActiveLesson = ActiveLesson
-  { name          ∷ Text
+  { lesson        ∷ Key
+  , name          ∷ Text
   , description   ∷ Text
   , exercisecount ∷ Int
   , passedcount   ∷ Int
@@ -242,7 +252,8 @@ deriving anyclass instance FromRow ActiveLesson
 instance FromJSON ActiveLesson where
   parseJSON = Aeson.withObject "Lesson"
     $ \v -> ActiveLesson
-    <$> v .: "name"
+    <$> v .: "lesson"
+    <*> v .: "name"
     <*> v .: "description"
     <*> v .: "exercisecount"
     <*> v .: "passedcount"
@@ -252,7 +263,8 @@ instance FromJSON ActiveLesson where
 
 instance ToJSON ActiveLesson where
   toJSON ActiveLesson{..} = Aeson.object
-    [ "name"          .= name
+    [ "lesson"        .= lesson
+    , "name"          .= name
     , "description"   .= description
     , "exercisecount" .= exercisecount
     , "passedcount"   .= passedcount
@@ -260,3 +272,21 @@ instance ToJSON ActiveLesson where
     , "passed"        .= finished
     , "enabled"       .= enabled
     ]
+
+data UserExerciseScore = UserExerciseScore
+  { exercise ∷ Text
+  , lesson   ∷ Text
+  , user     ∷ Maybe Text
+  , score    ∷ Maybe Score
+  }
+
+deriving stock    instance Show    UserExerciseScore
+deriving stock    instance Generic UserExerciseScore
+deriving anyclass instance ToRow   UserExerciseScore
+deriving anyclass instance FromRow UserExerciseScore
+
+-- data UserLessonScore = UserLessonScore
+--   { user     ∷ Text
+--   , score    ∷ Score
+--   , lesson   ∷ Text
+--   }

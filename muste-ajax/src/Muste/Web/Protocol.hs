@@ -119,7 +119,7 @@ instance Exception ProtocolError where
     LoginFail           → "Login failure"
     ErrReadBody         → "Error reading request body."
     DecodeError s       → printf "Error decoding JSON: %s" s
-    LessonNotFound l    → printf "Lesson now found %s" (convertString @_ @String l)
+    LessonNotFound l    → printf "Lesson not found %s" (convertString @_ @String l)
     LanguageNotFound l  → printf "Language not found %s" (show l)
 
 instance Semigroup ProtocolError where
@@ -371,7 +371,7 @@ lessonsHandler = do
   pure <$> verifyMessage (Ajax.LessonList lessons)
 
 lessonHandler ∷ MonadProtocol m ⇒ m (Response Ajax.MenuResponse)
-lessonHandler = pure <$> Snap.pathArg handleLessonInit
+lessonHandler = pure <$> Snap.pathArg (handleLessonInit . Database.Key)
 
 menuHandler ∷ MonadProtocol m ⇒ m (Response Ajax.MenuResponse)
 menuHandler = getMessage >>= fmap pure . handleMenuRequest
@@ -416,17 +416,20 @@ askContexts = asks contexts
 handleLessonInit
   ∷ ∀ m
   . MonadProtocol m
-  ⇒ Text -- ^ Lesson
+  ⇒ Database.Key -- ^ Lesson
   → m Ajax.MenuResponse
 handleLessonInit lesson = do
   token ← getToken
-  (_sourceLang,sourceTree,_targetLang,targetTree)
+  (lessonName, sourceTree, targetTree)
     <- Database.startLesson token lesson
-  menu ← assembleMenus lesson sourceTree targetTree
+  -- TODO Stub
+  -- menu ← assembleMenus lesson sourceTree targetTree
+  menu ← assembleMenus lessonName sourceTree targetTree
   verifyMessage $ Ajax.MenuResponse
-    { lesson = lesson
-    , score = mempty
-    , menu = menu
+    { key    = lesson
+    , lesson = lessonName
+    , score  = mempty
+    , menu   = menu
     }
 
 -- | This request is called after the user selects a new sentence from
@@ -457,11 +460,12 @@ handleMenuRequest Ajax.MenuRequest{..} = do
   menu ←
     if finished
     then do
-      Database.finishExercise token lesson newScore
+      Database.finishExercise token key newScore
       pure Nothing
     else assembleMenus lesson (un src) (un trg)
   verifyMessage $ Ajax.MenuResponse
-    { lesson = lesson
+    { key    = key
+    , lesson = lesson
     , score  = newScore
     , menu   = menu
     }
