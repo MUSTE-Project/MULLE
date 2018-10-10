@@ -21,6 +21,7 @@ module Muste.Repl
 
 import Prelude ()
 import Muste.Prelude
+import qualified Muste.Prelude.Unsafe as Unsafe
 import Muste.Prelude.Extra
 
 import System.Console.Repline
@@ -151,7 +152,7 @@ prettyMenu verbose ctxt s = Doc.vsep . fmap (uncurry go) . open
   annotated
     = parse s
     & map (\t -> Annotated.mkLinearization ctxt t t t)
-    & foldl1 Annotated.mergeL
+    & Unsafe.foldl1 Annotated.mergeL
     & toList
     & map getNodes
   parse ∷ Text → [TTree]

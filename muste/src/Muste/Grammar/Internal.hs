@@ -27,6 +27,7 @@ module Muste.Grammar.Internal
 
 import Prelude ()
 import Muste.Prelude
+import qualified Muste.Prelude.Unsafe as Unsafe
 import Muste.Prelude.Extra
 
 import Data.Map (Map)
@@ -116,7 +117,7 @@ getFunType g id =
   let
     rules = filter (\r -> getRuleName r == id) $ getAllRules g
   in
-    if not $ null rules then getRuleType $ head rules else NoType
+    if not $ null rules then getRuleType $ Unsafe.head rules else NoType
 
 -- | The function 'getRuleName' extracts the name of a rule
 getRuleName :: Rule -> Category
@@ -173,7 +174,7 @@ brackets grammar language ttree
   = PGF.bracketedLinearize (pgf grammar) language (Tree.toGfTree ttree)
 
 parseTTree :: Grammar -> String -> TTree
-parseTTree g = fromGfTree g . read
+parseTTree g = fromGfTree g . Unsafe.read
 
 -- | The function 'fromGfTree' creates a 'TTree' from a 'PGF.Tree' and
 -- a 'Grammar'. Handles only 'EApp' and 'EFun'. Generates a 'hole' in

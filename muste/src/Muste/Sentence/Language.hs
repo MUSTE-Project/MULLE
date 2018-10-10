@@ -6,6 +6,7 @@ module Muste.Sentence.Language
 
 import Prelude ()
 import Muste.Prelude
+import qualified Muste.Prelude.Unsafe as Unsafe
 import Muste.Prelude.SQL (FromField, ToField)
 
 import Data.Aeson ((.=), (.:))
@@ -45,7 +46,7 @@ deriving stock instance Ord  Language
 instance IsString Language where
   fromString s = Language (fromString g) (fromString l)
     where
-    (g, l) = read @(String, String) s
+    (g, l) = Unsafe.read @(String, String) s
 
 instance ToJSON Language where
   toJSON (Language {..}) = Aeson.object

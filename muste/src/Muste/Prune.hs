@@ -208,7 +208,7 @@ similarTreesForSubtree tree = do
       <> "Non-exhaustive pattern match"
   similarTrees cat adjTrees tree
 
--- O(n^3) !!!! I don't think this can be avoided though since the
+-- O(n^3) Unsafe.!!Unsafe.!! I don't think this can be avoided though since the
 -- output is bounded by Ω(n^3).
 similarTrees ∷ Pruner m ⇒ Category → AdjunctionTrees → TTree → m [SimTree]
 similarTrees cat adjTrees tree = do

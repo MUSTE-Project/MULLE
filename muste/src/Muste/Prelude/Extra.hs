@@ -29,14 +29,13 @@ module Muste.Prelude.Extra
   , trace
   , traceShow
   , traceShowId
-  , from
-  , to
   , decodeFileThrow
   , throwLeft
   ) where
 
 import Prelude ()
 import Muste.Prelude
+import qualified Muste.Prelude.Unsafe as Unsafe
 
 import qualified Data.Set as Set
 import Text.Read (readEither)
@@ -107,22 +106,22 @@ isSubList csub@(c:sub) (d:super) | c == d    = isSubList sub super
 -- <https://wiki.haskell.org/Edit_distance>
 editDistance :: Eq a => [a] -> [a] -> Int
 editDistance a b = last (if lab == 0 then mainDiag
-                         else if lab > 0 then lowers !! (lab - 1)
-                              else {- < 0 -}  uppers !! (-1 - lab))
-    where mainDiag = oneDiag a b (head uppers) (-1 : head lowers)
+                         else if lab > 0 then lowers Unsafe.!! (lab - 1)
+                              else {- < 0 -}  uppers Unsafe.!! (-1 - lab))
+    where mainDiag = oneDiag a b (Unsafe.head uppers) (-1 : Unsafe.head lowers)
           uppers   = eachDiag a b (mainDiag : uppers) -- upper diagonals
           lowers   = eachDiag b a (mainDiag : lowers) -- lower diagonals
           eachDiag _ [] _ = []
           eachDiag a (_:bs) (lastDiag:diags) = oneDiag a bs nextDiag lastDiag : eachDiag a bs diags
-              where nextDiag = head (tail diags)
+              where nextDiag = Unsafe.head (Unsafe.tail diags)
           eachDiag _ _ _ = error "Common.editDistance: Unmatched clause"
           oneDiag a b diagAbove diagBelow = thisdiag
               where doDiag [] _b _nw _n _w = []
                     doDiag _a [] _nw _n _w = []
-                    doDiag (ach:as) (bch:bs) nw n w = me : doDiag as bs me (tail n) (tail w)
-                        where me = if ach == bch then nw else 1 + min3 (head w) nw (head n)
-                    firstelt = 1 + head diagBelow
-                    thisdiag = firstelt : doDiag a b firstelt diagAbove (tail diagBelow)
+                    doDiag (ach:as) (bch:bs) nw n w = me : doDiag as bs me (Unsafe.tail n) (Unsafe.tail w)
+                        where me = if ach == bch then nw else 1 + min3 (Unsafe.head w) nw (Unsafe.head n)
+                    firstelt = 1 + Unsafe.head diagBelow
+                    thisdiag = firstelt : doDiag a b firstelt diagAbove (Unsafe.tail diagBelow)
           lab = length a - length b
           min3 x y z = if x < y then x else min y z
 
@@ -173,38 +172,28 @@ binaryFromText = Binary.decode . convertString
 
 -- * Debug aids
 
-{-# DEPRECATED trace "Development aid remain in your code!!" #-}
+{-# DEPRECATED trace "Development aid remain in your codeUnsafe.!!" #-}
 trace ∷ String → a → a
 trace = Debug.Trace.trace
 
-{-# DEPRECATED traceShow "Development aid remain in your code!!" #-}
+{-# DEPRECATED traceShow "Development aid remain in your codeUnsafe.!!" #-}
 traceShow ∷ Show a ⇒ a → b → b
 traceShow = Debug.Trace.traceShow
 
-{-# DEPRECATED traceShowId "Development aid remain in your code!!" #-}
+{-# DEPRECATED traceShowId "Development aid remain in your codeUnsafe.!!" #-}
 traceShowId ∷ Show a ⇒ a → a
 traceShowId = Debug.Trace.traceShowId
 
 prettyShow ∷ Pretty a => a → String
 prettyShow = show . Doc.pretty
 
-{-# DEPRECATED prettyTrace "Development aid remain in your code!!" #-}
+{-# DEPRECATED prettyTrace "Development aid remain in your codeUnsafe.!!" #-}
 prettyTrace ∷ Pretty a ⇒ a → b → b
 prettyTrace a = trace (prettyShow a)
 
-{-# DEPRECATED prettyTraceId "Development aid remain in your code!!" #-}
+{-# DEPRECATED prettyTraceId "Development aid remain in your codeUnsafe.!!" #-}
 prettyTraceId ∷ Pretty a ⇒ a → a
 prettyTraceId a = trace (prettyShow a) a
-
--- | Useful in concert with TypeApplications during development.
-{-# DEPRECATED from "Development aid remain in your code!!" #-}
-from ∷ ∀ a b . a → b
-from = undefined
-
--- | Useful in concert with TypeApplications during development.
-{-# DEPRECATED to "Development aid remain in your code!!" #-}
-to ∷ ∀ a b . b → a
-to = undefined
 
 lookupFail
   ∷ MonadFail m

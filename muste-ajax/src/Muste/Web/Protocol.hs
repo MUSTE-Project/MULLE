@@ -188,11 +188,14 @@ data HttpStatus = Code Int | CodeReason Int Reason
 
 instance Num HttpStatus where
   fromInteger = Code . fromInteger
-  (+) = undefined
-  (*) = undefined
-  abs = undefined
-  signum = undefined
-  negate = undefined
+  (+) = cheatNumErr
+  (*) = cheatNumErr
+  abs = cheatNumErr
+  signum = cheatNumErr
+  negate = cheatNumErr
+
+cheatNumErr ∷ a
+cheatNumErr = error "Don't use the num instance of HttpStatus for anything other than fromInteger"
 
 -- Could perhaps pick better error codes.
 errResponseCode ∷ ProtocolError → HttpStatus
@@ -347,7 +350,7 @@ getMessage = do
     Left e  → throwError $ DecodeError e
     Right a → pure a
 
--- TODO Token should be set as an HTTP header.
+-- TODO Token should be set as an HTTP Unsafe.header.
 -- | Gets the current session token.
 getToken :: MonadProtocol m ⇒ m Text
 getToken = do

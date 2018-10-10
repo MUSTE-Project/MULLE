@@ -6,6 +6,7 @@ module Muste.Sentence.Annotated
 
 import Prelude ()
 import Muste.Prelude
+import qualified Muste.Prelude.Unsafe as Unsafe
 import Muste.Prelude.SQL (FromField, ToField)
 import qualified Muste.Prelude.SQL as SQL
 
@@ -129,8 +130,7 @@ annotated c l src trg t
 merge ∷ MonadThrow m ⇒ Exception e ⇒ e → [Annotated] → m Annotated
 merge e = \case
   [] → throwM e
-  xs → pure $ foldl1 merge1 xs
-
+  xs → pure $ Unsafe.foldl1 merge1 xs
 -- Merge two sentences, assuming they have the same language.
 merge1 ∷ Annotated → Annotated → Annotated
 merge1 a b = Annotated lang ((mergeL `on` linearization) a b)

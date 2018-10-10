@@ -14,6 +14,7 @@ module Muste.Menu.Internal
 
 import Prelude ()
 import Muste.Prelude
+import qualified Muste.Prelude.Unsafe as Unsafe
 import Muste.Prelude.Extra
 
 import Data.Map (Map)
@@ -220,7 +221,7 @@ collectMenuItems ctxt substs = Menu $ Map.fromListWith Set.union $ do
   -- if there are no linearisations (e.g. because of the grammar not fully implemented),
   -- we just skip this menu item:
   guard $ not (null lins)
-  let allnewnodes = foldl1 Annotated.mergeL lins
+  let allnewnodes = Unsafe.foldl1 Annotated.mergeL lins
   return (oldselection, Set.singleton (newselection, allnewnodes))
 
 

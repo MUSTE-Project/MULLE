@@ -25,15 +25,16 @@ module Muste.Tree.Internal
   , cIdToCat
   ) where
 
--- TODO Do not depend on PGF
-import qualified PGF
-  (CId, utf8CId, Tree, wildCId, mkMeta, mkApp, showExpr, showCId)
-
 import Prelude ()
 import Muste.Prelude
 import Muste.Prelude.Extra
+import qualified Muste.Prelude.Unsafe as Unsafe
 import Muste.Prelude.SQL (FromField, ToField)
 import qualified Muste.Prelude.SQL as SQL
+
+-- TODO Do not depend on PGF
+import qualified PGF
+  (CId, utf8CId, Tree, wildCId, mkMeta, mkApp, showExpr, showCId)
 
 import Data.Aeson
 import qualified Data.Text as Text
@@ -209,7 +210,7 @@ instance TreeC TTree where
   selectBranch (TNode _ _ [] ) _ = Nothing
   selectBranch (TNode _ _ trees) i
     | i < 0 || i >= length trees = Nothing
-    | otherwise = Just (trees !! i)
+    | otherwise = Just (trees Unsafe.!! i)
 
 -- List-related functions
 -- | The function 'listReplace' replaces an element in a 'List' if the
@@ -237,7 +238,7 @@ isValid t =
         brokenPath = filter (not . fst) vs
       in
         if (t == ccats) && all fst vs then (True,Nothing)
-        else if null brokenPath then (False, Just $ reverse path) else (False, Just $ reverse $ fromJust $ snd $ head brokenPath)
+        else if null brokenPath then (False, Just $ reverse path) else (False, Just $ reverse $ fromJust $ snd $ Unsafe.head brokenPath)
     check _ path = (False, Just $ reverse path)
   in
     check t []
@@ -270,7 +271,7 @@ instance TreeC LTree where
   selectBranch (LNode _ _ [] ) _ = Nothing
   selectBranch (LNode _ _ trees) i
     | i < 0 || i >= length trees = Nothing
-    | otherwise = Just (trees !! i)
+    | otherwise = Just (trees Unsafe.!! i)
 
 -- | Creates a labeled LTree from a TTree
 ttreeToLTree :: TTree -> LTree

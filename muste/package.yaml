@@ -91,6 +91,7 @@ library:
     - Muste.Prelude
     - Muste.Prelude.Extra
     - Muste.Prelude.SQL
+    - Muste.Prelude.Unsafe
 
   other-modules:
     - Muste.Tree.Internal
@@ -110,7 +111,6 @@ library:
     - Muste.Sentence.Token
     - Muste.Sentence.Token.Class
     - Muste.Prelude.ReExports
-    - Muste.Prelude.Unsafe
 
 executables:
   muste:

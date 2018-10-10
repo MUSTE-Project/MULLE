@@ -28,6 +28,7 @@ module Muste.Web.Database
 
 import Prelude ()
 import Muste.Prelude
+import qualified Muste.Prelude.Unsafe as Unsafe
 import Muste.Prelude.Extra
 import Muste.Prelude.SQL
   ( Query, Connection, Only(Only), fromOnly
@@ -238,7 +239,7 @@ verifySession token = do
   -- from here might not be executed due to lazy evaluation...
   -- Compute the difference in time stamps
   newTimeStamp <- getCurrentTime
-  let oldTimeStamp = fromOnly . head $ sessions
+  let oldTimeStamp = fromOnly . Unsafe.head $ sessions
       deleteSessionQuery = [sql|DELETE FROM Session WHERE Token = ? ;|]
       diff = Time.diffUTCTime newTimeStamp oldTimeStamp
       hour = fromInteger 60
@@ -318,7 +319,7 @@ checkStarted
   → Text -- ^ Lesson
   → db Bool
 checkStarted user lesson
-  =   (0 /=) . fromOnly . head
+  =   (0 /=) . fromOnly . Unsafe.head
   <$> query @(Only Int) q (user,lesson)
   where
   q = [sql|SELECT COUNT(*) FROM StartedLesson WHERE User = ? AND Lesson = ?|]
@@ -612,7 +613,7 @@ getFinishedExercises
   → Text -- ^ Lesson
   → db Types.Numeric
 getFinishedExercises user lesson =
-  fromOnly . head <$> query @(Only Integer) countFinishesExercisesQuery (user,lesson)
+  fromOnly . Unsafe.head <$> query @(Only Integer) countFinishesExercisesQuery (user,lesson)
   where
   countFinishesExercisesQuery
     = [sql|
@@ -627,7 +628,7 @@ getExerciseCount
   ⇒ Text -- ^ Lesson
   → db Types.Numeric
 getExerciseCount lesson =
-  fromOnly . head <$> query @(Only Integer) countExercisesInLesson (Only lesson)
+  fromOnly . Unsafe.head <$> query @(Only Integer) countExercisesInLesson (Only lesson)
   where
   countExercisesInLesson = [sql|
     SELECT ExerciseCount FROM Lesson WHERE Name = ?;
@@ -644,7 +645,7 @@ getCurrentRound
   → Text -- ^ Lesson
   → db (Maybe Types.Numeric)
 getCurrentRound user lesson =
-  fromOnly . head <$> query
+  fromOnly . Unsafe.head <$> query
     [sql|
         SELECT MAX(Round)
         FROM StartedLesson
