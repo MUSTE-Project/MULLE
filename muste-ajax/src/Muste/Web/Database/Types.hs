@@ -54,7 +54,7 @@ data User = User
 
 deriving stock    instance Show    User
 deriving stock    instance Generic User
-deriving anyclass instance ToRow User
+deriving anyclass instance ToRow   User
 deriving anyclass instance FromRow User
 
 -- | Representation of a 'Session' in the database.  Consists of:
@@ -70,9 +70,9 @@ data Session = Session
   , lastActive          ∷ UTCTime
   }
 
-deriving stock instance Show    Session
-deriving stock instance Generic Session
-deriving anyclass instance ToRow Session
+deriving stock    instance Show    Session
+deriving stock    instance Generic Session
+deriving anyclass instance ToRow   Session
 deriving anyclass instance FromRow Session
 
 -- | Representation of an 'Exercise' in the database.  Consists of:
@@ -88,9 +88,9 @@ data Exercise = Exercise
   , timeout             ∷ Numeric
   }
 
-deriving stock instance Show    Exercise
-deriving stock instance Generic Exercise
-deriving anyclass instance ToRow Exercise
+deriving stock    instance Show    Exercise
+deriving stock    instance Generic Exercise
+deriving anyclass instance ToRow   Exercise
 deriving anyclass instance FromRow Exercise
 
 -- | Representation of a 'Leson' in the database.  Consists of:
@@ -118,9 +118,9 @@ data Lesson = Lesson
   , repeatable          ∷ Bool
   }
 
-deriving stock instance Show    Lesson
-deriving stock instance Generic Lesson
-deriving anyclass instance ToRow Lesson
+deriving stock    instance Show    Lesson
+deriving stock    instance Generic Lesson
+deriving anyclass instance ToRow   Lesson
 deriving anyclass instance FromRow Lesson
 
 -- | Representation of a 'FinishedExercise' in the database.  Consists
@@ -142,9 +142,9 @@ data FinishedExercise = FinishedExercise
   , round               ∷ Numeric
   }
 
-deriving stock instance Show    FinishedExercise
-deriving stock instance Generic FinishedExercise
-deriving anyclass instance ToRow FinishedExercise
+deriving stock    instance Show    FinishedExercise
+deriving stock    instance Generic FinishedExercise
+deriving anyclass instance ToRow   FinishedExercise
 deriving anyclass instance FromRow FinishedExercise
 
 -- | Representation of a 'StartedLesson' in the
@@ -159,9 +159,9 @@ data StartedLesson = StartedLesson
   , round               ∷ Numeric
   }
 
-deriving stock instance Show    StartedLesson
-deriving stock instance Generic StartedLesson
-deriving anyclass instance ToRow StartedLesson
+deriving stock    instance Show    StartedLesson
+deriving stock    instance Generic StartedLesson
+deriving anyclass instance ToRow   StartedLesson
 deriving anyclass instance FromRow StartedLesson
 
 -- | Representation of a 'FinishedLesson' in the
@@ -180,9 +180,9 @@ data FinishedLesson = FinishedLesson
   , round               ∷ Numeric
   }
 
-deriving stock instance Show    FinishedLesson
-deriving stock instance Generic FinishedLesson
-deriving anyclass instance ToRow FinishedLesson
+deriving stock    instance Show    FinishedLesson
+deriving stock    instance Generic FinishedLesson
+deriving anyclass instance ToRow   FinishedLesson
 deriving anyclass instance FromRow FinishedLesson
 
 -- | Representation of an 'ExerciseList' in the database.  Consists
@@ -201,9 +201,9 @@ data ExerciseList = ExerciseList
   , round               ∷ Numeric
   }
 
-deriving stock instance Show    ExerciseList
-deriving stock instance Generic ExerciseList
-deriving anyclass instance ToRow ExerciseList
+deriving stock    instance Show    ExerciseList
+deriving stock    instance Generic ExerciseList
+deriving anyclass instance ToRow   ExerciseList
 deriving anyclass instance FromRow ExerciseList
 
 
@@ -219,7 +219,10 @@ data ActiveLesson = ActiveLesson
   , enabled       ∷ Bool
   }
 
-deriving stock instance Show ActiveLesson
+deriving stock    instance Show    ActiveLesson
+deriving stock    instance Generic ActiveLesson
+deriving anyclass instance ToRow   ActiveLesson
+deriving anyclass instance FromRow ActiveLesson
 
 instance FromJSON ActiveLesson where
   parseJSON = Aeson.withObject "Lesson"
@@ -242,7 +245,3 @@ instance ToJSON ActiveLesson where
     , "passed"        .= finished
     , "enabled"       .= enabled
     ]
-
-deriving stock instance Generic ActiveLesson
-deriving anyclass instance ToRow ActiveLesson
-deriving anyclass instance FromRow ActiveLesson
