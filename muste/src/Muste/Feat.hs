@@ -15,7 +15,6 @@ module Muste.Feat
 
 import Prelude ()
 import Muste.Prelude
-import Data.List
 
 import Muste.Common
 import Muste.Grammar.Internal (Rule(Function), Grammar)

@@ -1,9 +1,9 @@
 {-# OPTIONS_GHC -Wall #-}
 module Muste.Prelude
   ( module X
-  , identity
   , module Extraneous
   , module Unsafe
+  , identity
   ) where
 
 import Prelude as X
@@ -23,7 +23,7 @@ import Prelude as X
   max, min, sum, unwords, words, lines, unlines, or, and, notElem,
   elem, (<*>), foldMap, putStrLn, putStr, flip, const, sequence, take,
   mapM_, mapM, ioError, error, repeat, foldl, seq, mod, div, print)
-import Data.List                 as X (sort)
+import Data.List                 as X (sort, last, nub)
 import Data.List.NonEmpty        as X (NonEmpty(..), groupBy)
 import Data.Bool                 as X (bool)
 import Data.Function             as X ((&), on)
@@ -60,18 +60,7 @@ import Prelude as Extraneous
   , (++)
   )
 
--- We could maybe emit a warning when using these?
-import Prelude as Unsafe
-  -- Use pattern-matching, 'listToMaybe' or the version from 'NonEmpty'.
-  ( head
-  -- Use 'readMaybe', 'readEither' os similiar.
-  , read
-  -- You probably want a vector/array.
-  , (!!)
-  -- Use 'error'
-  , undefined
-  , foldl1
-  )
+import Muste.Prelude.Unsafe as Unsafe
 
 identity ∷ a → a
 identity a = a

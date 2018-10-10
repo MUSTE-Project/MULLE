@@ -87,6 +87,7 @@ library:
     - Muste.Sentence.Unannotated
     # FIXME Perhaps a seperate module for these helper?
     - Muste.Prelude
+    - Muste.Prelude.Unsafe
     - Muste.Common
     - Muste.Common.SQL
 

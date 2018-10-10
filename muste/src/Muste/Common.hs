@@ -36,7 +36,6 @@ module Muste.Common
 import Prelude ()
 import Muste.Prelude
 
-import Prelude hiding (fail)
 import qualified Data.Set as Set
 import Text.Read (readEither)
 import Data.Binary (Binary)
