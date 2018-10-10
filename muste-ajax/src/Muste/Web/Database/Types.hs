@@ -25,7 +25,8 @@ import Prelude ()
 import Muste.Prelude
 import Data.ByteString (ByteString)
 import Data.Time
-import Data.Aeson (FromJSON(..), withObject, (.:), ToJSON(toJSON), object, (.=))
+import Data.Aeson (FromJSON(..), (.:), ToJSON(..), (.=))
+import qualified Data.Aeson as Aeson
 
 import qualified Muste (TTree)
 import qualified Muste.Sentence.Unannotated as Sentence (Unannotated)
@@ -221,7 +222,8 @@ data ActiveLesson = ActiveLesson
 deriving stock instance Show ActiveLesson
 
 instance FromJSON ActiveLesson where
-  parseJSON = withObject "Lesson" $ \v -> ActiveLesson
+  parseJSON = Aeson.withObject "Lesson"
+    $ \v -> ActiveLesson
     <$> v .: "name"
     <*> v .: "description"
     <*> v .: "exercisecount"
@@ -231,13 +233,13 @@ instance FromJSON ActiveLesson where
     <*> v .: "enabled"
 
 instance ToJSON ActiveLesson where
-  toJSON ActiveLesson{..} = object
+  toJSON ActiveLesson{..} = Aeson.object
     [ "name"          .= name
     , "description"   .= description
     , "exercisecount" .= exercisecount
     , "passedcount"   .= passedcount
     , "score"         .= score
-    , "passed"        .= passedcount
+    , "passed"        .= finished
     , "enabled"       .= enabled
     ]
 
