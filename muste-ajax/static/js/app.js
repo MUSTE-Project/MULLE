@@ -5,7 +5,6 @@ var PREFIXPUNCT = /^[¿¡(]$/;
 
 var DATA = null;
 var LOGIN_TOKEN = null;
-var TIMER_START = null;
 
 var EXERCISES = [];
 var VIRTUAL_ROOT = '/';
@@ -28,16 +27,29 @@ var MESSAGES = {
 jQuery().ready(init);
 
 function init() {
+  init_environment();
   register_handlebars_helper();
-  $('#loginform').submit(submit_login);
-  $('#abortlesson').click(retrieve_lessons);
-  $('#logoutbutton').click(restart_everything);
+  register_click_handlers();
   register_timer();
   register_overlay();
   register_pagers();
   register_create_user_handler();
   register_change_pwd_handler();
   register_popup_menu(jQuery);
+  show_login_page();
+}
+
+function init_environment() {
+  window.muste = {};
+}
+
+function register_click_handlers() {
+  $('#loginform').submit(submit_login);
+  $('#abortlesson').click(retrieve_lessons);
+  $('#logoutbutton').click(restart_everything);
+}
+
+function show_login_page() {
   var tok = window.sessionStorage.getItem('LOGIN_TOKEN');
   // Show login page regardless.
   show_page('#page-login');
@@ -122,16 +134,40 @@ function register_timer() {
   window.setInterval(update_timer, 500);
 }
 
+function start_timer() {
+  window.muste['lesson-start'] = new Date();
+}
+
+function get_start_time() {
+  return window.muste['lesson-start'];
+}
+
 // Returns a formatted string of the elapsed time. Note that currently
 // this is not locale sensitive.
-function elapsed_time() {
-  return countdown(new Date, TIMER_START);
+function get_elapsed_time() {
+  var start = get_start_time();
+  var now   = new Date();
+  return countdown(start, now);
+}
+
+// Gets the elapsed time as a floating point representing the seconds
+// passed by.
+function get_elapsed_time_as_seconds() {
+  var e = get_elapsed_time();
+  var start = e.start;
+  var end = e.end;
+  // 'diff' is in ms.
+  var diff = end - start;
+  return diff / 1000;
+}
+
+// TODO l10n
+function get_elapsed_time_formatted() {
+  return get_elapsed_time().toString();
 }
 
 function update_timer() {
-  if (TIMER_START) {
-    $('#timer').text(elapsed_time().toString());
-  }
+  $('#timer').text(get_elapsed_time_formatted());
 }
 
 // The overlay is shown when the menus pop up.  The click-event on the
@@ -294,7 +330,6 @@ var render_lesson_list = Handlebars.compile(lesson_list_template);
 function show_lessons(resp) {
   var lessons = resp.lessons;
   show_page('#page-lessons');
-  TIMER_START = null;
   var table = $('#lessonslist');
   table.empty();
   var e = render_lesson_list(lessons);
@@ -314,7 +349,7 @@ function select_lesson(evt) { // eslint-disable-line no-unused-vars
 
 
 function start_lesson(lesson) {
-  TIMER_START = new Date().getTime();
+  start_timer();
   muste_request({}, MESSAGES.LESSON + '/' + lesson)
     .then(handle_menu_response);
 }
@@ -344,7 +379,7 @@ function show_exercise(resp) {
 function show_exercise_complete(resp) {
   var lesson = resp.lesson;
   var score = resp.score;
-  var t = elapsed_time().toString();
+  var t = get_elapsed_time_formatted();
   setTimeout(function(){
     alert('BRAVO!' +
       '    Klick: ' + score +
@@ -744,10 +779,13 @@ function select_menuitem(item, lang) {
   ct_setLinearization(DATA.menu[lang], item);
   var data = DATA;
   var menu = data.menu;
+  var score = data.score;
   var menuRequest = {
     'lesson': data.lesson,
-    'score': data.score,
-    'time': elapsed_time().seconds,
+    'score': {
+      'clicks': score.clicks,
+      'time': get_elapsed_time_as_seconds()
+    },
     'src': to_client_tree(menu.src),
     'trg': to_client_tree(menu.trg)
   };

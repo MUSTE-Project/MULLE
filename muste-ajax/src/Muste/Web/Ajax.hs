@@ -21,7 +21,6 @@ import Muste.Prelude
 
 import Data.Aeson ((.:), (.=), (.:?))
 import qualified Data.Aeson as Aeson
-import Data.Time
 
 import Muste
 import Muste.Sentence.Unannotated (Unannotated)
@@ -82,8 +81,6 @@ data MenuRequest = MenuRequest
   -- In stead we should store the score along with the users session,
   -- and only when the exercise is done respond with the final score.
   , score  ∷ Score
-  -- The time the user has been working on the exercise.
-  , time   ∷ NominalDiffTime
   , src    ∷ ClientTree
   , trg    ∷ ClientTree
   }
@@ -92,7 +89,6 @@ instance ToJSON MenuRequest where
   toJSON MenuRequest{..} = Aeson.object
     [ "lesson" .= lesson
     , "score"  .= score
-    , "time"   .= time
     , "src"    .= src
     , "trg"    .= trg
     ]
@@ -102,7 +98,6 @@ instance FromJSON MenuRequest where
     $  \b → MenuRequest
     <$> b .: "lesson"
     <*> b .: "score"
-    <*> b .: "time"
     <*> b .: "src"
     <*> b .: "trg"
 

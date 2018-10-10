@@ -45,6 +45,7 @@ import qualified Muste.Web.Ajax            as Ajax
 import           Muste.Web.Database (MonadDB, MonadDatabaseError(..))
 import qualified Muste.Web.Database        as Database
 import qualified Muste.Web.Database.Types  as Database
+import           Muste.Web.Types.Score (Score(Score))
 import qualified Muste.Web.Types.Score     as Score
 
 -- | Maps a lesson to a map from grammars(-identifiers) to their
@@ -447,6 +448,7 @@ handleMenuRequest
   ⇒ Ajax.MenuRequest
   → m Ajax.MenuResponse
 handleMenuRequest Ajax.MenuRequest{..} = do
+  let Score{..} = score
   verifySession
   token ← getToken
   let

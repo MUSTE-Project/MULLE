@@ -60,7 +60,8 @@ CREATE TABLE FinishedExercise (
   FOREIGN
     KEY (SourceTree, TargetTree, Lesson)
     REFERENCES Exercise(SourceTree, TargetTree, Lesson)
-  UNIQUE (User, Lesson)
+  -- I don't think this is what we want.
+  -- UNIQUE (User, Lesson)
 );
 
 CREATE TABLE StartedLesson (
