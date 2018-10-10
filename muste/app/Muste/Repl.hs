@@ -21,6 +21,8 @@ module Muste.Repl
 
 import Prelude ()
 import Muste.Prelude
+import Muste.Prelude.Extra
+
 import System.Console.Repline
   (HaskelineT, runHaskelineT)
 import qualified System.Console.Haskeline     as Repl
@@ -36,7 +38,6 @@ import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 
 import Muste hiding (getMenu)
-import Muste.Common
 import qualified Muste.Grammar.Internal       as Grammar
 import Muste.Menu (Menu)
 import qualified Muste.Menu.Internal          as Menu

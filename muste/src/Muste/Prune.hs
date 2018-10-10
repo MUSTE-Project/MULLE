@@ -11,6 +11,8 @@ module Muste.Prune
 
 import Prelude ()
 import Muste.Prelude
+import Muste.Prelude.Extra
+
 import qualified Data.Containers as Mono
 import Data.Set (Set)
 import qualified Data.Set as Set
@@ -18,8 +20,6 @@ import Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as MultiSet
 import Control.Monad.Reader
 import Data.Functor.Identity
-
-import Muste.Common
 
 import Muste.Tree (TTree(..), Path, FunType(..), Category)
 import qualified Muste.Tree.Internal as Tree

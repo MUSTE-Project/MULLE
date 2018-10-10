@@ -4,6 +4,9 @@ module Muste.Sentence.Linearization where
 
 import Prelude ()
 import Muste.Prelude
+import Muste.Prelude.SQL (FromField, ToField)
+import qualified Muste.Prelude.SQL as SQL
+
 import Data.Aeson (ToJSON(..), FromJSON(..))
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
@@ -16,8 +19,6 @@ import Data.Text.Prettyprint.Doc (Pretty(..))
 import Control.DeepSeq (NFData)
 import qualified Data.Text as Text
 
-import Muste.Common.SQL (FromField, ToField)
-import qualified Muste.Common.SQL as SQL
 import Muste.Sentence.Token (IsToken)
 import qualified Muste.Sentence.Token as Token
 

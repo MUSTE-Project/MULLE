@@ -20,6 +20,8 @@ module Muste.Linearization.Internal
 
 import Prelude ()
 import Muste.Prelude
+import Muste.Prelude.SQL (FromField, ToField)
+import qualified Muste.Prelude.SQL as SQL
 
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -41,8 +43,6 @@ import qualified Muste.Tree.Internal as Tree
 import Muste.Grammar
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees
-import Muste.Common.SQL (FromField, ToField)
-import qualified Muste.Common.SQL as SQL
 
 data LinToken = LinToken
   -- The path refers to the path in the 'TTree'

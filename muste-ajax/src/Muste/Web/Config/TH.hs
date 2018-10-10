@@ -15,6 +15,8 @@ module Muste.Web.Config.TH
 
 import Prelude ()
 import Muste.Prelude
+import Muste.Prelude.Extra
+
 import System.FilePath
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (Lift(lift))
@@ -24,7 +26,6 @@ import qualified Data.Aeson as Aeson
 import Paths_muste_ajax
 import Data.FileEmbed
 
-import Muste.Web.Common (decodeFileThrow)
 import qualified Muste.Web.Config.Types as Types
 
 data Config = Config

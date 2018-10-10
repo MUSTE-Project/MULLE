@@ -24,6 +24,8 @@ module Muste.Web.Database.Types
 
 import Prelude ()
 import Muste.Prelude
+import Muste.Prelude.SQL (Nullable)
+
 import Data.ByteString (ByteString)
 import Data.Time
 import Data.Aeson (FromJSON(..), (.:), ToJSON(..), (.=))
@@ -34,7 +36,6 @@ import qualified Muste.Sentence.Unannotated as Sentence (Unannotated)
 import Muste.Sentence.Unannotated (Unannotated)
 import Database.SQLite.Simple.FromRow
 import Database.SQLite.Simple.ToRow
-import Muste.Common.SQL (Nullable)
 
 import Muste.Web.Types.Score (Score)
 

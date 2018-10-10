@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# Language UnicodeSyntax, FlexibleContexts, OverloadedStrings #-}
-module Muste.Common
+{-# Language UnicodeSyntax, FlexibleContexts, OverloadedStrings, CPP #-}
+module Muste.Prelude.Extra
   ( preAndSuffix
   , wildCard
   , noDuplicates
@@ -31,6 +31,8 @@ module Muste.Common
   , traceShowId
   , from
   , to
+  , decodeFileThrow
+  , throwLeft
   ) where
 
 import Prelude ()
@@ -49,6 +51,7 @@ import qualified Data.Text.Prettyprint.Doc as Doc
 import Data.Text.Prettyprint.Doc.Render.String (renderString)
 import qualified Data.Text.Prettyprint.Doc.Render.Text as Doc
 import qualified Data.List.NonEmpty as NonEmpty
+import qualified Data.Yaml as Yaml
 
 import qualified Debug.Trace
 
@@ -240,3 +243,16 @@ putDoc = Doc.putDoc
 
 putDocLn ∷ Doc a → IO ()
 putDocLn = putDoc . (<> Doc.line)
+
+decodeFileThrow ∷ MonadIO m ⇒ FromJSON a ⇒ FilePath → m a
+-- #if MIN_VERSION_yaml(0,8,31)
+decodeFileThrow = Yaml.decodeFileThrow
+-- #else
+-- decodeFileThrow f
+--   = liftIO $ Yaml.decodeFileEither f >>= either throwIO return
+-- #endif
+
+-- | Throws an exception if the it's a 'Left' (requires the left to be
+-- an exception).  This method is *unsafe*!
+throwLeft :: Exception e => Either e c -> c
+throwLeft = either throw identity

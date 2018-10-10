@@ -31,6 +31,10 @@ import qualified PGF
 
 import Prelude ()
 import Muste.Prelude
+import Muste.Prelude.Extra
+import Muste.Prelude.SQL (FromField, ToField)
+import qualified Muste.Prelude.SQL as SQL
+
 import Data.Aeson
 import qualified Data.Text as Text
 import Data.String (fromString)
@@ -39,11 +43,6 @@ import Language.Haskell.TH.Syntax (Lift)
 import Control.DeepSeq (NFData)
 import Data.Data (Typeable, Data(..))
 import Data.String.Conversions (convertString)
-
-import Muste.Common.SQL (FromField, ToField)
-import qualified Muste.Common.SQL as SQL
-
-import Muste.Common
 
 -- * Trees
 

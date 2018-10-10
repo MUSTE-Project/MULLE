@@ -14,6 +14,8 @@ module Muste.Menu.Internal
 
 import Prelude ()
 import Muste.Prelude
+import Muste.Prelude.Extra
+
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
@@ -27,7 +29,6 @@ import Data.Aeson (ToJSONKey, toJSONKey, ToJSONKeyFunction(ToJSONKeyValue), toJS
 import Control.DeepSeq (NFData)
 import qualified Data.Text as Text
 
-import Muste.Common
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.Linearization.Internal
   (Linearization(..), Context, ctxtGrammar, ctxtLang, ctxtPrecomputed)

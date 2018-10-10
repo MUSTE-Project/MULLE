@@ -1,7 +1,10 @@
 {-# Language TemplateHaskell, OverloadedStrings #-}
 module Test.Common (failDoc, renderDoc) where
 
-import Prelude hiding (fail)
+import Prelude
+import Muste.Prelude
+import Muste.Prelude.Extra
+
 import Muste.Grammar (Grammar)
 import qualified Muste.Grammar.Internal as Grammar
 import Data.ByteString (ByteString)
@@ -12,7 +15,6 @@ import Control.Monad.Fail (MonadFail(fail))
 import Test.Tasty.HUnit (Assertion, assertFailure)
 
 import Muste (TTree)
-import Muste.Common
 
 failDoc ∷ Doc a → Assertion
 failDoc = assertFailure . renderDoc

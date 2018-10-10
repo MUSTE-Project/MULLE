@@ -13,6 +13,9 @@ module Muste.Sentence.Token
 
 import Prelude ()
 import Muste.Prelude
+import Muste.Prelude.SQL (FromField, ToField)
+import qualified Muste.Prelude.SQL as SQL
+
 import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:))
 import qualified Data.Aeson as Aeson
 import Data.Set (Set)
@@ -20,9 +23,6 @@ import qualified Data.Set as Set
 import GHC.Generics (Generic)
 import Data.Text.Prettyprint.Doc (Pretty(..))
 import Control.DeepSeq (NFData)
-
-import Muste.Common.SQL (FromField, ToField)
-import qualified Muste.Common.SQL as SQL
 
 import Muste.Sentence.Token.Class (IsToken)
 import qualified Muste.Sentence.Token.Class as Token

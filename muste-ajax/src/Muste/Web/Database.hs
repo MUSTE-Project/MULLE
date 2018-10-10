@@ -28,7 +28,8 @@ module Muste.Web.Database
 
 import Prelude ()
 import Muste.Prelude
-import Muste.Common
+import Muste.Prelude.Extra
+import qualified Muste.Prelude.SQL as SQL
 
 import qualified Data.List.NonEmpty as NonEmpty
 import Database.SQLite.Simple
@@ -56,7 +57,6 @@ import Control.Monad.Reader
 import qualified Test.QuickCheck as QC (shuffle, generate)
 
 import qualified Muste
-import qualified Muste.Common.SQL as SQL
 
 import qualified Muste.Web.Database.Types as Types
 import qualified Muste.Web.Database.Types as ActiveLesson0 (ActiveLesson0(..))

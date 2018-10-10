@@ -27,6 +27,7 @@ module Muste.Grammar.Internal
 
 import Prelude ()
 import Muste.Prelude
+import Muste.Prelude.Extra
 
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -56,7 +57,6 @@ import Control.Monad.Base (MonadBase)
 import Snap (MonadSnap)
 import qualified Snap
 
-import Muste.Common
 import Muste.Tree
 import qualified Muste.Tree.Internal as Tree
 import qualified Muste.Data as Data

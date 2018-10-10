@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wall #-}
 -- | I got a bit sick of having to import 3 different modules to use
 -- the SQL-backend, hence this module.
-module Muste.Common.SQL
+module Muste.Prelude.SQL
   ( SQL.FromField(..)
   , SQL.ToField(..)
   , SQL.fieldData
@@ -23,6 +23,10 @@ module Muste.Common.SQL
   , SQL.open
   ) where
 
+import Prelude ()
+import Muste.Prelude
+import Muste.Prelude.Extra
+
 import qualified Database.SQLite.Simple           as SQL
 import qualified Database.SQLite.Simple.Ok        as SQL
 import qualified Database.SQLite.Simple.ToField   as SQL
@@ -30,8 +34,6 @@ import qualified Database.SQLite.Simple.FromField as SQL
 import Data.Binary (Binary)
 import Data.Typeable (Typeable)
 import Data.ByteString (ByteString)
-
-import Muste.Common (binaryToText, binaryFromText)
 
 fromBlob ∷ Typeable b ⇒ Binary b ⇒ SQL.Field → SQL.Ok b
 fromBlob fld = case SQL.fieldData fld of

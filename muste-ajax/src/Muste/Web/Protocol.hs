@@ -7,6 +7,7 @@ module Muste.Web.Protocol
 
 import Prelude ()
 import Muste.Prelude
+import Muste.Prelude.Extra
 
 import Data.Aeson
 import Data.Map (Map)
@@ -37,8 +38,6 @@ import           Muste.Sentence.Unannotated (Unannotated)
 import qualified Muste.Sentence.Unannotated as Unannotated
 import qualified Muste.Menu as Menu
 import qualified Muste.Linearization as Linearization
-
-import           Muste.Web.Common
 
 import           Muste.Web.Ajax (ClientTree, ServerTree)
 import qualified Muste.Web.Ajax            as Ajax

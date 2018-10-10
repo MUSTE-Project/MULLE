@@ -7,13 +7,14 @@ module Muste.Web.Types.Score
 
 import Prelude ()
 import Muste.Prelude
+import Muste.Prelude.SQL (FromField, ToField)
+import qualified Muste.Prelude.SQL as SQL
+
 import Database.SQLite.Simple.FromField
 import Database.SQLite.Simple.ToField
 import Data.Time (NominalDiffTime)
 import Data.Aeson ((.:), (.=), (.:?))
 import qualified Data.Aeson as Aeson
-import Muste.Common.SQL (FromField, ToField)
-import qualified Muste.Common.SQL as SQL
 import Data.Binary (Binary(..))
 
 data Score = Score

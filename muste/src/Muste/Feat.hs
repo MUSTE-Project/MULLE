@@ -15,8 +15,8 @@ module Muste.Feat
 
 import Prelude ()
 import Muste.Prelude
+import Muste.Prelude.Extra
 
-import Muste.Common
 import Muste.Grammar.Internal (Rule(Function), Grammar)
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.Tree

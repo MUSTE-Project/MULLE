@@ -47,6 +47,7 @@ dependencies:
   - monad-control
   - transformers-base
   - snap
+  - yaml
 
 when:
   - condition: flag(dist)
@@ -87,9 +88,8 @@ library:
     - Muste.Sentence.Unannotated
     # FIXME Perhaps a seperate module for these helper?
     - Muste.Prelude
-    - Muste.Prelude.Unsafe
-    - Muste.Common
-    - Muste.Common.SQL
+    - Muste.Prelude.Extra
+    - Muste.Prelude.SQL
 
   other-modules:
     - Muste.Tree.Internal
@@ -108,6 +108,8 @@ library:
     - Muste.Sentence.Linearization
     - Muste.Sentence.Token
     - Muste.Sentence.Token.Class
+    - Muste.Prelude.ReExports
+    - Muste.Prelude.Unsafe
 
 executables:
   muste:

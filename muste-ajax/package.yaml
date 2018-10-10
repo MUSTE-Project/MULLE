@@ -132,7 +132,6 @@ library:
     - Muste.Web.Config.AppConfig
     - Muste.Web.Config.TH
     - Muste.Web.Protocol
-    - Muste.Web.Common
 
   other-modules:
     - Paths_muste_ajax

@@ -4,15 +4,14 @@ module Muste.Sentence.Language
   (Language(Language), Grammar(Grammar))
   where
 
-import Prelude hiding (Word)
+import Prelude ()
+import Muste.Prelude
+import Muste.Prelude.SQL (FromField, ToField)
+
 import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:))
 import qualified Data.Aeson as Aeson
 import GHC.Generics (Generic)
-import Data.Binary hiding (Word)
-import Data.Text (Text)
 import Data.String
-
-import Muste.Common.SQL (FromField, ToField)
 
 newtype Grammar = Grammar Text
 

@@ -6,6 +6,9 @@ module Muste.Sentence.Annotated
 
 import Prelude ()
 import Muste.Prelude
+import Muste.Prelude.SQL (FromField, ToField)
+import qualified Muste.Prelude.SQL as SQL
+
 import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:))
 import qualified Data.Aeson as Aeson
 import GHC.Generics (Generic)
@@ -21,9 +24,6 @@ import Muste.Sentence.Token (IsToken)
 import qualified Muste.Sentence.Token as Token
 import Muste.Sentence.Class (Sentence, Language, Linearization, Token)
 import qualified Muste.Sentence.Class as Sentence
-
-import Muste.Common.SQL (FromField, ToField)
-import qualified Muste.Common.SQL as SQL
 
 import Muste.Tree.Internal (TTree, Category)
 import qualified Muste.Tree.Internal as Tree
