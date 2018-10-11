@@ -30,6 +30,7 @@ function init() {
   init_environment();
   register_handlebars_helper();
   register_click_handlers();
+  register_busy_indicator(jQuery);
   register_timer();
   register_overlay();
   register_pagers();
@@ -124,14 +125,13 @@ function register_change_pwd_handler() {
       'old-password': $form.find('input[name=old-pwd]').val(),
       'name': $form.find('input[name=name]').val()
     };
-    muste_request_raw(data, 'change-pwd').then(function() {
+    muste_request(data, 'change-pwd').then(function() {
       change_page('#page-login');
     });
   });
 }
 
 function register_timer() {
-  // FIXME This keeps churning even if we are not using the timer.
   window.setInterval(update_timer, 500);
 }
 
@@ -196,7 +196,7 @@ function change_page(page, opts) {
   var d = {
     page: page,
     'query-opts': opts
-  }
+  };
   $(window).trigger('page-change', d);
 }
 
@@ -209,15 +209,14 @@ function register_page_handler($) {
     var idx = ref.indexOf('?');
     var id = ref.substring(0, idx);
     var loc = ref.substring(idx);
-    debugger;
     change_page(id, loc);
   });
   $w.on('page-change', function (_ev, d) {
     var pg = d.page;
-    var q = d['query-opts'] || "";
+    var q = d['query-opts'] || '';
     var loc = pg + q;
     show_page(pg);
-    history.pushState(null, null, loc)
+    history.pushState(null, null, loc);
   });
 }
 
@@ -250,6 +249,8 @@ function submit_login(evt) {
 // the protocol.  In contrast with `call_server_new` does not try to
 // guess how to interpret the response.
 function muste_request(data, endpoint) {
+  var $w = $(window);
+  $w.trigger('api-load-start');
   var req = {
     cache: false,
     url: SERVER + endpoint,
@@ -258,7 +259,9 @@ function muste_request(data, endpoint) {
     processData: false,
     data: JSON.stringify(data)
   };
-  return $.ajax(req).fail(handle_server_fail);
+  return $.ajax(req).fail(handle_server_fail).always(function() {
+    $w.trigger('api-load-end');
+  });
 }
 
 function handle_server_fail(resp) {
@@ -392,7 +395,7 @@ function handle_menu_response(r) {
   // FIXME Naughty string interpolation!
   change_page('#page-exercise', '?key=' + r.key);
   DATA = r;
-  var menu = r.menu
+  var menu = r.menu;
   if(menu !== null) {
     show_exercise(r);
   } else {
@@ -415,7 +418,7 @@ function show_exercise(resp) {
   // The score is the exercise score.  Only in the case when we are
   // continuing a lesson will this be non-trivial.
   // display_score(resp.score);
-  var e = EXERCISES[lesson]
+  var e = EXERCISES[lesson];
   display_lesson_counter({
     lesson: lessonName,
     passed: e.passed,
@@ -433,13 +436,11 @@ function display_lesson_counter(d) {
 }
 
 function show_exercise_complete(resp) {
-  var lesson = resp.lesson;
   var score = resp.score;
-  var t = get_elapsed_time_formatted();
   setTimeout(function(){
     alert('BRAVO!' +
-      '    Klick: ' + score +
-      '    Tid: ' + t + ' sekunder');
+      '    Klick: ' + score.clicks +
+      '    Tid: ' + score.time + ' sekunder');
     // There used to be a way of figuring out if we should just start
     // the next exercise.  This is no longer possible.
     retrieve_lessons();
@@ -710,12 +711,10 @@ function click_word(event) {
       var menuitem = $('<span class="clickable">')
         .data('item', item)
         .data('lang', lang)
-        .click(BUSY(function(c){
-          var $c = $(c);
-          var item = $c.data('item');
-          var lang = $c.data('lang');
-          select_menuitem(item, lang);
-        }));
+          .click(function() {
+            var d = $(this).data();
+            select_menuitem(d.item, d.lang);
+          });
       var lin = item;
       if (lin.length == 0) {
         $('<span>').html('&empty;').appendTo(menuitem);
@@ -766,11 +765,6 @@ function is_selected(sel, idx) {
 
 function getValidMenus(idx, menu) {
   var mp = lookupKeySetRange(idx, menu);
-  return iterateMenu(idx, mp);
-}
-
-function getValidMenusEmpty(idx, menu) {
-  var mp = lookupKeySetEmptyRange(idx, menu);
   return iterateMenu(idx, mp);
 }
 
@@ -854,33 +848,16 @@ function select_menuitem(item, lang) {
 //////////////////////////////////////////////////////////////////////
 // Busy indicator
 
-var BUSY_DELAY = 50;
-var BUSY_STR = '\u25CF';
-// Unicode Character 'BLACK CIRCLE' (U+25CF)
-
-function BUSY(f) {
-  return function(){
-    var obj = this; // $(this);
-    push_busy();
-    setTimeout(function(){
-      f(obj);
-      pop_busy();
-    }, BUSY_DELAY);
-  };
-}
-
-function push_busy() {
-  var ind = document.getElementById('busy-indicator');
-  ind.className = ind.className + BUSY_STR;
-  ind.textContent += BUSY_STR;
-}
-
-function pop_busy() {
-  var ind = document.getElementById('busy-indicator');
-  if (ind.className.slice(-BUSY_STR.length) === BUSY_STR) {
-    ind.className = ind.className.slice(0, -BUSY_STR.length);
-    ind.textContent = ind.textContent.slice(0, -BUSY_STR.length);
-  } else {
-    console.error('POP ERROR', ind.className, ind.textContent);
-  }
+function register_busy_indicator($) {
+  var $w = $(window);
+  var $busy = $('#busy-indicator');
+  var sem = 0;
+  $w.on('api-load-start', function () {
+    sem++;
+    $busy.removeClass('idle');
+  });
+  $w.on('api-load-end', function () {
+    sem--;
+    if(sem === 0) $busy.addClass('idle');
+  });
 }
