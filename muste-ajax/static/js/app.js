@@ -334,8 +334,12 @@ function show_lessons(resp) {
   table.empty();
   var e = render_lesson_list(lessons);
   table.html(e);
-  lessons.forEach(function(lsn) {
-    EXERCISES[lsn.name] = {passed : lsn.passedcount, total : lsn.exercisecount};
+  lessons.forEach(function(x) {
+    var key = x.lesson;
+    EXERCISES[key] = {
+      passed: x.passedcount,
+      total: x.exercisecount
+    };
   });
 }
 
@@ -370,14 +374,29 @@ function handle_menu_response(r) {
 }
 
 function show_exercise(resp) {
-  var lesson = resp.lesson;
+  var lesson = resp.key;
+  var lessonName = resp.lesson;
   var menu = resp.menu;
   clean_server_data(menu.src);
   clean_server_data(menu.src);
   build_matching_classes(menu);
   show_sentences(menu);
-  $('#score').text(menu.score);
-  $('#lessoncounter').text(lesson + ': övning ' + EXERCISES[lesson].passed + ' av ' + EXERCISES[lesson].total);
+  display_score(resp.score);
+  var e = EXERCISES[lesson]
+  display_lesson_counter({
+    lesson: lessonName,
+    passed: e.passed,
+    total: e.total
+  });
+}
+
+// TODO Don't just serialize the object.
+function display_score(score) {
+  $('#score').text(JSON.stringify(score));
+}
+
+function display_lesson_counter(d) {
+  $('#lessoncounter').text(d.lesson + ': övning ' + d.passed + ' av ' + d.total);
 }
 
 function show_exercise_complete(resp) {
