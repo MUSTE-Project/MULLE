@@ -36,6 +36,7 @@ function init() {
   register_create_user_handler();
   register_change_pwd_handler();
   register_popup_menu(jQuery);
+  register_page_handler(jQuery);
   show_login_page();
 }
 
@@ -52,7 +53,7 @@ function register_click_handlers() {
 function show_login_page() {
   var tok = window.sessionStorage.getItem('LOGIN_TOKEN');
   // Show login page regardless.
-  show_page('#page-login');
+  change_page('#page-login');
   if (tok == null) {
     var loginform = document.getElementById('loginform');
     loginform.name.focus();
@@ -69,7 +70,7 @@ function register_popup_menu($) {
 function register_pagers() {
   $('.pager').click(function() {
     var pg = $(this).attr('href');
-    show_page(pg);
+    change_page(pg);
   });
 }
 
@@ -83,7 +84,7 @@ function register_create_user_handler() {
       'name': $form.find('input[name=name]').val()
     };
     muste_request(data, 'create-user').then(function() {
-      show_page('#page-login');
+      change_page('#page-login');
     }).fail(function(err) {
       var appErr = err.responseJSON.error;
       switch(appErr.id) {
@@ -124,7 +125,7 @@ function register_change_pwd_handler() {
       'name': $form.find('input[name=name]').val()
     };
     muste_request_raw(data, 'change-pwd').then(function() {
-      show_page('#page-login');
+      change_page('#page-login');
     });
   });
 }
@@ -191,17 +192,44 @@ function clear_errors() {
   $('.error').empty().hide();
 }
 
-function show_page(page, loc) {
+function change_page(page, opts) {
+  var d = {
+    page: page,
+    'query-opts': opts
+  }
+  $(window).trigger('page-change', d);
+}
+
+function register_page_handler($) {
+  var $w = $(window);
+  $w.on('popstate', function() {
+    var href = window.location.href;
+    // FIXME Hack
+    var ref = href.substring(href.lastIndexOf('/') + 1);
+    var idx = ref.indexOf('?');
+    var id = ref.substring(0, idx);
+    var loc = ref.substring(idx);
+    debugger;
+    change_page(id, loc);
+  });
+  $w.on('page-change', function (_ev, d) {
+    var pg = d.page;
+    var q = d['query-opts'] || "";
+    var loc = pg + q;
+    show_page(pg);
+    history.pushState(null, null, loc)
+  });
+}
+
+function show_page(pg) {
   $('.page').hide();
-  loc = loc || page;
-  history.pushState(null, null, loc)
-  $(page).show();
+  $(pg).show();
 }
 
 
 function restart_everything() {
   muste_request({}, MESSAGES.LOGOUT);
-  show_page('#page-login');
+  change_page('#page-login');
 }
 
 
@@ -247,7 +275,7 @@ function handle_server_fail(resp) {
 }
 
 function muste_logout() {
-  show_page('#page-login');
+  change_page('#page-login');
   window.sessionStorage.removeItem('LOGIN_TOKEN');
 }
 
@@ -331,7 +359,7 @@ var render_lesson_list = Handlebars.compile(lesson_list_template);
 
 function show_lessons(resp) {
   var lessons = resp.lessons;
-  show_page('#page-lessons');
+  change_page('#page-lessons');
   var table = $('#lessonslist');
   table.empty();
   var e = render_lesson_list(lessons);
@@ -362,7 +390,7 @@ function start_lesson(lesson) {
 
 function handle_menu_response(r) {
   // FIXME Naughty string interpolation!
-  show_page('#page-exercise', '#page-exercise?key=' + r.key);
+  change_page('#page-exercise', '?key=' + r.key);
   DATA = r;
   var menu = r.menu
   if(menu !== null) {

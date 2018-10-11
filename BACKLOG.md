@@ -1,6 +1,9 @@
 BACKLOG
 =======
 
+Retrieve necessary data on navigation start
+---
+
 Database changes
 ---
 
