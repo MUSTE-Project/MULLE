@@ -1,16 +1,15 @@
 BACKLOG
 =======
 
+What to do when a lesson is over?
+---
+
+Currently is a user tries to open a lesson where they have solved all
+exercises, then an error to that effect is logged in the browser
+console.
+
 Retrieve necessary data on navigation start
 ---
-
-Database changes
----
-
-I've removed the score column from the FinishedLesson table.  We
-should in stead implement this as a view.  One idea is to select all
-scores across all exercises for a lesson, pull them all into Haskell
-and mconcat them together.
 
 Use front end framework
 ---
