@@ -176,7 +176,9 @@ rmUser = void . execute q . Only
 
   q = [sql|
 -- rmUser
-DELETE FROM User WHERE Username = ?;
+DELETE
+FROM User
+WHERE Username = ?;
 |]
 
 authUser
@@ -200,7 +202,12 @@ authUser user pass = do
 
   q = [sql|
 -- authUser
-SELECT Password,Salt,Enabled FROM User WHERE (Username = ?);
+SELECT
+  Password,
+  Salt,
+  Enabled
+FROM User
+WHERE Username = ?;
 |]
 
 changePassword
@@ -215,12 +222,12 @@ changePassword user oldPass newPass = do
   addUser user newPass True
 
 createSession
-  :: MonadDB r db
-  => Text -- ^ Username
-  -> db Types.Session
+  ∷ MonadDB r db
+  ⇒ Text -- ^ Username
+  → db Types.Session
 createSession user = do
     -- maybe check for old sessions and clean up?
-    execute q [user]
+    endSession user
     -- create new session
     timeStamp ← getCurrentTime
     pure $ Types.Session
@@ -229,11 +236,15 @@ createSession user = do
       , startTime  = timeStamp
       , lastActive = timeStamp
       }
-  where
 
+endSession ∷ MonadDB r db ⇒ Text → db ()
+endSession user = execute q (Only user)
+  where
   q = [sql|
 -- createSession
-DELETE FROM Session WHERE User = ?;
+DELETE
+FROM Session
+WHERE User = ?;
 |]
 
 -- FIXME Should a token be 'Text' or 'ByteString'?
@@ -313,7 +324,9 @@ getLastActive t = fromOnly . Unsafe.head <$> query q (Only t)
 
   q = [sql|
 -- getSession
-SELECT LastActive FROM Session WHERE Token = ?;
+SELECT LastActive
+FROM Session
+WHERE Token = ?;
 |]
 
 deleteSession ∷ MonadDB r db ⇒ Text → db ()
@@ -321,7 +334,9 @@ deleteSession token = execute q (Only token)
   where
   q = [sql|
 -- deleteSession
-DELETE FROM Session WHERE Token = ?;
+DELETE
+FROM Session
+WHERE Token = ?;
 |]
 
 -- | List all the lessons i.e. lesson name, description and exercise
@@ -391,7 +406,10 @@ checkStarted user lesson
   where
   q = [sql|
 -- checkStarted
-SELECT COUNT(*) FROM StartedLesson WHERE User = ? AND Lesson = ?;
+SELECT COUNT(*)
+FROM StartedLesson
+WHERE User = ?
+  AND Lesson = ?;
 |]
 
 getUser ∷ MonadDB r db ⇒ Text → db Types.Key
@@ -405,7 +423,9 @@ getUser token = do
   userQuery
     = [sql|
 -- getuser
-SELECT Id FROM Session WHERE Token = ?;
+SELECT Id
+FROM Session
+WHERE Token = ?;
 |]
 
 class HasConnection v where
@@ -522,7 +542,11 @@ getTreePairs lesson = query q (Only lesson)
   where
   q = [sql|
 -- getTreePairs
-SELECT Exercise, Lesson, Name, SourceTree, TargetTree
+SELECT Exercise,
+  Lesson,
+  Name,
+  SourceTree,
+  TargetTree
 FROM ExerciseLesson
 WHERE Lesson = ?;
 |]
@@ -653,8 +677,10 @@ INSERT INTO FinishedLesson (Lesson, User, Score, Round) VALUES (?, ?, ?, ?);
 
   q1 = [sql|
 -- finishLesson, q1
-DELETE FROM StartedLesson
-WHERE User = ? AND Lesson = ?;
+DELETE
+FROM StartedLesson
+WHERE User = ?
+  AND Lesson = ?;
 |]
 
 -- Gets an unfinished exercise
@@ -671,7 +697,12 @@ getExercise lesson user round
 
   q = [sql|
 -- getExercise
-SELECT Exercise.Id, Lesson.Id, Lesson.Name, SourceTree, TargetTree
+SELECT
+  Exercise.Id,
+  Lesson.Id,
+  Lesson.Name,
+  SourceTree,
+  TargetTree
 FROM ExerciseList
 JOIN Exercise ON Exercise = Exercise.Id
 JOIN Lesson   ON Lesson   = Lesson.Id
@@ -723,15 +754,9 @@ getExerciseCount lesson =
   where
   q = [sql|
 -- getExerciseCount
-SELECT ExerciseCount FROM Lesson WHERE Id = ?;
-|]
-
-endSession :: MonadDB r db ⇒ Text -> db ()
-endSession token = execute q [token]
-  where
-  q = [sql|
--- endSession
-DELETE FROM Session WHERE Token = ?;
+SELECT ExerciseCount
+FROM Lesson
+WHERE Id = ?;
 |]
 
 -- | Get the score for the user and lesson.
@@ -749,6 +774,7 @@ getScore user lesson
 -- getScore
 SELECT Score
 FROM FinishedExercise
+JOIN Exercise ON Exercise = Exercise.Id
 WHERE User = ?
 AND Lesson = ?;
 |]

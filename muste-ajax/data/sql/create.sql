@@ -143,48 +143,6 @@ CREATE VIEW PassedLesson AS
   FROM FinishedLesson
   GROUP BY Lesson, User;
 
--- FIXME Not used!
-DROP VIEW IF EXISTS ActiveLesson;
-CREATE VIEW ActiveLesson AS
-  SELECT
-    Lesson.Id as Lesson,
-    Lesson.Name,
-    Lesson.Description,
-    Lesson.ExerciseCount,
-    FinishedExercise.Score,
-    -- FIXME Same as above.
-    COALESCE(PassedLesson.Passed, 0) AS Finished,
-    Lesson.Enabled,
-    StartedLesson.User
-  FROM Lesson
-  LEFT
-    JOIN StartedLesson
-    ON Lesson.Id = StartedLesson.Lesson
-  LEFT
-    JOIN FinishedExerciseLesson
-    ON Lesson.Id = FinishedExerciseLesson.Lesson
-  LEFT
-    JOIN PassedLesson
-    ON Lesson.Id = PassedLesson.Lesson;
-
-
--- DROP VIEW IF EXISTS ActiveLesson;
--- CREATE VIEW ActiveLesson AS
--- SELECT
---   Lesson.*,
---   FinishedExerciseLesson.Score AS ExerciseScore,
---   FinishedExerciseLesson.User
--- FROM Lesson
--- LEFT
---   JOIN StartedLesson
---   ON Lesson.Id = StartedLesson.Lesson
--- LEFT
---   JOIN FinishedExerciseLesson
---   ON Lesson.Id = FinishedExerciseLesson.Lesson
--- LEFT
---   JOIN FinishedLesson
---   ON Lesson.Id = FinishedLesson.Lesson;
-
 DROP VIEW IF EXISTS ActiveLessonsForUser;
 CREATE VIEW ActiveLessonsForUser AS
 SELECT
