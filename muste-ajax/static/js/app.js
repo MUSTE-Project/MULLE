@@ -191,8 +191,10 @@ function clear_errors() {
   $('.error').empty().hide();
 }
 
-function show_page(page) {
+function show_page(page, loc) {
   $('.page').hide();
+  loc = loc || page;
+  history.pushState(null, null, loc)
   $(page).show();
 }
 
@@ -359,7 +361,8 @@ function start_lesson(lesson) {
 }
 
 function handle_menu_response(r) {
-  show_page('#page-exercise');
+  // FIXME Naughty string interpolation!
+  show_page('#page-exercise', '#page-exercise?key=' + r.key);
   DATA = r;
   var menu = r.menu
   if(menu !== null) {
