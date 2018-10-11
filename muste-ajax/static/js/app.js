@@ -855,9 +855,12 @@ function register_busy_indicator($) {
   $w.on('api-load-start', function () {
     sem++;
     $busy.removeClass('idle');
+    $('.overlay').show();
   });
   $w.on('api-load-end', function () {
     sem--;
-    if(sem === 0) $busy.addClass('idle');
+    if(sem > 0) return
+    $busy.addClass('idle');
+    $('.overlay').hide();
   });
 }
