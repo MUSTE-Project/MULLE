@@ -48,8 +48,6 @@ import qualified Data.Time.Clock        as Time
 import qualified Data.Time.Format       as Time
 import Control.Monad.Reader
 
-import System.IO.Unsafe (unsafePerformIO)
-
 -- FIXME QuickCheck seems like a heavy dependency just to get access
 -- to `shuffle`.
 import qualified Test.QuickCheck as QC (shuffle, generate)
@@ -57,7 +55,7 @@ import qualified Test.QuickCheck as QC (shuffle, generate)
 import qualified Muste
 
 import qualified Muste.Web.Database.Types as Types
-import qualified Muste.Web.Database.Types as ActiveLesson0 (ActiveLesson0(..))
+import qualified Muste.Web.Database.Types as ActiveLessonForUser (ActiveLessonForUser(..))
 import           Muste.Web.Types.Score (Score)
 
 data Error
@@ -111,20 +109,21 @@ getLessons
   => db [Types.Lesson]
 getLessons = query_ 
   [sql|
-    SELECT
-        Id
-      , Name
-      , Description
-      , Grammar
-      , SourceLanguage
-      , TargetLanguage
-      , ExerciseCount
-      , Enabled
-      , SearchLimitDepth
-      , SearchLimitSize
-      , Repeatable
-    FROM Lesson
-  |]
+-- getLessons
+SELECT
+    Id
+  , Name
+  , Description
+  , Grammar
+  , SourceLanguage
+  , TargetLanguage
+  , ExerciseCount
+  , Enabled
+  , SearchLimitDepth
+  , SearchLimitSize
+  , Repeatable
+FROM Lesson;
+|]
 
 -- FIXME In this contexts the naming suggests that the user is
 -- persisted.  Consider changin.
@@ -151,7 +150,7 @@ addUser
   → db ()
 addUser user pass enabled = do
   u ← createUser user pass enabled
-  execute [sql|INSERT INTO User (Username, Password, Salt, Enabled) VALUES (?,?,?,?);|] u `catchDbError` h
+  execute q u `catchDbError` h
   where
   h e = case e of
     -- DriverError e → case fromException @SQL.ResultError $ toException e of
@@ -162,16 +161,23 @@ addUser user pass enabled = do
         → throwDbError UserAlreadyExists
       _ → throwDbError e
     _ → throwDbError e
+  q = [sql|
+-- addUser
+INSERT INTO User (Username, Password, Salt, Enabled) VALUES (?,?,?,?);
+|]
 
 -- | Removes an existing user from the database.
 rmUser
   ∷ MonadDB r db
   ⇒ Text
   → db ()
-rmUser nm
-  = void
-  $ execute [sql|DELETE FROM User WHERE Username = ?;|]
-  (Only nm)
+rmUser = void . execute q . Only
+  where
+
+  q = [sql|
+-- rmUser
+DELETE FROM User WHERE Username = ?;
+|]
 
 authUser
   :: MonadDB r db
@@ -180,7 +186,7 @@ authUser
   -> db ()
 authUser user pass = do
   -- Get password and salt from database
-  userList <- query @(ByteString, ByteString, Bool) selectPasswordSaltQuery [user]
+  userList <- query @(ByteString, ByteString, Bool) q [user]
   -- Generate new password hash and compare to the stored one
   let
     h dbSalt = hashPasswd (T.encodeUtf8 pass) dbSalt
@@ -191,8 +197,11 @@ authUser user pass = do
       | otherwise → throwDbError NotAuthenticated
     _             → throwDbError NoUserFound
   where
-  selectPasswordSaltQuery
-    = [sql|SELECT Password,Salt,Enabled FROM User WHERE (Username = ?);|]
+
+  q = [sql|
+-- authUser
+SELECT Password,Salt,Enabled FROM User WHERE (Username = ?);
+|]
 
 changePassword
   ∷ MonadDB r db
@@ -211,16 +220,28 @@ createSession
   -> db Types.Session
 createSession user = do
     -- maybe check for old sessions and clean up?
-    let deleteSessionQuery = [sql|DELETE FROM Session WHERE User = ? ;|] :: Query
-    execute deleteSessionQuery [user]
+    execute q [user]
     -- create new session
-    timeStamp <- getCurrentTime
-    let
-      sessionData ∷ ByteString
-      sessionData = convertString $ formatTime timeStamp
-      token ∷ Text
-      token = convertString (show (hash @ByteString @SHA3_512 sessionData))
-    pure $ Types.Session user token timeStamp timeStamp
+    timeStamp ← getCurrentTime
+    pure $ Types.Session
+      { user       = user
+      , token      = genToken timeStamp
+      , startTime  = timeStamp
+      , lastActive = timeStamp
+      }
+  where
+
+  q = [sql|
+-- createSession
+DELETE FROM Session WHERE User = ?;
+|]
+
+-- FIXME Should a token be 'Text' or 'ByteString'?
+genToken ∷ UTCTime → Text
+genToken timeStamp = convertString (show (hash @ByteString @SHA3_512 sessionData))
+  where
+  sessionData ∷ ByteString
+  sessionData = convertString $ formatTime timeStamp
 
 -- | Creates a new session and returns the session token.  At the
 -- moment overly simplified.
@@ -234,9 +255,10 @@ startSession user = do
   return token
   where
   q = [sql|
-    INSERT INTO Session (User, Token, Starttime, LastActive)
-    VALUES (?,?,?,?);
-  |]
+-- startSession
+INSERT INTO Session (User, Token, Starttime, LastActive)
+VALUES (?,?,?,?);
+|]
 
 formatTime ∷ UTCTime → String
 formatTime = Time.formatTime Time.defaultTimeLocale "%s"
@@ -245,8 +267,12 @@ updateActivity :: MonadDB r db ⇒ Text -> db ()
 updateActivity token = do
   -- We should use to- from- row instances for UTCTime in stead.
   timeStamp ← formatTime <$> getCurrentTime
-  let updateSessionLastActiveQuery = [sql|UPDATE Session SET LastActive = ? WHERE Token = ?;|]
-  execute updateSessionLastActiveQuery (timeStamp,token)
+  execute q (timeStamp,token)
+  where
+  q = [sql|
+-- updateActivity
+UPDATE Session SET LastActive = ? WHERE Token = ?;
+|]
 
 -- | Returns @Just err@ if there is an error.
 verifySession
@@ -255,26 +281,48 @@ verifySession
   -> db ()
 verifySession token = do
   -- Get potential user session(s)
-  let selectSessionQuery = [sql|SELECT LastActive FROM Session WHERE Token = ?;|]
-  sessions <- query @(Only UTCTime) selectSessionQuery [token]
+  sessions ← getLastActive token
   -- from here might not be executed due to lazy evaluation...
   -- Compute the difference in time stamps
-  newTimeStamp <- getCurrentTime
-  let oldTimeStamp = fromOnly . Unsafe.head $ sessions
-      deleteSessionQuery = [sql|DELETE FROM Session WHERE Token = ? ;|]
-      diff = Time.diffUTCTime newTimeStamp oldTimeStamp
-      hour = fromInteger 60
-      threshold = fromInteger (30 * hour)
-      error
-        | length sessions  == 0 = NoCurrentSession
-        | diff > threshold      = SessionTimeout
-        | otherwise             = MultipleSessions
+  newTimeStamp ← getCurrentTime
   -- ... until here. check if a session exists and it is has been active in the last 30 minutes
-  if length sessions == 1 && diff <= threshold
-  then pure ()
-  else do
-    execute deleteSessionQuery [token]
-    throwDbError error
+  case expired sessions newTimeStamp of
+    Nothing → pure ()
+    Just err → do
+      deleteSession token
+      throwDbError err
+
+-- Check if the token has expired.
+expired ∷ UTCTime → UTCTime → Maybe Error
+expired oldTimeStamp newTimeStamp
+  | diff <= sessionLifeTime = Nothing
+  | otherwise               = Just SessionTimeout
+  where
+  diff = newTimeStamp `Time.diffUTCTime` oldTimeStamp
+
+-- TODO Make this configurable.
+sessionLifeTime ∷ NominalDiffTime
+sessionLifeTime = 30 * h
+  where
+  m = 60
+  h = 60 * m
+
+getLastActive ∷ MonadDB r db ⇒ Text → db UTCTime
+getLastActive t = fromOnly . Unsafe.head <$> query q (Only t)
+  where
+
+  q = [sql|
+-- getSession
+SELECT LastActive FROM Session WHERE Token = ?;
+|]
+
+deleteSession ∷ MonadDB r db ⇒ Text → db ()
+deleteSession token = execute q (Only token)
+  where
+  q = [sql|
+-- deleteSession
+DELETE FROM Session WHERE Token = ?;
+|]
 
 -- | List all the lessons i.e. lesson name, description and exercise
 -- count
@@ -285,75 +333,38 @@ getActiveLessons
   → db [Types.ActiveLesson]
 getActiveLessons token = do
   user <- getUser token
-  fmap step . groupOn ActiveLesson0.name <$> getActiveLessonsForUser user
+  fmap step . groupOn ActiveLessonForUser.name <$> getActiveLessonsForUser user
   where
-  step ∷ (NonEmpty Types.ActiveLesson0) → Types.ActiveLesson
-  step xs@(Types.ActiveLesson0{..} :| _) = Types.ActiveLesson
+  step ∷ (NonEmpty Types.ActiveLessonForUser) → Types.ActiveLesson
+  step xs@(Types.ActiveLessonForUser{..} :| _) = Types.ActiveLesson
     { lesson        = lesson
     , name          = name
     , description   = description
     , exercisecount = exercisecount
-    , score         = foldMap (SQL.runNullable . ActiveLesson0.score) xs
+    , score         = foldMap (SQL.runNullable . ActiveLessonForUser.score) xs
     , finished      = passedcount == exercisecount
     , enabled       = enabled
     -- , passedcount   = NonEmpty.length xs
     , passedcount   = passedcount
     }
     where
-    passedcount = length $ NonEmpty.filter ActiveLesson0.finished xs
+    passedcount = length $ NonEmpty.filter ActiveLessonForUser.finished xs
 
 getActiveLessonsForUser
   ∷ ∀ r db
   . MonadDB r db
   ⇒ Types.Key
-  → db [Types.ActiveLesson0]
+  → db [Types.ActiveLessonForUser]
 getActiveLessonsForUser user = query q (Only user)
   where
+
   q = [sql|
-    SELECT
-      Lesson.Id,
-      Lesson.Name,
-      Lesson.Description,
-      COALESCE(ExerciseCount,0),
-      Score,
-      FinishedExercise.Exercise IS NOT NULL AS Finished,
-      -- Exercise.Id,
-      -- User.Id
-      Lesson.Enabled
-      ExerciseList
+-- getActiveLessonsForUser
+SELECT *
+FROM ActiveLessonsForUser
+WHERE User IS NULL OR User = ?;
+|]
 
-    FROM Exercise
-    JOIN Lesson ON Exercise.Lesson = Lesson.Id
-    LEFT JOIN ExerciseList ON ExerciseList.Exercise = Exercise.Id
-
-    -- FROM Exercise
-    -- JOIN ExerciseList ON ExerciseList.Exercise = Exercise.Id
-    -- JOIN Lesson on Lesson = Lesson.Id
-    -- LEFT JOIN User ON ExerciseList.User = User.Id
-
-    LEFT JOIN FinishedExercise
-      ON FinishedExercise.User = ExerciseList.User
-      AND FinishedExercise.Exercise = Exercise.Id
-    WHERE
-      ExerciseList.User IS NULL
-      OR ExerciseList.User = ?;
-    |]
-  q' = [sql|
-      SELECT
-        Id,
-        Name,
-        Description,
-        ExerciseCount,
-        ExerciseScore,
-        -- Finished,
-        -- TODO STUB!
-        1 AS Finished,
-        Enabled
-      FROM ActiveLesson
-      WHERE
-        User IS NULL
-        OR User = ?;
-    |]
 -- | Start a new lesson by randomly choosing the right number of
 -- exercises and adding them to the users exercise list
 startLesson
@@ -361,10 +372,10 @@ startLesson
   => Text      -- ^ Token
   -> Types.Key -- ^ Lesson name
   -- * Source- language and tree, target- langauge and tree.
-  -> db (Text, Types.Unannotated, Types.Unannotated)
+  -> db Types.ExerciseLesson
 startLesson token lesson = do
   user ← getUser token
-  isRunning <- checkStarted user lesson
+  isRunning ← checkStarted user lesson
   if isRunning
   then continueLesson user lesson
   else newLesson      user lesson
@@ -378,7 +389,10 @@ checkStarted user lesson
   =   (0 /=) . fromOnly . Unsafe.head
   <$> query @(Only Int) q (user,lesson)
   where
-  q = [sql|SELECT COUNT(*) FROM StartedLesson WHERE User = ? AND Lesson = ?|]
+  q = [sql|
+-- checkStarted
+SELECT COUNT(*) FROM StartedLesson WHERE User = ? AND Lesson = ?;
+|]
 
 getUser ∷ MonadDB r db ⇒ Text → db Types.Key
 getUser token = do
@@ -389,7 +403,10 @@ getUser token = do
     _        → throwDbError MultipleUsers
   where
   userQuery
-    = [sql|SELECT Id FROM Session WHERE Token = ?;|]
+    = [sql|
+-- getuser
+SELECT Id FROM Session WHERE Token = ?;
+|]
 
 class HasConnection v where
   giveConnection ∷ v → Connection
@@ -454,7 +471,7 @@ query
   ⇒ Query
   → q
   → db [res]
-query (dbg → qry) q = do
+query qry q = do
   c ← getConnection
   wrapIoError $ SQL.query c qry q
 
@@ -462,7 +479,7 @@ query_
   :: ∀ res r db . MonadDB r db
   => FromRow res
   => Query -> db [res]
-query_ (dbg → qry) = do
+query_ qry = do
   c ← getConnection
   wrapIoError $ SQL.query_ c qry
 
@@ -472,12 +489,9 @@ execute
   ⇒ Query
   → q
   → db ()
-execute (dbg → qry) q = do
+execute qry q = do
   c ← getConnection
   wrapIoError $ SQL.execute c qry q
-
-dbg ∷ Query → Query
-dbg q = unsafePerformIO (putStrLn $ Unsafe.read @String $ show q) `seq` q
 
 executeMany
   ∷ MonadDB r db
@@ -485,7 +499,7 @@ executeMany
   ⇒ Query
   → [q]
   → db ()
-executeMany (dbg → qry) qs = do
+executeMany qry qs = do
   c ← getConnection
   wrapIoError $ SQL.executeMany c qry qs
 
@@ -503,129 +517,93 @@ shuffle = liftIO . QC.generate . QC.shuffle
 getTreePairs
   :: MonadDB r db
   => Types.Key
-  -> db [(Types.Key, Text, Types.Unannotated, Types.Unannotated)]
+  -> db [Types.ExerciseLesson]
 getTreePairs lesson = query q (Only lesson)
   where
   q = [sql|
-    SELECT Exercise.Id, Lesson.Name, SourceTree, TargetTree
-    FROM Exercise
-    JOIN Lesson ON Lesson = Lesson.Id
-    WHERE Lesson = ?;
-    |]
+-- getTreePairs
+SELECT Exercise, Lesson, Name, SourceTree, TargetTree
+FROM ExerciseLesson
+WHERE Lesson = ?;
+|]
 
 newLesson
   :: MonadDB r db
   => Types.Key
   -> Types.Key
-  -> db (Text, Types.Unannotated, Types.Unannotated)
+  -> db Types.ExerciseLesson
 newLesson user lesson = do
   -- get exercise count
   -- Only count ← fromMaybe errNonUniqueLesson . listToMaybe
     -- <$> query @(Only Int) exerciseCountQuery (Only lesson)
-  Only count ← query @(Only Int) exerciseCountQuery (Only lesson)
-    >>= \case
-      []    → throwDbError NonUniqueLesson
-      (x:_) → pure x
+  count ← getExerciseCount lesson
   -- get lesson round
-  round <- getLessonRound user lesson
-  trees <- getTreePairs lesson
-  -- randomly select
-  selectedTrees <- take count <$> shuffle trees
-  (_exercise, name, src, trg) ← case selectedTrees of
+  lessonRound ← getLessonRound user lesson
+  selectedTrees ← do
+    trees ← getTreePairs lesson
+    -- randomly select
+    take (fromInteger count) <$> shuffle trees
+  exerciseLesson ← case selectedTrees of
     []      → throwDbError NoExercisesInLesson
 
     (x : _) → pure x
 
   -- save in database
-  let startedLesson :: Types.StartedLesson
-      startedLesson = Types.StartedLesson lesson user (succ round)
-  execute insertStartedLesson startedLesson
+  startLessonAux $ Types.StartedLesson lesson user lessonRound
   let
-    -- step ∷ Types.Key → Types.ExerciseList
-    step (exercise, _name, _, _)
+    step ∷ (Types.Numeric, Types.ExerciseLesson) → Types.ExerciseList
+    step (round, Types.ExerciseLesson{..}) -- (exercise, _name, _, _)
       = Types.ExerciseList
-      { user = user
+      { user     = user
       , exercise = exercise
-      , round = round
+      , round    = round
       }
-      -- = Types.ExerciseList
-      -- { user
-      -- -- TODO Stub
-      -- -- , lesson
-      -- , lesson = _
-      -- , sourceSentence = src
-      -- , targetSentence = trg
-      -- , round = round
-      -- }
-  insertExercises $ step <$> selectedTrees
-  pure (name, src, trg)
-  where
-  exerciseCountQuery =
-    [sql|
-      SELECT ExerciseCount FROM Lesson WHERE Id = ?;
-    |]
-  insertStartedLesson =
-    [sql|
-      INSERT INTO StartedLesson (Lesson, User, Round)
-      VALUES (?,?,?);
-    |]
+  insertExercises $ step <$> zip [lessonRound..] selectedTrees
+  pure exerciseLesson
+
+startLessonAux ∷ MonadDB r db ⇒ Types.StartedLesson → db ()
+startLessonAux = execute [sql|
+-- startLessonAux
+INSERT INTO StartedLesson (Lesson, User, Round) VALUES (?,?,?);
+|]
 
 insertExercises ∷ MonadDB r db ⇒ [Types.ExerciseList] → db ()
-insertExercises = executeMany q
-  where
-  q = [sql|
-    INSERT INTO ExerciseList (User,Exercise,Round)
-    VALUES (?,?,?);
-  |]
+insertExercises = executeMany [sql|
+-- insertExercises
+INSERT INTO ExerciseList (User,Exercise,Round) VALUES (?,?,?);
+|]
 
 getLessonRound
   ∷ MonadDB r db
   ⇒ Types.Key
   → Types.Key
   → db Integer
-getLessonRound user lesson = do
-  [Only round] <- query q (user,lesson)
-  pure round
+getLessonRound user lesson =
+  fromOnly . Unsafe.head <$> query q (user,lesson)
   where
   q ∷ Query
   q = [sql|
-    SELECT ifnull(MAX(Round),0)
-    FROM FinishedExercise
-    JOIN Exercise ON Exercise = Exercise.Id
-    WHERE
-      User = ?
-      AND Lesson = ?;
-    |]
+-- getLessonRound
+SELECT ifnull(MAX(FinishedExercise.Round) + 1,0)
+FROM FinishedExercise
+JOIN ExerciseList
+    ON ExerciseList.Exercise = FinishedExercise.Exercise
+JOIN Exercise ON ExerciseList.Exercise = Exercise.Id
+WHERE
+      FinishedExercise.User = ?
+  -- Does this happen automatically if Lesson is null given the next
+  -- condition?
+  AND Lesson = ?;
+|]
 
 continueLesson
-  :: MonadDB r db
-  => Types.Key -- ^ Username
-  -> Types.Key -- ^ Lesson name
-  -> db (Text, Types.Unannotated, Types.Unannotated)
+  ∷ MonadDB r db
+  ⇒ Types.Key -- ^ Username
+  → Types.Key -- ^ Lesson name
+  → db Types.ExerciseLesson
 continueLesson user lesson = do
-  round <- getLessonRound user lesson
-  (name, sourceTree, targetTree) <- fromMaybe errNoExercises . listToMaybe
-    <$> query q (lesson,user,round)
-  pure (name,sourceTree,targetTree)
-  where
-  -- selectExerciseListQuery = [sql|
-  --      SELECT Lesson.Name, SourceTree,TargetTree FROM ExerciseList
-  --      WHERE Lesson = ? AND User = ?
-  --      AND (User,SourceTree,TargetTree,Lesson) NOT IN
-  --      (SELECT User,SourceTree,TargetTree,Lesson
-  --      FROM FinishedExercise WHERE Round = ?);|]
-  q = [sql|
-    SELECT Lesson.Name, SourceTree,TargetTree
-    FROM ExerciseList
-    JOIN Exercise ON Exercise = Exercise.Id
-    JOIN Lesson   ON Lesson   = Lesson.Id
-    WHERE Lesson = ? AND User = ?
-    AND (User, Exercise) NOT IN (
-      SELECT User, Exercise
-      FROM FinishedExercise
-      WHERE Round = ?
-    );|]
-  errNoExercises = error "Database.continueLesson: Invariant violated: No exercises for lesson"
+  round ← getLessonRound user lesson
+  getExercise lesson user round
 
 finishExercise
   ∷ MonadDB r db
@@ -637,59 +615,88 @@ finishExercise token lesson score = do
   -- get user name
   user ← getUser token
   -- get lesson round
-  [Only round] <- query @(Only Integer) lessonRoundQuery (user,lesson)
-  (Only exercise:_)
-    <- query selectExerciseListQuery (lesson,user,round)
-  finishExerciseAux user exercise score round
+  round ← getLessonRound user lesson
+  Types.ExerciseLesson{..} ← getExercise lesson user round
+  finishExerciseAux $ Types.FinishedExercise
+    { user     = user
+    , exercise = exercise
+    , score    = score
+    , round    = round
+    }
   -- check if all exercises finished
-  finishedCount ← getFinishedExercises user lesson
+  finishedCount ← getFinishedExercises user exercise
   exerciseCount ← getExerciseCount lesson
   if finishedCount >= exerciseCount
   then do
     score ← getScore user lesson
-    round ← getCurrentRound user lesson
-    execute insertFinishedLessonQuery (user, lesson, score, round)
-    execute deleteStartedLessonQuery (user, lesson)
+    finishLesson $ Types.FinishedLesson
+      { user   = user
+      , lesson = lesson
+      , score  = score
+      , round  = succ round
+      }
   else return ()
+
+finishLesson
+  ∷ MonadDB r db
+  ⇒ Types.FinishedLesson -- ^ Lesson
+  → db ()
+finishLesson l@(Types.FinishedLesson{..}) = do
+  execute q0 l
+  execute q1 (user, lesson)
   where
-    lessonRoundQuery = [sql|
-      SELECT ifnull(MAX(Round),1)
-      FROM StartedLesson
-      WHERE User = ? AND Lesson = ?;
-      |]
-    selectExerciseListQuery = [sql|
-      SELECT Exercise
-      FROM ExerciseList
-      JOIN Exercise ON Exercise = Exercise.Id
-      JOIN Lesson   ON Lesson = Lesson.Id
-      WHERE Lesson = ? AND User = ? AND
-      (User,Exercise) NOT IN
-        (SELECT User,Exercise
-         FROM FinishedExercise WHERE Round = ?);
-      |]
-    deleteStartedLessonQuery = [sql|
-      DELETE FROM StartedLesson
-      WHERE User = ? AND Lesson = ? ;
-      |]
-    insertFinishedLessonQuery = [sql|
-      INSERT INTO FinishedLesson (User,Lesson,Score,Round) VALUES (?, ?, ?, ?);
-      |]
+
+  q0 = [sql|
+-- finishLesson, q0
+INSERT INTO FinishedLesson (Lesson, User, Score, Round) VALUES (?, ?, ?, ?);
+|]
+
+  q1 = [sql|
+-- finishLesson, q1
+DELETE FROM StartedLesson
+WHERE User = ? AND Lesson = ?;
+|]
+
+-- Gets an unfinished exercise
+getExercise
+  ∷ MonadDB r db
+  ⇒ Types.Key     -- ^ Lesson
+  → Types.Key     -- ^ User
+  → Types.Numeric -- ^ Round
+  → db Types.ExerciseLesson
+getExercise lesson user round
+  = fromMaybe errNoExercises . listToMaybe
+    <$> query q (lesson,user,round)
+  where
+
+  q = [sql|
+-- getExercise
+SELECT Exercise.Id, Lesson.Id, Lesson.Name, SourceTree, TargetTree
+FROM ExerciseList
+JOIN Exercise ON Exercise = Exercise.Id
+JOIN Lesson   ON Lesson   = Lesson.Id
+WHERE Lesson = ?
+  AND User   = ?
+  AND ROUND  = ?
+  AND (User, Exercise) NOT IN (
+    SELECT User, Exercise
+    FROM FinishedExercise
+  );
+|]
+  errNoExercises = error "Database.continueLesson: Invariant violated: No exercises for lesson"
 
 finishExerciseAux
   ∷ MonadDB r db
-  ⇒ Types.Key
-  → Types.Key
-  → Score
-  → Integer
+  ⇒ Types.FinishedExercise
   → db ()
-finishExerciseAux user exercise score round
-  = execute q (user, exercise, score, round)
+finishExerciseAux = execute q
   where
   q = [sql|
-      INSERT INTO FinishedExercise
-        (User, Exercise, Score, Round)
-      VALUES (?,?,?,?);
-      |]
+-- finishExerciseAux
+INSERT INTO FinishedExercise
+  (User, Exercise, Score, Round)
+VALUES (?,?,?,?);
+|]
 
 getFinishedExercises
   ∷ MonadDB r db
@@ -699,58 +706,52 @@ getFinishedExercises
 getFinishedExercises user lesson =
   fromOnly . Unsafe.head <$> query @(Only Integer) q (user,lesson)
   where
-  q
-    = [sql|
-      SELECT COUNT(*)
-      FROM FinishedExercise F
-      WHERE User = ?
-      AND Exercise = ?
-    |]
+  q = [sql|
+-- getFinishedExercises
+SELECT COUNT(*)
+FROM FinishedExercise F
+WHERE User = ?
+AND Exercise = ?;
+|]
 
 getExerciseCount
   ∷ MonadDB r db
   ⇒ Types.Key -- ^ Lesson
   → db Types.Numeric
 getExerciseCount lesson =
-  fromOnly . Unsafe.head <$> query @(Only Integer) countExercisesInLesson (Only lesson)
+  fromOnly . Unsafe.head <$> query @(Only Integer) q (Only lesson)
   where
-  countExercisesInLesson = [sql|
-    SELECT ExerciseCount FROM Lesson WHERE Id = ?;
-    |]
+  q = [sql|
+-- getExerciseCount
+SELECT ExerciseCount FROM Lesson WHERE Id = ?;
+|]
 
 endSession :: MonadDB r db ⇒ Text -> db ()
-endSession token = do
-  let deleteSessionQuery = [sql|DELETE FROM Session WHERE Token = ?;|]
-  execute deleteSessionQuery [token]
+endSession token = execute q [token]
+  where
+  q = [sql|
+-- endSession
+DELETE FROM Session WHERE Token = ?;
+|]
 
-getCurrentRound
-  ∷ MonadDB r db
-  ⇒ Types.Key -- ^ User
-  → Types.Key -- ^ Lesson
-  → db (Maybe Types.Numeric)
-getCurrentRound user lesson =
-  fromOnly . Unsafe.head <$> query
-    [sql|
-        SELECT MAX(Round)
-        FROM StartedLesson
-        WHERE User = ?
-        AND Lesson = ?
-    |] (user, lesson)
-
--- TODO Stub
 -- | Get the score for the user and lesson.
 getScore
   ∷ MonadDB r db
   ⇒ Types.Key -- ^ User
   → Types.Key -- ^ Lesson
   → db Score
-getScore user lesson = mconcat . fmap (traceShowId . fromOnly) <$> query @(Only Score)
-  [sql|
-      SELECT Score
-      FROM FinishedExercise
-      WHERE User = ?
-      AND Lesson = ?
-  |] (user, lesson)
+getScore user lesson
+  =   mconcat . fmap fromOnly
+  <$> query @(Only Score) q (user, lesson)
+  where
+
+  q = [sql|
+-- getScore
+SELECT Score
+FROM FinishedExercise
+WHERE User = ?
+AND Lesson = ?;
+|]
 
 -- -- | The user and their score on each excercise.  If score and user is
 -- -- null this means that /no/ user has completed the exercise.  If a

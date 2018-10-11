@@ -14,7 +14,7 @@ module Muste.Web.Database.Types
   , StartedLesson(..)
   , FinishedLesson(..)
   , ExerciseList(..)
-  , ActiveLesson0(..)
+  , ActiveLessonForUser(..)
   , ActiveLesson(..)
   , UserExerciseScore(..)
   , Key(..)
@@ -22,6 +22,7 @@ module Muste.Web.Database.Types
   , Sentence.Unannotated
   , Numeric
   , Blob
+  , ExerciseLesson(..)
   ) where
 
 import Prelude ()
@@ -85,6 +86,19 @@ deriving stock    instance Show    Session
 deriving stock    instance Generic Session
 deriving anyclass instance ToRow   Session
 deriving anyclass instance FromRow Session
+
+data ExerciseLesson = ExerciseLesson
+  { exercise   ∷ Key
+  , lessonKey  ∷ Key
+  , lessonName ∷ Text
+  , source     ∷ Unannotated
+  , target     ∷ Unannotated
+  }
+
+deriving stock    instance Show    ExerciseLesson
+deriving stock    instance Generic ExerciseLesson
+deriving anyclass instance ToRow   ExerciseLesson
+deriving anyclass instance FromRow ExerciseLesson
 
 -- | Representation of an 'Exercise' in the database.  Consists of:
 --
@@ -183,10 +197,9 @@ deriving anyclass instance FromRow StartedLesson
 -- * The number of clicks it took to finish.
 -- * The number of rounds.
 data FinishedLesson = FinishedLesson
-  { lesson              ∷ Text
-  , user                ∷ Text
-  , time                ∷ Numeric
-  , clickCount          ∷ Numeric
+  { lesson              ∷ Key
+  , user                ∷ Key
+  , score               ∷ Score
   , round               ∷ Numeric
   }
 
@@ -216,7 +229,7 @@ deriving anyclass instance FromRow ExerciseList
 
 -- Like below but wuthout passedcount
 -- FIXME Better name
-data ActiveLesson0 = ActiveLesson0
+data ActiveLessonForUser = ActiveLessonForUser
   { lesson        ∷ Key
   , name          ∷ Text
   , description   ∷ Text
@@ -224,12 +237,13 @@ data ActiveLesson0 = ActiveLesson0
   , score         ∷ Nullable Score
   , finished      ∷ Bool
   , enabled       ∷ Bool
+  , user          ∷ Maybe Key
   }
 
-deriving stock    instance Show    ActiveLesson0
-deriving stock    instance Generic ActiveLesson0
-deriving anyclass instance ToRow   ActiveLesson0
-deriving anyclass instance FromRow ActiveLesson0
+deriving stock    instance Show    ActiveLessonForUser
+deriving stock    instance Generic ActiveLessonForUser
+deriving anyclass instance ToRow   ActiveLessonForUser
+deriving anyclass instance FromRow ActiveLessonForUser
 
 -- | Not like 'Types.Lesson'.  'Types.Lesson' refers to the
 -- representation in the database.  This is the type used in "Ajax".

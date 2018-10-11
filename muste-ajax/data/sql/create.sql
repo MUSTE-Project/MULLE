@@ -10,7 +10,7 @@ DROP TABLE IF EXISTS FinishedLesson;
 DROP TABLE IF EXISTS ExerciseList;
 
 CREATE TABLE User (
-  Id        INTEGER PRIMARY KEY ASC,
+  Id        INTEGER PRIMARY KEY,
   Username  TEXT NOT NULL UNIQUE,
   Password  BLOB NOT NULL,
   Salt      BLOB NOT NULL,
@@ -20,7 +20,8 @@ CREATE TABLE User (
 CREATE TABLE Session (
   Id          INTEGER PRIMARY KEY,
   User        INTEGER NOT NULL,
-  Token       TEXT,
+  -- Should this be blob?
+  Token       TEXT UNIQUE,
   Starttime   NUMERIC NOT NULL DEFAULT CURRENT_TIMESTAMP,
   LastActive  NUMERIC NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -52,11 +53,12 @@ CREATE TABLE Lesson (
   Repeatable        BOOL NOT NULL DEFAULT 1
 );
 
+-- FIXME Why not simply add a nullable column to the ExerciseList table?
 CREATE TABLE FinishedExercise (
   User      INTEGER,
   Exercise  INTEGER,
+  Round     INTEGER,
   Score     BLOB NOT NULL,
-  Round     NUMERIC NOT NULL,
 
   PRIMARY
     KEY (User, Exercise, Round),
@@ -66,6 +68,9 @@ CREATE TABLE FinishedExercise (
   FOREIGN
     KEY (Exercise)
     REFERENCES Exercise(Id)
+  FOREIGN
+    KEY (User, Exercise, Round)
+    REFERENCES ExerciseList(User, Exercise, Found)
 );
 
 CREATE TABLE StartedLesson (
@@ -75,26 +80,26 @@ CREATE TABLE StartedLesson (
 
   PRIMARY KEY(Lesson, User, Round),
   FOREIGN
-    KEY (Lesson)
+    KEY              (Lesson)
     REFERENCES Lesson(Id),
   FOREIGN
-    KEY (User)
+    KEY            (User)
     REFERENCES User(Id)
 );
 
 CREATE TABLE FinishedLesson (
-  Lesson   TEXT,
-  User     TEXT,
+  Lesson   INTEGER,
+  User     INTEGER,
   Score    BLOB NOT NULL,
   Round    NUMERIC NOT NULL DEFAULT 1,
 
   PRIMARY KEY (Lesson, User, Round),
   FOREIGN
-    KEY (User)
-    REFERENCES User(Username),
+    KEY            (User)
+    REFERENCES User(Id),
   FOREIGN
-    KEY (Lesson)
-    REFERENCES Lesson(Name)
+    KEY              (Lesson)
+    REFERENCES Lesson(Id)
 );
 
 CREATE TABLE ExerciseList (
@@ -103,63 +108,110 @@ CREATE TABLE ExerciseList (
   Round     NUMERIC NOT NULL DEFAULT 1,
 
   PRIMARY KEY (User, Exercise, Round),
-  FOREIGN KEY(User)     REFERENCES User(Id),
-  FOREIGN KEY(Exercise) REFERENCES Exercise (Id)
+  FOREIGN
+    KEY            (User)
+    REFERENCES User(Id),
+  FOREIGN
+    KEY                 (Exercise)
+    REFERENCES Exercise (Id)
 );
 
 -- The most natural thing...
 DROP VIEW IF EXISTS ExerciseLesson;
 CREATE VIEW ExerciseLesson AS
-SELECT *
-FROM Lesson
-JOIN Exercise ON Name = Lesson;
+  SELECT
+    Exercise.Id AS Exercise,
+    *
+  FROM Lesson
+  JOIN Exercise ON Lesson = Lesson.Id;
 
 DROP VIEW IF EXISTS FinishedExerciseLesson;
 CREATE VIEW FinishedExerciseLesson AS
-SELECT *
-FROM FinishedExercise
-JOIN Exercise ON FinishedExercise.Exercise = Exercise.Id
-JOIN Lesson   ON Exercise.Lesson = Lesson.Id
-JOIN User     ON User.Id = FinishedExercise.User;
+  SELECT *
+  FROM FinishedExercise
+  JOIN Exercise ON FinishedExercise.Exercise = Exercise.Id
+  JOIN Lesson   ON Exercise.Lesson           = Lesson.Id
+  JOIN User     ON FinishedExercise.User     = User.Id;
 
 
 -- The passed exercises by user and lesson
 DROP VIEW IF EXISTS PassedLesson;
 CREATE VIEW PassedLesson AS
-SELECT
-  FinishedLesson.*,
-  MIN(IFNULL(COUNT(*),0),1) AS Passed
-FROM FinishedLesson
-GROUP BY Lesson, User;
+  SELECT
+    FinishedLesson.*,
+    MIN(IFNULL(COUNT(*),0),1) AS Passed
+  FROM FinishedLesson
+  GROUP BY Lesson, User;
 
+-- FIXME Not used!
 DROP VIEW IF EXISTS ActiveLesson;
 CREATE VIEW ActiveLesson AS
+  SELECT
+    Lesson.Id as Lesson,
+    Lesson.Name,
+    Lesson.Description,
+    Lesson.ExerciseCount,
+    FinishedExercise.Score,
+    -- FIXME Same as above.
+    COALESCE(PassedLesson.Passed, 0) AS Finished,
+    Lesson.Enabled,
+    StartedLesson.User
+  FROM Lesson
+  LEFT
+    JOIN StartedLesson
+    ON Lesson.Id = StartedLesson.Lesson
+  LEFT
+    JOIN FinishedExerciseLesson
+    ON Lesson.Id = FinishedExerciseLesson.Lesson
+  LEFT
+    JOIN PassedLesson
+    ON Lesson.Id = PassedLesson.Lesson;
+
+
+-- DROP VIEW IF EXISTS ActiveLesson;
+-- CREATE VIEW ActiveLesson AS
+-- SELECT
+--   Lesson.*,
+--   FinishedExerciseLesson.Score AS ExerciseScore,
+--   FinishedExerciseLesson.User
+-- FROM Lesson
+-- LEFT
+--   JOIN StartedLesson
+--   ON Lesson.Id = StartedLesson.Lesson
+-- LEFT
+--   JOIN FinishedExerciseLesson
+--   ON Lesson.Id = FinishedExerciseLesson.Lesson
+-- LEFT
+--   JOIN FinishedLesson
+--   ON Lesson.Id = FinishedLesson.Lesson;
+
+DROP VIEW IF EXISTS ActiveLessonsForUser;
+CREATE VIEW ActiveLessonsForUser AS
 SELECT
-  Lesson.Id as Lesson,
+  Lesson.Id,
   Lesson.Name,
   Lesson.Description,
-  Lesson.ExerciseCount,
-  FinishedExercise.Score,
-  -- FIXME Same as above.
-  COALESCE(PassedLesson.Passed, 0) AS Finished,
+  COALESCE(ExerciseCount,0),
+  Score,
+  FinishedExercise.Exercise IS NOT NULL AS Finished,
+  -- Exercise.Id,
+  -- User.Id
   Lesson.Enabled,
-  StartedLesson.User
-FROM Lesson
-LEFT JOIN StartedLesson    ON Lesson.Name = StartedLesson.Lesson
-LEFT JOIN FinishedExerciseLesson ON Lesson.Name = FinishedExerciseLesson.Lesson
-LEFT JOIN PassedLesson     ON Lesson.Name = PassedLesson.Lesson;
+  -- ExerciseList
+  ExerciseList.User
 
+FROM Exercise
+JOIN Lesson ON Exercise.Lesson = Lesson.Id
+LEFT JOIN ExerciseList ON ExerciseList.Exercise = Exercise.Id
 
-DROP VIEW IF EXISTS ActiveLesson;
-CREATE VIEW ActiveLesson AS
-SELECT
-  Lesson.*,
-  FinishedExerciseLesson.Score AS ExerciseScore,
-  FinishedExerciseLesson.User
-FROM Lesson
-LEFT JOIN StartedLesson      ON Lesson.Name = StartedLesson.Lesson
-LEFT JOIN FinishedExerciseLesson   ON Lesson.Name = FinishedExerciseLesson.Lesson
-LEFT JOIN FinishedLesson     ON Lesson.Name = FinishedLesson.Lesson;
+-- FROM Exercise
+-- JOIN ExerciseList ON ExerciseList.Exercise = Exercise.Id
+-- JOIN Lesson on Lesson = Lesson.Id
+-- LEFT JOIN User ON ExerciseList.User = User.Id
+
+LEFT JOIN FinishedExercise
+  ON FinishedExercise.User = ExerciseList.User
+  AND FinishedExercise.Exercise = Exercise.Id;
 
 COMMIT TRANSACTION;
 

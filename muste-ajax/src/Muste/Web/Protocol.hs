@@ -24,6 +24,7 @@ import qualified System.IO.Streams as Streams
 import Control.Monad.Trans.Control (MonadBaseControl)
 import Control.Monad.Base (MonadBase)
 import qualified Snap.Util.CORS as Cors
+import qualified Data.Text.IO as Text
 
 import           Muste (Context, TTree)
 import qualified Muste
@@ -265,20 +266,27 @@ runProtocolT app = do
 respond ∷ MonadSnap m ⇒ ToJSON a ⇒ Response a → m ()
 respond Response{..} = Snap.writeLBS $ encode body
 
+-- TODO Make this configurable.
 openConnection ∷ MonadIO io ⇒ String → io Connection
-openConnection = liftIO . SQL.open
+openConnection p = do
+  c ← liftIO $ SQL.open p
+  setTraceSql c
+  pure c
+
+setTraceSql ∷ MonadIO io ⇒ Connection → io ()
+setTraceSql c = liftIO $ SQL.setTrace c (Just Text.putStrLn)
 
 initApp
   ∷ MonadIO io
   ⇒ String
   → io AppState
 initApp db = do
-  liftIO $ putStrLn "Initializing app..."
-  conn ← openConnection db
-  ctxts ← initContexts'' conn
+  liftIO  $ putStrLn "Initializing app..."
+  conn    ← openConnection db
+  ctxts   ← initContexts'' conn
   knownGs ← Muste.noGrammars
-  liftIO $ putStrLn "Initializing app... Done"
-  pure $ AppState conn ctxts knownGs
+  liftIO  $ putStrLn "Initializing app... Done"
+  pure    $ AppState conn ctxts knownGs
 
 initContexts'' ∷ MonadIO io ⇒ Connection → io Contexts
 initContexts'' c = Muste.runGrammarT (initContexts' c)
@@ -420,11 +428,8 @@ handleLessonInit
   → m Ajax.MenuResponse
 handleLessonInit lesson = do
   token ← getToken
-  (lessonName, sourceTree, targetTree)
-    <- Database.startLesson token lesson
-  -- TODO Stub
-  -- menu ← assembleMenus lesson sourceTree targetTree
-  menu ← assembleMenus lessonName sourceTree targetTree
+  Database.ExerciseLesson{..} ← Database.startLesson token lesson
+  menu ← assembleMenus lessonName source target
   verifyMessage $ Ajax.MenuResponse
     { key    = lesson
     , lesson = lessonName

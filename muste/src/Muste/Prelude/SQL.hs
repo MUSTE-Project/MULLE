@@ -27,6 +27,7 @@ module Muste.Prelude.SQL
   , SQL.sql
   , SQL.Only(Only)
   , SQL.fromOnly
+  , SQL.setTrace
   ) where
 
 import Prelude ()
