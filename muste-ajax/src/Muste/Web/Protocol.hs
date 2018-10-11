@@ -1,4 +1,5 @@
-{-# Language RecordWildCards, UndecidableInstances, DeriveAnyClass #-}
+{-# Language RecordWildCards, UndecidableInstances, DeriveAnyClass,
+  OverloadedLists #-}
 {-# OPTIONS_GHC -Wall -Wcompat #-}
 module Muste.Web.Protocol
   ( apiInit
@@ -25,6 +26,7 @@ import Control.Monad.Trans.Control (MonadBaseControl)
 import Control.Monad.Base (MonadBase)
 import qualified Snap.Util.CORS as Cors
 import qualified Data.Text.IO as Text
+import Data.Vector (Vector)
 
 import           Muste (Context, TTree)
 import qualified Muste
@@ -90,13 +92,32 @@ liftEither ∷ MonadError ProtocolError m ⇒ SomeException ~ e ⇒ Either e a �
 liftEither = either (throwError . SomeProtocolError) pure
 
 data ProtocolError
-  = DatabaseError Database.Error
-  -- This is needed to make this a monoid to in turn make ProtocolT a
-  -- monadplus as requested by monadsnap.  Don't use this!  Better to
-  -- use 'SomeProtocolError' or even better, add a constructor.
-  | UnspecifiedError
+  -- 'UnspecifiedError' is needed to make this a monoid to in turn
+  -- make ProtocolT a monadplus as requested by monadsnap.  Don't use
+  -- this!  Better to use 'SomeProtocolError' or even better, add a
+  -- constructor.
+  = UnspecifiedError
+  | DatabaseError Database.Error
+  | ProtocolApiError ApiError
   | ∀ e . Exception e ⇒ SomeProtocolError e
-  | MissingApiRoute String
+
+instance Semigroup ProtocolError where
+  a <> _ = a
+
+instance Monoid ProtocolError where
+  mempty = UnspecifiedError
+
+deriving stock instance Show ProtocolError
+
+instance Exception ProtocolError where
+  displayException = \case
+    UnspecifiedError    → "Some unspecified error occured"
+    DatabaseError err   → "A database error occurred: " <> displayException err
+    SomeProtocolError e → displayException e
+    ProtocolApiError e  → displayException e
+
+data ApiError
+  = MissingApiRoute String
   | NoAccessToken
   | BadRequest
   | SessionInvalid
@@ -106,15 +127,12 @@ data ProtocolError
   | LessonNotFound Text
   | LanguageNotFound Sentence.Language
 
-deriving stock instance Show ProtocolError
+deriving stock instance Show ApiError
 
-instance Exception ProtocolError where
+instance Exception ApiError where
   displayException = \case
-    DatabaseError err   → "A database error occurred: " <> displayException err
-    UnspecifiedError    → "Some unspecified error occured"
     MissingApiRoute s   → printf "missing api route for `%s`" s
     NoAccessToken       → "No cookie found"
-    SomeProtocolError e → displayException e
     SessionInvalid      → "Session invalid, please log in again"
     BadRequest          → "Bad request!"
     LoginFail           → "Login failure"
@@ -123,40 +141,83 @@ instance Exception ProtocolError where
     LessonNotFound l    → printf "Lesson not found %s" (convertString @_ @String l)
     LanguageNotFound l  → printf "Language not found %s" (show l)
 
-instance Semigroup ProtocolError where
-  a <> _ = a
+newtype ErrorIdentifier = ErrorIdentifier (Vector Int)
 
-instance Monoid ProtocolError where
-  mempty = UnspecifiedError
+deriving newtype instance IsList ErrorIdentifier
+deriving newtype instance FromJSON ErrorIdentifier
+deriving newtype instance ToJSON ErrorIdentifier
+deriving newtype instance Semigroup ErrorIdentifier
 
 -- There might be better ways of handling this I suppose...  Another
 -- idea would be to generate a tree (since errors can be nested).
 -- | Application specific unique error code for responses.
-errorIdentifier ∷ ProtocolError → Int
-errorIdentifier = \case
-  DatabaseError err → case err of
-    Database.NoUserFound          → 0
-    Database.LangNotFound        → 1
-    Database.MultipleUsers       → 2
-    Database.NoCurrentSession    → 3
-    Database.SessionTimeout      → 4
-    Database.MultipleSessions    → 5
-    Database.NoExercisesInLesson → 6
-    Database.NonUniqueLesson     → 7
-    Database.NotAuthenticated    → 8
-    Database.DriverError{}       → 9
-    Database.UserAlreadyExists   → 10
-  UnspecifiedError                → 11
-  MissingApiRoute{}               → 12
-  NoAccessToken                   → 13
-  SomeProtocolError{}             → 14
-  SessionInvalid                  → 15
-  BadRequest                      → 16
-  LoginFail                       → 17
-  ErrReadBody                     → 18
-  DecodeError{}                   → 19
-  LessonNotFound{}                → 20
-  LanguageNotFound{}              → 21
+class HasErrorIdentifier a where
+  errorIdentifier ∷ a → ErrorIdentifier
+  errorResponseCode ∷ a → HttpStatus
+
+instance HasErrorIdentifier ProtocolError where
+  errorIdentifier = \case
+    UnspecifiedError    → [0]
+    SomeProtocolError{} → [1]
+    DatabaseError e     → [2] <> errorIdentifier e
+    ProtocolApiError e  → [3] <> errorIdentifier e
+  errorResponseCode = \case
+    UnspecifiedError    → 500
+    SomeProtocolError{} → 500
+    DatabaseError e     → errorResponseCode e
+    ProtocolApiError e  → errorResponseCode e
+
+instance HasErrorIdentifier ApiError where
+  errorIdentifier = fromList . pure . \case
+    MissingApiRoute{}  → 0
+    NoAccessToken      → 1
+    SessionInvalid     → 2
+    BadRequest         → 3
+    LoginFail          → 4
+    ErrReadBody        → 5
+    DecodeError{}      → 6
+    LessonNotFound{}   → 7
+    LanguageNotFound{} → 8
+  errorResponseCode = \case
+    MissingApiRoute{}  → 501
+    NoAccessToken      → 401
+    SessionInvalid     → 400
+    BadRequest         → 400
+    LoginFail          → 401
+    ErrReadBody        → 400
+    DecodeError{}      → 400
+    LessonNotFound{}   → 400
+    LanguageNotFound{} → 400
+
+
+instance HasErrorIdentifier Database.Error where
+  errorIdentifier = fromList . pure . \case
+    Database.NoUserFound               → 0
+    Database.LangNotFound              → 1
+    Database.MultipleUsers             → 2
+    Database.NoCurrentSession          → 3
+    Database.SessionTimeout            → 4
+    Database.MultipleSessions          → 5
+    Database.NoExercisesInLesson       → 6
+    Database.NonUniqueLesson           → 7
+    Database.NotAuthenticated          → 8
+    Database.DriverError{}             → 9
+    Database.UserAlreadyExists         → 10
+    Database.NoActiveExercisesInLesson → 11
+  errorResponseCode = \case
+    Database.NoUserFound               → 401
+    Database.LangNotFound              → 400
+    Database.MultipleUsers             → 401
+    Database.NoCurrentSession          → 401
+    Database.SessionTimeout            → 401
+    Database.MultipleSessions          → 401
+    Database.NoExercisesInLesson       → 400
+    Database.NonUniqueLesson           → 400
+    Database.NotAuthenticated          → 401
+    Database.DriverError{}             → 500
+    -- Not quite sure what is the right option here.
+    Database.UserAlreadyExists         → 400
+    Database.NoActiveExercisesInLesson → 400
 
 instance ToJSON ProtocolError where
   toJSON err = object
@@ -198,37 +259,6 @@ instance Num HttpStatus where
 cheatNumErr ∷ a
 cheatNumErr = error "Don't use the num instance of HttpStatus for anything other than fromInteger"
 
--- Could perhaps pick better error codes.
-errResponseCode ∷ ProtocolError → HttpStatus
-errResponseCode = \case
-  DatabaseError err   → dbErrResponseCode err
-  UnspecifiedError    → 500
-  MissingApiRoute{}   → 501
-  NoAccessToken       → 401
-  SomeProtocolError{} → 400
-  SessionInvalid      → 400
-  BadRequest          → 400
-  LoginFail           → 401
-  ErrReadBody         → 400
-  DecodeError{}       → 400
-  LessonNotFound{}    → 400
-  LanguageNotFound{}  → 400
-
-dbErrResponseCode ∷ Database.Error → HttpStatus
-dbErrResponseCode = \case
-  Database.NoUserFound             → 401
-  Database.LangNotFound            → 400
-  Database.MultipleUsers           → 401
-  Database.NoCurrentSession        → 401
-  Database.SessionTimeout          → 401
-  Database.MultipleSessions        → 401
-  Database.NoExercisesInLesson     → 400
-  Database.NonUniqueLesson         → 400
-  Database.NotAuthenticated        → 401
-  Database.DriverError{}           → 500
-  -- Not quite sure what is the right option here.
-  Database.UserAlreadyExists       → 400
-
 setResponseCode ∷ HttpStatus → Snap.Response → Snap.Response
 setResponseCode s = case s of
   Code n → Snap.setResponseCode n
@@ -259,7 +289,7 @@ runProtocolT app = do
   res  ← runExceptT $ unProtocolT app
   case res of
     Left err → do
-       Snap.modifyResponse . setResponseCode . errResponseCode $ err
+       Snap.modifyResponse . setResponseCode . errorResponseCode $ err
        Snap.writeLBS $ encode err
     Right resp → respond resp
 
@@ -348,14 +378,17 @@ changePwdHandler = do
   Database.changePassword name oldPassword newPassword
   pure mempty
 
+throwApiError ∷ MonadProtocol m ⇒ ApiError → m a
+throwApiError = throwError . ProtocolApiError
+
 -- | Reads the data from the request and deserializes from JSON.
 getMessage ∷ ∀ json m . FromJSON json ⇒ MonadProtocol m => m json
 getMessage = do
   s ← Snap.runRequestBody Streams.read >>= \case
-    Nothing → throwError ErrReadBody
+    Nothing → throwApiError ErrReadBody
     Just a → pure $ convertString a
   case eitherDecode @json s of
-    Left e  → throwError $ DecodeError e
+    Left e  → throwApiError $ DecodeError e
     Right a → pure a
 
 -- TODO Token should be set as an HTTP Unsafe.header.
@@ -365,7 +398,7 @@ getToken = do
   m <- getTokenCookie
   case m of
     Just c -> pure $ convertString $ Snap.cookieValue c
-    Nothing -> throwError NoAccessToken
+    Nothing -> throwApiError NoAccessToken
 
 getTokenCookie :: MonadProtocol m ⇒ m (Maybe Snap.Cookie)
 getTokenCookie = Snap.getCookie "LOGIN_TOKEN"
@@ -431,10 +464,11 @@ handleLessonInit lesson = do
   Database.ExerciseLesson{..} ← Database.startLesson token lesson
   menu ← assembleMenus lessonName source target
   verifyMessage $ Ajax.MenuResponse
-    { key    = lesson
-    , lesson = lessonName
-    , score  = mempty
-    , menu   = menu
+    { key      = lesson
+    , lesson   = lessonName
+    , score    = mempty
+    , menu     = Just menu
+    , finished = False
     }
 
 -- | This request is called after the user selects a new sentence from
@@ -462,17 +496,20 @@ handleMenuRequest Ajax.MenuRequest{..} = do
       & Score.addClick 1
       & Score.setTime time
   finished ← oneSimiliarTree lesson src trg
-  menu ←
+  (lessonFinished, menu) ←
     if finished
     then do
-      Database.finishExercise token key newScore
-      pure Nothing
-    else assembleMenus lesson (un src) (un trg)
+      f ← Database.finishExercise token key newScore
+      pure (f, Nothing)
+    else do
+      m ← assembleMenus lesson (un src) (un trg)
+      pure (False, Just m)
   verifyMessage $ Ajax.MenuResponse
-    { key    = key
-    , lesson = lesson
-    , score  = newScore
-    , menu   = menu
+    { key      = key
+    , lesson   = lesson
+    , score    = newScore
+    , menu     = menu
+    , finished = lessonFinished
     }
   where
   un (Ajax.ClientTree t) = t
@@ -575,14 +612,14 @@ assembleMenus
   ⇒ Text
   → Unannotated
   → Unannotated
-  → m (Maybe Ajax.MenuList)
+  → m Ajax.MenuList
 assembleMenus lesson sourceTree targetTree = do
   c ← askContexts
   let mkTree = makeTree c lesson
   let ann = annotate lesson
   src ← ann sourceTree
   trg ← ann targetTree
-  pure $ Just $ Ajax.MenuList
+  pure $ Ajax.MenuList
     { src = mkTree src
     , trg = mkTree trg
     }

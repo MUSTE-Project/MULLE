@@ -160,6 +160,7 @@ data MenuResponse = MenuResponse
   , lesson     ∷ Text
   , score      ∷ Score
   , menu       ∷ Maybe MenuList
+  , finished   ∷ Bool
   }
 
 instance FromJSON MenuResponse where
@@ -169,14 +170,16 @@ instance FromJSON MenuResponse where
     <*> o .:  "lesson"
     <*> o .:  "score"
     <*> o .:? "menu"
+    <*> o .:  "lesson-over"
 
 instance ToJSON MenuResponse where
   toJSON MenuResponse{..} =
     Aeson.object
-      [ "key"    .= key
-      , "lesson" .= lesson
-      , "score"  .= score
-      , "menu"   .= menu
+      [ "key"         .= key
+      , "lesson"      .= lesson
+      , "score"       .= score
+      , "menu"        .= menu
+      , "lesson-over" .= finished
       ]
 
 -- Better name might be menus?

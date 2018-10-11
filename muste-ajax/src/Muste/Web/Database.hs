@@ -70,6 +70,7 @@ data Error
   | NotAuthenticated
   | DriverError SomeException
   | UserAlreadyExists
+  | NoActiveExercisesInLesson
 
 deriving stock instance Show Error
 instance Exception Error where
@@ -84,6 +85,7 @@ instance Exception Error where
     SessionTimeout      → "Session timeout"
     MultipleSessions    → "More than one session"
     NoExercisesInLesson → "No exercises for lesson"
+    NoActiveExercisesInLesson → "No unsolved exercises for lesson"
     NonUniqueLesson     → "Non unique lesson"
     NotAuthenticated    → "User is not authenticated"
     DriverError e
@@ -634,7 +636,7 @@ finishExercise
   ⇒ Text            -- ^ Token
   → Types.Key       -- ^ Lesson
   → Score           -- ^ Score
-  → db ()
+  → db Bool
 finishExercise token lesson score = do
   -- get user name
   user ← getUser token
@@ -647,25 +649,41 @@ finishExercise token lesson score = do
     , score    = score
     , round    = round
     }
-  -- check if all exercises finished
+  finished ← checkFinished user exercise lesson
+  when finished $ finishLesson user lesson round
+  pure finished
+
+checkFinished
+  ∷ MonadDB r db
+  ⇒ Types.Key -- ^ User
+  → Types.Key -- ^ Exercise
+  → Types.Key -- ^ Lesson
+  → db Bool
+checkFinished user exercise lesson = do
   finishedCount ← getFinishedExercises user exercise
   exerciseCount ← getExerciseCount lesson
-  if finishedCount >= exerciseCount
-  then do
-    score ← getScore user lesson
-    finishLesson $ Types.FinishedLesson
-      { user   = user
-      , lesson = lesson
-      , score  = score
-      , round  = succ round
-      }
-  else return ()
+  pure $ finishedCount >= exerciseCount
 
 finishLesson
   ∷ MonadDB r db
+  ⇒ Types.Key     -- ^ User
+  → Types.Key     -- ^ Lesson
+  → Types.Numeric -- ^ Round
+  → db ()
+finishLesson user lesson round = do
+  score ← getScore user lesson
+  finishLessonAux $ Types.FinishedLesson
+    { user   = user
+    , lesson = lesson
+    , score  = score
+    , round  = succ round
+    }
+
+finishLessonAux
+  ∷ MonadDB r db
   ⇒ Types.FinishedLesson -- ^ Lesson
   → db ()
-finishLesson l@(Types.FinishedLesson{..}) = do
+finishLessonAux l@(Types.FinishedLesson{..}) = do
   execute q0 l
   execute q1 (user, lesson)
   where
@@ -691,8 +709,10 @@ getExercise
   → Types.Numeric -- ^ Round
   → db Types.ExerciseLesson
 getExercise lesson user round
-  = fromMaybe errNoExercises . listToMaybe
-    <$> query q (lesson,user,round)
+  = query q (lesson,user,round) >>= \case
+    [x] → pure x
+    _ → throwDbError NoActiveExercisesInLesson
+
   where
 
   q = [sql|
@@ -714,7 +734,6 @@ WHERE Lesson = ?
     FROM FinishedExercise
   );
 |]
-  errNoExercises = error "Database.continueLesson: Invariant violated: No exercises for lesson"
 
 finishExerciseAux
   ∷ MonadDB r db

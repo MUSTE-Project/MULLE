@@ -317,7 +317,7 @@ var lesson_list_template = ' \
     </p> \
    </div> \
    <div class="lesson-info-button"> \
-    <button {{#if enabled}}{{else}}disabled{{/if}} onclick="start_lesson(\'{{lesson}}\');">Solve</button> \
+    <button {{#if enabled}}{{else}}disabled{{/if}} onclick="start_lesson({{lesson}});">Solve</button> \
    </div> \
   </div> \
  </div> \
@@ -354,14 +354,18 @@ function start_lesson(lesson) {
     .then(handle_menu_response);
 }
 
-function handle_menu_response(menuResponse) {
+function handle_menu_response(r) {
   show_page('#page-exercise');
-  DATA = menuResponse;
-  var menu = menuResponse.menu
+  DATA = r;
+  var menu = r.menu
   if(menu !== null) {
-    show_exercise(menuResponse);
+    show_exercise(r);
   } else {
-    show_exercise_complete(menuResponse);
+    if(r['lesson-over'] == true) {
+      show_exercise_complete(r);
+      return;
+    }
+    start_lesson(r.key);
   }
 }
 
