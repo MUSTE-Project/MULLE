@@ -381,7 +381,9 @@ function show_exercise(resp) {
   clean_server_data(menu.src);
   build_matching_classes(menu);
   show_sentences(menu);
-  display_score(resp.score);
+  // The score is the exercise score.  Only in the case when we are
+  // continuing a lesson will this be non-trivial.
+  // display_score(resp.score);
   var e = EXERCISES[lesson]
   display_lesson_counter({
     lesson: lessonName,
@@ -390,10 +392,10 @@ function show_exercise(resp) {
   });
 }
 
-// TODO Don't just serialize the object.
-function display_score(score) {
-  $('#score').text(JSON.stringify(score));
-}
+// function display_score(score) {
+//   $('#score-clicks').text(score.clicks);
+//   $('#score-time').text(score.time);
+// }
 
 function display_lesson_counter(d) {
   $('#lessoncounter').text(d.lesson + ': övning ' + d.passed + ' av ' + d.total);

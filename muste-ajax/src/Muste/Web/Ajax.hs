@@ -158,6 +158,8 @@ data MenuResponse = MenuResponse
   -- A key to the lesson
   { key        ∷ Database.Key
   , lesson     ∷ Text
+  -- This is the score for the exercise.  Not the lesson!  I think we
+  -- should just remove this.
   , score      ∷ Score
   , menu       ∷ Maybe MenuList
   , finished   ∷ Bool
