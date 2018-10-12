@@ -1,3 +1,7 @@
+-- | This module defines the endpoints that this api exposes.  This
+-- module delegates work to "Muste.Web.Database" that handles
+-- accessing the stored data as well as invoking the core logic
+-- defined in package @muste@.
 {-# Language RecordWildCards, UndecidableInstances, DeriveAnyClass,
   OverloadedLists #-}
 {-# OPTIONS_GHC -Wall -Wcompat #-}

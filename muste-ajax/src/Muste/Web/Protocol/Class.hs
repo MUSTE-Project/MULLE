@@ -1,3 +1,8 @@
+-- | This module defines api-specific behaviour in the form of the
+-- 'ProtocolT' monad transformer.  Requests are made to the server in
+-- the form of ajax requests.  Errors thrown, for whatever reason, are
+-- reported via HTTP status codes. Additional information are provided
+-- via a json formatted response.
 {-# Language RecordWildCards, UndecidableInstances, DeriveAnyClass,
   OverloadedLists #-}
 {-# OPTIONS_GHC -Wall -Wcompat #-}

@@ -1,3 +1,13 @@
+-- | This module hooks 'ProtocolT' with the @snap@ web framework.
+--
+-- The inner workings of the protocol is defined in
+--
+--  * "Muste.Web.Protocol.Class"
+--
+-- The various handlers are defined in
+--
+--  * "Muste.Web.Protocol.Handlers"
+--
 {-# Language RecordWildCards, UndecidableInstances, DeriveAnyClass,
   OverloadedLists #-}
 {-# OPTIONS_GHC -Wall -Wcompat #-}
