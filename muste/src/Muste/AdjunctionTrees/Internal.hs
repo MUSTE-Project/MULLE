@@ -3,7 +3,10 @@
 --
 -- Interfacint with 'AdjunctionTrees' is done using the interface for
 -- monomorphic map containers.
-module Muste.AdjunctionTrees.Internal (AdjunctionTrees(AdjunctionTrees)) where
+module Muste.AdjunctionTrees.Internal
+    ( AdjunctionTrees(AdjunctionTrees)
+    , AdjKey, AdjTree
+    ) where
 
 import Prelude ()
 import Muste.Prelude
@@ -23,10 +26,15 @@ instance Binary a ⇒ Binary (MultiSet a) where
   get = MultiSet.fromOccurMap <$> Binary.get
   put = Binary.put . MultiSet.toMap
 
+type AdjKey = (Category, MultiSet Category)
+type AdjTree = (AdjKey, TTree)
+
+-- TODO: add (multi)set of the functions in the Adjtree
+
 -- | @AdjunctionTrees@ really is a map from a @Category@ to a set of
 -- trees that have this category.
 newtype AdjunctionTrees
-  = AdjunctionTrees (M.Map (Category, MultiSet Category) [TTree])
+  = AdjunctionTrees (M.Map AdjKey [TTree])
   deriving (Show, MonoFunctor, Generic, NFData, Binary)
 
 type instance Element AdjunctionTrees = [TTree]

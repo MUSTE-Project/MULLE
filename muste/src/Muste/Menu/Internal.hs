@@ -27,7 +27,6 @@ import Data.Aeson (ToJSONKey, toJSONKey, ToJSONKeyFunction(ToJSONKeyValue), toJS
 import Control.DeepSeq (NFData)
 import qualified Data.Text as Text
 
-import Muste.Common
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.Linearization.Internal
   (Linearization(..), Context, ctxtGrammar, ctxtLang, ctxtPrecomputed)
@@ -123,9 +122,9 @@ lookupNode tree path
     Just (TNode node _ _) -> node
     _ → error "Incomplete Pattern-Match"
 
-similarTrees ∷ Prune.PruneOpts → Context → TTree → Set TTree
-similarTrees opts c
-  = Prune.replaceTrees opts (ctxtGrammar c) (ctxtPrecomputed c)
+similarTrees ∷ Prune.PruneOpts → Context → [TTree] → [(Int, TTree, TTree)]
+similarTrees opts ctxt
+  = Prune.replaceAllTrees opts (ctxtPrecomputed ctxt)
 
 -- * Exported stuff
 
@@ -199,7 +198,6 @@ getMenuItems opts ctxt sentence
   = parseSentence ctxt sentence
   & diagnoseContext opts ctxt
   & diagnose "Collect tree substs" (collectTreeSubstitutions opts ctxt)
-  & diagnose "Filter tree substs"  (filterTreeSubstitutions)
   & diagnose "Collect menu items"  (collectMenuItems ctxt)
   & buildMenu
 
@@ -238,14 +236,10 @@ type TreeSubst = (Int, XTree, XTree)
 type XTree = (TTree, [Tokn], [Node])
 
 collectTreeSubstitutions ∷ Prune.PruneOpts → Context → [TTree] → [TreeSubst]
-collectTreeSubstitutions opts ctxt oldtrees = do
-  oldtree ← oldtrees
-  let (oldwords, oldnodes) = linTree ctxt oldtree
-  let old = (oldtree, oldwords, oldnodes)
-  newtree ← Set.toList $ similarTrees opts ctxt oldtree
-  let (newwords, newnodes) = linTree ctxt newtree
-  let new = (newtree, newwords, newnodes)
-  pure (old `xtreeDiff` new, old, new)
+collectTreeSubstitutions opts ctxt oldtrees = 
+  [ (diff, extend old, extend new) | (diff, old, new) ← similarTrees opts ctxt oldtrees ]
+  where extend tree = (tree, twords, tnodes)
+            where (twords, tnodes) = linTree ctxt tree
 
 collectMenuItems :: Context -> [TreeSubst] -> [(Selection, Selection, Sentence.Linearization Token.Annotated)]
 collectMenuItems ctxt substs = do
@@ -263,21 +257,6 @@ collectMenuItems ctxt substs = do
   guard $ not (null lins)
   let allnewnodes = foldl1 Annotated.mergeL lins
   return (oldselection, newselection, allnewnodes)
-
-
-filterTreeSubstitutions :: [TreeSubst] -> [TreeSubst]
-filterTreeSubstitutions = keepWith directMoreExpensive
-
-keepWith :: (a → a → Bool) -> [a] -> [a]
-keepWith p xs = [ x | x <- xs, not (any (p x) xs) ]
-
-directMoreExpensive :: TreeSubst -> TreeSubst -> Bool
-directMoreExpensive (cost, _, xtree) (cost', _, xtree')
-    = cost' < cost && xtree' `xtreeDiff` xtree < cost
-
-
-xtreeDiff :: XTree -> XTree -> Int
-xtreeDiff (t,_,_) (t',_,_) = Tree.flatten t `editDistance` Tree.flatten t'
 
 
 -- * LCS

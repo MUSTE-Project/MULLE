@@ -1,260 +1,147 @@
 {-# OPTIONS_GHC -Wall -Wno-unused-top-binds -Wno-name-shadowing #-}
 {-# Language DerivingStrategies, ConstraintKinds, RecordWildCards,
-  OverloadedStrings #-}
+  CPP, OverloadedStrings #-}
 -- FIXME Should this be an internal module? It's not currently used in
 -- @muste-ajax@.
 module Muste.Prune
-  ( replaceTrees
-  , SimTree
+  ( replaceAllTrees
   , PruneOpts(..)
   ) where
 
 import Prelude ()
 import Muste.Prelude
 import qualified Data.Containers as Mono
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as MultiSet
-import Control.Monad.Reader
-import Data.Functor.Identity
-
-import Muste.Common
 
 import Muste.Tree (TTree(..), Path, FunType(..), Category)
 import qualified Muste.Tree.Internal as Tree
-import Muste.Grammar
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees hiding (BuilderInfo(..))
 
 
 -- * Replacing trees
 
--- | @'replaceTrees' grammar adjTs tree@ finds all trees similar to
--- @tree@ in @adjTs@.  Return a mapping from 'Path''s to the tree you
--- get when you replace one of the valid trees into that given
--- position along with the "cost" of doing so.
-replaceTrees
-  ∷ PruneOpts       -- ^ Options controlling the pruning algorithm
-  → Grammar         -- ^ The grammar
-  → AdjunctionTrees -- ^ The pre computed adjunction trees
-  → TTree           -- ^ The tree where we do the replacements
-  → Set TTree
-replaceTrees opts g adj t
-  = runPrunerI pruner env
-  where
-  pruner ∷ PrunerI (Set TTree)
-  pruner = replaceTreesM
-  env ∷ Env
-  env = Env
-    { pruneOpts   = opts
-    , grammar     = g
-    , precomputed = adj
-    , baseTree    = t
-    }
+replaceAllTrees :: PruneOpts -> AdjunctionTrees -> [TTree] -> [(Int, TTree, TTree)]
+replaceAllTrees opts adjTrees base_trees
+    = do (adjtree :: AdjTree, branches_and_parents) <- Map.toList pruned_map
+         simtree :: TTree <- Map.findWithDefault [] adjtree new_sims_map
+         let simfuns = Grammar.getFunctions simtree
+         (branches :: [TTree], parents :: Set (TTree, Path)) <- Map.toList branches_and_parents
+         subtree :: TTree <- insertBranches branches simtree
+         let subfuns = Grammar.getFunctions subtree
+         -- this works because pruned and sim are disjoint:
+         let cost = max (MultiSet.size subfuns) (MultiSet.size simfuns)
+         -- let cost = subtree `Tree.treeDiff` simtree
+         (oldtree :: TTree, path :: Path) <- Set.toList parents
+         let newtree :: TTree = Tree.replaceNode oldtree path subtree
+         return (cost, oldtree, newtree)
 
-replaceTreesM
-  ∷ Pruner m
-  ⇒ m (Set TTree)
-replaceTreesM = do
-  tree ← askBaseTree
-  let go ∷ ReplacementTree → Set TTree
-      go (path, _, trees) = Set.map (snd . replaceTree tree path) trees
-  simtrees ← collectSimilarTrees
-  pure
-    $   mconcat
-    $   go
-    <$> simtrees
+    where
+      pruned_map :: Map AdjTree (Map [TTree] (Set (TTree, Path)))
+      pruned_map = splitAndPruneTrees opts base_trees
 
--- | @'replaceTree' trees@ returns a list of @(cost, isInsertion, t)@
--- where @t@ is a new tree arising from the 'SimTree'.
-replaceTree :: TTree -> Path -> SimTree -> (SimTree, TTree)
-replaceTree tree path sim@(_, subtree, _, _)
-  = (sim, Tree.replaceNode tree path subtree)
+      sims_map :: Map AdjTree [TTree]
+      sims_map = Map.mapWithKey getSims pruned_map
+          where getSims adjtree _ = [ t | (_, t, _) <- getSimTrees adjTrees adjtree ]
+
+      new_sims_map :: Map AdjTree [TTree]
+      new_sims_map = Map.fromList $
+          do (adjtree :: AdjTree, simtrees :: [TTree]) <- Map.toList sims_map
+             let simtrees' :: Set TTree = Set.fromList simtrees
+             let toremove :: Set TTree = simtrees_to_remove adjtree simtrees'
+             let new_simtrees = simtrees' `Set.difference` toremove
+             return (adjtree, Set.toList new_simtrees)
+
+      simtrees_to_remove :: AdjTree -> Set TTree -> Set TTree
+      simtrees_to_remove adjtree simtrees = Set.fromList $
+          do (upper_tree :: AdjTree, lower_tree :: AdjTree) <- splitAdjtree adjtree
+             lower_tree' :: TTree <- Map.findWithDefault [] lower_tree sims_map
+             guard $ snd lower_tree /= lower_tree'
+             upper_tree' :: TTree <- Map.findWithDefault [] upper_tree sims_map
+             guard $ snd upper_tree /= upper_tree'
+             adjtree' :: TTree <- insertBranches [lower_tree'] upper_tree'
+             guard $ adjtree' `Set.member` simtrees
+             return adjtree'
+
+
+splitAndPruneTrees :: PruneOpts -> [TTree] -> Map AdjTree (Map [TTree] (Set (TTree, Path)))
+splitAndPruneTrees opts base_trees 
+    = Map.fromListWith (Map.unionWith Set.union) $
+      do (base_tree, adj_path, adj_tree, pruned_children) <- splitAndPrune opts base_trees
+         let adj_cat = getToplevelCat adj_tree
+         let pruned_cats = map getToplevelCat pruned_children
+         return  (((adj_cat, MultiSet.fromList pruned_cats), adj_tree),
+                  Map.singleton pruned_children (Set.singleton (base_tree, adj_path)))
+
+splitAndPrune :: PruneOpts -> [TTree] -> [(TTree, Path, TTree, [TTree])]
+splitAndPrune opts base_trees =
+    do base_tree <- base_trees
+       (adj_path, split_tree) <- splitBaseTree base_tree
+       (adj_tree, pruned_children) <- getPrunedTrees opts split_tree
+       return (base_tree, adj_path, adj_tree, pruned_children)
+
+splitBaseTree :: TTree -> [(Path, TTree)]
+splitBaseTree tree@(TNode _ _ children)
+    = ([], tree) : [ (n:path, tree') |
+                     (n, child) <- zip [0..] children,
+                     (path, tree') <- splitBaseTree child ]
+splitBaseTree _ = error "Muste.Prune.splitBaseTree: Non-exhaustive pattern match"
+
+
+getSimTrees :: AdjunctionTrees -> AdjTree -> [(Int, TTree, ())]
+getSimTrees adjTrees (key, pruned_tree)
+    = do let pruned_fun = Grammar.getFunctions pruned_tree
+         sim_tree <- Mono.findWithDefault [] key adjTrees 
+         let sim_fun = Grammar.getFunctions sim_tree
+         guard $ pruned_fun `disjoint` sim_fun
+         -- this works because pruned and sim are disjoint:
+         let cost = max (MultiSet.size pruned_fun) (MultiSet.size sim_fun)
+         -- let cost = pruned_tree `Tree.treeDiff` sim_tree
+         return (cost, sim_tree, ())
+
+
+splitAdjtree :: AdjTree -> [(AdjTree, AdjTree)]
+splitAdjtree ((upper_cat, _holes), base_tree)
+    = do (upper_tree, lower_tree) <- split base_tree
+         let lower_cat = getToplevelCat lower_tree
+         let upper_key = (upper_cat, Grammar.getMetas upper_tree)
+         let lower_key = (lower_cat, Grammar.getMetas lower_tree)
+         return ((upper_key, upper_tree), (lower_key, lower_tree))
+    where split tree@(TNode fun typ children)
+              = (TMeta (getToplevelCat tree), tree) :
+                do (pre, child, post) <- nondetSplitList children
+                   (child', lower_tree) <- split child
+                   let children' = pre ++ (child' : post)
+                   return (TNode fun typ children', lower_tree)
+          split _tree = []
+
+
+nondetSplitList :: [a] -> [([a], a, [a])]
+nondetSplitList [] = []
+nondetSplitList (a:bcds) = ([], a, bcds) : [ (a:bs, c, ds) | (bs, c, ds) <- nondetSplitList bcds ]
+
+getToplevelCat :: TTree -> Category
+getToplevelCat (TNode _ (Fun cat _) _) = cat
+getToplevelCat (TMeta cat) = cat
+getToplevelCat _ = error "Muste.Prune.getToplevelCat: Non-exhaustive pattern match"
+
+disjoint ∷ Ord a ⇒ MultiSet a → MultiSet a → Bool
+disjoint a b = MultiSet.null $ MultiSet.intersection a b
+
 
 data PruneOpts = PruneOpts
   { searchDepth ∷ Maybe Int
   , searchSize  ∷ Maybe Int
   } deriving Show
 
-instance Semigroup PruneOpts where
-  PruneOpts a0 a1 <> PruneOpts b0 b1
-    = PruneOpts (a0 <+> b0) (a1 <+> b1)
-    where
-    a <+> b = (+) <$> a <*> b
+emptyOpts :: PruneOpts
+emptyOpts = PruneOpts Nothing Nothing
 
-instance Monoid PruneOpts where
-  mempty = PruneOpts empty empty
-
-data Env = Env
-  { pruneOpts   ∷ PruneOpts
-  , grammar     ∷ Grammar         -- ^ The grammar
-  , precomputed ∷ AdjunctionTrees -- ^ The pre computed adjunction trees
-  , baseTree    ∷ TTree           -- ^ The tree where we do the replacements
-  }
-
-type Pruner m =
-  ( MonadReader Env m
-  )
-
--- | The monad used for creating similar trees.  It's a bit of a
--- misnomer because it does more than prune trees.
-newtype PrunerT m a = PrunerT { unPrunerT ∷ ReaderT Env m a }
-
-deriving newtype instance Functor m ⇒ Functor (PrunerT m)
-deriving newtype instance Monad m   ⇒ Applicative (PrunerT m)
-deriving newtype instance Monad m   ⇒ Monad (PrunerT m)
-deriving newtype instance Monad m   ⇒ MonadReader Env (PrunerT m)
-
-type PrunerI a = PrunerT Identity a
-
-runPrunerI ∷ PrunerI a → Env → a
-runPrunerI = runReader . unPrunerT
-
-askSearchDepth ∷ Pruner m ⇒ m (Maybe Int)
-askSearchDepth = asks (\Env{pruneOpts=PruneOpts{..}} → searchDepth)
-
-askPruneOpts ∷ Pruner m ⇒ m PruneOpts
-askPruneOpts = asks (\Env{..} → pruneOpts)
-
-askGrammar ∷ Pruner m ⇒ m Grammar
-askGrammar = asks (\Env{..} → grammar)
-
-askPrecomputed ∷ Pruner m ⇒ m AdjunctionTrees
-askPrecomputed = asks (\Env{..} → precomputed)
-
-askBaseTree ∷ Pruner m ⇒ m TTree
-askBaseTree = asks (\Env{..} → baseTree)
-
-
--- * Pruning
-
--- | A simtree is calculated given a pair @(path, origTree)@ of
--- @('Path', 'TTree')@.  It consists of @(cost, tree, pruned,
--- pruned')@ where.
---
---  * @cost@ is the edit distance between @tree@ and @origTree@
---  * @tree@ is the new similar subtree.
---  * @pruned@ is the original pruned subtree (at position @path@)
---  * @pruned'@ is the new similar pruned subtree (at position @path@)
-type SimTree = (Int, TTree, TTree, TTree)
-
--- | A replacement tree describes possible replacements in a sub tree
--- with respect to some originating tree.  The original tree is not
--- retrievable from this type, but values of 'ReplacementTree' are
--- calculated (from 'collectSimilarTrees') given some initial tree.
---
--- Replacements are done at the subtree 'originalSubTree', and the
--- possible replacements are given by 'replacements'.
-type ReplacementTree = (Path, TTree, Set SimTree)
-
--- FIXME We are not using the grammar.  Is this a mistake?
--- | @'collectSimilarTrees' grammar adjTrees baseTree@ grammar
--- adjTrees baseTree@ collects all similar trees of a given
--- @baseTree@, according to a 'Grammar' @grammar@, by first pruning
--- the tree, then generating all similar pruned trees, then putting
--- all pruned branches back in.  The candidates where we look for
--- similar trees is in @adjTrees@.
---
--- A simliar tree is given by @ReplacementTree@.
-collectSimilarTrees
-  ∷ Pruner m
-  ⇒ m [ReplacementTree]
-collectSimilarTrees = do
-  basetree ← askBaseTree
-  let
-    go ∷ Pruner m ⇒ Path -> m ReplacementTree
-    go path = do
-      simtrees ← getSimTrees
-      pure (path, tree, Set.fromList simtrees)
-      where
-        err = error "Muste.Prune.collectSimilarTrees: Incongruence with 'getAllPaths'"
-        tree = fromMaybe err $ Tree.selectNode basetree path
-        getSimTrees ∷ Pruner m ⇒ m [SimTree]
-        getSimTrees = onlyKeepCheapest <$> similarTreesForSubtree tree
-  traverse go $ Tree.getAllPaths basetree
-
--- | If the direct edge to another node is more expensive than the
--- shortest path, then it means we can reach this tree via a series of
--- other edits, so we exclude this.
-onlyKeepCheapest :: [SimTree] -> [SimTree]
-onlyKeepCheapest = keepWith directMoreExpensive
-
-keepWith
-  ∷ Monad f ⇒ Foldable f ⇒ Alternative f
-  ⇒ (a → a → Bool) → f a -> f a
-keepWith p xs = do
-  x <- xs
-  guard $ not $ or $ do
-    x' <- xs
-    pure $ x `p` x'
-  pure x
-
--- | Checks if the direct edge between two trees is more expensive
--- than the shortest path.
-directMoreExpensive ∷ SimTree → SimTree → Bool
-directMoreExpensive (cost, t, _, _) (cost', t', _, _)
-  = cost' < cost && t' `treeDiff` t < cost
-
-similarTreesForSubtree ∷ Pruner m ⇒ TTree → m [SimTree]
-similarTreesForSubtree tree = do
-  adjTrees ← askPrecomputed
-  let
-    cat = case tree of
-      (TNode _ (Fun c _) _) → c
-      _ → errNotNode
-    errNotNode = error
-      $  "Muste.Prune.similarTreesForSubtree: "
-      <> "Non-exhaustive pattern match"
-  similarTrees cat adjTrees tree
-
--- O(n^3) !!!! I don't think this can be avoided though since the
--- output is bounded by Ω(n^3).
-similarTrees ∷ Pruner m ⇒ Category → AdjunctionTrees → TTree → m [SimTree]
-similarTrees cat adjTrees tree = do
-  prunedTrees ← pruneTree tree
-  pure $ do
-    (pruned, branches) ← prunedTrees
-    let metas = Grammar.getMetas pruned
-    byMetas            ← maybeToList $ Mono.lookup (cat, metas) adjTrees
-    pruned'            ← filterTrees byMetas pruned
-    tree'              ← insertBranches branches pruned'
-    pure (tree `treeDiff` tree', tree', pruned, pruned')
-
-maybeToList :: Maybe a -> [a]
-maybeToList (Just a) = [a]
-maybeToList _ = []
-
--- m ~ [] ⇒ runtime = O(n)
-filterTrees ∷ Monad m ⇒ Alternative m ⇒ m TTree → TTree → m TTree
-filterTrees byMetas pruned = do
-  pruned' ← byMetas
-  let funs = Grammar.getFunctions pruned'
-  guard $ heuristics pruned funs
-  pure pruned'
-
--- | Various heuristics used for filtering out results.
-heuristics ∷ TTree → MultiSet Rule → Bool
-heuristics pruned funs = Grammar.getFunctions pruned `disjoint` funs
-
--- | @True@ if two trees have the same root.
-sameRoot :: TTree -> TTree -> Bool
-sameRoot (TNode fun _ _) (TNode fun' _ _) | fun == fun' = True
-sameRoot (TMeta cat) (TMeta cat') | cat == cat' = True
-sameRoot _ _ = False
-
-disjoint ∷ Ord a ⇒ MultiSet a → MultiSet a → Bool
-disjoint a b = MultiSet.null $ MultiSet.intersection a b
-
--- | @True@ if two trees have the same root, and exactly one child
--- differs.
-exactlyOneChildDiffers :: TTree -> TTree -> Bool
-exactlyOneChildDiffers (TNode fun _ children) (TNode fun' _ children')
-    | fun == fun' = difftrees children children'
-    where difftrees (t:ts) (t':ts') | t == t' = difftrees ts ts'
-                                    | otherwise = ts == ts'
-          difftrees _ _ = False
-exactlyOneChildDiffers _ _ = False
 
 -- | Replace all metavariables in a tree with corresponding branches
 -- (i.e. they have the correct (same?) type).
@@ -273,51 +160,32 @@ insertBranches branches tree = map fst (ins branches tree)
                                       (t', branches') <- ins bs t,
                                       (ts', branches'') <- inslist branches' ts ]
           selectBranch _ [] = []
-          selectBranch cat (tree@(TNode _ (Fun cat' _) _) : trees)
+          selectBranch cat (tree : trees)
               = [ (tree, trees) | cat == cat' ] ++
                 [ (tree', tree:trees') | (tree', trees') <- selectBranch cat trees ]
-          selectBranch _ _ = error "Muste.Prune.insertBranches: Incomplete pattern match"
+              where cat' = getToplevelCat tree
 
-
--- | Calculates all possible pruned trees, possibly limited by a
--- given depth or tree size. A pruned tree consists of a tree with
--- metavariables and a list of all the pruned branches (subtrees).
-pruneTree :: Pruner m ⇒ TTree -> m [(TTree, [TTree])]
-pruneTree tree = do
-  opts <- askPruneOpts
-  pure $ getPrunedTrees opts tree
 
 getPrunedTrees :: PruneOpts -> TTree -> [(TTree, [TTree])]
 getPrunedTrees (PruneOpts depthLimit sizeLimit) tree 
-    = [ (tree, branches) | (tree, branches, _) <- pruneTs tree [] 0 0 [] ]
-    where pruneTs :: TTree -> [TTree] -> Int -> Int -> [Category] -> [(TTree, [TTree], Int)]
-          pruneTs tree@(TNode fun typ@(Fun cat _) children) branches depth size visited =
-              (TMeta cat, tree:branches, size) :
-              do guard (depth `less` depthLimit &&
-                        size `less` sizeLimit &&
-                        cat `notElem` visited)
-                 (children', branches', size') <- pruneCs children branches (depth+1) (size+1) (cat : visited)
-                 return (TNode fun typ children', branches', size')
-          pruneTs _ _ _ _ _ = error "Muste.Prune.getPrunedTrees: Incomplete pattern match"
+    = [ (tree, branches) | (tree, branches, _) <- pruneTs tree [] 0 0 ]
+    where pruneTs :: TTree -> [TTree] -> Int -> Int -> [(TTree, [TTree], Int)]
+          pruneTs tree@(TNode fun typ@(Fun cat _) children) branches depth size 
+              = (TMeta cat, tree:branches, size) :
+                do guard $ depth `less` depthLimit && size `less` sizeLimit
+                   (children', branches', size') <- pruneCs children branches (depth+1) (size+1) 
+                   return (TNode fun typ children', branches', size')
+          pruneTs tree branches _depth size 
+              = [(tree, branches, size)]
 
-          pruneCs :: [TTree] -> [TTree] -> Int -> Int -> [Category] -> [([TTree], [TTree], Int)]
-          pruneCs [] branches _depth size _visited = return ([], branches, size)
-          pruneCs (tree:trees) branches depth size visited =
-              do (tree', branches', size') <- pruneTs tree branches depth size visited
-                 (trees', branches'', size'') <- pruneCs trees branches' depth size' visited
-                 return (tree':trees', branches'', size'')
+          pruneCs :: [TTree] -> [TTree] -> Int -> Int -> [([TTree], [TTree], Int)]
+          pruneCs [] branches _depth size = return ([], branches, size)
+          pruneCs (tree:trees) branches depth size 
+              = do (tree', branches', size') <- pruneTs tree branches depth size 
+                   (trees', branches'', size'') <- pruneCs trees branches' depth size' 
+                   return (tree':trees', branches'', size'')
 
           value `less` Just limit = value < limit
           _     `less` Nothing    = True
 
   
-
--- | Edit distance between trees.
---
--- This is calculated by the Levenshtein distance between the list of
--- function nodes in each of the trees
-treeDiff :: TTree -> TTree -> Int
-treeDiff s t = getNodes s `editDistance` getNodes t
-  where
-  getNodes (TMeta cat) = ["?" <> cat]
-  getNodes (TNode fun _ children) = fun : concatMap getNodes children

@@ -6,7 +6,7 @@
 -- Interfacint with 'AdjunctionTrees' is done using the interface for
 -- monomorphic map containers.
 module Muste.AdjunctionTrees
-  ( AdjunctionTrees
+  ( AdjunctionTrees, AdjKey, AdjTree
   , getAdjunctionTrees
   , BuilderInfo(..)
   ) where
@@ -15,7 +15,7 @@ import Prelude ()
 import Muste.Prelude
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.MultiSet (MultiSet)
+import qualified Data.MultiSet as MultiSet
 import Data.Text (isPrefixOf)
 
 import Muste.Tree
@@ -52,22 +52,14 @@ instance Monoid BuilderInfo where
 -- that have this type.
 getAdjunctionTrees ∷ BuilderInfo → Grammar → AdjunctionTrees
 getAdjunctionTrees builderInfo@BuilderInfo{..} grammar
-  =   diagnose builderInfo
-  $   AdjunctionTrees
-  $   Map.fromListWith mappend
-  $   (>>= regroup)
-  $   fmap (fmap treesByMeta)
-  <$> treesByCat
-  <$> Map.keys allRules
+    = diagnose builderInfo $
+      AdjunctionTrees $
+      Map.fromListWith mappend $
+      concatMap treesByCat $
+      Map.keys allRules
   where
-  regroup
-    ∷ (Category                      , [(MultiSet Category, [TTree])])
-    → [((Category, MultiSet Category), [TTree])]
-  regroup (c, xs) = (\(s, ts) → ((c, s), ts)) <$> xs
-  treesByMeta ∷ TTree → (MultiSet Category, [TTree])
-  treesByMeta t = (Grammar.getMetas t, pure t)
-  treesByCat ∷ Category → (Category, [TTree])
-  treesByCat cat = (cat, getAdjTrees bEnv cat)
+  treesByCat ∷ Category → [(AdjKey, [TTree])]
+  treesByCat = getAdjTrees bEnv 
   catRule ∷ Rule → (Category, [Rule])
   catRule r@(Function _ (Fun c _)) = (c, pure r)
   catRule _ = error "Non-exhaustive pattern match"
@@ -123,29 +115,28 @@ isDefaultRule (Function fun (Fun _cat childcats))
 isDefaultRule _ = False
 
 
-getAdjTrees :: BuilderEnv -> Category -> [TTree]
+getAdjTrees :: BuilderEnv -> Category -> [(AdjKey, [TTree])]
 getAdjTrees (BuilderEnv (BuilderInfo depthLimit sizeLimit) ruleGen defaultTree) startCat
-    = [ tree | (tree, _) <- adjTs startCat 0 0 [] ]
-    where adjTs :: Category -> Int -> Int -> [Category] -> [(TTree, Int)]
-          adjTs cat depth size visited =
-              (TMeta cat, size) :
+    = [ ((startCat, MultiSet.fromList metas), [tree]) | (tree, metas, _) <- adjTs startCat [] 0 0 [] ]
+    where adjTs :: Category -> [Category] -> Int -> Int -> [Category] -> [(TTree, [Category], Int)]
+          adjTs cat metas depth size visited =
+              (TMeta cat, cat:metas, size) :
               case (depth > 0, Map.lookup cat defaultTree) of
-                (True, Just tree) -> return (tree, size+1)
+                (True, Just tree) -> return (tree, metas, size+1)
                 _ -> do guard (depth `less` depthLimit &&
                                size `less` sizeLimit &&
                                cat `notElem` visited)
                         Function fun typ@(Fun _cat childcats) <- ruleGen cat
-                        (children, size') <- adjCs childcats (depth+1) (size+1) (cat : visited)
-                        return (TNode fun typ children, size')
+                        (children, metas', size') <- adjCs childcats metas (depth+1) (size+1) (cat : visited)
+                        return (TNode fun typ children, metas', size')
 
-          adjCs :: [Category] -> Int -> Int -> [Category] -> [([TTree], Int)]
-          adjCs [] _depth size _visited = return ([], size)
-          adjCs (cat:cats) depth size visited =
-              do (tree, size') <- adjTs cat depth size visited
-                 (trees, size'') <- adjCs cats depth size' visited
-                 return (tree:trees, size'')
+          adjCs :: [Category] -> [Category] -> Int -> Int -> [Category] -> [([TTree], [Category], Int)]
+          adjCs [] metas _depth size _visited = return ([], metas, size)
+          adjCs (cat:cats) metas depth size visited =
+              do (tree, metas', size') <- adjTs cat metas depth size visited
+                 (trees, metas'', size'') <- adjCs cats metas' depth size' visited
+                 return (tree:trees, metas'', size'')
 
           value `less` Just limit = value < limit
           _     `less` Nothing    = True
   
-
