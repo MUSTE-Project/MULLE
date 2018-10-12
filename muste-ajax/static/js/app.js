@@ -854,26 +854,14 @@ function select_menuitem(item, lang) {
 }
 
 var high_scores_template = `
-<table>
- <thead>
-  <tr>
-   <td>Lesson</td>
-   <td>User</td>
-   <td>Score - clicks</td>
-   <td>Score - time</td>
-  </tr>
- </thead>
- <tbody>
-  {{#each .}}
-  <tr>
-   <td>{{lesson.name}}</td>
-   <td>{{user.name}}</td>
-   <td>{{score.clicks}}</td>
-   <td>{{score.time}}</td>
-  </tr>
-  {{/each}}
- </tbody>
-</table>
+{{#each .}}
+<tr>
+ <td>{{lesson.name}}</td>
+ <td>{{user.name}}</td>
+ <td>{{score.clicks}}</td>
+ <td>{{score.time}}</td>
+</tr>
+{{/each}}
 `;
 
 var render_high_scores = Handlebars.compile(high_scores_template);
