@@ -39,7 +39,6 @@ function init() {
   register_popup_menu(jQuery);
   register_page_handler(jQuery);
   show_login_page();
-  muste_request({}, 'high-scores')
 }
 
 function init_environment() {
@@ -70,8 +69,8 @@ function register_popup_menu($) {
 }
 
 function register_pagers() {
-  $('.pager').click(function() {
-    var pg = $(this).attr('href');
+  $('[data-pager]').click(function() {
+    var pg = $(this).data('pager');
     change_page(pg);
   });
 }
@@ -848,6 +847,42 @@ function select_menuitem(item, lang) {
   $(document).trigger('overlay-out');
 }
 
+var high_scores_template = `
+<table>
+ <thead>
+  <tr>
+   <td>Lesson</td>
+   <td>User</td>
+   <td>Score - clicks</td>
+   <td>Score - time</td>
+  </tr>
+ </thead>
+ <tbody>
+  {{#each .}}
+  <tr>
+   <td>{{lesson.name}}</td>
+   <td>{{user.name}}</td>
+   <td>{{score.clicks}}</td>
+   <td>{{score.time}}</td>
+  </tr>
+  {{/each}}
+ </tbody>
+</table>
+`;
+
+var render_high_scores = Handlebars.compile(high_scores_template);
+
+function fetch_high_scores () {
+  muste_request({}, 'high-scores')
+    .then(display_high_scores);
+}
+
+function display_high_scores(scores) {
+  var p = $('#high-scores-table');
+  p.empty();
+  var e = render_high_scores(scores);
+  p.html(e);
+}
 
 //////////////////////////////////////////////////////////////////////
 // Busy indicator

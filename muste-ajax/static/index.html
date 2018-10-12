@@ -15,6 +15,7 @@
  <main>
   <span id="busy-indicator" class="idle">&#9679;</span>
   <div hidden class="overlay"></div>
+
   <div class="page" id="page-login">
    <div>
     <h1 class="title">MUSTE: Latinträning</h1>
@@ -34,8 +35,8 @@
      </div>
     </form>
     <hr />
-    <a class="pager button" href="#page-create-user">Create new user</a>
-    <a class="pager button" href="#page-change-password">Change password</a>
+    <button data-pager="#page-create-user">Create new user</button>
+    <button data-pager="#page-change-password">Change password</button>
    </div>
    <div></div>
   </div>
@@ -43,8 +44,9 @@
 
   <div class="page" id="page-lessons">
    <div>
-    <span>
-     <button class="right backbutton" id="logoutbutton">Logga ut</button>
+    <span class="right">
+     <button data-pager="#page-high-scores" onclick="fetch_high_scores()">High scores</button>
+     <button id="logoutbutton">Logga ut</button>
     </span>
     <h1 class="title">MUSTE: Latinträning</h1>
    </div>
@@ -61,9 +63,7 @@
   <div class="page" id="page-exercise">
    <div>
     <span class="left" id="lessoncounter"></span>
-    <span id="busy-indicator" class="idle">&#9679;</span>
-     <!-- Unicode Character 'BLACK CIRCLE' (U+25CF) -->
-    <button class="right backbutton" id="abortlesson">Avbryt lektion</button>
+    <button class="right" id="abortlesson">Avbryt lektion</button>
    </div>
 
    <div class="container container-alt">
@@ -109,7 +109,7 @@
      </div>
     </form>
     <hr />
-    <a class="pager button" href="#page-login">Log in with existing user</a>
+    <button data-pager="#page-login">Log in with existing user</button>
    </div>
    <div></div>
   </div>
@@ -118,7 +118,7 @@
   <div class="page" id="page-change-password">
    <div>
     <h1 class="title">Skift lösenord</h1>
-    <p><tt>TODO Maybe this should only be accessible when the user is logged in.  In that case we don't have to ask for the old password.</tt>
+    <pre>TODO Maybe this should only be accessible when the user is logged in.  In that case we don't have to ask for the old password.</pre>
    </div>
    <div class="container">
     <form action="change-pwd" method="post">
@@ -144,7 +144,18 @@
      </div>
     </form>
     <hr />
-    <a class="pager button" href="#page-login">Log in with existing user</a>
+    <button data-pager="#page-login">Log in with existing user</button>
+   </div>
+   <div></div>
+  </div>
+  <!-- / page-change-passowrd -->
+
+  <div class="page" id="page-high-scores">
+   <div>
+    <h1 class="title">High scores</h1>
+   </div>
+   <div class="container">
+    <div id="high-scores-table"></div>
    </div>
    <div></div>
   </div>
