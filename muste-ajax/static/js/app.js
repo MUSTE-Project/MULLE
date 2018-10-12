@@ -335,9 +335,9 @@ var lesson_list_template = ' \
 <div class="lessons"> \
 {{#each .}} \
  <div class="{{#if (or passed (gte passed total))}}finished{{/if}} {{#if enabled}}{{else}}disabled{{/if}}"> \
-  <h3>{{name}}</h3> \
   <div class="lesson-info"> \
    <div> \
+    <h3>{{name}}</h3> \
     <p> \
      {{passedcount}} avklarade av {{exercisecount}} övningar \
     </p> \
