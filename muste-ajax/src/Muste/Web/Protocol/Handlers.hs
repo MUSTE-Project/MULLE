@@ -13,34 +13,34 @@ module Muste.Web.Protocol.Handlers
   , highScoresHandler
   ) where
 
-import Prelude ()
-import Muste.Prelude
-import Muste.Prelude.Extra
+import           Prelude ()
+import           Muste.Prelude
+import           Muste.Prelude.Extra
 
-import Data.Aeson
-import Data.Map (Map)
-import qualified Data.Map.Lazy as Map
-import Data.Set (Set)
-import qualified Data.Set as Set
-import Control.Monad.Reader
+import           Control.Monad.Reader
+import           Data.Aeson
+import           Data.Map (Map)
+import qualified Data.Map.Lazy               as Map
+import qualified Data.Set                    as Set
+import           Data.Set (Set)
 import qualified Snap
-import qualified System.IO.Streams as Streams
+import qualified System.IO.Streams           as Streams
 
-import           Muste (Context, TTree)
 import qualified Muste
-import qualified Muste.Sentence as Sentence
+import           Muste (Context, TTree)
+import qualified Muste.Menu                  as Menu
+import qualified Muste.Sentence              as Sentence
 import           Muste.Sentence.Annotated (Annotated)
+import qualified Muste.Sentence.Unannotated  as Unannotated
 import           Muste.Sentence.Unannotated (Unannotated)
-import qualified Muste.Sentence.Unannotated as Unannotated
-import qualified Muste.Menu as Menu
 
+import qualified Muste.Web.Ajax              as Ajax
 import           Muste.Web.Ajax (ClientTree, ServerTree)
-import qualified Muste.Web.Ajax            as Ajax
-import qualified Muste.Web.Database        as Database
-import qualified Muste.Web.Database.Types  as Database
-import           Muste.Web.Types.Score (Score(Score))
-import qualified Muste.Web.Types.Score     as Score
+import qualified Muste.Web.Database          as Database
+import qualified Muste.Web.Database.Types    as Database
 import           Muste.Web.Protocol.Class
+import qualified Muste.Web.Types.Score       as Score
+import           Muste.Web.Types.Score (Score(Score))
 
 liftEither ∷ MonadError ProtocolError m ⇒ SomeException ~ e ⇒ Either e a → m a
 liftEither = either (throwError . SomeProtocolError) pure

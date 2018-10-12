@@ -8,23 +8,23 @@ module Muste.Web.Protocol
 
 import           Prelude ()
 import           Muste.Prelude
-import           Muste.Prelude.SQL (Connection)
 import qualified Muste.Prelude.SQL            as SQL
+import           Muste.Prelude.SQL (Connection)
 
-import qualified Data.Map as Map
 import           Data.ByteString (ByteString)
-import           Snap (MonadSnap)
-import qualified Snap
-import qualified Snap.Util.CORS               as Cors
+import qualified Data.Map                     as Map
 import qualified Data.Text.IO                 as Text
+import qualified Snap
+import           Snap (MonadSnap)
+import qualified Snap.Util.CORS               as Cors
 
 import qualified Muste
 import           Muste (Context)
-import qualified Muste.Sentence as Sentence
-import qualified Muste.Linearization as Linearization
+import qualified Muste.Linearization          as Linearization
+import qualified Muste.Sentence               as Sentence
 
-import           Muste.Web.Database (MonadDB)
 import qualified Muste.Web.Database           as Database
+import           Muste.Web.Database (MonadDB)
 import qualified Muste.Web.Database.Types     as Database
 import           Muste.Web.Protocol.Class
 import qualified Muste.Web.Protocol.Handlers  as Handlers

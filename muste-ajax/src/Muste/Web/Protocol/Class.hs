@@ -14,25 +14,25 @@ module Muste.Web.Protocol.Class
   , Contexts
   ) where
 
-import Prelude ()
-import Muste.Prelude
-import Muste.Prelude.SQL (Connection)
+import           Prelude ()
+import           Muste.Prelude
+import           Muste.Prelude.SQL (Connection)
 
-import Data.Aeson
-import Data.Map (Map)
-import Data.ByteString (ByteString)
-import Snap (MonadSnap)
+import           Control.Monad.Base (MonadBase)
+import           Control.Monad.Trans.Control (MonadBaseControl)
+import           Data.Aeson
+import           Data.ByteString (ByteString)
+import           Data.Map (Map)
+import           Data.Vector (Vector)
 import qualified Snap
-import Control.Monad.Trans.Control (MonadBaseControl)
-import Control.Monad.Base (MonadBase)
-import Data.Vector (Vector)
+import           Snap (MonadSnap)
 
-import           Muste (Context)
 import qualified Muste
-import qualified Muste.Sentence as Sentence
+import           Muste (Context)
+import qualified Muste.Sentence      as Sentence
 
+import qualified Muste.Web.Database  as Database
 import           Muste.Web.Database (MonadDatabaseError(..))
-import qualified Muste.Web.Database        as Database
 
 -- | Maps a lesson to a map from grammars(-identifiers) to their
 -- corresponding contexts.
