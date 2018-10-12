@@ -38,6 +38,7 @@ function init() {
   register_change_pwd_handler();
   register_popup_menu(jQuery);
   register_page_handler(jQuery);
+  register_high_score_handler(jQuery);
   show_login_page();
 }
 
@@ -879,13 +880,19 @@ var render_high_scores = Handlebars.compile(high_scores_template);
 
 function fetch_high_scores () {
   muste_request({}, 'high-scores')
-    .then(display_high_scores);
+    .then(function (xs) {
+      $(window).trigger('high-scores-loaded', {scores: xs});
+    });
 }
 
-function display_high_scores(scores) {
+function register_high_score_handler($) {
+  $(window).on('high-scores-loaded', display_high_scores);
+}
+
+function display_high_scores(_, scores) {
   var p = $('#high-scores-table');
   p.empty();
-  var e = render_high_scores(scores);
+  var e = render_high_scores(scores.scores);
   p.html(e);
 }
 
