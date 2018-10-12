@@ -1,10 +1,17 @@
+-- | Defines types corresponding to the data in the tables/views of
+-- the database.
+--
+-- Module      : Muste.Web.Database.Types
+-- License     : Artistic License 2.0
+-- Stability   : experimental
+-- Portability : POSIX
+--
+-- Some of the types are direct translations, some are not.
+
 {-# OPTIONS_GHC -Wall #-}
 {-# Language StandaloneDeriving , GeneralizedNewtypeDeriving ,
     TypeOperators , DuplicateRecordFields, DeriveAnyClass, RecordWildCards #-}
--- | One type per table
---
--- The reason I'm using type aliases is to inherit the `FromRow` and
--- `ToRow` instances defined for these types.
+
 module Muste.Web.Database.Types
   ( User(..)
   , Session(..)

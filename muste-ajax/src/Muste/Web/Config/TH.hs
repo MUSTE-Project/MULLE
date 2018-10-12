@@ -1,7 +1,15 @@
--- | This module described the configuration options as they are read
+-- | Embeds configuration options at compile time.
+--
+-- Module      : Muste.Web.Config.TH
+-- License     : Artistic License 2.0
+-- Stability   : experimental
+-- Portability : POSIX
+--
+-- This module described the configuration options as they are read
 -- from the config file.  Further processing is then performed on
 -- these options.  See the module "Muste.Web.Config.AppConfig" for
 -- more information about that.
+
 {-# OPTIONS_GHC -Wall #-}
 {-# LANGUAGE
     OverloadedStrings
@@ -10,6 +18,7 @@
   , DuplicateRecordFields
   , TemplateHaskell
 #-}
+
 module Muste.Web.Config.TH
   ( Config(..), config) where
 

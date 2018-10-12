@@ -1,10 +1,18 @@
--- | This module defines the endpoints that this api exposes.  This
--- module delegates work to "Muste.Web.Database" that handles
+-- | Defines the endpoints that the API exposes.
+--
+-- Module      : Muste.Web.Protocol.Handlers
+-- License     : Artistic License 2.0
+-- Stability   : experimental
+-- Portability : POSIX
+--
+-- This module delegates work to "Muste.Web.Database" that handles
 -- accessing the stored data as well as invoking the core logic
 -- defined in package @muste@.
+
 {-# Language RecordWildCards, UndecidableInstances, DeriveAnyClass,
   OverloadedLists #-}
 {-# OPTIONS_GHC -Wall -Wcompat #-}
+
 module Muste.Web.Protocol.Handlers
   (
     loginHandler

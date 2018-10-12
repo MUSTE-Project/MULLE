@@ -1,5 +1,13 @@
+-- | Transforms the configuration file into the app config.
+--
+-- Module      : Muste.Web.Config.AppConfig
+-- License     : Artistic License 2.0
+-- Stability   : experimental
+-- Portability : POSIX
+
 {-# Language RecordWildCards, OverloadedStrings #-}
 {-# OPTIONS_GHC -Wall -Wcompat #-}
+
 module Muste.Web.Config.AppConfig
   ( AppConfig(..)
   ) where

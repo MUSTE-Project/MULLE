@@ -1,8 +1,17 @@
+-- | Handles CRUD operations.
+--
+-- Module      : Muste.Web.Database
+-- License     : Artistic License 2.0
+-- Stability   : experimental
+-- Portability : POSIX
+
 -- FIXME So many methods need access to a lesson and a user.  Perhaps
 -- we should just add this to the database monad.
--- TODO Fix name shadowing.
-{-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# Language QuasiQuotes, RecordWildCards, MultiWayIf, DeriveAnyClass, NamedFieldPuns #-}
+
+{-# OPTIONS_GHC -Wall #-}
+{-# Language QuasiQuotes, RecordWildCards, MultiWayIf, DeriveAnyClass,
+  NamedFieldPuns #-}
+
 module Muste.Web.Database
   ( MonadDB
   , DbT(DbT)

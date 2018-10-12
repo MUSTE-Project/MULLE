@@ -1,6 +1,14 @@
+-- | Defines the shape of the requests/responses this API can handle.
+--
+-- Module      : Muste.Web.Ajax
+-- License     : Artistic License 2.0
+-- Stability   : experimental
+-- Portability : POSIX
+
 {-# OPTIONS_GHC -Wall -Wcompat #-}
 {-# language OverloadedStrings, DuplicateRecordFields , RecordWildCards,
   NamedFieldPuns #-}
+
 module Muste.Web.Ajax
   ( ServerTree(..)
   , ClientTree(..)

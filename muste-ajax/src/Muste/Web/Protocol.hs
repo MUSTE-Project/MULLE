@@ -1,4 +1,9 @@
--- | This module hooks 'ProtocolT' with the @snap@ web framework.
+-- | This module hooks 'ProtocolT' up with the @snap@ web framework.
+--
+-- Module      : Muste.Web.Protocol
+-- License     : Artistic License 2.0
+-- Stability   : experimental
+-- Portability : POSIX
 --
 -- The inner workings of the protocol is defined in
 --

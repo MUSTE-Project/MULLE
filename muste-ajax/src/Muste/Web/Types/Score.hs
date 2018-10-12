@@ -1,5 +1,13 @@
+-- | A scoring system
+--
+-- Module      : Muste.Web.Config
+-- License     : Artistic License 2.0
+-- Stability   : experimental
+-- Portability : POSIX
+
 {-# OPTIONS_GHC -Wall -Wcompat #-}
 {-# Language RecordWildCards, DeriveAnyClass #-}
+
 module Muste.Web.Types.Score
   ( Score(..)
   , addClick
