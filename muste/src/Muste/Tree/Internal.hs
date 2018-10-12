@@ -17,10 +17,12 @@ module Muste.Tree.Internal
   , treeDepth
   , countNodes
   , countMatchedNodes
+  , prettyTree
   , TTree(TNode,TMeta)
   , FunType(Fun, NoType)
   , toGfTree
   , flatten
+  , treeDiff
   , foldMapTTree
   , cIdToCat
   ) where
@@ -102,6 +104,12 @@ prettyTree = PGF.showExpr mempty . toGfTree
 flatten ∷ TTree -> [Category]
 flatten (TMeta cat) = pure $ "?" <> cat
 flatten (TNode x _ ts) = x : concatMap flatten ts
+
+-- | Edit distance between trees.
+-- This is calculated by the Levenshtein distance between the list of
+-- function nodes in each of the trees
+treeDiff :: TTree -> TTree -> Int
+treeDiff t t' = flatten t `editDistance` flatten t'
 
 
 -- parseTree ∷ MonadFail fail ⇒ String → fail TTree
