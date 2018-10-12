@@ -7,6 +7,10 @@
 -- Portability : POSIX
 --
 -- Some of the types are direct translations, some are not.
+--
+-- Many of the types are very similar to the ones defined in
+-- "Muste.Web.Ajax".  This is intentional. The reason for this is that
+-- SQL database are row-orientend whereas JSON is document oriented.
 
 {-# OPTIONS_GHC -Wall #-}
 {-# Language StandaloneDeriving , GeneralizedNewtypeDeriving ,
@@ -14,6 +18,8 @@
 
 module Muste.Web.Database.Types
   ( User(..)
+  , CreateUser(..)
+  , ChangeUser(..)
   , Session(..)
   , Exercise(..)
   , Lesson(..)
@@ -23,7 +29,7 @@ module Muste.Web.Database.Types
   , ExerciseList(..)
   , ActiveLessonForUser(..)
   , ActiveLesson(..)
-  , UserExerciseScore(..)
+  , UserLessonScore(..)
   , Key(..)
   , Muste.TTree
   , Sentence.Unannotated
@@ -58,14 +64,8 @@ deriving newtype instance FromField Key
 deriving newtype instance ToJSON    Key
 deriving newtype instance FromJSON  Key
 
--- | Representation of a 'User' in the database.  Consists of:
---
--- * User name.
--- * Password.
--- * Salt.
--- * Is user enabled.
 data User = User
-  { userName            ∷ Text
+  { name                ∷ Text
   , password            ∷ Blob
   , salt                ∷ Blob
   , enabled             ∷ Bool
@@ -75,6 +75,31 @@ deriving stock    instance Show    User
 deriving stock    instance Generic User
 deriving anyclass instance ToRow   User
 deriving anyclass instance FromRow User
+
+data CreateUser = CreateUser
+  { name     ∷ Text
+  , password ∷ Text
+  , enabled  ∷ Bool
+  }
+
+deriving stock    instance Show    CreateUser
+deriving stock    instance Generic CreateUser
+deriving anyclass instance ToRow   CreateUser
+deriving anyclass instance FromRow CreateUser
+
+-- If we made it so that only /already/ authenticated users could
+-- change their password, then we ought to change to a user id here in
+-- stead of their name.
+data ChangeUser = ChangeUser
+  { name        ∷ Text
+  , oldPassword ∷ Text
+  , newPassword ∷ Text
+  }
+
+deriving stock    instance Show    ChangeUser
+deriving stock    instance Generic ChangeUser
+deriving anyclass instance ToRow   ChangeUser
+deriving anyclass instance FromRow ChangeUser
 
 -- | Representation of a 'Session' in the database.  Consists of:
 --
@@ -294,20 +319,15 @@ instance ToJSON ActiveLesson where
     , "enabled"       .= enabled
     ]
 
-data UserExerciseScore = UserExerciseScore
-  { exercise ∷ Text
-  , lesson   ∷ Text
-  , user     ∷ Maybe Text
-  , score    ∷ Maybe Score
+data UserLessonScore = UserLessonScore
+  { lesson     ∷ Key
+  , lessonName ∷ Text
+  , user       ∷ Key
+  , userName   ∷ Text
+  , score      ∷ Score
   }
 
-deriving stock    instance Show    UserExerciseScore
-deriving stock    instance Generic UserExerciseScore
-deriving anyclass instance ToRow   UserExerciseScore
-deriving anyclass instance FromRow UserExerciseScore
-
--- data UserLessonScore = UserLessonScore
---   { user     ∷ Text
---   , score    ∷ Score
---   , lesson   ∷ Text
---   }
+deriving stock    instance Show    UserLessonScore
+deriving stock    instance Generic UserLessonScore
+deriving anyclass instance ToRow   UserLessonScore
+deriving anyclass instance FromRow UserLessonScore

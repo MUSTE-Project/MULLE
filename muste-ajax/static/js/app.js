@@ -39,6 +39,7 @@ function init() {
   register_popup_menu(jQuery);
   register_page_handler(jQuery);
   show_login_page();
+  muste_request({}, 'high-scores')
 }
 
 function init_environment() {
@@ -237,7 +238,7 @@ function submit_login(evt) {
     evt.preventDefault();
   }
   var loginform = document.getElementById('loginform');
-  var req = {username: loginform.name.value, password: loginform.pwd.value};
+  var req = {name: loginform.name.value, password: loginform.pwd.value};
   muste_request(req, MESSAGES.LOGIN)
     .then(login_success)
     .fail(function() {
@@ -288,7 +289,8 @@ function display_error(resp) {
     console.error(resp.responseText);
     return;
   }
-  console.error(resp.responseJSON);
+  var err = resp.responseJSON;
+  console.error(err.error.message);
 }
 
 function register_handlebars_helper() {
@@ -395,6 +397,7 @@ function handle_menu_response(r) {
   // FIXME Naughty string interpolation!
   change_page('#page-exercise', '?key=' + r.key);
   DATA = r;
+  var key = r.lesson.key;
   var menu = r.menu;
   if(menu !== null) {
     show_exercise(r);
@@ -403,13 +406,14 @@ function handle_menu_response(r) {
       show_exercise_complete(r);
       return;
     }
-    start_lesson(r.key);
+    start_lesson(key);
   }
 }
 
 function show_exercise(resp) {
-  var lesson = resp.key;
-  var lessonName = resp.lesson;
+  var lesson = resp.lesson;
+  var key = lesson.key;
+  var lessonName = lesson.name;
   var menu = resp.menu;
   clean_server_data(menu.src);
   clean_server_data(menu.src);
@@ -418,7 +422,7 @@ function show_exercise(resp) {
   // The score is the exercise score.  Only in the case when we are
   // continuing a lesson will this be non-trivial.
   // display_score(resp.score);
-  var e = EXERCISES[lesson];
+  var e = EXERCISES[key];
   display_lesson_counter({
     lesson: lessonName,
     passed: e.passed,

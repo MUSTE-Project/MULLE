@@ -195,7 +195,7 @@ instance HasErrorIdentifier Database.Error where
     Database.NoUserFound               → 0
     Database.LangNotFound              → 1
     Database.MultipleUsers             → 2
-    Database.NoCurrentSession          → 3
+    Database.NotCurrentSession         → 3
     Database.SessionTimeout            → 4
     Database.MultipleSessions          → 5
     Database.NoExercisesInLesson       → 6
@@ -208,7 +208,7 @@ instance HasErrorIdentifier Database.Error where
     Database.NoUserFound               → 401
     Database.LangNotFound              → 400
     Database.MultipleUsers             → 401
-    Database.NoCurrentSession          → 401
+    Database.NotCurrentSession         → 401
     Database.SessionTimeout            → 401
     Database.MultipleSessions          → 401
     Database.NoExercisesInLesson       → 400

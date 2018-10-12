@@ -33,7 +33,7 @@ module Muste.Web.Database
   , changePassword
   , updateActivity
   , rmUser
-  , getUserExerciseScores
+  , getUserLessonScores
   ) where
 
 import Prelude ()
@@ -72,7 +72,7 @@ data Error
   = NoUserFound
   | LangNotFound
   | MultipleUsers
-  | NoCurrentSession
+  | NotCurrentSession
   | SessionTimeout
   | MultipleSessions
   | NoExercisesInLesson
@@ -91,7 +91,7 @@ instance Exception Error where
       →  "Well this is embarrasing.  "
       <> "It would appear that someone managed "
       <> "to steal youre identity."
-    NoCurrentSession    → "Not current session"
+    NotCurrentSession   → "Not current session"
     SessionTimeout      → "Session timeout"
     MultipleSessions    → "More than one session"
     NoExercisesInLesson → "No exercises for lesson"
@@ -142,26 +142,26 @@ FROM Lesson;
 -- | Generates an instance of 'Types.User' suitable for inserting into
 -- the database.  Note that this function does /not/ persist the user.
 createUser
-  :: MonadDB r db
-  => Text -- ^ Username
-  -> Text -- ^ Password
-  -> Bool -- ^ User enabled
+  ∷ MonadDB r db
+  ⇒ Types.CreateUser
   -> db Types.User
-createUser user pass enabled = do
+createUser Types.CreateUser{..} = do
   -- Create a salted password
   salt <- createSalt
-  let safePw = hashPasswd (T.encodeUtf8 pass) salt
-  pure $ Types.User user safePw salt enabled
+  pure $ Types.User
+    { name     = name
+    , password = hashPasswd (T.encodeUtf8 password) salt
+    , salt     = salt
+    , enabled  = enabled
+    }
 
 -- | Adds a new user to the database.
 addUser
   ∷ MonadDB r db
-  ⇒ Text -- ^ Username
-  → Text -- ^ Password
-  → Bool -- ^ User enabled
+  ⇒ Types.CreateUser
   → db ()
-addUser user pass enabled = do
-  u ← createUser user pass enabled
+addUser usr@Types.CreateUser{..} = do
+  u ← createUser usr
   execute q u `catchDbError` h
   where
   h e = case e of
@@ -181,7 +181,7 @@ INSERT INTO User (Username, Password, Salt, Enabled) VALUES (?,?,?,?);
 -- | Removes an existing user from the database.
 rmUser
   ∷ MonadDB r db
-  ⇒ Text
+  ⇒ Types.Key
   → db ()
 rmUser = void . execute q . Only
   where
@@ -190,17 +190,17 @@ rmUser = void . execute q . Only
 -- rmUser
 DELETE
 FROM User
-WHERE Username = ?;
+WHERE Id = ?;
 |]
 
 authUser
-  :: MonadDB r db
-  => Text -- ^ Username
-  -> Text -- ^ Password
-  -> db ()
+  ∷ MonadDB r db
+  ⇒ Text -- ^ Username
+  → Text -- ^ Password
+  → db ()
 authUser user pass = do
   -- Get password and salt from database
-  userList <- query @(ByteString, ByteString, Bool) q [user]
+  userList <- query @(ByteString, ByteString, Bool) q (Only user)
   -- Generate new password hash and compare to the stored one
   let
     h dbSalt = hashPasswd (T.encodeUtf8 pass) dbSalt
@@ -331,7 +331,11 @@ sessionLifeTime = 30 * h
   h = 60 * m
 
 getLastActive ∷ MonadDB r db ⇒ Text → db UTCTime
-getLastActive t = fromOnly . Unsafe.head <$> query q (Only t)
+getLastActive t = do
+  xs ← query q (Only t)
+  case xs of
+    []         → throwDbError NotCurrentSession
+    (Only x:_) → pure x
   where
 
   q = [sql|
@@ -812,18 +816,22 @@ AND Lesson = ?;
 -- null this means that /no/ user has completed the exercise.  If a
 -- given exercise/user combination is not present in the output, then
 -- this means that /this/ user has not completed the exercise.
-getUserExerciseScores
+getUserLessonScores
   ∷ MonadDB r db
-  ⇒ db [Types.UserExerciseScore]
-getUserExerciseScores = query_
+  ⇒ db [Types.UserLessonScore]
+getUserLessonScores = query_
   [sql|
--- getUserExerciseScores
+-- getUserLessonScores
 SELECT
-  ExerciseLesson.Name,
-  ExerciseLesson.Lesson,
-  User,
-  Score
-FROM ExerciseLesson
-LEFT JOIN FinishedExercise
-  ON ExerciseLesson.Lesson = FinishedExercise.Lesson;
+  Lesson.Id,
+  Lesson.Name,
+  User.Id,
+  User.Username,
+  FinishedLesson.Score
+FROM FinishedLesson
+JOIN User
+  ON User = User.Id
+LEFT
+  JOIN Lesson
+  ON Lesson = Lesson.Id;
 |]

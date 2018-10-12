@@ -47,20 +47,25 @@ import qualified Muste.Sentence.Unannotated  as Unannotated
 import           Muste.Sentence.Unannotated (Unannotated)
 
 import qualified Muste.Web.Ajax              as Ajax
+import qualified Muste.Web.Ajax              as Lesson
+  ( Lesson(..) )
 import           Muste.Web.Ajax (ClientTree, ServerTree)
 import qualified Muste.Web.Database          as Database
 import qualified Muste.Web.Database.Types    as Database
 import           Muste.Web.Protocol.Class
 import qualified Muste.Web.Types.Score       as Score
-import           Muste.Web.Types.Score (Score(Score))
 
 liftEither ∷ MonadError ProtocolError m ⇒ SomeException ~ e ⇒ Either e a → m a
 liftEither = either (throwError . SomeProtocolError) pure
 
 createUserHandler ∷ MonadProtocol m ⇒ m (Response ())
 createUserHandler = do
-  Ajax.User{..} ← getMessage
-  Database.addUser name password True
+  Ajax.CreateUser{..} ← getMessage
+  Database.addUser $ Database.CreateUser
+    { name     = name
+    , password = password
+    , enabled  = True
+    }
   pure mempty
 
 -- | Change password of the user.  The user currently (as of this
@@ -69,7 +74,7 @@ createUserHandler = do
 -- then checked against the database.
 changePwdHandler ∷ MonadProtocol m ⇒ m (Response ())
 changePwdHandler = do
-  Ajax.ChangePwd{..} ← getMessage
+  Ajax.ChangeUser{..} ← getMessage
   Database.changePassword name oldPassword newPassword
   pure mempty
 
@@ -141,8 +146,8 @@ handleLoginRequest
   ⇒ Ajax.LoginRequest
   → m Ajax.LoginSuccess
 handleLoginRequest Ajax.LoginRequest{..} = do
-  Database.authUser username password
-  token ← Database.startSession username
+  Database.authUser name password
+  token ← Database.startSession name
   setLoginCookie token
   pure $ Ajax.LoginSuccess token
 
@@ -159,8 +164,10 @@ handleLessonInit lesson = do
   Database.ExerciseLesson{..} ← Database.startLesson token lesson
   menu ← assembleMenus lessonName source target
   verifyMessage $ Ajax.MenuResponse
-    { key      = lesson
-    , lesson   = lessonName
+    { lesson = Ajax.Lesson
+      { key  = lesson
+      , name = lessonName
+      }
     , score    = mempty
     , menu     = Just menu
     , finished = False
@@ -182,7 +189,9 @@ handleMenuRequest
   ⇒ Ajax.MenuRequest
   → m Ajax.MenuResponse
 handleMenuRequest Ajax.MenuRequest{..} = do
-  let Score{..} = score
+  let Ajax.Score{..}  = score
+      Ajax.Lesson{..} = lesson
+      lessonName = Lesson.name lesson
   verifySession
   token ← getToken
   let
@@ -190,18 +199,17 @@ handleMenuRequest Ajax.MenuRequest{..} = do
       = score
       & Score.addClick 1
       & Score.setTime time
-  finished ← oneSimiliarTree lesson src trg
+  finished ← oneSimiliarTree lessonName src trg
   (lessonFinished, menu) ←
     if finished
     then do
       f ← Database.finishExercise token key newScore
       pure (f, Nothing)
     else do
-      m ← assembleMenus lesson (un src) (un trg)
+      m ← assembleMenus lessonName (un src) (un trg)
       pure (False, Just m)
   verifyMessage $ Ajax.MenuResponse
-    { key      = key
-    , lesson   = lesson
+    { lesson   = lesson
     , score    = newScore
     , menu     = menu
     , finished = lessonFinished
@@ -328,9 +336,17 @@ makeTree c lesson s
   language = Sentence.language s
 
 highScoresHandler ∷ MonadProtocol m ⇒ m (Response [Ajax.HighScore])
-highScoresHandler = do
-  xs ← Database.getUserExerciseScores
-  verifyMessage $ pure $ go xs
+highScoresHandler = pure . fmap go <$> Database.getUserLessonScores
   where
-  go ∷ [Database.UserExerciseScore] → [Ajax.HighScore]
-  go = error "Muste.Web.Protocol.highScoresHandler: TODO Not implemented!"
+  go ∷ Database.UserLessonScore → Ajax.HighScore
+  go Database.UserLessonScore{..} = Ajax.HighScore
+    { lesson = Ajax.Lesson
+        { key  = lesson
+        , name = lessonName
+        }
+    , user = Ajax.User
+        { key  = user
+        , name = userName
+        }
+    , score = score
+    }

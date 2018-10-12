@@ -104,14 +104,13 @@ toDatabaseExercise Data.Lesson{..} = step <$> exercises'
 dropRecreateUser ∷ Connection → Config.User → IO ()
 dropRecreateUser c Config.User{..}
   = void
-  $ Database.runDbT act c
-  where
-  name' = convertString name
-  password' = convertString password
-  act ∷ Database.Db ()
-  act = do
-    Database.rmUser  name'
-    Database.addUser name' password' enabled
+  $ flip Database.runDbT c
+  $ Database.addUser
+  $ Database.CreateUser
+    { name     = convertString name
+    , password = convertString password
+    , enabled  = enabled
+    }
 
 insertLessons ∷ Connection → [Database.Lesson] → IO ()
 insertLessons c = SQL.executeMany c q

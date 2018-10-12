@@ -1,6 +1,11 @@
 BACKLOG
 =======
 
+Update solved exercise counter while solving exercises
+---
+
+The global variable `Exercises` are only updated after a `lessons` request.
+
 What to do when a lesson is over?
 ---
 
