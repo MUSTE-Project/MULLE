@@ -14,6 +14,7 @@ module Muste.Web.Ajax
   , LoginSuccess(..)
   , LessonList(..)
   , MenuResponse(..)
+  , HighScore(..)
   ) where
 
 import Prelude ()
@@ -230,3 +231,18 @@ instance FromJSON ChangePwd where
     <$> v .: "name"
     <*> v .: "old-password"
     <*> v .: "new-password"
+
+data HighScore = HighScore
+  { lesson   ∷ Text
+  , user     ∷ Text
+  , score    ∷ Score
+  }
+
+deriving stock instance Show HighScore
+
+instance ToJSON HighScore where
+  toJSON HighScore{..} = Aeson.object
+    [ "lesson"   .= lesson
+    , "user"     .= user
+    , "score"    .= score
+    ]

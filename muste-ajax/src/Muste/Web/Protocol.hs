@@ -351,6 +351,7 @@ apiRoutes =
   , "menu"         |> menuHandler
   , "create-user"  |> createUserHandler
   , "change-pwd"   |> changePwdHandler
+  , "high-scores"  |> highScoresHandler
   ]
   where
     (|>) ∷ ∀ txt json snap
@@ -662,3 +663,11 @@ makeTree c lesson s
   menu = Muste.getMenu (mempty @Menu.PruneOpts) ctxt (Sentence.linearization s)
   ctxt = throwLeft $ getContext c lesson language
   language = Sentence.language s
+
+highScoresHandler ∷ MonadProtocol m ⇒ m (Response [Ajax.HighScore])
+highScoresHandler = do
+  xs ← Database.getUserExerciseScores
+  verifyMessage $ pure $ go xs
+  where
+  go ∷ [Database.UserExerciseScore] → [Ajax.HighScore]
+  go = error "Muste.Web.Protocol.highScoresHandler: TODO Not implemented!"

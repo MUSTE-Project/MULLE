@@ -24,6 +24,7 @@ module Muste.Web.Database
   , changePassword
   , updateActivity
   , rmUser
+  , getUserExerciseScores
   ) where
 
 import Prelude ()
@@ -798,21 +799,22 @@ WHERE User = ?
 AND Lesson = ?;
 |]
 
--- -- | The user and their score on each excercise.  If score and user is
--- -- null this means that /no/ user has completed the exercise.  If a
--- -- given exercise/user combination is not present in the output, then
--- -- this means that /this/ user has not completed the exercise.
+-- | The user and their score on each excercise.  If score and user is
+-- null this means that /no/ user has completed the exercise.  If a
+-- given exercise/user combination is not present in the output, then
+-- this means that /this/ user has not completed the exercise.
+getUserExerciseScores
+  ∷ MonadDB r db
+  ⇒ db [Types.UserExerciseScore]
+getUserExerciseScores = query_
+  [sql|
 -- getUserExerciseScores
---   ∷ MonadDB r db
---   ⇒ db [Types.UserExerciseScore]
--- getUserExerciseScores = query_
---   [sql|
---     SELECT
---       ExerciseLesson.Name,
---       ExerciseLesson.Lesson,
---       User,
---       Score
---     FROM ExerciseLesson
---     LEFT JOIN FinishedExercise
---       ON ExerciseLesson.Lesson = FinishedExercise.Lesson;
---   |]
+SELECT
+  ExerciseLesson.Name,
+  ExerciseLesson.Lesson,
+  User,
+  Score
+FROM ExerciseLesson
+LEFT JOIN FinishedExercise
+  ON ExerciseLesson.Lesson = FinishedExercise.Lesson;
+|]
