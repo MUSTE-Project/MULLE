@@ -207,7 +207,12 @@ function register_page_handler($) {
     // FIXME Hack
     var ref = href.substring(href.lastIndexOf('/') + 1);
     var idx = ref.indexOf('?');
-    var id = ref.substring(0, idx);
+    var id;
+    if(idx === -1) {
+      id = ref;
+    } else {
+      ref.substring(0, idx);
+    }
     var loc = ref.substring(idx);
     change_page(id, loc);
   });
