@@ -3,8 +3,9 @@ abstract ExemplumLex = Cat ** {
 fun
 
   default_NP : NP ;
+  default_aSg_Det : Det ;
 
-  theSg_Det, thePl_Det, aSg_Det, aPl_Det : Det ;
+  theSg_Det, thePl_Det, aPl_Det : Det ;
   many_Det, every_Det, few_Det : Det ;
 
   boy_N, girl_N, father_N, mother_N : N ;
