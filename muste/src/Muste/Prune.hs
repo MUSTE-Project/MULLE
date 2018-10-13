@@ -26,20 +26,15 @@ import Muste.AdjunctionTrees hiding (BuilderInfo(..))
 
 -- * Replacing trees
 
-replaceAllTrees :: PruneOpts -> AdjunctionTrees -> [TTree] -> [(Int, TTree, TTree)]
+replaceAllTrees :: PruneOpts -> AdjunctionTrees -> [TTree] -> [(TTree, TTree)]
 replaceAllTrees opts adjTrees base_trees
     = do (adjtree :: AdjTree, branches_and_parents) <- Map.toList pruned_map
          simtree :: TTree <- Map.findWithDefault [] adjtree new_sims_map
-         let simfuns = Grammar.getFunctions simtree
          (branches :: [TTree], parents :: Set (TTree, Path)) <- Map.toList branches_and_parents
          subtree :: TTree <- insertBranches branches simtree
-         let subfuns = Grammar.getFunctions subtree
-         -- this works because pruned and sim are disjoint:
-         let cost = max (MultiSet.size subfuns) (MultiSet.size simfuns)
-         -- let cost = subtree `Tree.treeDiff` simtree
          (oldtree :: TTree, path :: Path) <- Set.toList parents
          let newtree :: TTree = Tree.replaceNode oldtree path subtree
-         return (cost, oldtree, newtree)
+         return (oldtree, newtree)
 
     where
       pruned_map :: Map AdjTree (Map [TTree] (Set (TTree, Path)))
@@ -47,7 +42,7 @@ replaceAllTrees opts adjTrees base_trees
 
       sims_map :: Map AdjTree [TTree]
       sims_map = Map.mapWithKey getSims pruned_map
-          where getSims adjtree _ = [ t | (_, t, _) <- getSimTrees adjTrees adjtree ]
+          where getSims adjtree _ = getSimTrees adjTrees adjtree
 
       new_sims_map :: Map AdjTree [TTree]
       new_sims_map = Map.fromList $
@@ -93,16 +88,13 @@ splitBaseTree tree@(TNode _ _ children)
 splitBaseTree _ = error "Muste.Prune.splitBaseTree: Non-exhaustive pattern match"
 
 
-getSimTrees :: AdjunctionTrees -> AdjTree -> [(Int, TTree, ())]
+getSimTrees :: AdjunctionTrees -> AdjTree -> [TTree]
 getSimTrees adjTrees (key, pruned_tree)
     = do let pruned_fun = Grammar.getFunctions pruned_tree
          sim_tree <- Mono.findWithDefault [] key adjTrees 
          let sim_fun = Grammar.getFunctions sim_tree
          guard $ pruned_fun `disjoint` sim_fun
-         -- this works because pruned and sim are disjoint:
-         let cost = max (MultiSet.size pruned_fun) (MultiSet.size sim_fun)
-         -- let cost = pruned_tree `Tree.treeDiff` sim_tree
-         return (cost, sim_tree, ())
+         return sim_tree
 
 
 splitAdjtree :: AdjTree -> [(AdjTree, AdjTree)]

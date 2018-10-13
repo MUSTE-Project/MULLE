@@ -122,7 +122,7 @@ lookupNode tree path
     Just (TNode node _ _) -> node
     _ → error "Incomplete Pattern-Match"
 
-similarTrees ∷ Prune.PruneOpts → Context → [TTree] → [(Int, TTree, TTree)]
+similarTrees ∷ Prune.PruneOpts → Context → [TTree] → [(TTree, TTree)]
 similarTrees opts ctxt
   = Prune.replaceAllTrees opts (ctxtPrecomputed ctxt)
 
@@ -232,18 +232,18 @@ diagnose title convert input = unsafePerformIO $ do
 diagnose _ conv input = conv input
 #endif
 
-type TreeSubst = (Int, XTree, XTree)
+type TreeSubst = (XTree, XTree)
 type XTree = (TTree, [Tokn], [Node])
 
 collectTreeSubstitutions ∷ Prune.PruneOpts → Context → [TTree] → [TreeSubst]
 collectTreeSubstitutions opts ctxt oldtrees = 
-  [ (diff, extend old, extend new) | (diff, old, new) ← similarTrees opts ctxt oldtrees ]
+  [ (extend old, extend new) | (old, new) ← similarTrees opts ctxt oldtrees ]
   where extend tree = (tree, twords, tnodes)
             where (twords, tnodes) = linTree ctxt tree
 
 collectMenuItems :: Context -> [TreeSubst] -> [(Selection, Selection, Sentence.Linearization Token.Annotated)]
 collectMenuItems ctxt substs = do
-  (_cost, (_oldtree, oldwords, oldnodes), (_newtree, newwords, newnodes)) ← substs
+  ((_oldtree, oldwords, oldnodes), (_newtree, newwords, newnodes)) ← substs
   -- the nodes are used for finding insertion points,
   -- while the words are used for finding which words have changed:
   let nodeedits = filter (      emptyInterval . fst) $ alignSequences oldnodes newnodes
