@@ -19,6 +19,7 @@ module Muste.Grammar.Internal
   , parseSentence
   , getMetas
   , getFunctions
+  , getFunNames
   , hole
   , HasKnownGrammars(..)
   , KnownGrammars
@@ -30,6 +31,8 @@ import Muste.Prelude
 
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
 import qualified Data.ByteString.Lazy as LB
 -- This might be the only place we should know of PGF
 import qualified PGF
@@ -315,3 +318,8 @@ getFunctions :: TTree -> MultiSet Rule
 getFunctions = Tree.foldMapTTree step
   where
   step fun typ = MultiSet.singleton $ Function fun typ
+
+-- | Returns a set of all function names in a tree.
+getFunNames :: TTree -> Set Category
+getFunNames = Tree.foldMapTTree step
+    where step fun _ = Set.singleton fun

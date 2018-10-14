@@ -91,10 +91,10 @@ splitBaseTree _ = error "Muste.Prune.splitBaseTree: Non-exhaustive pattern match
 
 getSimTrees :: AdjunctionTrees -> AdjTree -> [TTree]
 getSimTrees adjTrees (key, pruned_tree)
-    = do let pruned_fun = Grammar.getFunctions pruned_tree
+    = do let pruned_fun = Grammar.getFunNames pruned_tree
          sim_tree <- Mono.findWithDefault [] key adjTrees 
-         let sim_fun = Grammar.getFunctions sim_tree
-         guard $ pruned_fun `disjoint` sim_fun
+         let sim_fun = Grammar.getFunNames sim_tree
+         guard $ pruned_fun `Set.disjoint` sim_fun
          return sim_tree
 
 
@@ -122,9 +122,6 @@ getToplevelCat :: TTree -> Category
 getToplevelCat (TNode _ (Fun cat _) _) = cat
 getToplevelCat (TMeta cat) = cat
 getToplevelCat _ = error "Muste.Prune.getToplevelCat: Non-exhaustive pattern match"
-
-disjoint ∷ Ord a ⇒ MultiSet a → MultiSet a → Bool
-disjoint a b = MultiSet.null $ MultiSet.intersection a b
 
 
 data PruneOpts = PruneOpts
