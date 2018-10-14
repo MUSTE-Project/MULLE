@@ -209,7 +209,7 @@ bracketsToTuples = deep
   -- In the middle of the tree
   deep ltree (PGF.Bracket _ fid _ _ _ bs) =
     broad ltree fid bs mempty
-  deep _ _ = error "Muste.linearizeTree: Non-exhaustive pattern match"
+  deep _ _ = error "Muste.bracketsToTuples: Non-exhaustive pattern match"
   broad :: TTree -> Int -> [PGF.BracketedString] -> Linearization -> Linearization
   -- End of node siblings
   broad _     _   []                 ts = ts
