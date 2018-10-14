@@ -45,7 +45,6 @@ import qualified Muste.Sentence.Annotated as Annotated
 #ifdef DIAGNOSTICS
 import System.IO.Unsafe (unsafePerformIO)
 import System.CPUTime (getCPUTime)
-import Muste.AdjunctionTrees.Internal (AdjunctionTrees(AdjunctionTrees))
 #endif
 
 type Tokn = Text
@@ -196,67 +195,62 @@ getMenu opts c l
 getMenuItems ∷ Prune.PruneOpts → Context → Text → Menu
 getMenuItems opts ctxt sentence
   = parseSentence ctxt sentence
-  & diagnoseContext opts ctxt
-  & diagnose "Collect tree substs" (collectTreeSubstitutions opts ctxt)
-  & diagnose "Collect menu items"  (collectMenuItems ctxt)
-  & buildMenu
+  & diagnose "Context"        showctxt showopts (\x -> x)
+  & diagnose "Collect substs" showlen  showsize (collectTreeSubstitutions opts ctxt)
+  & diagnose "Collect items"  showsize showsize (collectMenuItems)
+  & diagnose "Build menu"     showsize showmenu (buildMenu ctxt)
+  where showlen  = show . length
+        showsize = show . Set.size
+        showmenu (Menu menu) = show (map Set.size (Map.elems menu))
+        showctxt _ = "N:o adj.keys: " ++ showlen adjMap ++ ", n:o adj.trees: " ++ showlen adjTrees
+        showopts _ = "Pruning: " ++ show opts
+        adjMap     = Mono.mapToList (ctxtPrecomputed ctxt)
+        adjTrees   = adjMap >>= \(_, ts) → ts
+        
 
-buildMenu ∷ [(Selection, Selection, Sentence.Linearization Token.Annotated)] → Menu
-buildMenu items = Menu $ Map.fromListWith Set.union $
-                  [ (old, Set.singleton (new, nodes)) | (old, new, nodes) <- items ]
-
-diagnoseContext ∷ Prune.PruneOpts → Context → a → a
+diagnose ∷ String → (a → String) → (b → String) → (a → b) → (a → b)
 #ifdef DIAGNOSTICS
-diagnoseContext opts ctxt input = unsafePerformIO $ do
-  let AdjunctionTrees adjMap = ctxtPrecomputed ctxt
-  let adjTrees = Map.toList adjMap >>= \(_, ts) → ts
-  printf ">> Number of adjunction keys: %d,  adjunction trees: %d\n" (length adjMap) (length adjTrees)
-  printf "<< Prune options: %s\n\n" (show opts)
-  return input
-#else
-diagnoseContext _ _ input = input
-#endif
-
-diagnose ∷ Ord a => Ord b => String → ([a] → [b]) → ([a] → [b])
-#ifdef DIAGNOSTICS
-diagnose title convert input = unsafePerformIO $ do
-  printf ">> %s, input: %d\n" title (length input)
+diagnose title ashow bshow convert input = unsafePerformIO $ do
+  printf ">> %s, input: %s\n" title (ashow input)
   time0 <- getCPUTime
   let output = convert input
-  printf "   %s, output: %d\n" title (length output)
+  printf "   %s, output: %s\n" title (bshow output)
   time1 <- getCPUTime
   let secs :: Float = fromInteger (time1-time0) * 1e-12
   printf "<< %s: %.2f s\n\n" title secs
   return output
 #else
-diagnose _ conv input = conv input
+diagnose _ _ _ convert = convert
 #endif
 
-type TreeSubst = (XTree, XTree)
-type XTree = (TTree, [Tokn], [Node])
 
-collectTreeSubstitutions ∷ Prune.PruneOpts → Context → [TTree] → [TreeSubst]
-collectTreeSubstitutions opts ctxt oldtrees = 
-  [ (extend old, extend new) | (old, new) ← similarTrees opts ctxt oldtrees ]
-  where extend tree = (tree, twords, tnodes)
-            where (twords, tnodes) = linTree ctxt tree
+collectTreeSubstitutions ∷ Prune.PruneOpts → Context → [TTree] → Set (([Tokn], [Node]), ([Tokn], [Node]))
+collectTreeSubstitutions opts ctxt oldtrees 
+    = Set.fromList [ (linTree ctxt old, linTree ctxt new) | (old, new) ← similarTrees opts ctxt oldtrees ]
 
-collectMenuItems :: Context -> [TreeSubst] -> [(Selection, Selection, Sentence.Linearization Token.Annotated)]
-collectMenuItems ctxt substs = do
-  ((_oldtree, oldwords, oldnodes), (_newtree, newwords, newnodes)) ← substs
-  -- the nodes are used for finding insertion points,
-  -- while the words are used for finding which words have changed:
-  let nodeedits = filter (      emptyInterval . fst) $ alignSequences oldnodes newnodes
-  let wordedits = filter (not . emptyInterval . fst) $ alignSequences oldwords newwords
-  let edits = nodeedits <> wordedits
-  let (oldselection, newselection) = splitAlignments edits
-  let lins = [ Annotated.mkLinearization ctxt t t t |
-               t <- parseSentence ctxt (Text.unwords newwords) ]
-  -- if there are no linearisations (e.g. because of the grammar not fully implemented),
-  -- we just skip this menu item:
-  guard $ not (null lins)
-  let allnewnodes = foldl1 Annotated.mergeL lins
-  return (oldselection, newselection, allnewnodes)
+
+collectMenuItems :: Set (([Tokn], [Node]), ([Tokn], [Node])) -> Set (Selection, Selection, [Tokn])
+collectMenuItems = Set.map align
+    where align ((oldwords, oldnodes), (newwords, newnodes)) = (oldselection, newselection, newwords)
+              where (oldselection, newselection) = splitAlignments edits
+                    edits = nodeedits <> wordedits
+                    -- the node edits are used for finding insertion points:
+                    nodeedits = filter (      emptyInterval . fst) $ alignSequences oldnodes newnodes
+                    -- the word edits are used for finding which words have changed:
+                    wordedits = filter (not . emptyInterval . fst) $ alignSequences oldwords newwords
+                    
+
+buildMenu ∷ Context -> Set (Selection, Selection, [Tokn]) → Menu
+buildMenu ctxt items
+    = Menu $ Map.fromAscListWith Set.union $
+      [ (oldselection, Set.singleton (newselection, newlin)) |
+        (oldselection, newselection, newwords) <- Set.toAscList items,
+        let newlins' = [ Annotated.mkLinearization ctxt t t t |
+                         t <- parseSentence ctxt (Text.unwords newwords) ],
+        not (null newlins'),
+        let newlin = foldl1 Annotated.mergeL newlins'
+      ]
+
 
 
 -- * LCS
