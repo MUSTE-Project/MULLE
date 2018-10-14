@@ -6,6 +6,7 @@
 module Muste.Prune
   ( replaceAllTrees
   , PruneOpts(..)
+  , emptyPruneOpts
   ) where
 
 import Prelude ()
@@ -131,8 +132,8 @@ data PruneOpts = PruneOpts
   , searchSize  ∷ Maybe Int
   } deriving Show
 
-emptyOpts :: PruneOpts
-emptyOpts = PruneOpts Nothing Nothing
+emptyPruneOpts :: PruneOpts
+emptyPruneOpts = PruneOpts Nothing Nothing
 
 
 -- | Replace all metavariables in a tree with corresponding branches

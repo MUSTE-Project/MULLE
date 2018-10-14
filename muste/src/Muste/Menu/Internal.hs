@@ -10,6 +10,7 @@ module Muste.Menu.Internal
   , Token.Annotated(..)
   , Interval(Interval, runInterval)
   , Prune.PruneOpts(..)
+  , Prune.emptyPruneOpts
   ) where
 
 import Prelude ()
