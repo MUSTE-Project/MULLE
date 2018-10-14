@@ -67,8 +67,7 @@ instance Sentence Annotated where
   linearization = Muste.Sentence.Annotated.linearization
   sentence = Annotated
 
--- | @'mkLinearization' c src trg t@ creates a 'Linearization' of @t@
--- from a source tree (@src@) and a target tree (@trg@).  The
+-- | @'mkLinearization' c t@ creates a 'Linearization' of @t@. The
 -- 'Linearization' will be a valid such in the grammar and languages
 -- specified by the 'Context' @c@.
 --
@@ -78,15 +77,10 @@ instance Sentence Annotated where
 -- create ambiguities in the individual words.  Eachs 'Token' will
 -- correspond exactly to an internal node in the 'TTree' (idenfitied
 -- by the "name" of that node).
-mkLinearization
-  ∷ Context
-  → TTree
-  → TTree
-  → TTree -- ^ The actual tree to linearize
-  → Linearization Token.Annotated
-mkLinearization c t0 t1 t
+mkLinearization ∷ Context → TTree → Linearization Token.Annotated
+mkLinearization c t
   -- Reuse functionality from 'Muste.OldLinearization.Internal'
-  = OldLinearization.mkLin c t0 t1 t
+  = OldLinearization.linearizeTree c t
   & otoList
   -- Convert old representation to new.
   & fmap step
@@ -109,21 +103,13 @@ mkLinearization c t0 t1 t
     Tree.TNode n _ _ → n
     Tree.TMeta{} → error "Expected saturated tree"
 
--- | @'sentence' c src trg t@ creates a 'Sentence' of @t@ from a
--- source tree (@src@) and a target tree (@trg@).  The 'Sentence' will
--- be a valid such in the grammar and languages specified by the
+-- | @'annotated' c t@ creates a 'Sentence' of @t@.  The 'Sentence' 
+-- will be a valid such in the grammar and languages specified by the
 -- 'Context' @c@.
 --
 -- See also the documentation for 'linearization'.
-annotated
-  ∷ Context
-  → Language
-  → TTree -- ^ The source tree
-  → TTree -- ^ The target tree
-  → TTree -- ^ The actual tree to linearize
-  → Annotated
-annotated c l src trg t
-  = Annotated l $ mkLinearization c src trg t
+annotated ∷ Context → Language → TTree → Annotated
+annotated c l t = Annotated l $ mkLinearization c t
 
 -- | Merge multiple
 merge ∷ MonadThrow m ⇒ Exception e ⇒ e → [Annotated] → m Annotated

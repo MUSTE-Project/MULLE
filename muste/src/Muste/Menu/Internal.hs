@@ -245,8 +245,7 @@ buildMenu ctxt items
     = Menu $ Map.fromAscListWith Set.union $
       [ (oldselection, Set.singleton (newselection, newlin)) |
         (oldselection, newselection, newwords) <- Set.toAscList items,
-        let newlins' = [ Annotated.mkLinearization ctxt t t t |
-                         t <- parseSentence ctxt (Text.unwords newwords) ],
+        let newlins' = map (Annotated.mkLinearization ctxt) (parseSentence ctxt (Text.unwords newwords)),
         not (null newlins'),
         let newlin = foldl1 Annotated.mergeL newlins'
       ]

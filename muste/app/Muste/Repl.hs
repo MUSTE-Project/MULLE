@@ -149,7 +149,7 @@ prettyMenu verbose ctxt s = Doc.vsep . fmap (uncurry go) . open
   annotated ∷ [Text]
   annotated
     = parse s
-    & map (\t -> Annotated.mkLinearization ctxt t t t)
+    & map (\t -> Annotated.mkLinearization ctxt t)
     & foldl1 Annotated.mergeL
     & toList
     & map getNodes
