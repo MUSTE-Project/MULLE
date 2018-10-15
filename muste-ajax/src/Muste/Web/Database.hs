@@ -217,6 +217,7 @@ authUser user pass = do
 -- authUser
 SELECT
   Id,
+  Username,
   Password,
   Salt,
   Enabled
