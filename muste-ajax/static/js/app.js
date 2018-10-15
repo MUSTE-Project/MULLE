@@ -10,20 +10,6 @@ var EXERCISES = [];
 var VIRTUAL_ROOT = '/';
 var SERVER = VIRTUAL_ROOT + 'api/';
 
-var MESSAGES = {
-  LOGOUT: 'logout',
-  // Must set authentication header
-  LOGIN: 'login',
-  LESSONS: 'lessons',
-  // Muste request the *name* of the lesson.  E.g:
-  //
-  //    /lesson/Prima+Pars
-  //
-  // TODO Would be more convenient if it was an id.
-  LESSON: 'lesson',
-  MENU: 'menu',
-};
-
 jQuery().ready(init);
 
 function init() {
@@ -39,6 +25,7 @@ function init() {
   register_popup_menu(jQuery);
   register_page_handler(jQuery);
   register_high_score_handler(jQuery);
+  register_lessons_listener(jQuery);
   show_login_page();
 }
 
@@ -233,7 +220,7 @@ function show_page(pg) {
 
 
 function restart_everything() {
-  muste_request({}, MESSAGES.LOGOUT);
+  muste_request({}, 'logout');
   change_page('#page-login');
 }
 
@@ -244,7 +231,7 @@ function submit_login(evt) {
   }
   var loginform = document.getElementById('loginform');
   var req = {name: loginform.name.value, password: loginform.pwd.value};
-  muste_request(req, MESSAGES.LOGIN)
+  muste_request(req, 'login')
     .then(login_success)
     .fail(function() {
       alert('User name or password incorrect');
@@ -330,11 +317,20 @@ function register_handlebars_helper() {
   });
 }
 
+// Fetches the lessons and triggers a custom event afterwards.
+function fetch_lessons() {
+  return muste_request({}, 'lessons').then(function(r) {
+    $(window).trigger('lessons-loaded', {lessons: r.lessons});
+    return r;
+  });
+}
+
+// Also shows the lessons afterwards.
 function retrieve_lessons(evt) {
   if (evt && evt.preventDefault) {
     evt.preventDefault();
   }
-  muste_request({}, MESSAGES.LESSONS).then(show_lessons);
+  fetch_lessons().then(show_lessons);
 }
 
 var lesson_list_template = ' \
@@ -374,13 +370,19 @@ function show_lessons(resp) {
   table.empty();
   var e = render_lesson_list(lessons);
   table.html(e);
-  lessons.forEach(function(x) {
-    var key = x.lesson;
-    EXERCISES[key] = {
-      passed: x.passedcount,
-      total: x.exercisecount
-    };
-  });
+}
+
+function register_lessons_listener($) {
+  function update_exercises(_, x) {
+    x.lessons.forEach(function(x) {
+      var key = x.lesson;
+      EXERCISES[key] = {
+        passed: x.passedcount,
+        total: x.exercisecount
+      };
+    });
+  }
+  $(window).on('lessons-loaded', update_exercises);
 }
 
 // Warning defined but never used.  What gives?
@@ -394,7 +396,7 @@ function select_lesson(evt) { // eslint-disable-line no-unused-vars
 
 function start_lesson(lesson) {
   start_timer();
-  muste_request({}, MESSAGES.LESSON + '/' + lesson)
+  muste_request({}, 'lesson/' + lesson)
     .then(handle_menu_response);
 }
 
@@ -411,8 +413,16 @@ function handle_menu_response(r) {
       show_exercise_complete(r);
       return;
     }
-    start_lesson(key);
+    continue_lesson(key);
   }
+}
+
+function continue_lesson(key) {
+  // We need to sequence fetch_lessons and start_lesson due to the way
+  // updating the lesson counter is handlded.
+  fetch_lessons().then(function () {
+    start_lesson(key);
+  });
 }
 
 function show_exercise(resp) {

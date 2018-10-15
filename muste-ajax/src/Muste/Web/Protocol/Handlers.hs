@@ -14,8 +14,7 @@
 {-# OPTIONS_GHC -Wall -Wcompat #-}
 
 module Muste.Web.Protocol.Handlers
-  (
-    loginHandler
+  ( loginHandler
   , logoutHandler
   , lessonsHandler
   , lessonHandler

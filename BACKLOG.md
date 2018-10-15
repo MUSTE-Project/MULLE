@@ -1,6 +1,23 @@
 BACKLOG
 =======
 
+Increase response time of continuing a lesson
+--
+
+Due to the way updating the exercise counter (for the active lesson) I
+have resorted to implementing keeping this up-to-date when we finish
+an exercise by sequencing the following two actions:
+
+  * fetch all lessons (this is how the lesson counter is kept up-to-date
+  * get the current menu for the current exercise
+
+This means that response-time when finishing an exercise will now be
+the sum of those two actions in stead of doing them in parallel as
+would be otherwise possible.
+
+A nicer fix would be to change how the exercise/lesson-counter is kept
+up-to-date.  Needs a bit of thought.
+
 Update solved exercise counter while solving exercises
 ---
 
