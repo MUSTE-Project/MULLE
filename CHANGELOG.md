@@ -4,6 +4,37 @@ Change log
 HEAD
 ---
 
+### UI changes
+
+Fix issue with busy indicator
+
+Show overlay when page is loading
+
+Show which page we are on in the browser location bar
+
+Experimental: Navigate to page as given by the location bar header on
+page load.
+
+Detect if exercise+lesson is over.  If the lesson is over, go back to
+lesson overview page.  If the lesson is not over but the exercise is,
+retrieve the next exercise in that lesson.  If the exercise is not
+over, just display the sentences.
+
+### Database changes
+
+This change contains a lot of changes to the data model.  Regressions
+are likely!
+
+Compunded the time column with the click count column to make a new
+"score" column.  The data in it is stored a binary blob.  For one
+thing this for instance means that we cannot use aggregate functions
+on the column.  In stead we need to pull out all score values and
+e.g. mconcat them together.
+
+### Other changes
+
+Update to latest version of our fork of `sqlite-simple`.
+
 0.2.6.0
 ---
 

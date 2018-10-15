@@ -17,6 +17,8 @@ import Data.Aeson ((.:), FromJSON, Object, (.:?), (.!=))
 import Data.Aeson.Types (Parser)
 import qualified Data.Aeson as Aeson
 
+import qualified Muste.Web.Database.Types as Database
+
 -- | A combinator that defaults to 'mempty' is not value is present.
 (.:*) ∷ FromJSON a ⇒ Monoid a ⇒ Object → Text → Parser a
 o .:* a = o .:? a .!= mempty
@@ -91,7 +93,8 @@ instance FromJSON Exercise where
     <*> v .:  "target"
 
 data Lesson = Lesson
-  { name           ∷ Text
+  { key            ∷ Database.Key
+  , name           ∷ Text
   , description    ∷ Text
   , settings       ∷ LessonSettings
   , searchOptions  ∷ SearchOptions
@@ -104,9 +107,11 @@ deriving stock instance Show Lesson
 instance FromJSON Lesson where
   parseJSON = Aeson.withObject "search-options"
     $  \v → Lesson
-    <$> v .:  "name"
+    <$> v .:  "key"
+    <*> v .:  "name"
     <*> v .:  "description"
     <*> v .:  "settings"
     <*> v .:* "search-options"
     <*> v .:  "languages"
     <*> v .:  "exercises"
+

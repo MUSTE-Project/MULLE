@@ -4,6 +4,9 @@ module Muste.Sentence.Unannotated where
 
 import Prelude ()
 import Muste.Prelude
+import Muste.Prelude.SQL (FromField, ToField)
+import qualified Muste.Prelude.SQL as SQL
+
 import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:))
 import qualified Data.Aeson as Aeson
 import GHC.Generics (Generic)
@@ -15,8 +18,6 @@ import qualified Data.Text as Text
 import Muste.Tree.Internal (TTree)
 import Muste.Linearization.Internal (Context(..))
 import qualified Muste.Grammar.Internal as Grammar
-import Muste.Common.SQL (FromField, ToField)
-import qualified Muste.Common.SQL as SQL
 import qualified Muste.Sentence.Token as Token
 import Muste.Sentence.Class
   ( Sentence

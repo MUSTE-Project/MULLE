@@ -14,6 +14,9 @@ module Muste.Menu.Internal
 
 import Prelude ()
 import Muste.Prelude
+import qualified Muste.Prelude.Unsafe as Unsafe
+import Muste.Prelude.Extra
+
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
@@ -27,7 +30,6 @@ import Data.Aeson (ToJSONKey, toJSONKey, ToJSONKeyFunction(ToJSONKeyValue), toJS
 import Control.DeepSeq (NFData)
 import qualified Data.Text as Text
 
-import Muste.Common
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.Linearization.Internal
   (Linearization(..), Context, ctxtGrammar, ctxtLang, ctxtPrecomputed)
@@ -261,7 +263,7 @@ collectMenuItems ctxt substs = do
   -- if there are no linearisations (e.g. because of the grammar not fully implemented),
   -- we just skip this menu item:
   guard $ not (null lins)
-  let allnewnodes = foldl1 Annotated.mergeL lins
+  let allnewnodes = Unsafe.foldl1 Annotated.mergeL lins
   return (oldselection, newselection, allnewnodes)
 
 

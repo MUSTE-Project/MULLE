@@ -1,6 +1,21 @@
 BACKLOG
 =======
 
+Update solved exercise counter while solving exercises
+---
+
+The global variable `Exercises` are only updated after a `lessons` request.
+
+What to do when a lesson is over?
+---
+
+Currently is a user tries to open a lesson where they have solved all
+exercises, then an error to that effect is logged in the browser
+console.
+
+Retrieve necessary data on navigation start
+---
+
 Use front end framework
 ---
 

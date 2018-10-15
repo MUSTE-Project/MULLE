@@ -1,4 +1,5 @@
 - name: "Prima"
+  key: 0
   description: "Lektion et från boken 'Novo Modo'"
   settings:
     grammar: "novo_modo/Prima"
@@ -36,6 +37,7 @@
       target: kejsaren Augustus besegrar Gallien
 
 - name: "Secunda"
+  key: 1
   description: "Lektion två från boken 'Novo Modo'"
   settings:
     grammar: "novo_modo/Secunda"
@@ -90,6 +92,7 @@
       target: de undervisade romarna
 
 - name: "Eng->Swe"
+  key: 3
   description: "Eng->Swe"
   search-options:
     size: 7
@@ -103,6 +106,7 @@
       target: en god kung läser en bok
 
 - name: "Eng->Lat"
+  key: 4
   description: "Eng->Lat"
   search-options:
     # The Latin grammar is extremely ambiguous
@@ -117,6 +121,7 @@
       target: rex bonus librum legit
 
 - name: "Eng->Spa"
+  key: 5
   description: "Eng->Spa"
   search-options:
     size: 7
@@ -131,6 +136,7 @@
       target: un bueno rey lee un libro
 
 - name: "Eng->Chi"
+  key: 6
   description: "Eng->Chi"
   search-options:
     size: 7
@@ -144,6 +150,7 @@
       target:  一 个 好 国 王 读 一 本 书 
 
 - name: "Eng->Ara"
+  key: 7
   description: "Eng->Ara"
   search-options:
     size: 7
@@ -157,6 +164,7 @@
       target:  يَقْرَأُ مَلِكٌ جوَيِّدٌ كِتابً 
 
 - name: "Eng->Test"
+  key: 8
   description: "Eng->Test"
   search-options:
     size: 7

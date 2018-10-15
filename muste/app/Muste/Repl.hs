@@ -21,6 +21,9 @@ module Muste.Repl
 
 import Prelude ()
 import Muste.Prelude
+import qualified Muste.Prelude.Unsafe as Unsafe
+import Muste.Prelude.Extra
+
 import System.Console.Repline
   (HaskelineT, runHaskelineT)
 import qualified System.Console.Haskeline     as Repl
@@ -36,7 +39,6 @@ import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 
 import Muste hiding (getMenu)
-import Muste.Common
 import qualified Muste.Grammar.Internal       as Grammar
 import Muste.Menu (Menu)
 import qualified Muste.Menu.Internal          as Menu
@@ -150,7 +152,7 @@ prettyMenu verbose ctxt s = Doc.vsep . fmap (uncurry go) . open
   annotated
     = parse s
     & map (\t -> Annotated.mkLinearization ctxt t t t)
-    & foldl1 Annotated.mergeL
+    & Unsafe.foldl1 Annotated.mergeL
     & toList
     & map getNodes
   parse ∷ Text → [TTree]
