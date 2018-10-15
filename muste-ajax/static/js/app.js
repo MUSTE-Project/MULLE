@@ -485,9 +485,10 @@ function show_lin(lang, lin, menu) {
     var current = linTok.concrete;
     var spacing = (previous == NOSPACING || current == NOSPACING || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
       ? ' ' : ' &emsp; ';
+    var validMenusSpace = getValidMenusSpace(i, menu);
     var validMenus = getValidMenus(i, menu);
 
-    gen_space(validMenus, i)
+    gen_space(validMenusSpace, i)
       .html(spacing)
       .appendTo(sentence);
 
@@ -670,7 +671,7 @@ function getValidMenus(idx, menu) {
   return iterateMenu(idx, mp);
 }
 
-function getValidMenusEmpty(idx, menu) {
+function getValidMenusSpace(idx, menu) {
   var mp = lookupKeySetEmptyRange(idx, menu);
   return iterateMenu(idx, mp);
 }
