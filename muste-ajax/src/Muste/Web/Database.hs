@@ -66,6 +66,7 @@ import qualified Muste
 
 import qualified Muste.Web.Database.Types as Types
 import qualified Muste.Web.Database.Types as ActiveLessonForUser (ActiveLessonForUser(..))
+import qualified Muste.Web.Database.Types as User (User(..))
 import           Muste.Web.Types.Score (Score)
 
 data Error
@@ -144,11 +145,11 @@ FROM Lesson;
 createUser
   ∷ MonadDB r db
   ⇒ Types.CreateUser
-  -> db Types.User
+  -> db Types.UserSansId
 createUser Types.CreateUser{..} = do
   -- Create a salted password
   salt <- createSalt
-  pure $ Types.User
+  pure $ Types.UserSansId
     { name     = name
     , password = hashPasswd (T.encodeUtf8 password) salt
     , salt     = salt
@@ -197,17 +198,17 @@ authUser
   ∷ MonadDB r db
   ⇒ Text -- ^ Username
   → Text -- ^ Password
-  → db ()
+  → db Types.User
 authUser user pass = do
   -- Get password and salt from database
-  userList <- query @(ByteString, ByteString, Bool) q (Only user)
+  userList <- query @Types.User q (Only user)
   -- Generate new password hash and compare to the stored one
   let
     h dbSalt = hashPasswd (T.encodeUtf8 pass) dbSalt
-    p (dbPass, dbSalt, enabled) = enabled && h dbSalt == dbPass
+    p Types.User{..} = enabled && h salt == password
   case userList of
     [usr] → if
-      | p usr     → pure ()
+      | p usr     → pure usr
       | otherwise → throwDbError NotAuthenticated
     _             → throwDbError NoUserFound
   where
@@ -215,6 +216,7 @@ authUser user pass = do
   q = [sql|
 -- authUser
 SELECT
+  Id,
   Password,
   Salt,
   Enabled
@@ -224,14 +226,16 @@ WHERE Username = ?;
 
 changePassword
   ∷ MonadDB r db
-  ⇒ Text -- ^ Username
-  → Text -- ^ Old password
-  → Text -- ^ New password
+  ⇒ Types.ChangePassword
   → db ()
-changePassword user oldPass newPass = do
-  authUser user oldPass
-  rmUser user
-  addUser user newPass True
+changePassword Types.ChangePassword{..} = do
+  usr ← authUser name oldPassword
+  rmUser $ User.key usr
+  addUser $ Types.CreateUser
+    { name     = name
+    , password = newPassword
+    , enabled  = True
+    }
 
 createSession
   ∷ MonadDB r db

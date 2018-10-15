@@ -74,8 +74,12 @@ createUserHandler = do
 -- then checked against the database.
 changePwdHandler ∷ MonadProtocol m ⇒ m (Response ())
 changePwdHandler = do
-  Ajax.ChangeUser{..} ← getMessage
-  Database.changePassword name oldPassword newPassword
+  Ajax.ChangePassword{..} ← getMessage
+  Database.changePassword Database.ChangePassword
+    { name = name
+    , oldPassword = oldPassword
+    , newPassword = newPassword
+    }
   pure mempty
 
 throwApiError ∷ MonadProtocol m ⇒ ApiError → m a
@@ -146,7 +150,7 @@ handleLoginRequest
   ⇒ Ajax.LoginRequest
   → m Ajax.LoginSuccess
 handleLoginRequest Ajax.LoginRequest{..} = do
-  Database.authUser name password
+  void $ Database.authUser name password
   token ← Database.startSession name
   setLoginCookie token
   pure $ Ajax.LoginSuccess token

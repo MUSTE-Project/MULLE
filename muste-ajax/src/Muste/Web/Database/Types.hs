@@ -18,8 +18,9 @@
 
 module Muste.Web.Database.Types
   ( User(..)
+  , UserSansId(..)
   , CreateUser(..)
-  , ChangeUser(..)
+  , ChangePassword(..)
   , Session(..)
   , Exercise(..)
   , Lesson(..)
@@ -65,7 +66,8 @@ deriving newtype instance ToJSON    Key
 deriving newtype instance FromJSON  Key
 
 data User = User
-  { name                ∷ Text
+  { key                 ∷ Key
+  , name                ∷ Text
   , password            ∷ Blob
   , salt                ∷ Blob
   , enabled             ∷ Bool
@@ -75,6 +77,18 @@ deriving stock    instance Show    User
 deriving stock    instance Generic User
 deriving anyclass instance ToRow   User
 deriving anyclass instance FromRow User
+
+data UserSansId = UserSansId
+  { name                ∷ Text
+  , password            ∷ Blob
+  , salt                ∷ Blob
+  , enabled             ∷ Bool
+  }
+
+deriving stock    instance Show    UserSansId
+deriving stock    instance Generic UserSansId
+deriving anyclass instance ToRow   UserSansId
+deriving anyclass instance FromRow UserSansId
 
 data CreateUser = CreateUser
   { name     ∷ Text
@@ -90,16 +104,16 @@ deriving anyclass instance FromRow CreateUser
 -- If we made it so that only /already/ authenticated users could
 -- change their password, then we ought to change to a user id here in
 -- stead of their name.
-data ChangeUser = ChangeUser
+data ChangePassword = ChangePassword
   { name        ∷ Text
   , oldPassword ∷ Text
   , newPassword ∷ Text
   }
 
-deriving stock    instance Show    ChangeUser
-deriving stock    instance Generic ChangeUser
-deriving anyclass instance ToRow   ChangeUser
-deriving anyclass instance FromRow ChangeUser
+deriving stock    instance Show    ChangePassword
+deriving stock    instance Generic ChangePassword
+deriving anyclass instance ToRow   ChangePassword
+deriving anyclass instance FromRow ChangePassword
 
 -- | Representation of a 'Session' in the database.  Consists of:
 --

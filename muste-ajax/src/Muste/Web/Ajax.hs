@@ -21,7 +21,7 @@ module Muste.Web.Ajax
   , Database.ActiveLesson(..)
   , User(..)
   , CreateUser(..)
-  , ChangeUser(..)
+  , ChangePassword(..)
   , MenuRequest(..)
   , MenuList(..)
   , LoginSuccess(..)
@@ -232,17 +232,17 @@ instance FromJSON CreateUser where
 
 -- FIXME Should use ID in stead of name here!
 -- | Like a 'CreateUser' but with an old and a new password.
-data ChangeUser = ChangeUser
+data ChangePassword = ChangePassword
   { name        ∷ Text
   , oldPassword ∷ Text
   , newPassword ∷ Text
   }
 
-deriving stock instance Show ChangeUser
+deriving stock instance Show ChangePassword
 
-instance FromJSON ChangeUser where
+instance FromJSON ChangePassword where
   parseJSON = Aeson.withObject "user"
-     $ \v -> ChangeUser
+     $ \v -> ChangePassword
     <$> v .: "name"
     <*> v .: "old-password"
     <*> v .: "new-password"
