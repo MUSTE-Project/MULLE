@@ -251,7 +251,7 @@ buildMenu ctxt items
         (oldselection, newselection, newwords) <- Set.toAscList items,
         let newlins' = map (Annotated.mkLinearization ctxt) (parseSentence ctxt (Text.unwords newwords)),
         not (null newlins'),
-        let newlin = foldl1 Annotated.mergeL newlins'
+        let newlin = Unsafe.foldl1 Annotated.mergeL newlins'
       ]
 
 

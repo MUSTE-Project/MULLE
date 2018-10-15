@@ -335,7 +335,7 @@ makeTree
 makeTree c lesson s
   = Ajax.ServerTree s menu
   where
-  menu = Muste.getMenu (mempty @Menu.PruneOpts) ctxt (Sentence.linearization s)
+  menu = Muste.getMenu Menu.emptyPruneOpts ctxt (Sentence.linearization s)
   ctxt = throwLeft $ getContext c lesson language
   language = Sentence.language s
 

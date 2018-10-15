@@ -11,19 +11,16 @@ module Muste.Prune
 
 import           Prelude ()
 import           Muste.Prelude
-import           Muste.Prelude.Extra
 
 import qualified Data.Containers         as Mono
 import           Data.Map (Map)
 import qualified Data.Map                as Map
 import           Data.Set (Set)
 import qualified Data.Set                as Set
-import           Data.MultiSet (MultiSet)
 import qualified Data.MultiSet           as MultiSet
 
 import           Muste.Tree (TTree(..), Path, FunType(..), Category)
 import qualified Muste.Tree.Internal     as Tree
-import           Muste.Grammar
 import qualified Muste.Grammar.Internal  as Grammar
 import           Muste.AdjunctionTrees hiding (BuilderInfo(..))
 
