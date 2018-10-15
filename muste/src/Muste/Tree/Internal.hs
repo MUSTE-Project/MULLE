@@ -27,25 +27,20 @@ module Muste.Tree.Internal
   , cIdToCat
   ) where
 
+import Prelude ()
+import Muste.Prelude
+import Muste.Prelude.Extra
+import qualified Muste.Prelude.Unsafe as Unsafe
+import Muste.Prelude.SQL (FromField, ToField)
+import qualified Muste.Prelude.SQL as SQL
+
 -- TODO Do not depend on PGF
 import qualified PGF
   (CId, utf8CId, Tree, wildCId, mkMeta, mkApp, showExpr, showCId)
 
-import Prelude ()
-import Muste.Prelude
 import Data.Aeson
 import qualified Data.Text as Text
-import Data.String (fromString)
 import Data.String.ToString
-import Language.Haskell.TH.Syntax (Lift)
-import Control.DeepSeq (NFData)
-import Data.Data (Typeable, Data(..))
-import Data.String.Conversions (convertString)
-
-import Muste.Common.SQL (FromField, ToField)
-import qualified Muste.Common.SQL as SQL
-
-import Muste.Common
 
 -- * Trees
 
@@ -223,7 +218,7 @@ instance TreeC TTree where
   selectBranch (TNode _ _ [] ) _ = Nothing
   selectBranch (TNode _ _ trees) i
     | i < 0 || i >= length trees = Nothing
-    | otherwise = Just (trees !! i)
+    | otherwise = Just (trees Unsafe.!! i)
 
 -- List-related functions
 -- | The function 'listReplace' replaces an element in a 'List' if the
@@ -251,7 +246,7 @@ isValid t =
         brokenPath = filter (not . fst) vs
       in
         if (t == ccats) && all fst vs then (True,Nothing)
-        else if null brokenPath then (False, Just $ reverse path) else (False, Just $ reverse $ fromJust $ snd $ head brokenPath)
+        else if null brokenPath then (False, Just $ reverse path) else (False, Just $ reverse $ fromJust $ snd $ Unsafe.head brokenPath)
     check _ path = (False, Just $ reverse path)
   in
     check t []
@@ -284,7 +279,7 @@ instance TreeC LTree where
   selectBranch (LNode _ _ [] ) _ = Nothing
   selectBranch (LNode _ _ trees) i
     | i < 0 || i >= length trees = Nothing
-    | otherwise = Just (trees !! i)
+    | otherwise = Just (trees Unsafe.!! i)
 
 -- | Creates a labeled LTree from a TTree
 ttreeToLTree :: TTree -> LTree

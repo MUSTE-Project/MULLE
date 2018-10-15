@@ -1,12 +1,26 @@
+-- | Defines types corresponding to the data in the tables/views of
+-- the database.
+--
+-- Module      : Muste.Web.Database.Types
+-- License     : Artistic License 2.0
+-- Stability   : experimental
+-- Portability : POSIX
+--
+-- Some of the types are direct translations, some are not.
+--
+-- Many of the types are very similar to the ones defined in
+-- "Muste.Web.Ajax".  This is intentional. The reason for this is that
+-- SQL database are row-orientend whereas JSON is document oriented.
+
 {-# OPTIONS_GHC -Wall #-}
 {-# Language StandaloneDeriving , GeneralizedNewtypeDeriving ,
-    TypeOperators , LambdaCase, DuplicateRecordFields #-}
--- | One type per table
---
--- The reason I'm using type aliases is to inherit the `FromRow` and
--- `ToRow` instances defined for these types.
+    TypeOperators , DuplicateRecordFields, DeriveAnyClass, RecordWildCards #-}
+
 module Muste.Web.Database.Types
   ( User(..)
+  , UserSansId(..)
+  , CreateUser(..)
+  , ChangePassword(..)
   , Session(..)
   , Exercise(..)
   , Lesson(..)
@@ -14,44 +28,92 @@ module Muste.Web.Database.Types
   , StartedLesson(..)
   , FinishedLesson(..)
   , ExerciseList(..)
+  , ActiveLessonForUser(..)
+  , ActiveLesson(..)
+  , UserLessonScore(..)
+  , Key(..)
   , Muste.TTree
   , Sentence.Unannotated
+  , Numeric
+  , Blob
+  , ExerciseLesson(..)
   ) where
 
 import Prelude ()
 import Muste.Prelude
+import Muste.Prelude.SQL (FromRow, ToRow, Nullable, ToField, FromField)
+import Data.Int (Int64)
+
 import Data.ByteString (ByteString)
-import Data.Time
+import Data.Aeson (FromJSON(..), (.:), ToJSON(..), (.=))
+import qualified Data.Aeson as Aeson
 
 import qualified Muste (TTree)
 import qualified Muste.Sentence.Unannotated as Sentence (Unannotated)
 import Muste.Sentence.Unannotated (Unannotated)
-import Database.SQLite.Simple.FromRow
-import Database.SQLite.Simple.ToRow
-import Database.SQLite.Simple.FromRow.Generic
+
+import Muste.Web.Types.Score (Score)
 
 type Blob = ByteString
 type Numeric = Integer
 
--- | Representation of a 'User' in the database.  Consists of:
---
--- * User name.
--- * Password.
--- * Salt.
--- * Is user enabled.
+newtype Key = Key Int64
+
+deriving stock   instance Show      Key
+deriving newtype instance ToField   Key
+deriving newtype instance FromField Key
+deriving newtype instance ToJSON    Key
+deriving newtype instance FromJSON  Key
+
 data User = User
-  { userName            ∷ Text
+  { key                 ∷ Key
+  , name                ∷ Text
   , password            ∷ Blob
   , salt                ∷ Blob
   , enabled             ∷ Bool
   }
 
-deriving stock instance Show    User
-deriving stock instance Generic User
-instance ToRow User where
-  toRow = genericToRow
-instance FromRow User where
-  fromRow = genericFromRow
+deriving stock    instance Show    User
+deriving stock    instance Generic User
+deriving anyclass instance ToRow   User
+deriving anyclass instance FromRow User
+
+data UserSansId = UserSansId
+  { name                ∷ Text
+  , password            ∷ Blob
+  , salt                ∷ Blob
+  , enabled             ∷ Bool
+  }
+
+deriving stock    instance Show    UserSansId
+deriving stock    instance Generic UserSansId
+deriving anyclass instance ToRow   UserSansId
+deriving anyclass instance FromRow UserSansId
+
+data CreateUser = CreateUser
+  { name     ∷ Text
+  , password ∷ Text
+  , enabled  ∷ Bool
+  }
+
+deriving stock    instance Show    CreateUser
+deriving stock    instance Generic CreateUser
+deriving anyclass instance ToRow   CreateUser
+deriving anyclass instance FromRow CreateUser
+
+-- If we made it so that only /already/ authenticated users could
+-- change their password, then we ought to change to a user id here in
+-- stead of their name.
+data ChangePassword = ChangePassword
+  { name        ∷ Text
+  , oldPassword ∷ Text
+  , newPassword ∷ Text
+  }
+
+deriving stock    instance Show    ChangePassword
+deriving stock    instance Generic ChangePassword
+deriving anyclass instance ToRow   ChangePassword
+deriving anyclass instance FromRow ChangePassword
 
 -- | Representation of a 'Session' in the database.  Consists of:
 --
@@ -66,14 +128,24 @@ data Session = Session
   , lastActive          ∷ UTCTime
   }
 
-deriving stock instance Show    Session
-deriving stock instance Generic Session
-instance ToRow Session where
-  toRow = genericToRow
-instance FromRow Session where
-  fromRow = genericFromRow
+deriving stock    instance Show    Session
+deriving stock    instance Generic Session
+deriving anyclass instance ToRow   Session
+deriving anyclass instance FromRow Session
 
--- Probably should be @(Blob, Blob, Text, Numeric)@
+data ExerciseLesson = ExerciseLesson
+  { exercise   ∷ Key
+  , lessonKey  ∷ Key
+  , lessonName ∷ Text
+  , source     ∷ Unannotated
+  , target     ∷ Unannotated
+  }
+
+deriving stock    instance Show    ExerciseLesson
+deriving stock    instance Generic ExerciseLesson
+deriving anyclass instance ToRow   ExerciseLesson
+deriving anyclass instance FromRow ExerciseLesson
+
 -- | Representation of an 'Exercise' in the database.  Consists of:
 --
 -- * The source sentence.
@@ -83,16 +155,14 @@ instance FromRow Session where
 data Exercise = Exercise
   { sourceLinearization ∷ Unannotated
   , targetLinearization ∷ Unannotated
-  , lesson              ∷ Text
+  , lesson              ∷ Key
   , timeout             ∷ Numeric
   }
 
-deriving stock instance Show    Exercise
-deriving stock instance Generic Exercise
-instance ToRow Exercise where
-  toRow = genericToRow
-instance FromRow Exercise where
-  fromRow = genericFromRow
+deriving stock    instance Show    Exercise
+deriving stock    instance Generic Exercise
+deriving anyclass instance ToRow   Exercise
+deriving anyclass instance FromRow Exercise
 
 -- | Representation of a 'Leson' in the database.  Consists of:
 --
@@ -106,7 +176,8 @@ instance FromRow Exercise where
 -- * Is it enabled.
 -- * Is it repeatable.
 data Lesson = Lesson
-  { name                ∷ Text
+  { key                 ∷ Key
+  , name                ∷ Text
   , description         ∷ Text
   , grammar             ∷ Text
   , sourceLanguage      ∷ Text
@@ -119,12 +190,10 @@ data Lesson = Lesson
   , repeatable          ∷ Bool
   }
 
-deriving stock instance Show    Lesson
-deriving stock instance Generic Lesson
-instance ToRow Lesson where
-  toRow = genericToRow
-instance FromRow Lesson where
-  fromRow = genericFromRow
+deriving stock    instance Show    Lesson
+deriving stock    instance Generic Lesson
+deriving anyclass instance ToRow   Lesson
+deriving anyclass instance FromRow Lesson
 
 -- | Representation of a 'FinishedExercise' in the database.  Consists
 -- of:
@@ -137,21 +206,16 @@ instance FromRow Lesson where
 -- * The amount of clicks it took.
 -- * The round it was in the lesson.
 data FinishedExercise = FinishedExercise
-  { user                ∷ Text
-  , sourceLinearization ∷ Unannotated
-  , targetLinearization ∷ Unannotated
-  , lesson              ∷ Text
-  , time                ∷ NominalDiffTime
-  , clickCount          ∷ Numeric
+  { user                ∷ Key
+  , exercise            ∷ Key
+  , score               ∷ Score
   , round               ∷ Numeric
   }
 
-deriving stock instance Show    FinishedExercise
-deriving stock instance Generic FinishedExercise
-instance ToRow FinishedExercise where
-  toRow = genericToRow
-instance FromRow FinishedExercise where
-  fromRow = genericFromRow
+deriving stock    instance Show    FinishedExercise
+deriving stock    instance Generic FinishedExercise
+deriving anyclass instance ToRow   FinishedExercise
+deriving anyclass instance FromRow FinishedExercise
 
 -- | Representation of a 'StartedLesson' in the
 -- database.  Consists of:
@@ -160,17 +224,15 @@ instance FromRow FinishedExercise where
 -- * The (name of the) user that started the lessson.
 -- * The round.
 data StartedLesson = StartedLesson
-  { lesson              ∷ Text
-  , user                ∷ Text
+  { lesson              ∷ Key
+  , user                ∷ Key
   , round               ∷ Numeric
   }
 
-deriving stock instance Show    StartedLesson
-deriving stock instance Generic StartedLesson
-instance ToRow StartedLesson where
-  toRow = genericToRow
-instance FromRow StartedLesson where
-  fromRow = genericFromRow
+deriving stock    instance Show    StartedLesson
+deriving stock    instance Generic StartedLesson
+deriving anyclass instance ToRow   StartedLesson
+deriving anyclass instance FromRow StartedLesson
 
 -- | Representation of a 'FinishedLesson' in the
 -- database.  Consists of:
@@ -181,19 +243,16 @@ instance FromRow StartedLesson where
 -- * The number of clicks it took to finish.
 -- * The number of rounds.
 data FinishedLesson = FinishedLesson
-  { lesson              ∷ Text
-  , user                ∷ Text
-  , time                ∷ Numeric
-  , clickCount          ∷ Numeric
+  { lesson              ∷ Key
+  , user                ∷ Key
+  , score               ∷ Score
   , round               ∷ Numeric
   }
 
-deriving stock instance Show    FinishedLesson
-deriving stock instance Generic FinishedLesson
-instance ToRow FinishedLesson where
-  toRow = genericToRow
-instance FromRow FinishedLesson where
-  fromRow = genericFromRow
+deriving stock    instance Show    FinishedLesson
+deriving stock    instance Generic FinishedLesson
+deriving anyclass instance ToRow   FinishedLesson
+deriving anyclass instance FromRow FinishedLesson
 
 -- | Representation of an 'ExerciseList' in the database.  Consists
 -- of:
@@ -204,16 +263,85 @@ instance FromRow FinishedLesson where
 -- * The lesson it belongs to.
 -- * The round.
 data ExerciseList = ExerciseList
-  { user                ∷ Text
-  , sourceLinearization ∷ Unannotated
-  , targetLinearization ∷ Unannotated
-  , lesson              ∷ Text
-  , round               ∷ Numeric
+  { user     ∷ Key
+  , exercise ∷ Key
+  , round    ∷ Numeric
   }
 
-deriving stock instance Show    ExerciseList
-deriving stock instance Generic ExerciseList
-instance ToRow ExerciseList where
-  toRow = genericToRow
-instance FromRow ExerciseList where
-  fromRow = genericFromRow
+deriving stock    instance Show    ExerciseList
+deriving stock    instance Generic ExerciseList
+deriving anyclass instance ToRow   ExerciseList
+deriving anyclass instance FromRow ExerciseList
+
+-- Like below but wuthout passedcount
+-- FIXME Better name
+data ActiveLessonForUser = ActiveLessonForUser
+  { lesson        ∷ Key
+  , name          ∷ Text
+  , description   ∷ Text
+  , exercisecount ∷ Int
+  , score         ∷ Nullable Score
+  , finished      ∷ Bool
+  , enabled       ∷ Bool
+  , user          ∷ Maybe Key
+  }
+
+deriving stock    instance Show    ActiveLessonForUser
+deriving stock    instance Generic ActiveLessonForUser
+deriving anyclass instance ToRow   ActiveLessonForUser
+deriving anyclass instance FromRow ActiveLessonForUser
+
+-- | Not like 'Types.Lesson'.  'Types.Lesson' refers to the
+-- representation in the database.  This is the type used in "Ajax".
+data ActiveLesson = ActiveLesson
+  { lesson        ∷ Key
+  , name          ∷ Text
+  , description   ∷ Text
+  , exercisecount ∷ Int
+  , passedcount   ∷ Int
+  , score         ∷ Score
+  , finished      ∷ Bool
+  , enabled       ∷ Bool
+  }
+
+deriving stock    instance Show    ActiveLesson
+deriving stock    instance Generic ActiveLesson
+deriving anyclass instance ToRow   ActiveLesson
+deriving anyclass instance FromRow ActiveLesson
+
+instance FromJSON ActiveLesson where
+  parseJSON = Aeson.withObject "Lesson"
+    $ \v -> ActiveLesson
+    <$> v .: "lesson"
+    <*> v .: "name"
+    <*> v .: "description"
+    <*> v .: "exercisecount"
+    <*> v .: "passedcount"
+    <*> v .: "score"
+    <*> v .: "passed"
+    <*> v .: "enabled"
+
+instance ToJSON ActiveLesson where
+  toJSON ActiveLesson{..} = Aeson.object
+    [ "lesson"        .= lesson
+    , "name"          .= name
+    , "description"   .= description
+    , "exercisecount" .= exercisecount
+    , "passedcount"   .= passedcount
+    , "score"         .= score
+    , "passed"        .= finished
+    , "enabled"       .= enabled
+    ]
+
+data UserLessonScore = UserLessonScore
+  { lesson     ∷ Key
+  , lessonName ∷ Text
+  , user       ∷ Key
+  , userName   ∷ Text
+  , score      ∷ Score
+  }
+
+deriving stock    instance Show    UserLessonScore
+deriving stock    instance Generic UserLessonScore
+deriving anyclass instance ToRow   UserLessonScore
+deriving anyclass instance FromRow UserLessonScore

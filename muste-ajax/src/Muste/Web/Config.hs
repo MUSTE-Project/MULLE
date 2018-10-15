@@ -1,5 +1,13 @@
--- | The configuration options that are exposed to the rest of this
+-- | Exposes configuration options to the rest of the application.--
+--
+-- Module      : Muste.Web.Config
+-- License     : Artistic License 2.0
+-- Stability   : experimental
+-- Portability : POSIX
+--
+-- The configuration options that are exposed to the rest of this
 -- application.
+
 {-# LANGUAGE
     UnicodeSyntax
   , NamedWildCards
@@ -7,6 +15,7 @@
   , RecordWildCards
   , DuplicateRecordFields
 #-}
+
 module Muste.Web.Config
   ( AppConfig
   , appConfig

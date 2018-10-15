@@ -1,41 +1,39 @@
-{-# OPTIONS_GHC -Wall -Wno-type-defaults #-}
-{-# Language NamedFieldPuns, RecordWildCards, OverloadedStrings #-}
+{-# OPTIONS_GHC -Wall -Wcompat #-}
+{-# Language NamedFieldPuns, RecordWildCards, OverloadedStrings, DeriveAnyClass #-}
 module Muste.Sentence.Language
   (Language(Language), Grammar(Grammar))
   where
 
-import Prelude hiding (Word)
-import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:))
-import qualified Data.Aeson as Aeson
-import GHC.Generics (Generic)
-import Data.Binary hiding (Word)
-import Data.Text (Text)
-import Data.String
+import Prelude ()
+import Muste.Prelude
+import qualified Muste.Prelude.Unsafe as Unsafe
+import Muste.Prelude.SQL (FromField, ToField)
 
-import Muste.Common.SQL (FromField, ToField)
+import Data.Aeson ((.=), (.:))
+import qualified Data.Aeson as Aeson
 
 newtype Grammar = Grammar Text
 
-deriving instance Show Grammar
-deriving instance Eq Grammar
-deriving instance Ord Grammar
-deriving instance FromJSON Grammar
-deriving instance ToJSON Grammar
-deriving instance Generic Grammar
-instance Binary Grammar where
-deriving instance FromField Grammar
-deriving instance ToField Grammar
-deriving instance IsString Grammar
+deriving stock   instance Show      Grammar
+deriving newtype instance Eq        Grammar
+deriving newtype instance Ord       Grammar
+deriving newtype instance FromJSON  Grammar
+deriving newtype instance ToJSON    Grammar
+deriving stock   instance Generic   Grammar
+deriving newtype instance Binary    Grammar
+deriving newtype instance FromField Grammar
+deriving newtype instance ToField   Grammar
+deriving newtype instance IsString  Grammar
 
 data Language = Language
   -- NB This field is not in use.
   { grammar  ∷ Grammar
   , lang     ∷ Text
   }
-
-deriving instance Show Language
-deriving instance Eq Language
-deriving instance Ord Language
+                             
+deriving stock instance Show Language
+deriving stock instance Eq   Language
+deriving stock instance Ord  Language
 
 -- | The implementation is a bit hacky, we just use the read instance
 -- for pairs to be able to parse a 'Language'.  So the language must
@@ -48,7 +46,7 @@ deriving instance Ord Language
 instance IsString Language where
   fromString s = Language (fromString g) (fromString l)
     where
-    (g, l) = read @(String, String) s
+    (g, l) = Unsafe.read @(String, String) s
 
 instance ToJSON Language where
   toJSON (Language {..}) = Aeson.object
@@ -62,5 +60,5 @@ instance FromJSON Language where
     <$> o .: "grammar"
     <*> o .: "language"
 
-deriving instance Generic Language
-instance Binary Language where
+deriving stock    instance Generic Language
+deriving anyclass instance Binary  Language

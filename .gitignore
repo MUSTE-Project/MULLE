@@ -1,9 +1,9 @@
-# GF files
+# GF
 *.gfo
 *.dot
 *.png
 
-# Haskell files
+# Haskell
 *.o
 *.hi
 *.prof
@@ -14,3 +14,6 @@ stack.yaml
 .stack-work-prof/
 .history
 *.log
+
+# Cabal
+/dist-newstyle/

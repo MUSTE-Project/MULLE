@@ -6,6 +6,10 @@ module Muste.Sentence.Annotated
 
 import Prelude ()
 import Muste.Prelude
+import qualified Muste.Prelude.Unsafe as Unsafe
+import Muste.Prelude.SQL (FromField, ToField)
+import qualified Muste.Prelude.SQL as SQL
+
 import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:))
 import qualified Data.Aeson as Aeson
 import GHC.Generics (Generic)
@@ -21,9 +25,6 @@ import Muste.Sentence.Token (IsToken)
 import qualified Muste.Sentence.Token as Token
 import Muste.Sentence.Class (Sentence, Language, Linearization, Token)
 import qualified Muste.Sentence.Class as Sentence
-
-import Muste.Common.SQL (FromField, ToField)
-import qualified Muste.Common.SQL as SQL
 
 import Muste.Tree.Internal (TTree, Category)
 import qualified Muste.Tree.Internal as Tree
@@ -115,8 +116,7 @@ annotated c l t = Annotated l $ mkLinearization c t
 merge ∷ MonadThrow m ⇒ Exception e ⇒ e → [Annotated] → m Annotated
 merge e = \case
   [] → throwM e
-  xs → pure $ foldl1 merge1 xs
-
+  xs → pure $ Unsafe.foldl1 merge1 xs
 -- Merge two sentences, assuming they have the same language.
 merge1 ∷ Annotated → Annotated → Annotated
 merge1 a b = Annotated lang ((mergeL `on` linearization) a b)

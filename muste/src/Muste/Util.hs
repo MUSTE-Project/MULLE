@@ -7,6 +7,10 @@ module Muste.Util
   , unsafeGetLang
   ) where
 
+import Prelude ()
+import Muste.Prelude
+import Muste.Prelude.Extra
+
 import Control.Monad.Fail (MonadFail(fail))
 import Text.Printf
 import Data.Maybe
@@ -15,7 +19,6 @@ import qualified Data.Text as Text
 
 import Muste.Grammar
 import Muste.Linearization
-import Muste.Common
 import Muste.Linearization.Internal (Language)
 import qualified Muste.Linearization.Internal as Linearization
 

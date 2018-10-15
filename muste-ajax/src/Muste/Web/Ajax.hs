@@ -1,19 +1,35 @@
+-- | Defines the shape of the requests/responses this API can handle.
+--
+-- Module      : Muste.Web.Ajax
+-- License     : Artistic License 2.0
+-- Stability   : experimental
+-- Portability : POSIX
+--
+-- Many of the types are very similar to the ones defined in
+-- "Muste.Web.Database.Types".  This is intentional. The reason for
+-- this is that SQL database are row-orientend whereas JSON is
+-- document oriented.
+
 {-# OPTIONS_GHC -Wall -Wcompat #-}
 {-# language OverloadedStrings, DuplicateRecordFields , RecordWildCards,
   NamedFieldPuns #-}
+
 module Muste.Web.Ajax
   ( ServerTree(..)
   , ClientTree(..)
-  , LessonInit(..)
   , LoginRequest(..)
-  , Lesson2(..)
+  , Database.ActiveLesson(..)
   , User(..)
-  , ChangePwd(..)
+  , CreateUser(..)
+  , ChangePassword(..)
   , MenuRequest(..)
   , MenuList(..)
   , LoginSuccess(..)
   , LessonList(..)
   , MenuResponse(..)
+  , HighScore(..)
+  , Lesson(..)
+  , Score(..)
   ) where
 
 import Prelude ()
@@ -21,15 +37,14 @@ import Muste.Prelude
 
 import Data.Aeson ((.:), (.=), (.:?))
 import qualified Data.Aeson as Aeson
-import Data.Text (Text)
-import Data.Time
 
 import Muste
 import Muste.Sentence.Unannotated (Unannotated)
 import Muste.Sentence.Annotated (Annotated)
 
-import           Muste.Web.Database (Lesson2(..))
-import           Muste.Web.Types.Score (Score)
+import qualified Muste.Web.Database.Types as Database
+
+import           Muste.Web.Types.Score (Score(..))
 
 newtype ClientTree = ClientTree { unClientTree ∷ Unannotated }
 
@@ -46,40 +61,29 @@ instance ToJSON ClientTree where
     ]
 
 data LoginRequest = LoginRequest
-  { username :: Text
-  , password :: Text
+  { name     ∷ Text
+  , password ∷ Text
   }
   
-data LessonInit = LessonInit
-  { lesson :: Text
-  }
 
 instance FromJSON LoginRequest where
   parseJSON = Aeson.withObject "login-request"
     $  \v → LoginRequest
-    <$> v .: "username"
+    <$> v .: "name"
     <*> v .: "password"
 
 instance ToJSON LoginRequest where
   toJSON LoginRequest{..} = Aeson.object
-    [ "username" .= username
+    [ "name"     .= name
     , "password" .= password
     ]
 
-instance FromJSON LessonInit where
-  parseJSON = Aeson.withObject "lesson-init"
-    $  \v → LessonInit
-    <$> v .: "lesson"
-
-instance ToJSON LessonInit where
-  toJSON (LessonInit lesson) = Aeson.object
-    [ "lesson" .= lesson
-    ]
-
 data MenuRequest = MenuRequest
-  { lesson ∷ Text
+  { lesson ∷ Lesson
+  -- FIXME I feel like this should not be a part of the menu response.
+  -- In stead we should store the score along with the users session,
+  -- and only when the exercise is done respond with the final score.
   , score  ∷ Score
-  , time   ∷ NominalDiffTime
   , src    ∷ ClientTree
   , trg    ∷ ClientTree
   }
@@ -88,7 +92,6 @@ instance ToJSON MenuRequest where
   toJSON MenuRequest{..} = Aeson.object
     [ "lesson" .= lesson
     , "score"  .= score
-    , "time"   .= time
     , "src"    .= src
     , "trg"    .= trg
     ]
@@ -98,7 +101,6 @@ instance FromJSON MenuRequest where
     $  \b → MenuRequest
     <$> b .: "lesson"
     <*> b .: "score"
-    <*> b .: "time"
     <*> b .: "src"
     <*> b .: "trg"
 
@@ -122,7 +124,7 @@ instance FromJSON ServerTree where
     <*> v .: "menu"
 
 instance ToJSON ServerTree where
-  toJSON (ServerTree { .. }) = Aeson.object
+  toJSON ServerTree{..} = Aeson.object
     [ "sentence" .= sentence
     , "menu"     .= menu
     ]
@@ -139,7 +141,7 @@ instance ToJSON LoginSuccess where
     [ "login-succes" .= token
     ]
 
-data LessonList = LessonList [Lesson2]
+data LessonList = LessonList [Database.ActiveLesson]
 
 instance FromJSON LessonList where
   parseJSON = Aeson.withObject "lesson-list"
@@ -152,9 +154,13 @@ instance ToJSON LessonList where
     ]
 
 data MenuResponse = MenuResponse
-  { lesson     ∷ Text
+  -- A key to the lesson
+  { lesson     ∷ Lesson
+  -- This is the score for the exercise.  Not the lesson!  I think we
+  -- should just remove this.
   , score      ∷ Score
   , menu       ∷ Maybe MenuList
+  , finished   ∷ Bool
   }
 
 instance FromJSON MenuResponse where
@@ -163,13 +169,15 @@ instance FromJSON MenuResponse where
     <$> o .:  "lesson"
     <*> o .:  "score"
     <*> o .:? "menu"
+    <*> o .:  "lesson-over"
 
 instance ToJSON MenuResponse where
   toJSON MenuResponse{..} =
     Aeson.object
-      [ "lesson" .= lesson
-      , "score"  .= score
-      , "menu" .= menu
+      [ "lesson"      .= lesson
+      , "score"       .= score
+      , "menu"        .= menu
+      , "lesson-over" .= finished
       ]
 
 -- Better name might be menus?
@@ -191,8 +199,8 @@ instance ToJSON MenuList where
     ]
 
 data User = User
-  { name     ∷ Text
-  , password ∷ Text
+  { key      ∷ Database.Key
+  , name     ∷ Text
   }
 
 deriving stock instance Show User
@@ -200,21 +208,75 @@ deriving stock instance Show User
 instance FromJSON User where
   parseJSON = Aeson.withObject "user"
      $ \v -> User
+    <$> v .: "key"
+    <*> v .: "name"
+
+instance ToJSON User where
+  toJSON User{..} = Aeson.object
+    [ "key"        .= key
+    , "name"       .= name
+    ]
+
+data CreateUser = CreateUser
+  { name     ∷ Text
+  , password ∷ Text
+  }
+
+deriving stock instance Show CreateUser
+
+instance FromJSON CreateUser where
+  parseJSON = Aeson.withObject "user"
+     $ \v -> CreateUser
     <$> v .: "name"
     <*> v .: "password"
 
--- | Like a 'User' but with an old and a new password.
-data ChangePwd = ChangePwd
+-- FIXME Should use ID in stead of name here!
+-- | Like a 'CreateUser' but with an old and a new password.
+data ChangePassword = ChangePassword
   { name        ∷ Text
   , oldPassword ∷ Text
   , newPassword ∷ Text
   }
 
-deriving stock instance Show ChangePwd
+deriving stock instance Show ChangePassword
 
-instance FromJSON ChangePwd where
+instance FromJSON ChangePassword where
   parseJSON = Aeson.withObject "user"
-     $ \v -> ChangePwd
+     $ \v -> ChangePassword
     <$> v .: "name"
     <*> v .: "old-password"
     <*> v .: "new-password"
+
+data Lesson = Lesson
+  { key  ∷ Database.Key
+  , name ∷ Text
+  }
+
+deriving stock instance Show Lesson
+
+instance ToJSON Lesson where
+  toJSON Lesson{..} = Aeson.object
+    [ "key"        .= key
+    , "name"       .= name
+    ]
+
+instance FromJSON Lesson where
+  parseJSON = Aeson.withObject "user"
+     $ \v -> Lesson
+    <$> v .: "key"
+    <*> v .: "name"
+
+data HighScore = HighScore
+  { lesson     ∷ Lesson
+  , user       ∷ User
+  , score      ∷ Score
+  }
+
+deriving stock instance Show HighScore
+
+instance ToJSON HighScore where
+  toJSON HighScore{..} = Aeson.object
+    [ "lesson"     .= lesson
+    , "user"       .= user
+    , "score"      .= score
+    ]
