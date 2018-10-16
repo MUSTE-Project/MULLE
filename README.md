@@ -11,7 +11,7 @@ Setup
 For the impatient:
 
     git submodule update --init
-    ln -s stack-lts-9.21.yaml stack.yaml
+    ln -s stack-lts-12.yaml stack.yaml
     make install
     stack install muste-ajax
     muste-ajax --recreate-db
