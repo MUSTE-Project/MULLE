@@ -4,6 +4,9 @@ Change log
 HEAD
 ---
 
+0.2.7.0
+---
+
 ### UI changes
 
 Fix issue with busy indicator
