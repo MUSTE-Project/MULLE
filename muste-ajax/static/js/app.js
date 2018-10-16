@@ -613,7 +613,7 @@ function show_lin(lang, lin, menu) {
 
     gen_word(validMenus, i, linTok);
   }
-  gen_space(getValidMenus(lin.length, menu), lin.length)
+  gen_space(getValidMenusSpace(lin.length, menu), lin.length)
     .html('&emsp;').click(click_word)
     .appendTo(sentence);
 }
