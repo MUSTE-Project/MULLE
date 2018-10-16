@@ -19,6 +19,7 @@ module Muste.Grammar.Internal
   , parseSentence
   , getMetas
   , getFunctions
+  , getFunNames
   , hole
   , HasKnownGrammars(..)
   , KnownGrammars
@@ -27,9 +28,13 @@ module Muste.Grammar.Internal
 
 import Prelude ()
 import Muste.Prelude
+import qualified Muste.Prelude.Unsafe as Unsafe
+import Muste.Prelude.Extra
 
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
 import qualified Data.ByteString.Lazy as LB
 -- This might be the only place we should know of PGF
 import qualified PGF
@@ -44,9 +49,7 @@ import qualified Data.Text.Prettyprint.Doc as Doc
 import Control.DeepSeq
 import Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as MultiSet
-import Control.DeepSeq (NFData)
 import qualified Data.Text as Text
-import Control.Monad.Reader
 import qualified Control.Monad.Reader as Reader
 import Control.Monad.Except (ExceptT)
 import Data.IORef (IORef)
@@ -56,7 +59,6 @@ import Control.Monad.Base (MonadBase)
 import Snap (MonadSnap)
 import qualified Snap
 
-import Muste.Common
 import Muste.Tree
 import qualified Muste.Tree.Internal as Tree
 import qualified Muste.Data as Data
@@ -118,7 +120,7 @@ getFunType g id =
   let
     rules = filter (\r -> getRuleName r == id) $ getAllRules g
   in
-    if not $ null rules then getRuleType $ head rules else NoType
+    if not $ null rules then getRuleType $ Unsafe.head rules else NoType
 
 -- | The function 'getRuleName' extracts the name of a rule
 getRuleName :: Rule -> Category
@@ -175,7 +177,7 @@ brackets grammar language ttree
   = PGF.bracketedLinearize (pgf grammar) language (Tree.toGfTree ttree)
 
 parseTTree :: Grammar -> String -> TTree
-parseTTree g = fromGfTree g . read
+parseTTree g = fromGfTree g . Unsafe.read
 
 -- | The function 'fromGfTree' creates a 'TTree' from a 'PGF.Tree' and
 -- a 'Grammar'. Handles only 'EApp' and 'EFun'. Generates a 'hole' in
@@ -315,3 +317,8 @@ getFunctions :: TTree -> MultiSet Rule
 getFunctions = Tree.foldMapTTree step
   where
   step fun typ = MultiSet.singleton $ Function fun typ
+
+-- | Returns a set of all function names in a tree.
+getFunNames :: TTree -> Set Category
+getFunNames = Tree.foldMapTTree step
+    where step fun _ = Set.singleton fun

@@ -5,33 +5,39 @@ module DbInit (initDb) where
 
 import           Prelude ()
 import           Muste.Prelude
+import           Muste.Prelude.SQL (Connection(Connection), sql)
+import qualified Muste.Prelude.SQL as SQL
+
 import           Data.ByteString (ByteString)
-import           Data.FileEmbed (embedFile)
+import           Data.FileEmbed (embedFile, makeRelativeToProject)
 import           Data.Text.Encoding (decodeUtf8)
-import qualified Database
-import           Database.SQLite.Simple (Connection(Connection), Query)
-import qualified Database.SQLite.Simple as SQL
-import           Database.SQLite.Simple.QQ (sql)
 import qualified Database.SQLite3 as SQL
 import           System.Directory (createDirectoryIfMissing)
 import           System.FilePath (takeDirectory)
-import           Data.FileEmbed
-import           Data.String.Conversions (convertString)
 import qualified Data.Yaml as Yaml
-
-import qualified DbInit.Data as Data
-import qualified Config
-import qualified Database.Types as Database
+import qualified Data.Text.IO as Text
 
 import           Muste.Sentence.Unannotated (Unannotated)
 import qualified Muste.Sentence.Unannotated as Unannotated
+
+import qualified Muste.Web.Config         as Config
+import qualified Muste.Web.Database       as Database
+import qualified Muste.Web.Database.Types as Database
+
+import qualified DbInit.Data as Data
 
 initDb :: IO ()
 initDb = do
   putStrLn "Initializing database..."
   mkParDir Config.db
-  SQL.withConnection Config.db initDB
-  putStrLn "Initializing database... done"
+  withConnection Config.db initDbAux
+  putStrLn "Initializing database... Done"
+
+withConnection ∷ FilePath → (Connection → IO ()) → IO ()
+withConnection db m = do
+  SQL.withConnection db $ \c → do
+    SQL.setTrace c (Just Text.putStrLn)
+    m c
 
 -- | @'mkParDir' p@ Ensure that the directory that @p@ is in is
 -- created like the linux command @mkdir -p@.
@@ -41,25 +47,30 @@ mkParDir = createDirectoryIfMissing True . takeDirectory
 initScript ∷ ByteString
 initScript = $(makeRelativeToProject "data/sql/create.sql" >>= embedFile)
 
+seedScript ∷ ByteString
+seedScript = $(makeRelativeToProject "data/sql/seed.sql" >>= embedFile)
+
 execRaw ∷ Connection → Text → IO ()
 execRaw (Connection db) qry = SQL.exec db qry
 
-initDB ∷ Connection → IO ()
-initDB conn = do
-  execRaw conn $ decodeUtf8 initScript
+initDbAux ∷ Connection → IO ()
+initDbAux conn = do
+  void $ traverse @[] go [ initScript, seedScript ]
   mapM_ (dropRecreateUser conn) Config.users
   lessons ← Yaml.decodeFileThrow Config.lessons
-  SQL.executeMany @Database.Lesson conn insertLessonQuery
-    $ toDatabaseLesson <$> lessons
-  SQL.executeMany @Database.Exercise conn insertExerciseQuery
-    $ lessons >>= toDatabaseExercise
+  insertLessons conn   $ toDatabaseLesson <$> lessons
+  insertExercises conn $ lessons >>= toDatabaseExercise
+  where
+  go ∷ ByteString → IO ()
+  go = execRaw conn . decodeUtf8
 
 -- | Converts our nested structure from the config file to something
 -- suitable for a RDBMS.
 toDatabaseLesson ∷ Data.Lesson → Database.Lesson
 toDatabaseLesson Data.Lesson{..}
   = Database.Lesson
-  { name                = name
+  { key                 = key
+  , name                = name
   , description         = description
   , grammar             = grammar
   , sourceLanguage      = sourceLanguage
@@ -82,7 +93,7 @@ toDatabaseExercise Data.Lesson{..} = step <$> exercises'
     = Database.Exercise
     { sourceLinearization = lin srcL source
     , targetLinearization = lin trgL target
-    , lesson              = name
+    , lesson              = key
     , timeout             = 0
     }
   Data.LessonSettings{..} = settings
@@ -93,23 +104,37 @@ toDatabaseExercise Data.Lesson{..} = step <$> exercises'
 dropRecreateUser ∷ Connection → Config.User → IO ()
 dropRecreateUser c Config.User{..}
   = void
-  $ Database.runDbT act c
+  $ flip Database.runDbT c
+  $ Database.addUser
+  $ Database.CreateUser
+    { name     = convertString name
+    , password = convertString password
+    , enabled  = enabled
+    }
+
+insertLessons ∷ Connection → [Database.Lesson] → IO ()
+insertLessons c = SQL.executeMany c q
   where
-  name' = convertString name
-  password' = convertString password
-  act ∷ Database.Db ()
-  act = do
-    Database.rmUser  name'
-    Database.addUser name' password' enabled
 
-insertLessonQuery ∷ Query
-insertLessonQuery
-  = [sql| INSERT INTO Lesson VALUES (?,?,?,?,?,?,?,?,?,?); |]
+  q = [sql|INSERT INTO Lesson
+( Id
+, Name
+, Description
+, Grammar
+, SourceLanguage
+, TargetLanguage
+, ExerciseCount
+, Enabled
+, SearchLimitDepth
+, SearchLimitSize
+, Repeatable
+) VALUES (?,?,?,?,?,?,?,?,?,?,?);|]
 
-insertExerciseQuery ∷ Query
-insertExerciseQuery
-  = [sql|
-        INSERT INTO Exercise
-        (SourceTree,TargetTree,Lesson,Timeout)
-        VALUES (?,?,?,?);
-    |]
+insertExercises ∷ Connection → [Database.Exercise] → IO ()
+insertExercises c = SQL.executeMany c q
+  where
+
+  q = [sql|
+INSERT INTO Exercise
+(SourceTree,TargetTree,Lesson,Timeout)
+VALUES (?,?,?,?);|]

@@ -4,6 +4,9 @@ module Muste.Sentence.Unannotated where
 
 import Prelude ()
 import Muste.Prelude
+import Muste.Prelude.SQL (FromField, ToField)
+import qualified Muste.Prelude.SQL as SQL
+
 import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:))
 import qualified Data.Aeson as Aeson
 import GHC.Generics (Generic)
@@ -15,8 +18,6 @@ import qualified Data.Text as Text
 import Muste.Tree.Internal (TTree)
 import Muste.Linearization.Internal (Context(..))
 import qualified Muste.Grammar.Internal as Grammar
-import Muste.Common.SQL (FromField, ToField)
-import qualified Muste.Common.SQL as SQL
 import qualified Muste.Sentence.Token as Token
 import Muste.Sentence.Class
   ( Sentence
@@ -82,12 +83,11 @@ annotate e c@Context{..} s
   where
   unambigSimpl ∷ TTree → Annotated
   unambigSimpl t
-    = Annotated.annotated c l t t t
+    = Annotated.annotated c l t
   l ∷ Language
   l = Sentence.language s
 
--- | @'mkLinearization' c src trg t@ creates a 'Linearization' of @t@
--- from a source tree (@src@) and a target tree (@trg@).  The
+-- | @'mkLinearization' c t@ creates a 'Linearization' of @t@. The
 -- 'Linearization' will be a valid such in the grammar and languages
 -- specified by the 'Context' @c@.
 --
@@ -97,15 +97,10 @@ annotate e c@Context{..} s
 -- create ambiguities in the individual words.  Eachs 'Token' will
 -- correspond exactly to an internal node in the 'TTree' (idenfitied
 -- by the "name" of that node).
-mkLinearization
-  ∷ Context
-  → TTree
-  → TTree
-  → TTree -- ^ The actual tree to linearize
-  → Linearization Token.Unannotated
-mkLinearization c t0 t1 t
+mkLinearization ∷ Context → TTree → Linearization Token.Unannotated
+mkLinearization c t
   -- Reuse functionality from 'Muste.Linearization.Internal'
-  = OldLinearization.mkLin c t0 t1 t
+  = OldLinearization.linearizeTree c t
   & otoList
   -- Convert old representation to new.
   & fmap step
@@ -115,21 +110,13 @@ mkLinearization c t0 t1 t
   step (OldLinearization.LinToken { .. })
     = Token.unannotated ltlin
 
--- | @'sentence' c src trg t@ creates a 'Sentence' of @t@ from a
--- source tree (@src@) and a target tree (@trg@).  The 'Sentence' will
--- be a valid such in the grammar and languages specified by the
+-- | @'unannotated' c t@ creates a 'Sentence' of @t@.  The 'Sentence' 
+-- will be a valid such in the grammar and languages specified by the
 -- 'Context' @c@.
 --
 -- See also the documentation for 'linearization'.
-unannotated
-  ∷ Context
-  → Language
-  → TTree -- ^ The source tree
-  → TTree -- ^ The target tree
-  → TTree -- ^ The actual tree to linearize
-  → Unannotated
-unannotated c l src trg t
-  = Unannotated l $ mkLinearization c src trg t
+unannotated ∷ Context → Language → TTree → Unannotated
+unannotated c l t = Unannotated l $ mkLinearization c t
 
 stringRep ∷ Unannotated → Text
 stringRep = linearization >>> Linearization.stringRep

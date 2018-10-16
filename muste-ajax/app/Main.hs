@@ -20,9 +20,10 @@ import Data.Semigroup (Semigroup((<>)))
 import qualified Data.Yaml as Yaml (encode)
 import Control.Lens (lens, makeLenses)
 
-import qualified Protocol
-import qualified Config
-import qualified DbInit (initDb)
+import qualified Muste.Web.Protocol as Protocol
+import qualified Muste.Web.Config   as Config
+
+import qualified DbInit
 import qualified Options
 
 data App = App

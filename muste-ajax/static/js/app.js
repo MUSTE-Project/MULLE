@@ -5,42 +5,44 @@ var PREFIXPUNCT = /^[¿¡(]$/;
 
 var DATA = null;
 var LOGIN_TOKEN = null;
-var TIMER_START = null;
 
 var EXERCISES = [];
 var VIRTUAL_ROOT = '/';
 var SERVER = VIRTUAL_ROOT + 'api/';
 
-var MESSAGES = {
-  LOGOUT: 'logout',
-  // Must set authentication header
-  LOGIN: 'login',
-  LESSONS: 'lessons',
-  // Muste request the *name* of the lesson.  E.g:
-  //
-  //    /lesson/Prima+Pars
-  //
-  // TODO Would be more convenient if it was an id.
-  LESSON: 'lesson',
-  MENU: 'menu',
-};
-
 jQuery().ready(init);
 
 function init() {
+  init_environment();
   register_handlebars_helper();
-  $('#loginform').submit(submit_login);
-  $('#abortlesson').click(retrieve_lessons);
-  $('#logoutbutton').click(restart_everything);
+  register_click_handlers();
+  register_busy_indicator(jQuery);
   register_timer();
   register_overlay();
   register_pagers();
   register_create_user_handler();
   register_change_pwd_handler();
   register_popup_menu(jQuery);
+  register_page_handler(jQuery);
+  register_high_score_handler(jQuery);
+  register_lessons_listener(jQuery);
+  show_login_page();
+}
+
+function init_environment() {
+  window.muste = {};
+}
+
+function register_click_handlers() {
+  $('#loginform').submit(submit_login);
+  $('#abortlesson').click(retrieve_lessons);
+  $('#logoutbutton').click(restart_everything);
+}
+
+function show_login_page() {
   var tok = window.sessionStorage.getItem('LOGIN_TOKEN');
   // Show login page regardless.
-  show_page('#page-login');
+  change_page('#page-login');
   if (tok == null) {
     var loginform = document.getElementById('loginform');
     loginform.name.focus();
@@ -55,9 +57,9 @@ function register_popup_menu($) {
 }
 
 function register_pagers() {
-  $('.pager').click(function() {
-    var pg = $(this).attr('href');
-    show_page(pg);
+  $('[data-pager]').click(function() {
+    var pg = $(this).data('pager');
+    change_page(pg);
   });
 }
 
@@ -71,7 +73,16 @@ function register_create_user_handler() {
       'name': $form.find('input[name=name]').val()
     };
     muste_request(data, 'create-user').then(function() {
-      console.alert('That did not work, perhaps you didn\'t enter the correct value for your old password');
+      change_page('#page-login');
+    }).fail(function(err) {
+      var appErr = err.responseJSON.error;
+      switch(appErr.id) {
+      case 10:
+        alert('User name is already taken');
+        break;
+      default:
+        break;
+      }
     });
   });
 }
@@ -102,29 +113,50 @@ function register_change_pwd_handler() {
       'old-password': $form.find('input[name=old-pwd]').val(),
       'name': $form.find('input[name=name]').val()
     };
-    muste_request_raw(data, 'change-pwd').then(function() {
-      show_page('#page-login');
-    }).fail(function() {
-      console.error('no way');
+    muste_request(data, 'change-pwd').then(function() {
+      change_page('#page-login');
     });
   });
 }
 
 function register_timer() {
-  // FIXME This keeps churning even if we are not using the timer.
   window.setInterval(update_timer, 500);
+}
+
+function start_timer() {
+  window.muste['lesson-start'] = new Date();
+}
+
+function get_start_time() {
+  return window.muste['lesson-start'];
 }
 
 // Returns a formatted string of the elapsed time. Note that currently
 // this is not locale sensitive.
-function elapsed_time() {
-  return countdown(new Date, TIMER_START);
+function get_elapsed_time() {
+  var start = get_start_time();
+  var now   = new Date();
+  return countdown(start, now);
+}
+
+// Gets the elapsed time as a floating point representing the seconds
+// passed by.
+function get_elapsed_time_as_seconds() {
+  var e = get_elapsed_time();
+  var start = e.start;
+  var end = e.end;
+  // 'diff' is in ms.
+  var diff = end - start;
+  return diff / 1000;
+}
+
+// TODO l10n
+function get_elapsed_time_formatted() {
+  return get_elapsed_time().toString();
 }
 
 function update_timer() {
-  if (TIMER_START) {
-    $('#timer').text(elapsed_time().toString());
-  }
+  $('#timer').text(get_elapsed_time_formatted());
 }
 
 // The overlay is shown when the menus pop up.  The click-event on the
@@ -148,15 +180,48 @@ function clear_errors() {
   $('.error').empty().hide();
 }
 
-function show_page(page) {
+function change_page(page, opts) {
+  var d = {
+    page: page,
+    'query-opts': opts
+  };
+  $(window).trigger('page-change', d);
+}
+
+function register_page_handler($) {
+  var $w = $(window);
+  $w.on('popstate', function() {
+    var href = window.location.href;
+    // FIXME Hack
+    var ref = href.substring(href.lastIndexOf('/') + 1);
+    var idx = ref.indexOf('?');
+    var id;
+    if(idx === -1) {
+      id = ref;
+    } else {
+      ref.substring(0, idx);
+    }
+    var loc = ref.substring(idx);
+    change_page(id, loc);
+  });
+  $w.on('page-change', function (_ev, d) {
+    var pg = d.page;
+    var q = d['query-opts'] || '';
+    var loc = pg + q;
+    show_page(pg);
+    history.pushState(null, null, loc);
+  });
+}
+
+function show_page(pg) {
   $('.page').hide();
-  $(page).show();
+  $(pg).show();
 }
 
 
 function restart_everything() {
-  muste_request({}, MESSAGES.LOGOUT);
-  show_page('#page-login');
+  muste_request({}, 'logout');
+  change_page('#page-login');
 }
 
 
@@ -165,19 +230,20 @@ function submit_login(evt) {
     evt.preventDefault();
   }
   var loginform = document.getElementById('loginform');
-  var req = {username: loginform.name.value, password: loginform.pwd.value};
-  muste_request(req, MESSAGES.LOGIN).then(login_success);
+  var req = {name: loginform.name.value, password: loginform.pwd.value};
+  muste_request(req, 'login')
+    .then(login_success)
+    .fail(function() {
+      alert('User name or password incorrect');
+    });
 }
 
 // Returns a promise with the request.  Reports errors according to
 // the protocol.  In contrast with `call_server_new` does not try to
 // guess how to interpret the response.
 function muste_request(data, endpoint) {
-  return muste_request_raw(data, endpoint).fail(handle_server_fail);
-}
-
-// Like `emuste_request` but with no error handler.
-function muste_request_raw(data, endpoint) {
+  var $w = $(window);
+  $w.trigger('api-load-start');
   var req = {
     cache: false,
     url: SERVER + endpoint,
@@ -186,7 +252,9 @@ function muste_request_raw(data, endpoint) {
     processData: false,
     data: JSON.stringify(data)
   };
-  return $.ajax(req);
+  return $.ajax(req).fail(handle_server_fail).always(function() {
+    $w.trigger('api-load-end');
+  });
 }
 
 function handle_server_fail(resp) {
@@ -199,10 +267,11 @@ function handle_server_fail(resp) {
   default:
     break;
   }
+  resp.fail();
 }
 
 function muste_logout() {
-  show_page('#page-login');
+  change_page('#page-login');
   window.sessionStorage.removeItem('LOGIN_TOKEN');
 }
 
@@ -212,7 +281,8 @@ function display_error(resp) {
     console.error(resp.responseText);
     return;
   }
-  console.error(resp.responseJSON);
+  var err = resp.responseJSON;
+  console.error(err.error.message);
 }
 
 function register_handlebars_helper() {
@@ -240,33 +310,50 @@ function register_handlebars_helper() {
     },
     or: function () {
       return Array.prototype.slice.call(arguments, 0, -1).some(Boolean);
+    },
+    json: function(context) {
+      return JSON.stringify(context);
     }
   });
 }
 
+// Fetches the lessons and triggers a custom event afterwards.
+function fetch_lessons() {
+  return muste_request({}, 'lessons').then(function(r) {
+    $(window).trigger('lessons-loaded', {lessons: r.lessons});
+    return r;
+  });
+}
+
+// Also shows the lessons afterwards.
 function retrieve_lessons(evt) {
   if (evt && evt.preventDefault) {
     evt.preventDefault();
   }
-  muste_request({}, MESSAGES.LESSONS).then(show_lessons);
+  fetch_lessons().then(show_lessons);
 }
 
 var lesson_list_template = ' \
 <div class="lessons"> \
 {{#each .}} \
  <div class="{{#if (or passed (gte passed total))}}finished{{/if}} {{#if enabled}}{{else}}disabled{{/if}}"> \
-  <h2>{{name}}</h2> \
   <div class="lesson-info"> \
    <div> \
-    <span> \
-     {{passedcount}} avklarade av {{exercisecount}} övningar, {{lsn.score}}  klick i {{lsn.time}} sekunder \
-    </span> \
-    <div> \
+    <h3>{{name}}</h3> \
+    <p> \
+     {{passedcount}} avklarade av {{exercisecount}} övningar \
+    </p> \
+    {{#if score}} \
+    <p> \
+     Your score so far: <span>{{score.clicks}} klick i {{score.time}} sekunder</span> \
+    </p> \
+    {{/if}} \
+    <p> \
      {{description}} \
-    </div> \
+    </p> \
    </div> \
    <div class="lesson-info-button"> \
-    <button {{#if enabled}}{{else}}disabled{{/if}} onclick="start_lesson(\'{{name}}\');">Solve</button> \
+    <button {{#if enabled}}{{else}}disabled{{/if}} onclick="start_lesson({{lesson}});">Solve</button> \
    </div> \
   </div> \
  </div> \
@@ -278,15 +365,24 @@ var render_lesson_list = Handlebars.compile(lesson_list_template);
 
 function show_lessons(resp) {
   var lessons = resp.lessons;
-  show_page('#page-lessons');
-  TIMER_START = null;
+  change_page('#page-lessons');
   var table = $('#lessonslist');
   table.empty();
   var e = render_lesson_list(lessons);
   table.html(e);
-  lessons.forEach(function(lsn) {
-    EXERCISES[lsn.name] = {passed : lsn.passedcount, total : lsn.exercisecount};
-  });
+}
+
+function register_lessons_listener($) {
+  function update_exercises(_, x) {
+    x.lessons.forEach(function(x) {
+      var key = x.lesson;
+      EXERCISES[key] = {
+        passed: x.passedcount,
+        total: x.exercisecount
+      };
+    });
+  }
+  $(window).on('lessons-loaded', update_exercises);
 }
 
 // Warning defined but never used.  What gives?
@@ -299,33 +395,75 @@ function select_lesson(evt) { // eslint-disable-line no-unused-vars
 
 
 function start_lesson(lesson) {
-  TIMER_START = new Date().getTime();
-  muste_request({}, MESSAGES.LESSON + '/' + lesson)
-    .then(show_exercise);
+  start_timer();
+  muste_request({}, 'lesson/' + lesson)
+    .then(handle_menu_response);
 }
 
-function show_exercise(parameters) {
-  show_page('#page-exercise');
-  DATA = parameters;
-  clean_server_data(DATA.src);
-  clean_server_data(DATA.src);
-  build_matching_classes(DATA);
-  show_sentences(DATA.src, DATA.trg);
-  $('#score').text(DATA.score);
-  $('#lessoncounter').text(DATA.lesson + ': övning ' + EXERCISES[DATA.lesson].passed + ' av ' + EXERCISES[DATA.lesson].total);
-  if (parameters.success) {
-    var t = elapsed_time().toString();
-    setTimeout(function(){
-      alert('BRAVO!' +
-        '    Klick: ' + DATA.score +
-        '    Tid: ' + t + ' sekunder');
-      if (DATA.exercise < DATA.total) {
-        start_lesson(DATA.lesson);
-      } else {
-        retrieve_lessons();
-      }
-    }, 500);
+function handle_menu_response(r) {
+  // FIXME Naughty string interpolation!
+  change_page('#page-exercise', '?key=' + r.key);
+  DATA = r;
+  var key = r.lesson.key;
+  var menu = r.menu;
+  if(menu !== null) {
+    show_exercise(r);
+  } else {
+    if(r['lesson-over'] == true) {
+      show_exercise_complete(r);
+      return;
+    }
+    continue_lesson(key);
   }
+}
+
+function continue_lesson(key) {
+  // We need to sequence fetch_lessons and start_lesson due to the way
+  // updating the lesson counter is handlded.
+  fetch_lessons().then(function () {
+    start_lesson(key);
+  });
+}
+
+function show_exercise(resp) {
+  var lesson = resp.lesson;
+  var key = lesson.key;
+  var lessonName = lesson.name;
+  var menu = resp.menu;
+  clean_server_data(menu.src);
+  clean_server_data(menu.src);
+  build_matching_classes(menu);
+  show_sentences(menu);
+  // The score is the exercise score.  Only in the case when we are
+  // continuing a lesson will this be non-trivial.
+  // display_score(resp.score);
+  var e = EXERCISES[key];
+  display_lesson_counter({
+    lesson: lessonName,
+    passed: e.passed,
+    total: e.total
+  });
+}
+
+// function display_score(score) {
+//   $('#score-clicks').text(score.clicks);
+//   $('#score-time').text(score.time);
+// }
+
+function display_lesson_counter(d) {
+  $('#lessoncounter').text(d.lesson + ': övning ' + d.passed + ' av ' + d.total);
+}
+
+function show_exercise_complete(resp) {
+  var score = resp.score;
+  setTimeout(function(){
+    alert('BRAVO!' +
+      '    Klick: ' + score.clicks +
+      '    Tid: ' + score.time + ' sekunder');
+    // There used to be a way of figuring out if we should just start
+    // the next exercise.  This is no longer possible.
+    retrieve_lessons();
+  }, 500);
 }
 
 // ct_linearization :: ClientTree -> Sentence.Linearization
@@ -362,13 +500,15 @@ function build_matching_classes(data) {
   });
 }
 
-function show_sentences(src, trg) {
+function show_sentences(data) {
+  var src = data.src;
+  var trg = data.trg;
   var srcL = ct_linearization(src);
   var trgL = ct_linearization(trg);
   matchy_magic(srcL, trgL);
   matchy_magic(trgL, srcL);
-  show_lin('src', srcL);
-  show_lin('trg', trgL);
+  show_lin('src', srcL, src.menu);
+  show_lin('trg', trgL, trg.menu);
 }
 
 function all_classes(xs) {
@@ -412,31 +552,25 @@ function intersection(m, n) {
   return new Set([...m].filter(function(x) {return n.has(x);}));
 }
 
-function show_lin(lang, lin) {
-  function gen_space(validMenus, idx) {
+function show_lin(lang, lin, menu) {
+
+  function gen_item(validMenus, idx) {
     var spacyData = {
       nr: idx,
       lang: lang,
       'valid-menus': validMenus
     };
     return $('<span>')
-      .addClass('space clickable')
+      .addClass('clickable')
       .data(spacyData)
-      .click(click_word)
+      .click(click_word);
   }
-  var sentence = $('#' + lang).empty();
-  var menu = DATA[lang].menu;
-  // var tree = parse_tree(DATA[lang].tree);
-  for (var i=0; i < lin.length; i++) {
-    var linTok = lin[i];
-    var previous = i > 0 ? lin[i-1].concrete : null;
-    var current = linTok.concrete;
-    var spacing = (previous == NOSPACING || current == NOSPACING || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
-      ? ' ' : ' &emsp; ';
-    var validMenus = getValidMenus(i, menu);
-    gen_space(validMenus, i)
-      .html(spacing)
-      .appendTo(sentence);
+
+  function gen_space(validMenus, idx) {
+    return gen_item(validMenus, idx).addClass('space');
+  }
+
+  function gen_word(validMenus, idx, linTok) {
     var classes = linTok['classes'];
     var matchingClasses = linTok['matching-classes'];
     var match = matchingClasses.size > 0;
@@ -459,8 +593,27 @@ function show_lin(lang, lin) {
       var c = int_to_rgba(h);
       wordspan.css({'border-color': c});
     }
+    return gen_item(validMenus, idx).addClass('word');
   }
-  gen_space(getValidMenus(lin.length, menu), lin.length)
+
+  var sentence = $('#' + lang).empty();
+  // var tree = parse_tree(DATA[lang].tree);
+  for (var i=0; i < lin.length; i++) {
+    var linTok = lin[i];
+    var previous = i > 0 ? lin[i-1].concrete : null;
+    var current = linTok.concrete;
+    var spacing = (previous == NOSPACING || current == NOSPACING || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
+      ? ' ' : ' &emsp; ';
+    var validMenusSpace = getValidMenusSpace(i, menu);
+    var validMenus = getValidMenus(i, menu);
+
+    gen_space(validMenusSpace, i)
+      .html(spacing)
+      .appendTo(sentence);
+
+    gen_word(validMenus, i, linTok);
+  }
+  gen_space(getValidMenusSpace(lin.length, menu), lin.length)
     .html('&emsp;').click(click_word)
     .appendTo(sentence);
 }
@@ -578,12 +731,10 @@ function click_word(event) {
       var menuitem = $('<span class="clickable">')
         .data('item', item)
         .data('lang', lang)
-        .click(BUSY(function(c){
-          var $c = $(c);
-          var item = $c.data('item');
-          var lang = $c.data('lang');
-          select_menuitem(item, lang);
-        }));
+          .click(function() {
+            var d = $(this).data();
+            select_menuitem(d.item, d.lang);
+          });
       var lin = item;
       if (lin.length == 0) {
         $('<span>').html('&empty;').appendTo(menuitem);
@@ -623,7 +774,7 @@ function is_selected(sel, idx) {
     var a = intval[0];
     var b = intval[1];
     if(i < a) return false;
-    if(i > b) return false;
+    if(i >= b) return false;
     return true;
   }
   for(var intval of sel) {
@@ -637,7 +788,7 @@ function getValidMenus(idx, menu) {
   return iterateMenu(idx, mp);
 }
 
-function getValidMenusEmpty(idx, menu) {
+function getValidMenusSpace(idx, menu) {
   var mp = lookupKeySetEmptyRange(idx, menu);
   return iterateMenu(idx, mp);
 }
@@ -693,45 +844,78 @@ function* lookupKeySetWith(idx, map, f) {
   }
 }
 
+function to_client_tree(t) {
+  return {
+    'sentence': t.sentence
+  };
+}
+
 function select_menuitem(item, lang) {
-  ct_setLinearization(DATA[lang], item);
-  DATA.token = LOGIN_TOKEN;
-  DATA.time = elapsed_time().seconds;
-  muste_request(DATA, 'menu').then(show_exercise);
+  ct_setLinearization(DATA.menu[lang], item);
+  var data = DATA;
+  var menu = data.menu;
+  var score = data.score;
+  var menuRequest = {
+    'key': data.key,
+    'lesson': data.lesson,
+    'score': {
+      'clicks': score.clicks,
+      'time': get_elapsed_time_as_seconds()
+    },
+    'src': to_client_tree(menu.src),
+    'trg': to_client_tree(menu.trg)
+  };
+  muste_request(menuRequest, 'menu').then(handle_menu_response);
   $(document).trigger('overlay-out');
 }
 
+var high_scores_template = `
+{{#each .}}
+<tr>
+ <td>{{lesson.name}}</td>
+ <td>{{user.name}}</td>
+ <td>{{score.clicks}}</td>
+ <td>{{score.time}}</td>
+</tr>
+{{/each}}
+`;
+
+var render_high_scores = Handlebars.compile(high_scores_template);
+
+function fetch_high_scores () {
+  muste_request({}, 'high-scores')
+    .then(function (xs) {
+      $(window).trigger('high-scores-loaded', {scores: xs});
+    });
+}
+
+function register_high_score_handler($) {
+  $(window).on('high-scores-loaded', display_high_scores);
+}
+
+function display_high_scores(_, scores) {
+  var p = $('#high-scores-table');
+  p.empty();
+  var e = render_high_scores(scores.scores);
+  p.html(e);
+}
 
 //////////////////////////////////////////////////////////////////////
 // Busy indicator
 
-var BUSY_DELAY = 50;
-var BUSY_STR = '\u25CF';
-// Unicode Character 'BLACK CIRCLE' (U+25CF)
-
-function BUSY(f) {
-  return function(){
-    var obj = this; // $(this);
-    push_busy();
-    setTimeout(function(){
-      f(obj);
-      pop_busy();
-    }, BUSY_DELAY);
-  };
-}
-
-function push_busy() {
-  var ind = document.getElementById('busy-indicator');
-  ind.className = ind.className + BUSY_STR;
-  ind.textContent += BUSY_STR;
-}
-
-function pop_busy() {
-  var ind = document.getElementById('busy-indicator');
-  if (ind.className.slice(-BUSY_STR.length) === BUSY_STR) {
-    ind.className = ind.className.slice(0, -BUSY_STR.length);
-    ind.textContent = ind.textContent.slice(0, -BUSY_STR.length);
-  } else {
-    console.error('POP ERROR', ind.className, ind.textContent);
-  }
+function register_busy_indicator($) {
+  var $w = $(window);
+  var $busy = $('#busy-indicator');
+  var sem = 0;
+  $w.on('api-load-start', function () {
+    sem++;
+    $busy.removeClass('idle');
+    $('.overlay').show();
+  });
+  $w.on('api-load-end', function () {
+    sem--;
+    if(sem > 0) return
+    $busy.addClass('idle');
+    $('.overlay').hide();
+  });
 }

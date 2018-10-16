@@ -1,0 +1,11 @@
+packages:
+  muste
+  muste-ajax
+  -- git@github.com:MUSTE-Project/sqlite-simple.git
+
+optional-packages:
+  libs/sqlite-simple
+  libs/gf-core/src/runtime/haskell
+  libs/haskell-cgi
+  libs/snap-extras
+  libs/digestive-functors

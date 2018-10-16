@@ -20,6 +20,9 @@ module Muste.Linearization.Internal
 
 import Prelude ()
 import Muste.Prelude
+import qualified Muste.Prelude.Unsafe as Unsafe
+import Muste.Prelude.SQL (FromField, ToField)
+import qualified Muste.Prelude.SQL as SQL
 
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -41,8 +44,6 @@ import qualified Muste.Tree.Internal as Tree
 import Muste.Grammar
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees
-import Muste.Common.SQL (FromField, ToField)
-import qualified Muste.Common.SQL as SQL
 
 data LinToken = LinToken
   -- The path refers to the path in the 'TTree'
@@ -157,7 +158,7 @@ linearizeTree (Context grammar language _) ttree =
     if not (Grammar.isEmptyGrammar grammar)
       && language `elem` PGF.languages (Grammar.pgf grammar)
       && not (null brackets)
-    then bracketsToTuples ttree $ head brackets
+    then bracketsToTuples ttree $ Unsafe.head brackets
     else Linearization [LinToken [] "?0" []]
 
 -- | Given an identifier for a grammar, looks up that grammar and then
@@ -209,7 +210,7 @@ bracketsToTuples = deep
   -- In the middle of the tree
   deep ltree (PGF.Bracket _ fid _ _ _ bs) =
     broad ltree fid bs mempty
-  deep _ _ = error "Muste.linearizeTree: Non-exhaustive pattern match"
+  deep _ _ = error "Muste.bracketsToTuples: Non-exhaustive pattern match"
   broad :: TTree -> Int -> [PGF.BracketedString] -> Linearization -> Linearization
   -- End of node siblings
   broad _     _   []                 ts = ts

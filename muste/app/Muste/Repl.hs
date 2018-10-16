@@ -19,8 +19,11 @@ module Muste.Repl
   , Env(..)
   ) where
 
-import Prelude (Float)
+import Prelude ()
 import Muste.Prelude
+import qualified Muste.Prelude.Unsafe as Unsafe
+import Muste.Prelude.Extra
+
 import System.Console.Repline
   (HaskelineT, runHaskelineT)
 import qualified System.Console.Haskeline     as Repl
@@ -32,13 +35,10 @@ import qualified Data.Containers              as Mono
 import qualified Data.List                    as List
 import Control.Monad.State.Strict
 import Control.Monad.Reader
-import System.CPUTime (getCPUTime)
-import Text.Printf (printf)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 
 import Muste hiding (getMenu)
-import Muste.Common
 import qualified Muste.Grammar.Internal       as Grammar
 import Muste.Menu (Menu)
 import qualified Muste.Menu.Internal          as Menu
@@ -106,21 +106,19 @@ askPruneOpts = lift $ asks @Options pruneOpts
 updateMenu ∷ Text → Repl ()
 updateMenu s = do
   ctxt ← getContext
-  liftIO $ timeCommand "Precalculate adjunction trees" $ do
-    let adjtrees = Mono.mapToList $ Linearization.ctxtPrecomputed ctxt
-    let adjsizes = [ (cat, length trees) | (cat, trees) <- adjtrees ]
-    printf "\nN:o adjunction trees = %d\n" (sum (map snd adjsizes))
   m ← getMenuFor s
   verb ← getPrintNodes
   comp ← getCompact
+  let menuList = Mono.mapToList m
   let compDoc = Doc.vsep
-        $  [ Doc.fill 60 "Selection" <+> "N:o menu items"
+        $  [ Doc.fill 60 "Selection" <+> "N:o menu items, total:" 
+             <+> pretty (sum (map (length . snd) menuList))
            ]
-        <> (purdy <$> Mono.mapToList m)
+        <> (purdy <$> menuList)
   let doc = if
         | comp      → compDoc
         | otherwise → prettyMenu verb ctxt s m
-  liftIO $ timeCommand "Update menu" $ do
+  liftIO $ do
     Text.putStrLn $ "Sentence is now: " <> s
     putDocLn doc
     where
@@ -128,15 +126,6 @@ updateMenu s = do
       = Doc.fill 60
             (pretty sel <> ":" <+> prettyLin sel (Text.words s))
         <+> pretty (length items)
-
-timeCommand :: String -> IO a -> IO a
-timeCommand title cmd = do
-    time0 <- getCPUTime
-    result <- cmd
-    time1 <- getCPUTime
-    let secs :: Float = fromInteger (time1-time0) * 1e-12
-    printf "\n>>> %s: %.2f s <<<\n\n" title secs
-    return result
 
 prettyMenu ∷ ∀ a . Bool → Context → Text → Menu → Doc a
 prettyMenu verbose ctxt s = Doc.vsep . fmap (uncurry go) . open
@@ -162,8 +151,8 @@ prettyMenu verbose ctxt s = Doc.vsep . fmap (uncurry go) . open
   annotated ∷ [Text]
   annotated
     = parse s
-    & map (\t -> Annotated.mkLinearization ctxt t t t)
-    & foldl1 Annotated.mergeL
+    & map (\t -> Annotated.mkLinearization ctxt t)
+    & Unsafe.foldl1 Annotated.mergeL
     & toList
     & map getNodes
   parse ∷ Text → [TTree]

@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# Language UnicodeSyntax, FlexibleContexts, OverloadedStrings #-}
-module Muste.Common
+{-# Language UnicodeSyntax, FlexibleContexts, OverloadedStrings, CPP #-}
+module Muste.Prelude.Extra
   ( preAndSuffix
   , wildCard
   , noDuplicates
@@ -29,16 +29,15 @@ module Muste.Common
   , trace
   , traceShow
   , traceShowId
-  , from
-  , to
+  , decodeFileThrow
+  , throwLeft
   ) where
 
 import Prelude ()
 import Muste.Prelude
+import qualified Muste.Prelude.Unsafe as Unsafe
 
-import Prelude hiding (fail)
 import qualified Data.Set as Set
-import Data.List (groupBy)
 import Text.Read (readEither)
 import Data.Binary (Binary)
 import qualified Data.Binary as Binary
@@ -50,6 +49,8 @@ import Data.Text.Prettyprint.Doc (Doc, Pretty)
 import qualified Data.Text.Prettyprint.Doc as Doc
 import Data.Text.Prettyprint.Doc.Render.String (renderString)
 import qualified Data.Text.Prettyprint.Doc.Render.Text as Doc
+import qualified Data.List.NonEmpty as NonEmpty
+import qualified Data.Yaml as Yaml
 
 import qualified Debug.Trace
 
@@ -105,36 +106,31 @@ isSubList csub@(c:sub) (d:super) | c == d    = isSubList sub super
 -- <https://wiki.haskell.org/Edit_distance>
 editDistance :: Eq a => [a] -> [a] -> Int
 editDistance a b = last (if lab == 0 then mainDiag
-                         else if lab > 0 then lowers !! (lab - 1)
-                              else {- < 0 -}  uppers !! (-1 - lab))
-    where mainDiag = oneDiag a b (head uppers) (-1 : head lowers)
+                         else if lab > 0 then lowers Unsafe.!! (lab - 1)
+                              else {- < 0 -}  uppers Unsafe.!! (-1 - lab))
+    where mainDiag = oneDiag a b (Unsafe.head uppers) (-1 : Unsafe.head lowers)
           uppers   = eachDiag a b (mainDiag : uppers) -- upper diagonals
           lowers   = eachDiag b a (mainDiag : lowers) -- lower diagonals
           eachDiag _ [] _ = []
           eachDiag a (_:bs) (lastDiag:diags) = oneDiag a bs nextDiag lastDiag : eachDiag a bs diags
-              where nextDiag = head (tail diags)
+              where nextDiag = Unsafe.head (Unsafe.tail diags)
           eachDiag _ _ _ = error "Common.editDistance: Unmatched clause"
           oneDiag a b diagAbove diagBelow = thisdiag
               where doDiag [] _b _nw _n _w = []
                     doDiag _a [] _nw _n _w = []
-                    doDiag (ach:as) (bch:bs) nw n w = me : doDiag as bs me (tail n) (tail w)
-                        where me = if ach == bch then nw else 1 + min3 (head w) nw (head n)
-                    firstelt = 1 + head diagBelow
-                    thisdiag = firstelt : doDiag a b firstelt diagAbove (tail diagBelow)
+                    doDiag (ach:as) (bch:bs) nw n w = me : doDiag as bs me (Unsafe.tail n) (Unsafe.tail w)
+                        where me = if ach == bch then nw else 1 + min3 (Unsafe.head w) nw (Unsafe.head n)
+                    firstelt = 1 + Unsafe.head diagBelow
+                    thisdiag = firstelt : doDiag a b firstelt diagAbove (Unsafe.tail diagBelow)
           lab = length a - length b
           min3 x y z = if x < y then x else min y z
 
--- | 'groupOn p' groups a list by using the 'Eq' instance of the
--- projection @p@.
-groupOn ∷ Eq b ⇒ (a → b) → [a] → [[a]]
+groupOn ∷ Eq b => (a -> b) -> [a] -> [NonEmpty a]
 groupOn p = groupBy ((==) `on` p)
 
--- NB: Even though we're using the unsafe method 'head' we shuold be
--- safe since 'groupOn' should not return any empty lists.
--- | Like 'groupOn' but just with a single element from each
--- group.
+-- | Like 'groupOn' but just with a single element from each group.
 groupOnSingle ∷ Eq b ⇒ (a → b) → [a] → [a]
-groupOnSingle p = map head . groupOn p
+groupOnSingle p = map NonEmpty.head . groupOn p
 
 -- | @'isSublistOf' xs ys@ checks if @xs@ is a sub list (disregarding
 -- the order) of @ys@.
@@ -176,38 +172,28 @@ binaryFromText = Binary.decode . convertString
 
 -- * Debug aids
 
-{-# DEPRECATED trace "Development aid remain in your code!!" #-}
+{-# DEPRECATED trace "Development aid remain in your codeUnsafe.!!" #-}
 trace ∷ String → a → a
 trace = Debug.Trace.trace
 
-{-# DEPRECATED traceShow "Development aid remain in your code!!" #-}
+{-# DEPRECATED traceShow "Development aid remain in your codeUnsafe.!!" #-}
 traceShow ∷ Show a ⇒ a → b → b
 traceShow = Debug.Trace.traceShow
 
-{-# DEPRECATED traceShowId "Development aid remain in your code!!" #-}
+{-# DEPRECATED traceShowId "Development aid remain in your codeUnsafe.!!" #-}
 traceShowId ∷ Show a ⇒ a → a
 traceShowId = Debug.Trace.traceShowId
 
 prettyShow ∷ Pretty a => a → String
 prettyShow = show . Doc.pretty
 
-{-# DEPRECATED prettyTrace "Development aid remain in your code!!" #-}
+{-# DEPRECATED prettyTrace "Development aid remain in your codeUnsafe.!!" #-}
 prettyTrace ∷ Pretty a ⇒ a → b → b
 prettyTrace a = trace (prettyShow a)
 
-{-# DEPRECATED prettyTraceId "Development aid remain in your code!!" #-}
+{-# DEPRECATED prettyTraceId "Development aid remain in your codeUnsafe.!!" #-}
 prettyTraceId ∷ Pretty a ⇒ a → a
 prettyTraceId a = trace (prettyShow a) a
-
--- | Useful in concert with TypeApplications during development.
-{-# DEPRECATED from "Development aid remain in your code!!" #-}
-from ∷ ∀ a b . a → b
-from = undefined
-
--- | Useful in concert with TypeApplications during development.
-{-# DEPRECATED to "Development aid remain in your code!!" #-}
-to ∷ ∀ a b . b → a
-to = undefined
 
 lookupFail
   ∷ MonadFail m
@@ -246,3 +232,16 @@ putDoc = Doc.putDoc
 
 putDocLn ∷ Doc a → IO ()
 putDocLn = putDoc . (<> Doc.line)
+
+decodeFileThrow ∷ MonadIO m ⇒ FromJSON a ⇒ FilePath → m a
+-- #if MIN_VERSION_yaml(0,8,31)
+decodeFileThrow = Yaml.decodeFileThrow
+-- #else
+-- decodeFileThrow f
+--   = liftIO $ Yaml.decodeFileEither f >>= either throwIO return
+-- #endif
+
+-- | Throws an exception if the it's a 'Left' (requires the left to be
+-- an exception).  This method is *unsafe*!
+throwLeft :: Exception e => Either e c -> c
+throwLeft = either throw identity

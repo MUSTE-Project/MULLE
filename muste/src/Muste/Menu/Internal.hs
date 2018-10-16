@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# Language UndecidableInstances, OverloadedLists #-}
+{-# Language CPP, UndecidableInstances, OverloadedLists #-}
 module Muste.Menu.Internal
   ( Menu(..)
   , getMenu
@@ -10,10 +10,14 @@ module Muste.Menu.Internal
   , Token.Annotated(..)
   , Interval(Interval, runInterval)
   , Prune.PruneOpts(..)
+  , Prune.emptyPruneOpts
   ) where
 
 import Prelude ()
 import Muste.Prelude
+import qualified Muste.Prelude.Unsafe as Unsafe
+import Muste.Prelude.Extra
+
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
@@ -27,7 +31,6 @@ import Data.Aeson (ToJSONKey, toJSONKey, ToJSONKeyFunction(ToJSONKeyValue), toJS
 import Control.DeepSeq (NFData)
 import qualified Data.Text as Text
 
-import Muste.Common
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.Linearization.Internal
   (Linearization(..), Context, ctxtGrammar, ctxtLang, ctxtPrecomputed)
@@ -43,6 +46,11 @@ import qualified Muste.Sentence.Linearization as Sentence (Linearization)
 import qualified Muste.Sentence.Token as Token
 import qualified Muste.Sentence.Annotated as Annotated
 
+#ifdef DIAGNOSTICS
+import System.IO.Unsafe (unsafePerformIO)
+import System.CPUTime (getCPUTime)
+#endif
+
 type Tokn = Text
 type Node = Category
 
@@ -54,16 +62,16 @@ deriving instance ToJSON Interval
 deriving instance FromJSON Interval
 deriving instance Show Interval
 deriving instance Eq Interval
-instance Ord Interval where
-  a `compare` b = case sizeInterval a `compare` sizeInterval b of
-    EQ → runInterval a `compare` runInterval b
-    x  → x
+deriving instance Ord Interval
 deriving instance Read Interval
 deriving instance Generic Interval
 instance NFData Interval where
 
 sizeInterval ∷ Interval → Int
 sizeInterval (Interval (i, j)) = j - i
+
+emptyInterval ∷ Interval → Bool
+emptyInterval (Interval (i, j)) = i == j
 
 newtype Selection = Selection { runSelection ∷ Set Interval }
 
@@ -117,9 +125,9 @@ lookupNode tree path
     Just (TNode node _ _) -> node
     _ → error "Incomplete Pattern-Match"
 
-similarTrees ∷ Prune.PruneOpts → Context → TTree → Set TTree
-similarTrees opts c
-  = Prune.replaceTrees opts (ctxtGrammar c) (ctxtPrecomputed c)
+similarTrees ∷ Prune.PruneOpts → Context → [TTree] → [(TTree, TTree)]
+similarTrees opts ctxt
+  = Prune.replaceAllTrees opts (ctxtPrecomputed ctxt)
 
 -- * Exported stuff
 
@@ -189,53 +197,63 @@ getMenu opts c l
   & getMenuItems opts c
 
 getMenuItems ∷ Prune.PruneOpts → Context → Text → Menu
-getMenuItems opts ctxt str
-  = collectTreeSubstitutions opts ctxt str
-  & filterTreeSubstitutions
-  & collectMenuItems ctxt
+getMenuItems opts ctxt sentence
+  = parseSentence ctxt sentence
+  & diagnose "Context"        showctxt showopts (\x -> x)
+  & diagnose "Collect substs" showlen  showsize (collectTreeSubstitutions opts ctxt)
+  & diagnose "Collect items"  showsize showsize (collectMenuItems)
+  & diagnose "Build menu"     showsize showmenu (buildMenu ctxt)
+  where showlen  = show . length
+        showsize = show . Set.size
+        showmenu (Menu menu) = show (map Set.size (Map.elems menu))
+        showctxt _ = "N:o adj.keys: " ++ showlen adjMap ++ ", n:o adj.trees: " ++ showlen adjTrees
+        showopts _ = "Pruning: " ++ show opts
+        adjMap     = Mono.mapToList (ctxtPrecomputed ctxt)
+        adjTrees   = adjMap >>= \(_, ts) → ts
+        
 
-type TreeSubst = (Int, XTree, XTree)
-type XTree = (TTree, [Tokn], [Node])
-
-collectTreeSubstitutions ∷ Prune.PruneOpts → Context → Text → [TreeSubst]
-collectTreeSubstitutions opts ctxt sentence = do
-  oldtree ← parseSentence ctxt sentence
-  let (oldwords, oldnodes) = linTree ctxt oldtree
-  let old = (oldtree, oldwords, oldnodes)
-  newtree ← Set.toList $ similarTrees opts ctxt oldtree
-  let (newwords, newnodes) = linTree ctxt newtree
-  let new = (newtree, newwords, newnodes)
-  pure (old `xtreeDiff` new, old, new)
-
-collectMenuItems :: Context -> [TreeSubst] -> Menu
-collectMenuItems ctxt substs = Menu $ Map.fromListWith Set.union $ do
-  (_cost, (_oldtree, oldwords, oldnodes), (_newtree, newwords, newnodes)) ← substs
-  let nodeedits = alignSequences oldnodes newnodes
-  let wordedits = alignSequences oldwords newwords
-  let edits = nodeedits <> wordedits
-  let (oldselection, newselection) = splitAlignments edits
-  let lins = [ Annotated.mkLinearization ctxt t t t |
-               t <- parseSentence ctxt (Text.unwords newwords) ]
-  -- if there are no linearisations (e.g. because of the grammar not fully implemented),
-  -- we just skip this menu item:
-  guard $ not (null lins)
-  let allnewnodes = foldl1 Annotated.mergeL lins
-  return (oldselection, Set.singleton (newselection, allnewnodes))
+diagnose ∷ String → (a → String) → (b → String) → (a → b) → (a → b)
+#ifdef DIAGNOSTICS
+diagnose title ashow bshow convert input = unsafePerformIO $ do
+  printf ">> %s, input: %s\n" title (ashow input)
+  time0 <- getCPUTime
+  let output = convert input
+  printf "   %s, output: %s\n" title (bshow output)
+  time1 <- getCPUTime
+  let secs :: Float = fromInteger (time1-time0) * 1e-12
+  printf "<< %s: %.2f s\n\n" title secs
+  return output
+#else
+diagnose _ _ _ convert = convert
+#endif
 
 
-filterTreeSubstitutions :: [TreeSubst] -> [TreeSubst]
-filterTreeSubstitutions = keepWith directMoreExpensive
-
-keepWith :: (a → a → Bool) -> [a] -> [a]
-keepWith p xs = [ x | x <- xs, not (any (p x) xs) ]
-
-directMoreExpensive :: TreeSubst -> TreeSubst -> Bool
-directMoreExpensive (cost, _, xtree) (cost', _, xtree')
-    = cost' < cost && xtree' `xtreeDiff` xtree < cost
+collectTreeSubstitutions ∷ Prune.PruneOpts → Context → [TTree] → Set (([Tokn], [Node]), ([Tokn], [Node]))
+collectTreeSubstitutions opts ctxt oldtrees 
+    = Set.fromList [ (linTree ctxt old, linTree ctxt new) | (old, new) ← similarTrees opts ctxt oldtrees ]
 
 
-xtreeDiff :: XTree -> XTree -> Int
-xtreeDiff (t,_,_) (t',_,_) = Tree.flatten t `editDistance` Tree.flatten t'
+collectMenuItems :: Set (([Tokn], [Node]), ([Tokn], [Node])) -> Set (Selection, Selection, [Tokn])
+collectMenuItems = Set.map align
+    where align ((oldwords, oldnodes), (newwords, newnodes)) = (oldselection, newselection, newwords)
+              where (oldselection, newselection) = splitAlignments edits
+                    edits = nodeedits <> wordedits
+                    -- the node edits are used for finding insertion points:
+                    nodeedits = filter (      emptyInterval . fst) $ alignSequences oldnodes newnodes
+                    -- the word edits are used for finding which words have changed:
+                    wordedits = filter (not . emptyInterval . fst) $ alignSequences oldwords newwords
+                    
+
+buildMenu ∷ Context -> Set (Selection, Selection, [Tokn]) → Menu
+buildMenu ctxt items
+    = Menu $ Map.fromAscListWith Set.union $
+      [ (oldselection, Set.singleton (newselection, newlin)) |
+        (oldselection, newselection, newwords) <- Set.toAscList items,
+        let newlins' = map (Annotated.mkLinearization ctxt) (parseSentence ctxt (Text.unwords newwords)),
+        not (null newlins'),
+        let newlin = Unsafe.foldl1 Annotated.mergeL newlins'
+      ]
+
 
 
 -- * LCS

@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language InstanceSigs #-}
 -- | A 'Set' with a dfferent 'Ord' instance.
-module Muste.Selection (Selection, fromList, toList) where
+module Muste.Selection (Selection) where
 
 import Prelude ()
 import Muste.Prelude
