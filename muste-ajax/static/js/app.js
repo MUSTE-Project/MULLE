@@ -1,5 +1,5 @@
 /*global $ Handlebars jQuery Set Map countdown : true*/
-var NOSPACING = '&+';
+var AGGLUTINATION = '&+';
 var PUNCTUATION = /^[,;.?!)]$/;
 var PREFIXPUNCT = /^[¿¡(]$/;
 
@@ -574,6 +574,7 @@ function show_lin(lang, lin, x) {
   function gen_word(validMenus, idx, linTok) {
     var classes = linTok['classes'];
     var matchingClasses = linTok['matching-classes'];
+    var concrete = linTok['concrete'];
     var match = matchingClasses.size > 0;
     var wordData = {
       nr: i,
@@ -592,9 +593,18 @@ function show_lin(lang, lin, x) {
       wordspan.addClass('match');
       var h = hash_array_of_string(Array.from(matchingClasses));
       var c = int_to_rgba(h);
-      wordspan.css({'border-color': c});
+      var css = {
+        'border-color': c
+      };
+      wordspan.css(css);
     }
-    return gen_item(validMenus, idx).addClass('word');
+    var css = {};
+    if(concrete == AGGLUTINATION) {
+      css['display'] = 'none';
+    }
+    wordspan.css(css);
+    return gen_item(validMenus, idx)
+      .addClass('word');
   }
 
   var css = {
@@ -609,7 +619,7 @@ function show_lin(lang, lin, x) {
     var linTok = lin[i];
     var previous = i > 0 ? lin[i-1].concrete : null;
     var current = linTok.concrete;
-    var spacing = (previous == NOSPACING || current == NOSPACING || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
+    var spacing = (previous == AGGLUTINATION || current == AGGLUTINATION || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
       ? ' ' : ' &emsp; ';
     var validMenusSpace = getValidMenusSpace(i, menu);
     var validMenus = getValidMenus(i, menu);
@@ -705,9 +715,14 @@ function click_word(event) {
       var pword = lin[i].concrete;
       // var marked = prefixOf(selection, pword.path);
       var marked = is_selected(sel, i);
+      var css = {};
+      if(pword == AGGLUTINATION) {
+        css['display'] = 'none';
+      }
       $('<span>').text(pword)
         .addClass(marked ? 'marked' : 'greyed')
-        .appendTo(menuitem);
+        .appendTo(menuitem)
+        .css(css);
       $('<span>').text(' ').appendTo(menuitem);
     }
   }
@@ -866,7 +881,8 @@ function* lookupKeySetWith(idx, map, f) {
 
 function to_client_tree(t) {
   return {
-    'sentence': t.sentence
+    'sentence': t.sentence,
+    'direction': t.direction
   };
 }
 
