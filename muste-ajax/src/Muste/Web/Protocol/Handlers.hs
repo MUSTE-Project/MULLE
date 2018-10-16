@@ -48,6 +48,8 @@ import           Muste.Sentence.Unannotated (Unannotated)
 import qualified Muste.Web.Ajax              as Ajax
 import qualified Muste.Web.Ajax              as Lesson
   ( Lesson(..) )
+import qualified Muste.Web.Ajax              as ClientTree
+  ( ClientTree(..) )
 import           Muste.Web.Ajax (ClientTree, ServerTree)
 import qualified Muste.Web.Database          as Database
 import qualified Muste.Web.Database.Types    as Database
@@ -165,7 +167,17 @@ handleLessonInit
 handleLessonInit lesson = do
   token ← getToken
   Database.ExerciseLesson{..} ← Database.startLesson token lesson
-  menu ← assembleMenus lessonName source target
+  menu ← assembleMenus $ AssembleMenu
+    { lesson = lessonName
+    , source = Ajax.ClientTree
+      { sentence = source
+      , direction = dir srcDir
+      }
+    , target = Ajax.ClientTree
+      { sentence = target
+      , direction = dir trgDir
+      }
+    }
   verifyMessage $ Ajax.MenuResponse
     { lesson = Ajax.Lesson
       { key  = lesson
@@ -175,6 +187,11 @@ handleLessonInit lesson = do
     , menu     = Just menu
     , finished = False
     }
+
+dir ∷ Database.Direction → Ajax.Direction
+dir = \case
+  Database.VersoRecto → Ajax.VersoRecto
+  Database.RectoVerso → Ajax.RectoVerso
 
 -- | This request is called after the user selects a new sentence from
 -- the drop-down menu.  A request consists of two 'ClientTree's (the
@@ -209,7 +226,11 @@ handleMenuRequest Ajax.MenuRequest{..} = do
       f ← Database.finishExercise token key newScore
       pure (f, Nothing)
     else do
-      m ← assembleMenus lessonName (un src) (un trg)
+      m ← assembleMenus $ AssembleMenu
+        { lesson = lessonName
+        , source = src
+        , target = trg
+        }
       pure (False, Just m)
   verifyMessage $ Ajax.MenuResponse
     { lesson   = lesson
@@ -217,8 +238,6 @@ handleMenuRequest Ajax.MenuRequest{..} = do
     , menu     = menu
     , finished = lessonFinished
     }
-  where
-  un (Ajax.ClientTree t) = t
 
 annotate
   ∷ MonadProtocol m
@@ -258,13 +277,13 @@ disambiguate
   ⇒ Text
   → ClientTree
   → m [TTree]
-disambiguate lesson (Ajax.ClientTree t) = do
+disambiguate lesson Ajax.ClientTree{..} = do
   cs ← askContexts
   let
     getC ∷ Unannotated → m Context
     getC u = liftEither $ getContext cs lesson (Sentence.language u)
-  c ← getC t
-  pure $ Sentence.disambiguate c t
+  c ← getC sentence
+  pure $ Sentence.disambiguate c sentence
 
 handleLogoutRequest ∷ MonadProtocol m ⇒ Text → m ()
 handleLogoutRequest = Database.endSession
@@ -280,23 +299,28 @@ verifySession = getToken >>= Database.verifySession
 verifyMessage ∷ MonadProtocol m ⇒ a → m a
 verifyMessage msg = msg <$ verifySession
 
+data AssembleMenu = AssembleMenu
+  { lesson ∷ Text
+  , source ∷ Ajax.ClientTree
+  , target ∷ Ajax.ClientTree
+  }
+
 -- | Gets the menus for a lesson.  This consists of a source tree and
 -- a target tree.
 assembleMenus
   ∷ MonadProtocol m
-  ⇒ Text
-  → Unannotated
-  → Unannotated
+  ⇒ AssembleMenu
   → m Ajax.MenuList
-assembleMenus lesson sourceTree targetTree = do
+-- assembleMenus lesson sourceTree targetTree srcDir trgDir = do
+assembleMenus AssembleMenu{..} = do
   c ← askContexts
   let mkTree = makeTree c lesson
   let ann = annotate lesson
-  src ← ann sourceTree
-  trg ← ann targetTree
+  src ← ann $ ClientTree.sentence source
+  trg ← ann $ ClientTree.sentence target
   pure $ Ajax.MenuList
-    { src = mkTree src
-    , trg = mkTree trg
+    { src = mkTree src $ ClientTree.direction source
+    , trg = mkTree trg $ ClientTree.direction target
     }
 
 getContext
@@ -330,11 +354,15 @@ makeTree
   ∷ Contexts
   → Text
   → Annotated
+  → Ajax.Direction
   → ServerTree
-makeTree c lesson s
-  = Ajax.ServerTree s menu
+makeTree c lesson s d
+  = Ajax.ServerTree
+  { sentence  = s
+  , menu      = Muste.getMenu Menu.emptyPruneOpts ctxt (Sentence.linearization s)
+  , direction = d
+  }
   where
-  menu = Muste.getMenu Menu.emptyPruneOpts ctxt (Sentence.linearization s)
   ctxt = throwLeft $ getContext c lesson language
   language = Sentence.language s
 

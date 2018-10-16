@@ -4,6 +4,8 @@ Change log
 HEAD
 ---
 
+Add support for rtl scripts.
+
 0.2.7.0
 ---
 

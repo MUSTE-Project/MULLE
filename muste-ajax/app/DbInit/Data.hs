@@ -10,7 +10,11 @@ module DbInit.Data
   , Languages(..)
   , Exercise(..)
   , Lesson(..)
+  , Ajax.Direction(..)
   ) where
+
+import Prelude ()
+import Muste.Prelude
 
 import Data.Text (Text)
 import Data.Aeson ((.:), FromJSON, Object, (.:?), (.!=))
@@ -18,6 +22,7 @@ import Data.Aeson.Types (Parser)
 import qualified Data.Aeson as Aeson
 
 import qualified Muste.Web.Database.Types as Database
+import qualified Muste.Web.Ajax as Ajax
 
 -- | A combinator that defaults to 'mempty' is not value is present.
 (.:*) ∷ FromJSON a ⇒ Monoid a ⇒ Object → Text → Parser a
@@ -49,6 +54,8 @@ data LessonSettings = LessonSettings
   { grammar        ∷ Text
   , enabled        ∷ Bool
   , repeatable     ∷ Bool
+  , srcDir         ∷ Ajax.Direction
+  , trgDir         ∷ Ajax.Direction
   }
 
 deriving stock instance Show LessonSettings
@@ -57,8 +64,10 @@ instance FromJSON LessonSettings where
   parseJSON = Aeson.withObject "search-options"
     $  \v → LessonSettings
     <$> v .:  "grammar"
-    <*> v .:? "enabled"    .!= True
-    <*> v .:? "repeatable" .!= True
+    <*> v .:? "enabled"          .!= True
+    <*> v .:? "repeatable"       .!= True
+    <*> v .:? "source-direction" .!= Ajax.VersoRecto
+    <*> v .:? "target-direction" .!= Ajax.VersoRecto
 
 newtype Sentence = Sentence Text
 

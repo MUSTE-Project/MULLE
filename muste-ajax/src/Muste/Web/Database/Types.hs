@@ -37,11 +37,12 @@ module Muste.Web.Database.Types
   , Numeric
   , Blob
   , ExerciseLesson(..)
+  , Direction(..)
   ) where
 
 import Prelude ()
 import Muste.Prelude
-import Muste.Prelude.SQL (FromRow, ToRow, Nullable, ToField, FromField)
+import Muste.Prelude.SQL (FromRow, ToRow, Nullable, ToField(..), FromField(..))
 import Data.Int (Int64)
 
 import Data.ByteString (ByteString)
@@ -139,6 +140,8 @@ data ExerciseLesson = ExerciseLesson
   , lessonName ∷ Text
   , source     ∷ Unannotated
   , target     ∷ Unannotated
+  , srcDir     ∷ Direction
+  , trgDir     ∷ Direction
   }
 
 deriving stock    instance Show    ExerciseLesson
@@ -164,17 +167,25 @@ deriving stock    instance Generic Exercise
 deriving anyclass instance ToRow   Exercise
 deriving anyclass instance FromRow Exercise
 
--- | Representation of a 'Leson' in the database.  Consists of:
---
--- * A name.
--- * A description.
--- * The grammar for the exercise.  This is a path to where the
---   '.pgf'-file is stored.
--- * The source language.
--- * The target language.
--- * The number of exercises.
--- * Is it enabled.
--- * Is it repeatable.
+data Direction = VersoRecto | RectoVerso
+
+deriving stock    instance Show    Direction
+deriving stock    instance Generic Direction
+instance ToField Direction where
+  toField = toField @Bool . toBool
+    where
+    toBool ∷ Direction → Bool
+    toBool = \case
+      VersoRecto → False
+      RectoVerso → True
+instance FromField Direction where
+  fromField = fmap fromBool <$> fromField @Bool
+    where
+    fromBool ∷ Bool → Direction
+    fromBool = \case
+      False → VersoRecto
+      True → RectoVerso
+
 data Lesson = Lesson
   { key                 ∷ Key
   , name                ∷ Text
@@ -188,6 +199,8 @@ data Lesson = Lesson
   , searchLimitDepth    ∷ Maybe Int
   , searchLimitSize     ∷ Maybe Int
   , repeatable          ∷ Bool
+  , sourceDirection     ∷ Direction
+  , targetDirection     ∷ Direction
   }
 
 deriving stock    instance Show    Lesson

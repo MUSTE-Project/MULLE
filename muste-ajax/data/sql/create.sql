@@ -38,6 +38,8 @@ CREATE TABLE Exercise (
   FOREIGN KEY(Lesson) REFERENCES Lesson(Id)
 );
 
+-- FIXME We should change lesson to have a two foregin keys 'src' and
+-- 'trg' to another table that describes a sentence.
 CREATE TABLE Lesson (
   Id                INTEGER PRIMARY KEY,
   Name              TEXT,
@@ -50,7 +52,10 @@ CREATE TABLE Lesson (
   Enabled           BOOL NOT NULL DEFAULT 0,
   SearchLimitDepth  INT DEFAULT NULL,
   SearchLimitSize   INT DEFAULT NULL,
-  Repeatable        BOOL NOT NULL DEFAULT 1
+  Repeatable        BOOL NOT NULL DEFAULT 1,
+  -- A value of 1 indicates RTL.
+  SourceDirection   BOOL NOT NULL DEFAULT 0,
+  TargetDirection   BOOL NOT NULL DEFAULT 0
 );
 
 -- FIXME Why not simply add a nullable column to the ExerciseList table?

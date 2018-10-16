@@ -401,11 +401,11 @@ function start_lesson(lesson) {
 }
 
 function handle_menu_response(r) {
-  // FIXME Naughty string interpolation!
-  change_page('#page-exercise', '?key=' + r.key);
-  DATA = r;
   var key = r.lesson.key;
   var menu = r.menu;
+  // FIXME Naughty string interpolation!
+  change_page('#page-exercise', '?key=' + key);
+  DATA = r;
   if(menu !== null) {
     show_exercise(r);
   } else {
@@ -507,8 +507,8 @@ function show_sentences(data) {
   var trgL = ct_linearization(trg);
   matchy_magic(srcL, trgL);
   matchy_magic(trgL, srcL);
-  show_lin('src', srcL, src.menu);
-  show_lin('trg', trgL, trg.menu);
+  show_lin('src', srcL, src);
+  show_lin('trg', trgL, trg);
 }
 
 function all_classes(xs) {
@@ -552,7 +552,8 @@ function intersection(m, n) {
   return new Set([...m].filter(function(x) {return n.has(x);}));
 }
 
-function show_lin(lang, lin, menu) {
+function show_lin(lang, lin, x) {
+  var menu = x.menu;
 
   function gen_item(validMenus, idx) {
     var spacyData = {
@@ -596,7 +597,13 @@ function show_lin(lang, lin, menu) {
     return gen_item(validMenus, idx).addClass('word');
   }
 
-  var sentence = $('#' + lang).empty();
+  var css = {
+    'direction': mk_direction(x.direction),
+    'unicode-bidi': 'bidi-override'
+  };
+  var sentence = $('#' + lang)
+    .empty()
+    .css(css);
   // var tree = parse_tree(DATA[lang].tree);
   for (var i=0; i < lin.length; i++) {
     var linTok = lin[i];
@@ -616,6 +623,19 @@ function show_lin(lang, lin, menu) {
   gen_space(getValidMenusSpace(lin.length, menu), lin.length)
     .html('&emsp;').click(click_word)
     .appendTo(sentence);
+}
+
+function mk_direction(direction) {
+  switch(direction) {
+  case 'left-to-right':
+  case 'ltr':
+  case 'verso-recto':
+    return 'ltr';
+  case 'right-to-left':
+  case 'rtl':
+  case 'recto-verso':
+    return 'rtl';
+  }
 }
 
 function int_to_rgba(num) {
@@ -731,10 +751,10 @@ function click_word(event) {
       var menuitem = $('<span class="clickable">')
         .data('item', item)
         .data('lang', lang)
-          .click(function() {
-            var d = $(this).data();
-            select_menuitem(d.item, d.lang);
-          });
+        .click(function() {
+          var d = $(this).data();
+          select_menuitem(d.item, d.lang);
+        });
       var lin = item;
       if (lin.length == 0) {
         $('<span>').html('&empty;').appendTo(menuitem);
@@ -882,12 +902,13 @@ var high_scores_template = `
 
 var render_high_scores = Handlebars.compile(high_scores_template);
 
-function fetch_high_scores () {
+// Used by a button on the html page.
+window.fetch_high_scores = function() {
   muste_request({}, 'high-scores')
     .then(function (xs) {
       $(window).trigger('high-scores-loaded', {scores: xs});
     });
-}
+};
 
 function register_high_score_handler($) {
   $(window).on('high-scores-loaded', display_high_scores);
@@ -914,7 +935,7 @@ function register_busy_indicator($) {
   });
   $w.on('api-load-end', function () {
     sem--;
-    if(sem > 0) return
+    if(sem > 0) return;
     $busy.addClass('idle');
     $('.overlay').hide();
   });

@@ -155,7 +155,8 @@
   search-options:
     size: 7
   settings:
-    grammar: "exemplum/Exemplum"
+    grammar:   "exemplum/Exemplum"
+    target-direction: rtl
   languages:
     source: "ExemplumEng"
     target: "ExemplumAra"
@@ -170,6 +171,22 @@
     size: 7
   settings:
     grammar: "exemplum/Exemplum"
+  languages:
+    source: "ExemplumEng"
+    target: "ExemplumTest"
+  exercises:
+    - source: many kings love Paris
+      target: the girl read book
+
+
+- name: "rtl test"
+  key: 9
+  description: "Testing that rtl works"
+  search-options:
+    size: 7
+  settings:
+    grammar: "exemplum/Exemplum"
+    target-direction: rtl
   languages:
     source: "ExemplumEng"
     target: "ExemplumTest"

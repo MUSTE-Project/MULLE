@@ -80,11 +80,17 @@ toDatabaseLesson Data.Lesson{..}
   , searchLimitDepth    = searchDepthLimit
   , searchLimitSize     = searchSizeLimit
   , repeatable          = repeatable
+  , sourceDirection     = dir srcDir
+  , targetDirection     = dir trgDir
   }
   where
   Data.LessonSettings{..} = settings
   Data.Languages sourceLanguage targetLanguage = languages
   Data.SearchOptions{..} = searchOptions
+  dir ∷ Data.Direction → Database.Direction
+  dir = \case
+    Data.VersoRecto → Database.VersoRecto
+    Data.RectoVerso → Database.RectoVerso
 
 toDatabaseExercise ∷ Data.Lesson → [Database.Exercise]
 toDatabaseExercise Data.Lesson{..} = step <$> exercises'
@@ -128,7 +134,9 @@ insertLessons c = SQL.executeMany c q
 , SearchLimitDepth
 , SearchLimitSize
 , Repeatable
-) VALUES (?,?,?,?,?,?,?,?,?,?,?);|]
+, SourceDirection
+, TargetDirection
+) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?);|]
 
 insertExercises ∷ Connection → [Database.Exercise] → IO ()
 insertExercises c = SQL.executeMany c q

@@ -33,12 +33,14 @@ module Muste.Web.Ajax
   , HighScore(..)
   , Lesson(..)
   , Score(..)
+  , Direction(..)
   ) where
 
 import Prelude ()
 import Muste.Prelude
 
-import Data.Aeson ((.:), (.=), (.:?))
+import Data.Aeson ((.:), (.=), (.:?), (.!=))
+import Data.Aeson.Types (Parser)
 import qualified Data.Aeson as Aeson
 
 import Muste
@@ -49,7 +51,12 @@ import qualified Muste.Web.Database.Types as Database
 
 import           Muste.Web.Types.Score (Score(..))
 
-newtype ClientTree = ClientTree { unClientTree ∷ Unannotated }
+data ClientTree = ClientTree
+  { sentence      ∷ Unannotated
+  -- Asking the client to supply these is a bit of a hack.  We just
+  -- send it back unmodified!
+  , direction     ∷ Direction
+  }
 
 deriving instance Show ClientTree
 
@@ -57,10 +64,12 @@ instance FromJSON ClientTree where
   parseJSON = Aeson.withObject "tree"
      $ \v -> ClientTree
     <$> v .: "sentence"
+    <*> v .: "direction"
 
 instance ToJSON ClientTree where
-  toJSON (ClientTree sentence) = Aeson.object
-    [ "sentence" .= sentence
+  toJSON ClientTree{..} = Aeson.object
+    [ "sentence"  .= sentence
+    , "direction" .= direction
     ]
 
 data LoginRequest = LoginRequest
@@ -107,6 +116,32 @@ instance FromJSON MenuRequest where
     <*> b .: "src"
     <*> b .: "trg"
 
+data Direction = VersoRecto | RectoVerso
+
+deriving stock instance Show Direction
+
+instance FromJSON Direction where
+  parseJSON val
+    =   VersoRecto `aka` ["left-to-right", "ltr", "verso-recto"]
+    <|> RectoVerso `aka` ["right-to-left", "rtl", "recto-verso"]
+    where
+    aka ∷ Direction
+      → [Text]
+      → Parser Direction
+    aka d xs = oneOf $ step <$> xs
+      where
+      step kw = Aeson.withText "Direction" k val
+        where
+        k t = if kw == t then pure d else empty
+
+instance ToJSON Direction where
+  toJSON = \case
+    VersoRecto → "ltr"
+    RectoVerso → "rtl"
+
+oneOf ∷ (Foldable t, Alternative f) => t (f a) -> f a
+oneOf = foldl (<|>) empty
+
 -- | 'ServerTree's represent the data needed to display a sentence in
 -- the GUI.  The naming is maybe not the best, but the reason it is
 -- called like that is simply because it is the data that the client
@@ -119,17 +154,20 @@ instance FromJSON MenuRequest where
 data ServerTree = ServerTree
   { sentence  ∷ Annotated
   , menu      ∷ Menu
+  , direction ∷ Direction
   } deriving (Show)
 
 instance FromJSON ServerTree where
   parseJSON = Aeson.withObject "server-tree" $ \v -> ServerTree
-    <$> v .: "sentence"
-    <*> v .: "menu"
+    <$> v .:  "sentence"
+    <*> v .:  "menu"
+    <*> v .:? "direction" .!= VersoRecto
 
 instance ToJSON ServerTree where
   toJSON ServerTree{..} = Aeson.object
-    [ "sentence" .= sentence
-    , "menu"     .= menu
+    [ "sentence"  .= sentence
+    , "menu"      .= menu
+    , "direction" .= direction
     ]
 
 data LoginSuccess = LoginSuccess Text

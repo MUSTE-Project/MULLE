@@ -135,6 +135,8 @@ SELECT
   , SearchLimitDepth
   , SearchLimitSize
   , Repeatable
+  , SourceDirection
+  , TargetDirection
 FROM Lesson;
 |]
 
@@ -567,7 +569,9 @@ SELECT Exercise,
   Lesson,
   Name,
   SourceTree,
-  TargetTree
+  TargetTree,
+  SourceDirection,
+  TargetDirection
 FROM ExerciseLesson
 WHERE Lesson = ?;
 |]
@@ -650,6 +654,7 @@ continueLesson user lesson = do
   round ← getLessonRound user lesson
   getExercise lesson user round
 
+-- FIXME Add 'FinishExercise' type.
 finishExercise
   ∷ MonadDB r db
   ⇒ Text            -- ^ Token
@@ -741,7 +746,9 @@ SELECT
   Lesson.Id,
   Lesson.Name,
   SourceTree,
-  TargetTree
+  TargetTree,
+  SourceDirection,
+  TargetDirection
 FROM ExerciseList
 JOIN Exercise ON Exercise = Exercise.Id
 JOIN Lesson   ON Lesson   = Lesson.Id
