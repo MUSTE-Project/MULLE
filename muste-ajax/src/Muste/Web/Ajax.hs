@@ -18,6 +18,9 @@ module Muste.Web.Ajax
   ( ServerTree(..)
   , ClientTree(..)
   , LoginRequest(..)
+  -- FIXME Better probably just to make an almost identical definition
+  -- here and then convert between them (maybe even using 'coerce' for
+  -- the sake of efficiency)
   , Database.ActiveLesson(..)
   , User(..)
   , CreateUser(..)
@@ -141,7 +144,7 @@ instance ToJSON LoginSuccess where
     [ "login-succes" .= token
     ]
 
-data LessonList = LessonList [Database.ActiveLesson]
+newtype LessonList = LessonList [Database.ActiveLesson]
 
 instance FromJSON LessonList where
   parseJSON = Aeson.withObject "lesson-list"
