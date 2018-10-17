@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall -Wcompat #-}
 {-# Language CPP, UndecidableInstances, OverloadedLists #-}
 module Muste.Menu.Internal
   ( Menu(..)
@@ -16,7 +16,6 @@ module Muste.Menu.Internal
 import Prelude ()
 import Muste.Prelude
 import qualified Muste.Prelude.Unsafe as Unsafe
-import Muste.Prelude.Extra
 
 import Data.Map (Map)
 import qualified Data.Map as Map

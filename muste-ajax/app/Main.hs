@@ -1,4 +1,4 @@
--- {-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall -Wcompat #-}
 {-# language OverloadedStrings, UnicodeSyntax, TemplateHaskell #-}
 module Main (main) where
 
@@ -18,7 +18,7 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as ByteString
 import Data.Semigroup (Semigroup((<>)))
 import qualified Data.Yaml as Yaml (encode)
-import Control.Lens (lens, makeLenses)
+import Control.Lens (makeLenses)
 
 import qualified Muste.Web.Protocol as Protocol
 import qualified Muste.Web.Config   as Config
@@ -38,15 +38,12 @@ appInit ∷ SnapletInit App App
 appInit = makeSnaplet "muste" "Multi Semantic Text Editor"
   (Just (pure Config.wwwRoot))
   $ do
-    api    ← nestSnaplet (p "api")  api    apiInit
-    static ← nestSnaplet (p mempty) static staticInit
-    pure $ App api static
+    api'    ← nestSnaplet (p "api")  api    apiInit
+    static' ← nestSnaplet (p mempty) static staticInit
+    pure $ App api' static'
   where
     p ∷ ByteString → ByteString
     p = (ByteString.pack Config.virtualRoot </>)
-    err :: String -> a
-    err s = error
-      $ printf "Main.appInit: TODO: Missing lens for `%s`" s
 
 -- | Runs a static file server and the main api.  All requests to
 -- @/api/*@ are handled by the API.  For the protocol refer to

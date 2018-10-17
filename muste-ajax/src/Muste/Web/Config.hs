@@ -8,6 +8,8 @@
 -- The configuration options that are exposed to the rest of this
 -- application.
 
+-- FIXME Name shadowing.
+{-# OPTIONS_GHC -Wall -Wcompat -Wno-name-shadowing #-}
 {-# LANGUAGE
     UnicodeSyntax
   , NamedWildCards
@@ -45,7 +47,7 @@ appConfig ∷ AppConfig
 appConfig = fromConfig cfg
 
 fromConfig ∷ Cfg.Config → AppConfig
-fromConfig (Cfg.Config { .. }) = AppConfig
+fromConfig Cfg.Config{..} = AppConfig
   { db          = dataDir </> "muste"     <.> "sqlite3"
   , lessons     = dataDir </> "lessons"   <.> "yaml"
   , accessLog   = logDir  </> "access"    <.> "log"

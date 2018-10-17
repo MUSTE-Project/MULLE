@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wall -Wcompat #-}
 -- | High level API to the muste backend.
 module Muste
   ( -- * Trees
@@ -10,7 +11,7 @@ module Muste
   , module Muste.Linearization
   ) where
 
-import Muste.Tree          hiding (BuilderInfo(..))
-import Muste.Grammar       hiding (BuilderInfo(..))
+import Muste.Tree
+import Muste.Grammar
 import Muste.Menu          hiding (PruneOpts(..))
 import Muste.Linearization hiding (BuilderInfo(..))
