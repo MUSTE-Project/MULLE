@@ -559,7 +559,8 @@ function show_lin(lang, lin, x) {
     var spacyData = {
       nr: idx,
       lang: lang,
-      'valid-menus': validMenus
+      'valid-menus': validMenus,
+      'direction': x.direction
     };
     return $('<span>')
       .addClass('clickable')
@@ -581,7 +582,8 @@ function show_lin(lang, lin, x) {
       lang: lang,
       'classes': classes,
       /* , subtree:subtree */
-      'valid-menus': validMenus
+      'valid-menus': validMenus,
+      'direction': x.direction
     };
     // Perhaps we could generalize gen_space and use that here as well?
     var wordspan = $('<span>')
@@ -598,11 +600,11 @@ function show_lin(lang, lin, x) {
       };
       wordspan.css(css);
     }
-    var css = {};
+    var css_word = {};
     if(concrete == AGGLUTINATION) {
-      css['display'] = 'none';
+      css_word['display'] = 'none';
     }
-    wordspan.css(css);
+    wordspan.css(css_word);
     return gen_item(validMenus, idx)
       .addClass('word');
   }
@@ -696,7 +698,7 @@ function click_word(event) {
     }
     else if (clicked.hasClass('space')) {
       // Alternate between clicking `clicked`'s neighbors.
-      // TODO Unimplemented.
+      // TODO Unipmlemented.
       return path;
     }
     else {
@@ -710,6 +712,7 @@ function click_word(event) {
   var path = clicked.data().path;
   var validMenus = clicked.data('valid-menus');
   var idx = clicked.data('nr');
+  var direction = mk_direction(clicked.data('direction'));
   function mark_selected_words(lin, sel) {
     for(var i = 0 ; i < lin.length ; i++) {
       var pword = lin[i].concrete;
@@ -758,8 +761,14 @@ function click_word(event) {
       })
       .addClass('striked');
 
-    $('#menus').data('selection', selection);
-    var ul = $('<ul>').appendTo($('#menus'));
+    var $menus = $('#menus');
+    $menus.data('selection', selection);
+    var css = {
+      'direction': direction,
+      'unicode-bidi': 'bidi-override'
+    };
+    var ul = $('<ul>')
+      .appendTo($menus);
     for (var i = 0; i < menus.length; i++) {
       var pr = menus[i];
       var item = pr[1]; // snd
@@ -776,7 +785,10 @@ function click_word(event) {
       } else {
         mark_selected_words(lin, pr[0]);
       }
-      $('<li>').append(menuitem).appendTo(ul);
+      $('<li>')
+        .css(css)
+        .append(menuitem)
+        .appendTo(ul);
 
     }
   }
