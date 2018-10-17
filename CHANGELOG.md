@@ -304,3 +304,8 @@ Use Haskell resource files to manage most hard coded file locations.
 0.1.0.0
 -------
 This is the last version before a major refactoring.
+
+0.0.3
+---
+
+Implemented pruning
