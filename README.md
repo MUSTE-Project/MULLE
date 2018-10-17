@@ -1,3 +1,5 @@
+[![Build Status](https://secure.travis-ci.org/MUSTE-Project/MULLE.png)](http://travis-ci.org/MUSTE-Project/MULLE)
+
 MULLE
 =====
 
