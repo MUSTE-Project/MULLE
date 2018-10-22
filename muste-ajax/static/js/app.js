@@ -753,7 +753,8 @@ function click_word(event) {
     // somehow.
     var nextElem = validMenus.next();
     if(nextElem === 'reset') {
-      throw 'TODO';
+      $(document).trigger('overlay-out');
+      return;
     }
     var selsnmen = nextElem.value;
     // Again we changed the selection, we can try mapping the snd
