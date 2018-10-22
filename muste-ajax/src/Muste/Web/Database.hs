@@ -106,13 +106,17 @@ instance Exception Error where
 
 -- | hashPasswd returns a SHA512 hash of a PBKDF2 encoded password
 -- (SHA512,10000 iterations,1024 bytes output)
-hashPasswd :: ByteString -> ByteString -> ByteString
-hashPasswd = fastPBKDF2_SHA512 $ Parameters 10000 1024
+hashPassword
+  ∷ Text       -- ^ Password in clear text
+  → Types.Blob -- ^ Salt
+  → Types.Blob
+hashPassword pw (Types.Blob salt)
+  = Types.Blob $ fastPBKDF2_SHA512 (Parameters 10000 1024) (T.encodeUtf8 pw) salt
 
 -- | createSalt returns a SHA512 hash of 512 bytes of random data as a
 -- bytestring
-createSalt :: MonadIO io ⇒ io ByteString
-createSalt = fst . genRandomBytes 512 <$> liftIO getSystemRandomGen
+createSalt :: MonadIO io ⇒ io Types.Blob
+createSalt = Types.Blob . fst . genRandomBytes 512 <$> liftIO getSystemRandomGen
 
 getCurrentTime ∷ MonadIO io ⇒ io UTCTime
 getCurrentTime = liftIO Time.getCurrentTime
@@ -153,7 +157,7 @@ createUser Types.CreateUser{..} = do
   salt <- createSalt
   pure $ Types.UserSansId
     { name     = name
-    , password = hashPasswd (T.encodeUtf8 password) salt
+    , password = hashPassword password salt
     , salt     = salt
     , enabled  = enabled
     }
@@ -206,7 +210,7 @@ authUser user pass = do
   userList <- query @Types.User q (Only user)
   -- Generate new password hash and compare to the stored one
   let
-    h dbSalt = hashPasswd (T.encodeUtf8 pass) dbSalt
+    h dbSalt = hashPassword pass dbSalt
     p Types.User{..} = enabled && h salt == password
   case userList of
     [usr] → if
@@ -404,7 +408,10 @@ getActiveLessons token = do
     , passedcount   = passedcount
     }
     where
-    passedcount = length $ NonEmpty.filter ActiveLessonForUser.finished xs
+    passedcount
+      = fromIntegral
+      $ length
+      $ NonEmpty.filter ActiveLessonForUser.finished xs
 
 getActiveLessonsForUser
   ∷ ∀ r db
@@ -609,7 +616,7 @@ newLesson user lesson = do
   selectedTrees ← do
     trees ← getTreePairs lesson
     -- randomly select
-    take (fromInteger count) <$> shuffle trees
+    take (fromIntegral count) <$> shuffle trees
   exerciseLesson ← case selectedTrees of
     []      → throwDbError NoExercisesInLesson
 
@@ -644,7 +651,7 @@ getLessonRound
   ∷ MonadDB r db
   ⇒ Types.Key
   → Types.Key
-  → db Integer
+  → db Types.Numeric
 getLessonRound user lesson =
   fromOnly . Unsafe.head <$> query q (user,lesson)
   where
@@ -798,7 +805,7 @@ getFinishedExercises
   → Types.Key -- ^ Exercise
   → db Types.Numeric
 getFinishedExercises user lesson =
-  fromOnly . Unsafe.head <$> query @(Only Integer) q (user,lesson)
+  fromOnly . Unsafe.head <$> query q (user,lesson)
   where
   q = [sql|
 -- getFinishedExercises
@@ -813,7 +820,7 @@ getExerciseCount
   ⇒ Types.Key -- ^ Lesson
   → db Types.Numeric
 getExerciseCount lesson =
-  fromOnly . Unsafe.head <$> query @(Only Integer) q (Only lesson)
+  fromOnly . Unsafe.head <$> query q (Only lesson)
   where
   q = [sql|
 -- getExerciseCount

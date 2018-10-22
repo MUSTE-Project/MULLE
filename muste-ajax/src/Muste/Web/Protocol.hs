@@ -93,8 +93,8 @@ mkContext Database.Lesson{..} = do
   f l = Sentence.Language (Sentence.Grammar grammar) l
   nfo ∷ Linearization.BuilderInfo
   nfo = Linearization.BuilderInfo
-    { searchDepth = searchLimitDepth
-    , searchSize  = searchLimitSize
+    { searchDepth = fromIntegral <$> searchLimitDepth
+    , searchSize  = fromIntegral <$> searchLimitSize
     }
 
 -- | The main api.  For the protocol see @Protocol.apiRoutes@.

@@ -34,8 +34,8 @@ module Muste.Web.Database.Types
   , Key(..)
   , Muste.TTree
   , Sentence.Unannotated
-  , Numeric
-  , Blob
+  , Blob(..)
+  , Numeric(..)
   , ExerciseLesson(..)
   , Direction(..)
   ) where
@@ -55,8 +55,31 @@ import Muste.Sentence.Unannotated (Unannotated)
 
 import Muste.Web.Types.Score (Score)
 
-type Blob = ByteString
-type Numeric = Integer
+newtype Blob = Blob { unBlob ∷ ByteString }
+
+deriving stock   instance Show      Blob
+deriving newtype instance Eq        Blob
+deriving newtype instance ToField   Blob
+deriving newtype instance FromField Blob
+
+-- | The sql driver we use uses 64 bit integers meaning that we
+-- anyways convert to and from this.  sqlite3s documentation has this to say:
+--
+-- > INTEGER. The value is a signed integer, stored in 1, 2, 3, 4, 6,
+-- > or 8 bytes depending on the magnitude of the value.
+newtype Numeric = Numeric { unNumeric ∷ Int64 }
+
+deriving stock   instance Show      Numeric
+deriving newtype instance Eq        Numeric
+deriving newtype instance Ord       Numeric
+deriving newtype instance Num       Numeric
+deriving newtype instance Real      Numeric
+deriving newtype instance Enum      Numeric
+deriving newtype instance Integral  Numeric
+deriving newtype instance ToField   Numeric
+deriving newtype instance FromField Numeric
+deriving newtype instance ToJSON    Numeric
+deriving newtype instance FromJSON  Numeric
 
 newtype Key = Key Int64
 
@@ -196,8 +219,8 @@ data Lesson = Lesson
   -- TODO Why not let the dbms manage this?
   , exerciseCount       ∷ Numeric
   , enabled             ∷ Bool
-  , searchLimitDepth    ∷ Maybe Int
-  , searchLimitSize     ∷ Maybe Int
+  , searchLimitDepth    ∷ Maybe Numeric
+  , searchLimitSize     ∷ Maybe Numeric
   , repeatable          ∷ Bool
   , sourceDirection     ∷ Direction
   , targetDirection     ∷ Direction
@@ -292,7 +315,7 @@ data ActiveLessonForUser = ActiveLessonForUser
   { lesson        ∷ Key
   , name          ∷ Text
   , description   ∷ Text
-  , exercisecount ∷ Int
+  , exercisecount ∷ Numeric
   , score         ∷ Nullable Score
   , finished      ∷ Bool
   , enabled       ∷ Bool
@@ -310,8 +333,8 @@ data ActiveLesson = ActiveLesson
   { lesson        ∷ Key
   , name          ∷ Text
   , description   ∷ Text
-  , exercisecount ∷ Int
-  , passedcount   ∷ Int
+  , exercisecount ∷ Numeric
+  , passedcount   ∷ Numeric
   , score         ∷ Score
   , finished      ∷ Bool
   , enabled       ∷ Bool

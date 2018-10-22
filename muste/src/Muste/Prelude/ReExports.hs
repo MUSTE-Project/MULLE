@@ -1,4 +1,7 @@
-{-# OPTIONS_GHC -Wall #-}
+-- | A module re-exporting members commonly used throughout the MUSTE.
+
+{-# OPTIONS_GHC -Wall -Wcompat #-}
+
 module Muste.Prelude.ReExports
   ( module X
   , module Extraneous
@@ -9,10 +12,11 @@ import Prelude as X
   -- Classes
   (Ord(..), Show(show), Monoid(..), Eq(..), Ordering(..),
   Read, Foldable, Functor(..), Applicative(..), Monad((>>=)),
-  Enum(..), Num(..),
+  Enum(..), Num(..), Integral(..), Real(..),
 
   -- Data
   IO, Int, Integer, Float, Maybe(..), Either(..), Bool(..), Char,
+
   -- Aliases
   String, FilePath,
 
@@ -21,7 +25,8 @@ import Prelude as X
   filter, zipWith, zip, fst, snd, all, any, reverse, maximum, minimum,
   max, min, sum, unwords, words, lines, unlines, or, and, notElem,
   elem, (<*>), foldMap, putStrLn, putStr, flip, const, sequence, take,
-  mapM_, mapM, ioError, error, repeat, foldl, seq, mod, div, print)
+  mapM_, mapM, ioError, error, repeat, foldl, seq, mod, div, print,
+  realToFrac, fromIntegral)
 import Data.List                 as X (sort, last, nub)
 import Data.List.NonEmpty        as X (NonEmpty(..), groupBy)
 import Data.Bool                 as X (bool)

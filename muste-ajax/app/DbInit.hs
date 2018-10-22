@@ -75,10 +75,10 @@ toDatabaseLesson Data.Lesson{..}
   , grammar             = grammar
   , sourceLanguage      = sourceLanguage
   , targetLanguage      = targetLanguage
-  , exerciseCount       = toInteger $ length exercises'
+  , exerciseCount       = fromIntegral $ length exercises'
   , enabled             = enabled
-  , searchLimitDepth    = searchDepthLimit
-  , searchLimitSize     = searchSizeLimit
+  , searchLimitDepth    = fromIntegral <$> searchDepthLimit
+  , searchLimitSize     = fromIntegral <$> searchSizeLimit
   , repeatable          = repeatable
   , sourceDirection     = dir srcDir
   , targetDirection     = dir trgDir
