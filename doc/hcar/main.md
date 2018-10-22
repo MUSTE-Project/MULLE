@@ -1,6 +1,18 @@
 The MUSTE Language Learning Environment
 ===
 
+### Submitter
+
+Frederik Hanghøj Iversen
+
+### Participants:
+
+  * Peter Ljunglöf
+  * Herbert Lange
+  * Frederik Hanghøj Iversen
+
+### Description
+
 *MULLE* -- The MUSTE Language Learning Environment -- is a web-based
 interactive tool for learning a new language.  The user interface is
 based on Multimodal Semantic Text Editing (MUSTE), which is a research
@@ -28,5 +40,5 @@ exercises.  New grammars can easily be added, and adding exercises is
 just a matter of writing down the source- and target sentences.
 
 The project started around the beginning of 2016 but has recently
-undergone a major overhaul.  Further information:
-https://github.com/MUSTE-Project/MULLE
+undergone a major overhaul.  It is released as free and open software
+and can be accessed at: https://github.com/MUSTE-Project/MULLE
