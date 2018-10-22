@@ -736,8 +736,7 @@ function click_word(event) {
     }
   }
   if(validMenus === 'nothing') {
-    // Fake an empty menu.
-    validMenus = {next: function() {return [[], []];}, reset: function (){}};
+    throw 'This should not happen';
   }
   if(validMenus === undefined) {
     throw 'No menu found';
@@ -752,7 +751,11 @@ function click_word(event) {
 
     // These are the valid menus.  Now we must toggle between them
     // somehow.
-    var selsnmen = validMenus.next();
+    var nextElem = validMenus.next();
+    if(nextElem === 'reset') {
+      throw 'TODO';
+    }
+    var selsnmen = nextElem.value;
     // Again we changed the selection, we can try mapping the snd
     // component.
     selection  = selsnmen[0];
@@ -855,8 +858,13 @@ function iterateMenu(idx, mp) {
   if(a.length === 0) return 'nothing';
   return {
     next: function() {
-      i = (i+1) % a.length;
-      return a[i];
+      i++;
+      if(i === a.length) {
+        // TODO Return 'reset' now.
+        i = 0;
+        return 'reset';
+      }
+      return {'value': a[i]};
     },
     reset: function() {
       i = initial;
