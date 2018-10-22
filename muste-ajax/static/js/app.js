@@ -346,6 +346,7 @@ var lesson_list_template = ' \
     {{#if score}} \
     <p> \
      Your score so far: <span>{{score.clicks}} klick i {{score.time}} sekunder</span> \
+     <canvas class="score" data-lesson="{{lesson}}" data-score="{{json score}}"></canvas></td> \
     </p> \
     {{/if}} \
     <p> \
@@ -382,7 +383,9 @@ function register_lessons_listener($) {
       };
     });
   }
-  $(window).on('lessons-loaded', update_exercises);
+  $(window)
+    .on('lessons-loaded', update_exercises)
+    .on('lessons-loaded', window.fetch_high_scores);
 }
 
 // Warning defined but never used.  What gives?
@@ -954,13 +957,26 @@ window.fetch_high_scores = function() {
 };
 
 function register_high_score_handler($) {
-  $(window).on('high-scores-loaded', display_high_scores);
+  $(window).on('high-scores-loaded', function(_, e) {
+    var scores = e.scores;
+    set_global_highscore_mapping(scores);
+    display_high_scores(scores);
+    setup_score_bars(window.ScoreBar);
+  });
 }
 
-function display_high_scores(_, scores) {
+function set_global_highscore_mapping(scores) {
+  var xs = scores.map(function(score) {
+    return [score.lesson.key, score.score];
+  });
+  var m = new Map(xs);
+  window['high-scores'] = m;
+}
+
+function display_high_scores(scores) {
   var p = $('#high-scores-table');
   p.empty();
-  var e = render_high_scores(scores.scores);
+  var e = render_high_scores(scores);
   p.html(e);
 }
 
@@ -982,4 +998,42 @@ function register_busy_indicator($) {
     $busy.addClass('idle');
     $('.overlay').hide();
   });
+}
+
+window.ScoreBar = (function() {
+  function normalize(x) {
+    return 1 / Math.log(x + 1);
+  }
+  function valuation(score) {
+    return normalize(score.clicks) * normalize(score.time);
+  }
+  function getHighscore(lesson) {
+    var h = window['high-scores'];
+    return h.get(lesson);
+  }
+  function setup(_, canvas) {
+    var $canvas = $(canvas).show();
+    var data = $canvas.data();
+    var score = data['score'];
+    var lesson = data['lesson'];
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'green';
+    var highscore = getHighscore(lesson);
+    // TODO What to do then?
+    if(highscore === undefined) {
+      $canvas.hide();
+      return;
+    }
+    var h = valuation(highscore);
+    var v = valuation(score);
+    var w = canvas.width * v / h;
+    ctx.fillRect(0, 0, w, canvas.height);
+  }
+  return {
+    'setup': setup
+  };
+})();
+
+function setup_score_bars(ScoreBar) {
+  $('.score[data-score]').each(ScoreBar.setup);
 }

@@ -322,4 +322,12 @@ img { border: 1px dotted blue }
     text-align: center;
     margin-top: 1em;
     margin-bot: 1em;
-p}
+}
+
+.score {
+    height: 2ex;
+    width: 80px;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #acacac;
+}
