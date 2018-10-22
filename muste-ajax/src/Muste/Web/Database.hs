@@ -242,25 +242,43 @@ changePassword Types.ChangePassword{..} = do
 
 createSession
   ∷ MonadDB r db
-  ⇒ Text -- ^ Username
+  ⇒ Types.Key -- ^ User
   → db Types.Session
 createSession user = do
-    -- maybe check for old sessions and clean up?
-    endSession user
-    -- create new session
-    timeStamp ← getCurrentTime
-    pure $ Types.Session
-      { user       = user
-      , token      = genToken timeStamp
-      , startTime  = timeStamp
-      , lastActive = timeStamp
-      }
+  -- Remove any existing session.
+  getSession user >>= \case
+    Nothing → pure ()
+    Just token → endSession token
+  -- Create new session.
+  timeStamp ← getCurrentTime
+  pure $ Types.Session
+    { user       = user
+    , token      = genToken timeStamp
+    , startTime  = timeStamp
+    , lastActive = timeStamp
+    }
 
-endSession ∷ MonadDB r db ⇒ Text → db ()
+getSession
+  ∷ MonadDB r db
+  ⇒ Types.Key -- ^ User
+  → db (Maybe Text)
+getSession user = fmap fromOnly . listToMaybe <$> query q (Only user)
+  where
+  q = [sql|
+-- getSession
+SELECT Token
+FROM Session
+WHERE User = ?;
+|]
+
+endSession
+  ∷ MonadDB r db
+  ⇒ Text -- ^ Session token
+  → db ()
 endSession user = execute q (Only user)
   where
   q = [sql|
--- createSession
+-- endSession
 DELETE
 FROM Session
 WHERE User = ?;
@@ -277,7 +295,7 @@ genToken timeStamp = convertString (show (hash @ByteString @SHA3_512 sessionData
 -- moment overly simplified.
 startSession
   :: MonadDB r db
-  => Text -- ^ Username
+  => Types.Key -- ^ User
   -> db Text
 startSession user = do
   session@(Types.Session _ token _ _) <- createSession user
@@ -346,7 +364,7 @@ getLastActive t = do
   where
 
   q = [sql|
--- getSession
+-- getLastActive
 SELECT LastActive
 FROM Session
 WHERE Token = ?;

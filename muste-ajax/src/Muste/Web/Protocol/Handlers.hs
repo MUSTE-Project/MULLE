@@ -50,9 +50,10 @@ import qualified Muste.Web.Ajax              as Lesson
   ( Lesson(..) )
 import qualified Muste.Web.Ajax              as ClientTree
   ( ClientTree(..) )
-import           Muste.Web.Ajax (ClientTree, ServerTree)
 import qualified Muste.Web.Database          as Database
 import qualified Muste.Web.Database.Types    as Database
+import qualified Muste.Web.Database.Types    as Database.User
+  ( User(..) )
 import           Muste.Web.Protocol.Class
 import qualified Muste.Web.Types.Score       as Score
 
@@ -151,8 +152,8 @@ handleLoginRequest
   ⇒ Ajax.LoginRequest
   → m Ajax.LoginSuccess
 handleLoginRequest Ajax.LoginRequest{..} = do
-  void $ Database.authUser name password
-  token ← Database.startSession name
+  user ← Database.authUser name password
+  token ← Database.startSession $ Database.User.key user
   setLoginCookie token
   pure $ Ajax.LoginSuccess token
 
@@ -194,15 +195,16 @@ dir = \case
   Database.RectoVerso → Ajax.RectoVerso
 
 -- | This request is called after the user selects a new sentence from
--- the drop-down menu.  A request consists of two 'ClientTree's (the
--- source and the target sentece) these can represent multiple actual
--- sentences ('TTree's).  We determine if the current exercise is over
--- by checking the source and target tree for equality.  'ClientTree's
--- are considered equal in this case if they have just one 'TTree' in
--- common.  We respond to the caller whether the exercise is over.  In
--- either case we also return two new 'ClientTree's -- these are used
--- if the exercise continues.  For more information about what these
--- contain see the documentation there.
+-- the drop-down menu.  A request consists of two 'Ajax.ClientTree's
+-- (the source and the target sentece) these can represent multiple
+-- actual sentences ('TTree's).  We determine if the current exercise
+-- is over by checking the source and target tree for equality.
+-- 'Ajax.ClientTree's are considered equal in this case if they have
+-- just one 'TTree' in common.  We respond to the caller whether the
+-- exercise is over.  In either case we also return two new
+-- 'Ajax.ClientTree's -- these are used if the exercise continues.
+-- For more information about what these contain see the documentation
+-- there.
 handleMenuRequest
   ∷ ∀ m
   . MonadProtocol m
@@ -258,8 +260,8 @@ oneSimiliarTree
   ∷ ∀ m
   . MonadProtocol m
   ⇒ Text
-  → ClientTree
-  → ClientTree
+  → Ajax.ClientTree
+  → Ajax.ClientTree
   → m Bool
 oneSimiliarTree lesson src trg = do
   srcS ← parse src
@@ -268,14 +270,14 @@ oneSimiliarTree lesson src trg = do
   where
   oneInCommon ∷ Ord a ⇒ Set a → Set a → Bool
   oneInCommon a b = not $ Set.null $ Set.intersection a b
-  parse ∷ ClientTree → m (Set TTree)
+  parse ∷ Ajax.ClientTree → m (Set TTree)
   parse = fmap Set.fromList . disambiguate lesson
 
 disambiguate
   ∷ ∀ m
   . MonadProtocol m
   ⇒ Text
-  → ClientTree
+  → Ajax.ClientTree
   → m [TTree]
 disambiguate lesson Ajax.ClientTree{..} = do
   cs ← askContexts
@@ -285,7 +287,10 @@ disambiguate lesson Ajax.ClientTree{..} = do
   c ← getC sentence
   pure $ Sentence.disambiguate c sentence
 
-handleLogoutRequest ∷ MonadProtocol m ⇒ Text → m ()
+handleLogoutRequest
+  ∷ MonadProtocol m
+  ⇒ Text -- ^ Session token.
+  → m ()
 handleLogoutRequest = Database.endSession
 
 -- | @'verifySession' tok@ verifies the user identified by @tok@.
@@ -355,7 +360,7 @@ makeTree
   → Text
   → Annotated
   → Ajax.Direction
-  → ServerTree
+  → Ajax.ServerTree
 makeTree c lesson s d
   = Ajax.ServerTree
   { sentence  = s

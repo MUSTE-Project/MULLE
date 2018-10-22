@@ -123,7 +123,7 @@ deriving anyclass instance FromRow ChangePassword
 -- * Start time.
 -- * End time.
 data Session = Session
-  { user                ∷ Text
+  { user                ∷ Key
   , token               ∷ Text
   , startTime           ∷ UTCTime
   , lastActive          ∷ UTCTime
