@@ -600,7 +600,7 @@ function show_lin(lang, lin, x) {
         .click(click_word);
     }
     wordspan
-      .html(current + '<sub class="debug">' + (match ? '=' : '') + JSON.stringify(classes) /* + ' ' + show_tree(subtree) */ + '</sub>')
+      .html(concrete + '<sub class="debug">' + (match ? '=' : '') + JSON.stringify(classes) /* + ' ' + show_tree(subtree) */ + '</sub>')
       .appendTo(sentence);
     if (match) {
       wordspan.addClass('match');
