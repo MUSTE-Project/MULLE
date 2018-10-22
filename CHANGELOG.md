@@ -4,6 +4,12 @@ Change log
 HEAD
 ---
 
+Show high score bar-chart on lessons page.
+
+When restarting cycling through the menus, hide it once.
+
+Make items with no menus unclickable
+
 Add support for rtl scripts.
 
 0.2.7.0
