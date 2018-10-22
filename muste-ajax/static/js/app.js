@@ -562,14 +562,17 @@ function show_lin(lang, lin, x) {
       'valid-menus': validMenus,
       'direction': x.direction
     };
-    return $('<span>')
+    var $span = $('<span>');
+    if(validMenus === 'nothing') return $span;
+    return $span
       .addClass('clickable')
       .data(spacyData)
       .click(click_word);
   }
 
   function gen_space(validMenus, idx) {
-    return gen_item(validMenus, idx).addClass('space');
+    return gen_item(validMenus, idx)
+      .addClass('space');
   }
 
   function gen_word(validMenus, idx, linTok) {
@@ -587,9 +590,14 @@ function show_lin(lang, lin, x) {
     };
     // Perhaps we could generalize gen_space and use that here as well?
     var wordspan = $('<span>')
-      .addClass('word clickable').data(wordData)
+      .addClass('word');
+    if(validMenus !== 'nothing') {
+      wordspan.addClass('clickable')
+        .data(wordData)
+        .click(click_word);
+    }
+    wordspan
       .html(current + '<sub class="debug">' + (match ? '=' : '') + JSON.stringify(classes) /* + ' ' + show_tree(subtree) */ + '</sub>')
-      .click(click_word)
       .appendTo(sentence);
     if (match) {
       wordspan.addClass('match');
@@ -604,9 +612,7 @@ function show_lin(lang, lin, x) {
     if(concrete == AGGLUTINATION) {
       css_word['display'] = 'none';
     }
-    wordspan.css(css_word);
-    return gen_item(validMenus, idx)
-      .addClass('word');
+    return wordspan.css(css_word);
   }
 
   var css = {
