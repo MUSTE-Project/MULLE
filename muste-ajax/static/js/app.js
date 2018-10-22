@@ -641,8 +641,9 @@ function show_lin(lang, lin, x) {
 
     gen_word(validMenus, i, linTok);
   }
-  gen_space(getValidMenusSpace(lin.length, menu), lin.length)
-    .html('&emsp;').click(click_word)
+  var validMenusSpace = getValidMenusSpace(lin.length, menu);
+  gen_space(validMenusSpace, lin.length)
+    .html('&emsp;')
     .appendTo(sentence);
 }
 
@@ -865,7 +866,7 @@ function iterateMenu(idx, mp) {
       i++;
       if(i === a.length) {
         // TODO Return 'reset' now.
-        i = 0;
+        i = initial;
         return 'reset';
       }
       return {'value': a[i]};
