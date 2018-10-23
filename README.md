@@ -55,7 +55,7 @@ To setup one of the packages you need to select which GHC version you
 want to use.  Currently I've only tested this with 8.4.3.  To e.g. use
 this version do
 
-    ln -s stack-8.4.3.yaml stack.yaml
+    ln -s stack-lts-12.yaml stack.yaml
 
 You can now simply build the projects with `stack build` and browse
 the Haddock documentation with `stack haddock --open`.
@@ -66,17 +66,18 @@ Currently configuration of the package `muste-ajax` is done using the
 a YAML configuration file.  See the values in the file
 `muste-ajax/config.yaml`.  In the directory `muste-ajax/config` there
 are examples of other configuration files.  To pick an alternative
-configuration option you can e.g. from the muste-ajax directory do:
+configuration option you can e.g. do the following from `muste-ajax/`:
 
-  ln -sf config/desired-config.yaml config.yaml
+    ln -sf config/desired-config.yaml config.yaml
 
 Here is documentation on the available options:
 
-* `port`: The port to the server listens on
-* `virtual-root`: used when the requests to the application is not made
-  against the href `/`.  NB! If you need to override this you should
-  also change the value of `VIRTUAL_ROOT` in `muste-ajax/static/muste-gui.js`.
-* `serve-static-relative`: useful during developing since changes to
+* `port`: The port that the server listens on.
+* `virtual-root`: Used when the requests to the application is not
+  made against the href `/`.  NB! If you need to override this you
+  should also change the value of `VIRTUAL_ROOT` in
+  `muste-ajax/static/muste-gui.js`.
+* `serve-static-relative`: Useful during developing since changes to
   static files (e.g. the front end JavaScript code) is served from a
   path relative to where the `muste-ajax` executable is run.  This
   allows you to change those files without rebuilding the application.
@@ -84,7 +85,7 @@ Here is documentation on the available options:
 * `log-dir`: Location where the logs are kept.
 
 Partially/unsupported options:
-}
+
 * `www-root` Directory where the data files are located.  Currently
   you should probably just leave this value empty as the copying of
   data-files does not respect this flag.
