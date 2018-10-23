@@ -729,7 +729,6 @@ function click_word(event) {
   function mark_relevant(toks, sel) {
     var t = 0;
     for(var i = 0 ; i < toks.length + threshold ; i++) {
-      console.info(t);
       var tok = toks[i];
       if(tok !== undefined) {
         var s = is_selected(sel, i);
@@ -744,8 +743,25 @@ function click_word(event) {
     // TODO: How to elegantly ensure checking relevancy of the last
     // `threshold` elements?
   }
+  function mk_ellipsis() {
+    var p = $('<span class="ellipsis">');
+    var e
+      = $('<span class="words">')
+      .hide()
+      .click(function() {
+        $(this).show();
+      });
+    p.append(e)
+      .append($('<span>...</span>'));
+    return {
+      parent: p,
+      words: e
+    };
+  }
   function mark_selected_words(lin, sel) {
     mark_relevant(lin, sel);
+    var $initial = menuitem;
+    var $prevEllipsis;
     for(var i = 0 ; i < lin.length ; i++) {
       var tok = lin[i];
       var pword = tok.concrete;
@@ -754,14 +770,30 @@ function click_word(event) {
       if(pword == AGGLUTINATION) {
         css['display'] = 'none';
       }
-      if(!tok.relevant) {
+      var $container;
+      console.info(tok.relevant);
+      if(tok.relevant) {
+        $container = $initial;
+      } else {
         css['opacity'] = '0.5';
+        var prevTok = lin[i-1];
+        // If there was not previous token, or if the previous token
+        // was relevant, then we must must create a new ellipsis.
+        if(prevTok === undefined || prevTok.relevant) {
+          var e = mk_ellipsis();
+          $container = e.words;
+          e.parent.appendTo($initial);
+          $prevEllipsis = $container;
+        } else {
+          // It's an invariant that `$prevEllipsis` should be set now.
+          $container = $prevEllipsis;
+        }
       }
       $('<span>').text(pword)
         .addClass(marked ? 'marked' : 'greyed')
-        .appendTo(menuitem)
+        .appendTo($container)
         .css(css);
-      $('<span>').text(' ').appendTo(menuitem);
+      $('<span>').text(' ').appendTo($container);
     }
   }
   if(validMenus === 'nothing') {
