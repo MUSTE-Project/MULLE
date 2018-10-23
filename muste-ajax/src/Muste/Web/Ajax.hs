@@ -200,32 +200,25 @@ instance ToJSON LessonList where
     ]
 
 data MenuResponse = MenuResponse
-  { lesson     ∷ Lesson
+  { lesson           ∷ Lesson
   -- This is the score for the exercise.  Not the lesson!  I think we
   -- should just remove this.
-  , score      ∷ Score
-  , menu       ∷ Maybe MenuList
-  , finished   ∷ Bool
-  , settings   ∷ Maybe MenuSettings
+  , score            ∷ Score
+  , menu             ∷ MenuList
+  , lessonFinished   ∷ Bool
+  , exerciseFinished ∷ Bool
+  , settings         ∷ Maybe MenuSettings
   }
-
-instance FromJSON MenuResponse where
-  parseJSON = Aeson.withObject "menu"
-    $ \ o → MenuResponse
-    <$> o .:  "lesson"
-    <*> o .:  "score"
-    <*> o .:? "menu"
-    <*> o .:  "lesson-over"
-    <*> o .:? "settings"
 
 instance ToJSON MenuResponse where
   toJSON MenuResponse{..} =
     Aeson.object
-      [ "lesson"      .= lesson
-      , "score"       .= score
-      , "menu"        .= menu
-      , "lesson-over" .= finished
-      , "settings"    .= settings
+      [ "lesson"        .= lesson
+      , "score"         .= score
+      , "menu"          .= menu
+      , "lesson-over"   .= lessonFinished
+      , "exercise-over" .= exerciseFinished
+      , "settings"      .= settings
       ]
 
 newtype MenuSettings = MenuSettings

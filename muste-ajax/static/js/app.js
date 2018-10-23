@@ -409,22 +409,21 @@ function handle_menu_response(r) {
   // FIXME Naughty string interpolation!
   change_page('#page-exercise', '?key=' + key);
   DATA = r;
-  if(menu !== null) {
-    show_exercise(r);
-  } else {
-    // This means that the exercise is done.
-    if(r['lesson-over'] == true) {
-      show_exercise_complete(r);
-      return;
-    }
-    // NB This call blocks!
-    var c = window.confirm("Exercise complete. Continue lesson?");
-    if(!c) {
-      retrieve_lessons();
-      return;
-    }
-    continue_lesson(key);
+  show_exercise(r);
+  if(!r['exercise-over']) return;
+  if(r['lesson-over'] == true) {
+    show_exercise_complete(r);
+    return;
   }
+  // NB This call blocks!
+  confirm_promisified_slow_and_racy("Exercise complete. Continue lesson?")
+    .then(function(c) {
+      if(!c) {
+        retrieve_lessons();
+        return;
+      }
+      continue_lesson(key);
+    });
 }
 
 function continue_lesson(key) {
@@ -992,7 +991,8 @@ function select_menuitem(item, lang) {
       'time': get_elapsed_time_as_seconds()
     },
     'src': to_client_tree(menu.src),
-    'trg': to_client_tree(menu.trg)
+    'trg': to_client_tree(menu.trg),
+    'settings': data.settings
   };
   muste_request(menuRequest, 'menu').then(handle_menu_response);
   $(document).trigger('overlay-out');
@@ -1099,4 +1099,22 @@ window.ScoreBar = (function() {
 
 function setup_score_bars(ScoreBar) {
   $('.score[data-score]').each(ScoreBar.setup);
+}
+
+// A promisified version of `window.confirm`. I had an issue that the
+// DOM was not updated prior to showing the dialog, hence this hack.
+// Issues:
+//
+// * `setTimeout` is not comme il faut.
+// * It may not accurately solve the problem it's trying to solve.
+//   How are we sure the DOM has been updated.  Perhaps use the new
+//   mutation observer api to reliably solve this?[1]
+//
+// [1]: https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
+function confirm_promisified_slow_and_racy(msg) {
+  return new Promise(function (resolve, reject) {
+    window.setTimeout(function() {
+      resolve(window.confirm(msg));
+    }, 100)
+  });
 }

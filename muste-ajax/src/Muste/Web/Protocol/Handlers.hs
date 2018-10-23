@@ -185,8 +185,11 @@ handleLessonInit lesson = do
       , name = lessonName
       }
     , score    = mempty
-    , menu     = Just menu
-    , finished = False
+    , menu     = menu
+    , lessonFinished = False
+    -- Strictly speaking we can't know this for sure, but we'll just
+    -- have a guess.
+    , exerciseFinished = False
     , settings = Just $ Ajax.MenuSettings
       { highlightMatches = highlightMatches
       }
@@ -196,13 +199,6 @@ dir ∷ Database.Direction → Ajax.Direction
 dir = \case
   Database.VersoRecto → Ajax.VersoRecto
   Database.RectoVerso → Ajax.RectoVerso
-
--- | Only used for readability in `handleMenuRequest`.
-data MenuRequestAux = MenuRequestAux
-  { lessonFinished ∷ Bool
-  , menu           ∷ Maybe Ajax.MenuList
-  , settingsAux    ∷ Maybe Ajax.MenuSettings
-  }
 
 -- | This request is called after the user selects a new sentence from
 -- the drop-down menu.  A request consists of two 'Ajax.ClientTree's
@@ -231,33 +227,22 @@ handleMenuRequest Ajax.MenuRequest{..} = do
       = score
       & Score.addClick 1
       & Score.setTime time
-  finished ← oneSimiliarTree lessonName src trg
-  MenuRequestAux{..} ←
-    if finished
-    then do
-      f ← Database.finishExercise token key newScore
-      pure $ MenuRequestAux
-        { lessonFinished = f
-        , menu           = Nothing
-        , settingsAux    = Nothing
-        }
-    else do
-      m ← assembleMenus $ AssembleMenu
-        { lesson = lessonName
-        , source = src
-        , target = trg
-        }
-      pure $ MenuRequestAux
-        { lessonFinished = False
-        , menu           = Just m
-        , settingsAux    = settings
-        }
+  exerciseFinished ← oneSimiliarTree lessonName src trg
+  lessonFinished   ← if exerciseFinished
+    then Database.finishExercise token key newScore
+    else pure False
+  menu ← assembleMenus $ AssembleMenu
+    { lesson = lessonName
+    , source = src
+    , target = trg
+    }
   verifyMessage $ Ajax.MenuResponse
-    { lesson   = lesson
-    , score    = newScore
-    , menu     = menu
-    , finished = lessonFinished
-    , settings = settings
+    { lesson           = lesson
+    , score            = newScore
+    , menu             = menu
+    , lessonFinished   = lessonFinished
+    , exerciseFinished = exerciseFinished
+    , settings         = settings
     }
 
 annotate
