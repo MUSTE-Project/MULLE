@@ -412,8 +412,15 @@ function handle_menu_response(r) {
   if(menu !== null) {
     show_exercise(r);
   } else {
+    // This means that the exercise is done.
     if(r['lesson-over'] == true) {
       show_exercise_complete(r);
+      return;
+    }
+    // NB This call blocks!
+    var c = window.confirm("Exercise complete. Continue lesson?");
+    if(!c) {
+      retrieve_lessons();
       return;
     }
     continue_lesson(key);
@@ -422,7 +429,7 @@ function handle_menu_response(r) {
 
 function continue_lesson(key) {
   // We need to sequence fetch_lessons and start_lesson due to the way
-  // updating the lesson counter is handlded.
+  // updating the lesson counter is handled.
   fetch_lessons().then(function () {
     start_lesson(key);
   });
