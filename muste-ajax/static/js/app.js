@@ -770,7 +770,6 @@ function click_word(event) {
         css['display'] = 'none';
       }
       var $container;
-      console.info(tok.relevant);
       if(tok.relevant) {
         $container = $initial;
       } else {
