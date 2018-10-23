@@ -723,14 +723,39 @@ function click_word(event) {
   var validMenus = clicked.data('valid-menus');
   var idx = clicked.data('nr');
   var direction = mk_direction(clicked.data('direction'));
+  // Marks some tokens to not be displayed.  Doesn't remove any
+  // tokens, only marks them.
+  var threshold = 1;
+  function mark_relevant(toks, sel) {
+    var t = 0;
+    for(var i = 0 ; i < toks.length + threshold ; i++) {
+      console.info(t);
+      var tok = toks[i];
+      if(tok !== undefined) {
+        var s = is_selected(sel, i);
+        tok['selected'] = s;
+        if(s) t = threshold * 2 + 1;
+      }
+      var x = toks[i - threshold];
+      if(x === undefined) continue;
+      x['relevant'] = t > 0;
+      t--;
+    }
+    // TODO: How to elegantly ensure checking relevancy of the last
+    // `threshold` elements?
+  }
   function mark_selected_words(lin, sel) {
+    mark_relevant(lin, sel);
     for(var i = 0 ; i < lin.length ; i++) {
-      var pword = lin[i].concrete;
-      // var marked = prefixOf(selection, pword.path);
-      var marked = is_selected(sel, i);
+      var tok = lin[i];
+      var pword = tok.concrete;
+      var marked = tok['selected'];
       var css = {};
       if(pword == AGGLUTINATION) {
         css['display'] = 'none';
+      }
+      if(!tok.relevant) {
+        css['opacity'] = '0.5';
       }
       $('<span>').text(pword)
         .addClass(marked ? 'marked' : 'greyed')
@@ -829,7 +854,7 @@ function popup_menu(menu) {
     });
 }
 
-// is_selected :: Menu.Seleection -> Int -> Bool
+// is_selected :: Menu.Selection -> Int -> Bool
 function is_selected(sel, idx) {
   function within(intval, i) {
     var a = intval[0];
