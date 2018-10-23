@@ -30,6 +30,7 @@ module Muste.Web.Ajax
   , LoginSuccess(..)
   , LessonList(..)
   , MenuResponse(..)
+  , MenuSettings(..)
   , HighScore(..)
   , Lesson(..)
   , Score(..)
@@ -91,30 +92,34 @@ instance ToJSON LoginRequest where
     ]
 
 data MenuRequest = MenuRequest
-  { lesson ∷ Lesson
+  { lesson   ∷ Lesson
   -- FIXME I feel like this should not be a part of the menu response.
   -- In stead we should store the score along with the users session,
   -- and only when the exercise is done respond with the final score.
-  , score  ∷ Score
-  , src    ∷ ClientTree
-  , trg    ∷ ClientTree
+  , score    ∷ Score
+  , src      ∷ ClientTree
+  , trg      ∷ ClientTree
+  -- FIXME Ditto the comment about the field `score`.
+  , settings ∷ Maybe MenuSettings
   }
 
 instance ToJSON MenuRequest where
   toJSON MenuRequest{..} = Aeson.object
-    [ "lesson" .= lesson
-    , "score"  .= score
-    , "src"    .= src
-    , "trg"    .= trg
+    [ "lesson"   .= lesson
+    , "score"    .= score
+    , "src"      .= src
+    , "trg"      .= trg
+    , "settings" .= settings
     ]
 
 instance FromJSON MenuRequest where
   parseJSON = Aeson.withObject "menu-request"
     $  \b → MenuRequest
-    <$> b .: "lesson"
-    <*> b .: "score"
-    <*> b .: "src"
-    <*> b .: "trg"
+    <$> b .:  "lesson"
+    <*> b .:  "score"
+    <*> b .:  "src"
+    <*> b .:  "trg"
+    <*> b .:? "settings"
 
 data Direction = VersoRecto | RectoVerso
 
@@ -195,13 +200,13 @@ instance ToJSON LessonList where
     ]
 
 data MenuResponse = MenuResponse
-  -- A key to the lesson
   { lesson     ∷ Lesson
   -- This is the score for the exercise.  Not the lesson!  I think we
   -- should just remove this.
   , score      ∷ Score
   , menu       ∷ Maybe MenuList
   , finished   ∷ Bool
+  , settings   ∷ Maybe MenuSettings
   }
 
 instance FromJSON MenuResponse where
@@ -211,6 +216,7 @@ instance FromJSON MenuResponse where
     <*> o .:  "score"
     <*> o .:? "menu"
     <*> o .:  "lesson-over"
+    <*> o .:? "settings"
 
 instance ToJSON MenuResponse where
   toJSON MenuResponse{..} =
@@ -219,7 +225,24 @@ instance ToJSON MenuResponse where
       , "score"       .= score
       , "menu"        .= menu
       , "lesson-over" .= finished
+      , "settings"    .= settings
       ]
+
+newtype MenuSettings = MenuSettings
+  { highlightMatches ∷ Bool
+  }
+
+deriving stock instance Show MenuSettings
+
+instance ToJSON MenuSettings where
+  toJSON MenuSettings{..} = Aeson.object
+    [ "highlight-matches" .= highlightMatches
+    ]
+
+instance FromJSON MenuSettings where
+  parseJSON = Aeson.withObject "settings"
+     $ \v -> MenuSettings
+    <$> v .: "highlight-matches"
 
 -- Better name might be menus?
 data MenuList = MenuList

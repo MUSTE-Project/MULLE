@@ -141,6 +141,7 @@ SELECT
   , Repeatable
   , SourceDirection
   , TargetDirection
+  , HighlightMatches
 FROM Lesson;
 |]
 
@@ -596,7 +597,8 @@ SELECT Exercise,
   SourceTree,
   TargetTree,
   SourceDirection,
-  TargetDirection
+  TargetDirection,
+  HighlightMatches
 FROM ExerciseLesson
 WHERE Lesson = ?;
 |]
@@ -773,7 +775,8 @@ SELECT
   SourceTree,
   TargetTree,
   SourceDirection,
-  TargetDirection
+  TargetDirection,
+  HighlightMatches
 FROM ExerciseList
 JOIN Exercise ON Exercise = Exercise.Id
 JOIN Lesson   ON Lesson   = Lesson.Id

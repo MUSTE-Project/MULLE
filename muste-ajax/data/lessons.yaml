@@ -193,3 +193,34 @@
   exercises:
     - source: many kings love Paris
       target: the girl read book
+
+- name: "syntax highlighting on"
+  key: 10
+  description: "Testing syntax highlighting"
+  search-options:
+    size: 7
+  settings:
+    grammar: "exemplum/Exemplum"
+    highlight-matches: on
+  languages:
+    source: "ExemplumEng"
+    target: "ExemplumEng"
+  exercises:
+    - source: many kings love Paris
+      target: many kings love Paris
+
+- name: "syntax highlighting off"
+  key: 11
+  description: "Testing syntax highlighting"
+  search-options:
+    size: 7
+  settings:
+    grammar: "exemplum/Exemplum"
+    highlight-matches: off
+  languages:
+    source: "ExemplumEng"
+    target: "ExemplumEng"
+  exercises:
+    - source: many kings love Paris
+      target: many kings love Paris
+

@@ -187,12 +187,22 @@ handleLessonInit lesson = do
     , score    = mempty
     , menu     = Just menu
     , finished = False
+    , settings = Just $ Ajax.MenuSettings
+      { highlightMatches = highlightMatches
+      }
     }
 
 dir ∷ Database.Direction → Ajax.Direction
 dir = \case
   Database.VersoRecto → Ajax.VersoRecto
   Database.RectoVerso → Ajax.RectoVerso
+
+-- | Only used for readability in `handleMenuRequest`.
+data MenuRequestAux = MenuRequestAux
+  { lessonFinished ∷ Bool
+  , menu           ∷ Maybe Ajax.MenuList
+  , settingsAux    ∷ Maybe Ajax.MenuSettings
+  }
 
 -- | This request is called after the user selects a new sentence from
 -- the drop-down menu.  A request consists of two 'Ajax.ClientTree's
@@ -222,23 +232,32 @@ handleMenuRequest Ajax.MenuRequest{..} = do
       & Score.addClick 1
       & Score.setTime time
   finished ← oneSimiliarTree lessonName src trg
-  (lessonFinished, menu) ←
+  MenuRequestAux{..} ←
     if finished
     then do
       f ← Database.finishExercise token key newScore
-      pure (f, Nothing)
+      pure $ MenuRequestAux
+        { lessonFinished = f
+        , menu           = Nothing
+        , settingsAux    = Nothing
+        }
     else do
       m ← assembleMenus $ AssembleMenu
         { lesson = lessonName
         , source = src
         , target = trg
         }
-      pure (False, Just m)
+      pure $ MenuRequestAux
+        { lessonFinished = False
+        , menu           = Just m
+        , settingsAux    = settings
+        }
   verifyMessage $ Ajax.MenuResponse
     { lesson   = lesson
     , score    = newScore
     , menu     = menu
     , finished = lessonFinished
+    , settings = settings
     }
 
 annotate

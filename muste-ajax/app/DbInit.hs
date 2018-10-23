@@ -82,6 +82,7 @@ toDatabaseLesson Data.Lesson{..}
   , repeatable          = repeatable
   , sourceDirection     = dir srcDir
   , targetDirection     = dir trgDir
+  , highlightMatches    = highlightMatches
   }
   where
   Data.LessonSettings{..} = settings
@@ -123,6 +124,7 @@ insertLessons c = SQL.executeMany c q
   where
 
   q = [sql|INSERT INTO Lesson
+-- insertLessons
 ( Id
 , Name
 , Description
@@ -136,13 +138,15 @@ insertLessons c = SQL.executeMany c q
 , Repeatable
 , SourceDirection
 , TargetDirection
-) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?);|]
+, HighlightMatches
+) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?);|]
 
 insertExercises ∷ Connection → [Database.Exercise] → IO ()
 insertExercises c = SQL.executeMany c q
   where
 
   q = [sql|
+-- insertExercises
 INSERT INTO Exercise
 (SourceTree,TargetTree,Lesson,Timeout)
 VALUES (?,?,?,?);|]

@@ -436,7 +436,7 @@ function show_exercise(resp) {
   clean_server_data(menu.src);
   clean_server_data(menu.src);
   build_matching_classes(menu);
-  show_sentences(menu);
+  show_sentences(menu, resp.settings);
   // The score is the exercise score.  Only in the case when we are
   // continuing a lesson will this be non-trivial.
   // display_score(resp.score);
@@ -503,15 +503,15 @@ function build_matching_classes(data) {
   });
 }
 
-function show_sentences(data) {
+function show_sentences(data, settings) {
   var src = data.src;
   var trg = data.trg;
   var srcL = ct_linearization(src);
   var trgL = ct_linearization(trg);
   matchy_magic(srcL, trgL);
   matchy_magic(trgL, srcL);
-  show_lin('src', srcL, src);
-  show_lin('trg', trgL, trg);
+  show_lin('src', srcL, src, settings);
+  show_lin('trg', trgL, trg, settings);
 }
 
 function all_classes(xs) {
@@ -555,7 +555,7 @@ function intersection(m, n) {
   return new Set([...m].filter(function(x) {return n.has(x);}));
 }
 
-function show_lin(lang, lin, x) {
+function show_lin(lang, lin, x, settings) {
   var menu = x.menu;
 
   function gen_item(validMenus, idx) {
@@ -602,7 +602,7 @@ function show_lin(lang, lin, x) {
     wordspan
       .html(concrete + '<sub class="debug">' + (match ? '=' : '') + JSON.stringify(classes) /* + ' ' + show_tree(subtree) */ + '</sub>')
       .appendTo(sentence);
-    if (match) {
+    if (match && settings['highlight-matches']) {
       wordspan.addClass('match');
       var h = hash_array_of_string(Array.from(matchingClasses));
       var c = int_to_rgba(h);

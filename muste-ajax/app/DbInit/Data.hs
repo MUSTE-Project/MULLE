@@ -51,11 +51,12 @@ instance FromJSON SearchOptions where
     <*> v .:? "size"
 
 data LessonSettings = LessonSettings
-  { grammar        ∷ Text
-  , enabled        ∷ Bool
-  , repeatable     ∷ Bool
-  , srcDir         ∷ Ajax.Direction
-  , trgDir         ∷ Ajax.Direction
+  { grammar          ∷ Text
+  , enabled          ∷ Bool
+  , repeatable       ∷ Bool
+  , srcDir           ∷ Ajax.Direction
+  , trgDir           ∷ Ajax.Direction
+  , highlightMatches ∷ Bool
   }
 
 deriving stock instance Show LessonSettings
@@ -64,10 +65,11 @@ instance FromJSON LessonSettings where
   parseJSON = Aeson.withObject "search-options"
     $  \v → LessonSettings
     <$> v .:  "grammar"
-    <*> v .:? "enabled"          .!= True
-    <*> v .:? "repeatable"       .!= True
-    <*> v .:? "source-direction" .!= Ajax.VersoRecto
-    <*> v .:? "target-direction" .!= Ajax.VersoRecto
+    <*> v .:? "enabled"           .!= True
+    <*> v .:? "repeatable"        .!= True
+    <*> v .:? "source-direction"  .!= Ajax.VersoRecto
+    <*> v .:? "target-direction"  .!= Ajax.VersoRecto
+    <*> v .:? "highlight-matches" .!= False
 
 newtype Sentence = Sentence Text
 

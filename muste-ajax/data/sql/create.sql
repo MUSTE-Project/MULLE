@@ -55,7 +55,8 @@ CREATE TABLE Lesson (
   Repeatable        BOOL NOT NULL DEFAULT 1,
   -- A value of 1 indicates RTL.
   SourceDirection   BOOL NOT NULL DEFAULT 0,
-  TargetDirection   BOOL NOT NULL DEFAULT 0
+  TargetDirection   BOOL NOT NULL DEFAULT 0,
+  HighlightMatches  BOOL NOT NULL DEFAULT 0
 );
 
 -- FIXME Why not simply add a nullable column to the ExerciseList table?

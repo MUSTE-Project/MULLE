@@ -158,13 +158,14 @@ deriving anyclass instance ToRow   Session
 deriving anyclass instance FromRow Session
 
 data ExerciseLesson = ExerciseLesson
-  { exercise   ∷ Key
-  , lessonKey  ∷ Key
-  , lessonName ∷ Text
-  , source     ∷ Unannotated
-  , target     ∷ Unannotated
-  , srcDir     ∷ Direction
-  , trgDir     ∷ Direction
+  { exercise         ∷ Key
+  , lessonKey        ∷ Key
+  , lessonName       ∷ Text
+  , source           ∷ Unannotated
+  , target           ∷ Unannotated
+  , srcDir           ∷ Direction
+  , trgDir           ∷ Direction
+  , highlightMatches ∷ Bool
   }
 
 deriving stock    instance Show    ExerciseLesson
@@ -224,6 +225,7 @@ data Lesson = Lesson
   , repeatable          ∷ Bool
   , sourceDirection     ∷ Direction
   , targetDirection     ∷ Direction
+  , highlightMatches    ∷ Bool
   }
 
 deriving stock    instance Show    Lesson
