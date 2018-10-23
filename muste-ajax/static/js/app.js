@@ -641,8 +641,8 @@ function show_lin(lang, lin, x, settings) {
 
     gen_word(validMenus, i, linTok);
   }
-  var validMenusSpace = getValidMenusSpace(lin.length, menu);
-  gen_space(validMenusSpace, lin.length)
+  var validMenusSpaceFinal = getValidMenusSpace(lin.length, menu);
+  gen_space(validMenusSpaceFinal, lin.length)
     .html('&emsp;')
     .appendTo(sentence);
 }
@@ -745,8 +745,7 @@ function click_word(event) {
   }
   function mk_ellipsis() {
     var p = $('<span class="ellipsis">');
-    var e
-      = $('<span class="words">')
+    var e = $('<span class="words">')
       .hide()
       .click(function() {
         $(this).show();
