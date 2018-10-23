@@ -91,13 +91,14 @@
     - source: Romani eos docebant
       target: de undervisade romarna
 
-- name: "Eng->Swe"
+- name: "Eng->Swe (highlight on)"
   key: 3
-  description: "Eng->Swe"
+  description: "Eng->Swe (highlight on)"
   search-options:
     size: 7
   settings:
     grammar: "exemplum/Exemplum"
+    highlight-matches: on
   languages:
     source: "ExemplumEng"
     target: "ExemplumSwe"
@@ -126,13 +127,14 @@
     - source: many kings love Paris
       target: rex bonus librum legit
 
-- name: "Eng->Spa"
+- name: "Eng->Spa (highlight off)"
   key: 5
-  description: "Eng->Spa"
+  description: "Eng->Spa (highlight off)"
   search-options:
     size: 7
   settings:
     grammar: "exemplum/Exemplum"
+    highlight-matches: off
   languages:
     source: "ExemplumEng"
     target: "ExemplumSpa"
@@ -199,34 +201,3 @@
   exercises:
     - source: many kings love Paris
       target: the girl read book
-
-- name: "syntax highlighting on"
-  key: 10
-  description: "Testing syntax highlighting"
-  search-options:
-    size: 7
-  settings:
-    grammar: "exemplum/Exemplum"
-    highlight-matches: on
-  languages:
-    source: "ExemplumEng"
-    target: "ExemplumEng"
-  exercises:
-    - source: many kings love Paris
-      target: many kings love Paris
-
-- name: "syntax highlighting off"
-  key: 11
-  description: "Testing syntax highlighting"
-  search-options:
-    size: 7
-  settings:
-    grammar: "exemplum/Exemplum"
-    highlight-matches: off
-  languages:
-    source: "ExemplumEng"
-    target: "ExemplumEng"
-  exercises:
-    - source: many kings love Paris
-      target: many kings love Paris
-
