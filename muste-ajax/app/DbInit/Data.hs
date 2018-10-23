@@ -69,7 +69,7 @@ instance FromJSON LessonSettings where
     <*> v .:? "repeatable"        .!= True
     <*> v .:? "source-direction"  .!= Ajax.VersoRecto
     <*> v .:? "target-direction"  .!= Ajax.VersoRecto
-    <*> v .:? "highlight-matches" .!= False
+    <*> v .:? "highlight-matches" .!= True
 
 newtype Sentence = Sentence Text
 
