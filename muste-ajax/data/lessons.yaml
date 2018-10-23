@@ -186,3 +186,20 @@
   exercises:
     - source: many kings love Paris
       target: the girl read book
+
+- name: "Programming"
+  key: 9
+  description: "An imperative programming language"
+  search-options:
+    size: 7
+  settings:
+    grammar: "programming/Imperative"
+    highlight-matches: off
+  languages:
+    source: "ImperativeCnc"
+    target: "ImperativeCnc"
+  exercises:
+    - source: " program f &/ function f &+ ( &+ ) { &/ } &/ "
+      target: " program main &/ function main &+ ( &+ ) { &/ &_ x += 3 × 4 &+ ; &/ } &/ "
+    - source: " program main &/ function f &+ ( &+ ) { &/ &_ print 4 + 3 &+ ; &/ } &/ "
+      target: " program main &/ function main &+ ( &+ ) { &/ } &/ "
