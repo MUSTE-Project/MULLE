@@ -57,8 +57,6 @@ when:
       - -Wno-name-shadowing
       - -Werr
 
-ghc-options: -fmax-valid-substitutions=0
-
 default-extensions:
   - UnicodeSyntax
   - NamedWildCards

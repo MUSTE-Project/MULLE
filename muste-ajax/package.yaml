@@ -13,8 +13,6 @@ flags:
     manual: true
     default: false
 
-ghc-options: -fmax-valid-substitutions=0
-
 default-extensions:
   - ConstraintKinds
   - DeriveGeneric
