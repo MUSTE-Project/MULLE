@@ -48,9 +48,9 @@ import qualified Muste.Prelude.SQL as SQL
 
 import qualified Data.List.NonEmpty as NonEmpty
 
-import Crypto.Random.API (getSystemRandomGen, genRandomBytes)
-import Crypto.KDF.PBKDF2 (fastPBKDF2_SHA512, Parameters(Parameters))
-import Crypto.Hash (SHA3_512, hash)
+import qualified Crypto.Random.API as Crypto
+import qualified Crypto.KDF.PBKDF2 as Crypto
+import qualified Crypto.Hash       as Crypto
 
 import Data.ByteString (ByteString)
 import qualified Data.Text.Encoding     as T
@@ -108,15 +108,22 @@ instance Exception Error where
 -- (SHA512,10000 iterations,1024 bytes output)
 hashPassword
   ∷ Text       -- ^ Password in clear text
-  → Types.Blob -- ^ Salt
+  → ByteString -- ^ Salt
   → Types.Blob
-hashPassword pw (Types.Blob salt)
-  = Types.Blob $ fastPBKDF2_SHA512 (Parameters 10000 1024) (T.encodeUtf8 pw) salt
+hashPassword pw salt
+  = Types.Blob
+  $ Crypto.fastPBKDF2_SHA512 p t salt
+  where
+  p = Crypto.Parameters 10000 1024
+  t = T.encodeUtf8 pw
 
--- | createSalt returns a SHA512 hash of 512 bytes of random data as a
--- bytestring
-createSalt :: MonadIO io ⇒ io Types.Blob
-createSalt = Types.Blob . fst . genRandomBytes 512 <$> liftIO getSystemRandomGen
+-- | 'createSalt' returns a SHA512 hash of 512 bytes of random data as
+-- a 'ByteString'.
+createSalt :: MonadIO io ⇒ io ByteString
+createSalt
+  =   fst
+  .   Crypto.genRandomBytes 512
+  <$> liftIO Crypto.getSystemRandomGen
 
 getCurrentTime ∷ MonadIO io ⇒ io UTCTime
 getCurrentTime = liftIO Time.getCurrentTime
@@ -159,7 +166,7 @@ createUser Types.CreateUser{..} = do
   pure $ Types.UserSansId
     { name     = name
     , password = hashPassword password salt
-    , salt     = salt
+    , salt     = Types.Blob salt
     , enabled  = enabled
     }
 
@@ -211,7 +218,7 @@ authUser user pass = do
   userList <- query @Types.User q (Only user)
   -- Generate new password hash and compare to the stored one
   let
-    h dbSalt = hashPassword pass dbSalt
+    h (Types.Blob s) = hashPassword pass s
     p Types.User{..} = enabled && h salt == password
   case userList of
     [usr] → if
@@ -276,8 +283,6 @@ FROM Session
 WHERE User = ?;
 |]
 
--- TODO We are asking for a token but using it as a user id.  What's
--- the correct thing here?
 endSession
   ∷ MonadDB r db
   ⇒ Types.Token
@@ -288,17 +293,16 @@ endSession user = execute q (Only user)
 -- endSession
 DELETE
 FROM Session
-WHERE User = ?;
+WHERE Token = ?;
 |]
 
--- FIXME Should a token be 'Text' or 'ByteString'?
 -- FIXME Reduce the three-layered string conversion going on here.
 genToken ∷ UTCTime → Types.Token
 genToken timeStamp
   = Types.Token
   $ convertString
   $ show
-  $ hash @ByteString @SHA3_512
+  $ Crypto.hash @ByteString @Crypto.SHA3_512
   $ convertString
   $ formatTime timeStamp
 

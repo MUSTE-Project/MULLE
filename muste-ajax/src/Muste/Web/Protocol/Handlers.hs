@@ -127,7 +127,7 @@ loginHandler = Snap.method Snap.POST
 logoutHandler ∷ MonadProtocol m ⇒ m (Response ())
 logoutHandler
   = Snap.method Snap.POST
-  $ getToken >>= fmap pure . handleLogoutRequest
+  $ getToken >>= handleLogoutRequest
 
 setLoginCookie
   :: MonadProtocol m
@@ -291,8 +291,8 @@ disambiguate lesson Ajax.ClientTree{..} = do
 handleLogoutRequest
   ∷ MonadProtocol m
   ⇒ Database.Token
-  → m ()
-handleLogoutRequest = Database.endSession
+  → m (Response ())
+handleLogoutRequest = fmap pure . Database.endSession
 
 -- | @'verifySession' tok@ verifies the user identified by @tok@.
 -- This method throws (using one of the error instances of
