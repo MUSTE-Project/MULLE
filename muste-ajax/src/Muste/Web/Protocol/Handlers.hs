@@ -96,11 +96,11 @@ getMessage = do
 
 -- TODO Token should be set as an HTTP Unsafe.header.
 -- | Gets the current session token.
-getToken :: MonadProtocol m ⇒ m Text
+getToken :: MonadProtocol m ⇒ m Database.Token
 getToken = do
   m <- getTokenCookie
   case m of
-    Just c -> pure $ convertString $ Snap.cookieValue c
+    Just c -> pure $ Database.Token $ convertString $ Snap.cookieValue c
     Nothing -> throwApiError NoAccessToken
 
 getTokenCookie :: MonadProtocol m ⇒ m (Maybe Snap.Cookie)
@@ -133,7 +133,8 @@ setLoginCookie
   :: MonadProtocol m
   => Text -- ^ The token
   -> m ()
-setLoginCookie tok = Snap.modifyResponse $ Snap.addResponseCookie c
+setLoginCookie tok
+  = Snap.modifyResponse $ Snap.addResponseCookie c
   where
     c = Snap.Cookie "LOGIN_TOKEN" (convertString tok)
       Nothing Nothing (pure "/") False False
@@ -150,7 +151,7 @@ handleLoginRequest
   → m Ajax.LoginSuccess
 handleLoginRequest Ajax.LoginRequest{..} = do
   user ← Database.authUser name password
-  token ← Database.startSession $ Database.User.key user
+  Database.Token token ← Database.startSession $ Database.User.key user
   setLoginCookie token
   pure $ Ajax.LoginSuccess token
 
@@ -289,7 +290,7 @@ disambiguate lesson Ajax.ClientTree{..} = do
 
 handleLogoutRequest
   ∷ MonadProtocol m
-  ⇒ Text -- ^ Session token.
+  ⇒ Database.Token
   → m ()
 handleLogoutRequest = Database.endSession
 

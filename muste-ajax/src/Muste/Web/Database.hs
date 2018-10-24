@@ -266,7 +266,7 @@ createSession user = do
 getSession
   ∷ MonadDB r db
   ⇒ Types.Key Types.User
-  → db (Maybe Text)
+  → db (Maybe Types.Token)
 getSession user = fmap fromOnly . listToMaybe <$> query q (Only user)
   where
   q = [sql|
@@ -276,9 +276,11 @@ FROM Session
 WHERE User = ?;
 |]
 
+-- TODO We are asking for a token but using it as a user id.  What's
+-- the correct thing here?
 endSession
   ∷ MonadDB r db
-  ⇒ Text -- ^ Session token
+  ⇒ Types.Token
   → db ()
 endSession user = execute q (Only user)
   where
@@ -290,22 +292,26 @@ WHERE User = ?;
 |]
 
 -- FIXME Should a token be 'Text' or 'ByteString'?
-genToken ∷ UTCTime → Text
-genToken timeStamp = convertString (show (hash @ByteString @SHA3_512 sessionData))
-  where
-  sessionData ∷ ByteString
-  sessionData = convertString $ formatTime timeStamp
+-- FIXME Reduce the three-layered string conversion going on here.
+genToken ∷ UTCTime → Types.Token
+genToken timeStamp
+  = Types.Token
+  $ convertString
+  $ show
+  $ hash @ByteString @SHA3_512
+  $ convertString
+  $ formatTime timeStamp
 
 -- | Creates a new session and returns the session token.  At the
 -- moment overly simplified.
 startSession
   :: MonadDB r db
   => Types.Key Types.User
-  -> db Text
+  -> db Types.Token
 startSession user = do
   session@(Types.Session _ token _ _) <- createSession user
   execute q session
-  return token
+  pure token
   where
   q = [sql|
 -- startSession
@@ -316,7 +322,10 @@ VALUES (?,?,?,?);
 formatTime ∷ UTCTime → String
 formatTime = Time.formatTime Time.defaultTimeLocale "%s"
 
-updateActivity :: MonadDB r db ⇒ Text -> db ()
+updateActivity
+  ∷ MonadDB r db
+  ⇒ Types.Token
+  → db ()
 updateActivity token = do
   -- We should use to- from- row instances for UTCTime in stead.
   timeStamp ← formatTime <$> getCurrentTime
@@ -330,7 +339,7 @@ UPDATE Session SET LastActive = ? WHERE Token = ?;
 -- | Returns @Just err@ if there is an error.
 verifySession
   :: MonadDB r db
-  => Text -- ^ Token
+  => Types.Token
   -> db ()
 verifySession token = do
   -- Get potential user session(s)
@@ -360,7 +369,10 @@ sessionLifeTime = 30 * h
   m = 60
   h = 60 * m
 
-getLastActive ∷ MonadDB r db ⇒ Text → db UTCTime
+getLastActive
+  ∷ MonadDB r db
+  ⇒ Types.Token
+  → db UTCTime
 getLastActive t = do
   xs ← query q (Only t)
   case xs of
@@ -375,7 +387,10 @@ FROM Session
 WHERE Token = ?;
 |]
 
-deleteSession ∷ MonadDB r db ⇒ Text → db ()
+deleteSession
+  ∷ MonadDB r db
+  ⇒ Types.Token
+  → db ()
 deleteSession token = execute q (Only token)
   where
   q = [sql|
@@ -390,7 +405,7 @@ WHERE Token = ?;
 getActiveLessons
   ∷ ∀ r db
   . MonadDB r db
-  ⇒ Text -- Token
+  ⇒ Types.Token
   → db [Types.ActiveLesson]
 getActiveLessons token = do
   user <- getUser token
@@ -433,7 +448,7 @@ WHERE User IS NULL OR User = ?;
 -- exercises and adding them to the users exercise list
 startLesson
   :: MonadDB r db
-  => Text                    -- ^ Token
+  => Types.Token
   -> Types.Key Types.Lesson
   -> db Types.ExerciseLesson
 startLesson token lesson = do
@@ -461,7 +476,10 @@ WHERE User = ?
 |]
 
 -- TODO Surely the sql query should select the user id, not the id of the token!!
-getUser ∷ MonadDB r db ⇒ Text → db (Types.Key Types.User)
+getUser
+  ∷ MonadDB r db
+  ⇒ Types.Token
+  → db (Types.Key Types.User)
 getUser token = do
   xs ← query userQuery (Only token)
   case xs of
@@ -684,9 +702,9 @@ continueLesson user lesson = do
 -- FIXME Add 'FinishExercise' type.
 finishExercise
   ∷ MonadDB r db
-  ⇒ Text            -- ^ Token
+  ⇒ Types.Token
   → Types.Key Types.Lesson
-  → Score           -- ^ Score
+  → Score
   → db Bool
 finishExercise token lesson score = do
   -- get user name

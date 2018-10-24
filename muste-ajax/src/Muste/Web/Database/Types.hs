@@ -39,6 +39,7 @@ module Muste.Web.Database.Types
   , Numeric(..)
   , ExerciseLesson(..)
   , Direction(..)
+  , Token(..)
   ) where
 
 import Prelude ()
@@ -145,6 +146,13 @@ deriving stock    instance Generic ChangePassword
 deriving anyclass instance ToRow   ChangePassword
 deriving anyclass instance FromRow ChangePassword
 
+newtype Token = Token Text
+
+deriving stock    instance Show      Token
+deriving stock    instance Generic   Token
+deriving newtype  instance ToField   Token
+deriving newtype  instance FromField Token
+
 -- | Representation of a 'Session' in the database.  Consists of:
 --
 -- * User name.
@@ -153,7 +161,7 @@ deriving anyclass instance FromRow ChangePassword
 -- * End time.
 data Session = Session
   { user                ∷ Key User
-  , token               ∷ Text
+  , token               ∷ Token
   , startTime           ∷ UTCTime
   , lastActive          ∷ UTCTime
   }
