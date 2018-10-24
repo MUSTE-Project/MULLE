@@ -86,7 +86,8 @@ deriving newtype instance FromJSON  Numeric
 -- | Identified keys.
 data Key a = Key { unKey ∷ Int64 }
 
-deriving stock instance Show      (Key a)
+deriving stock instance Show (Key a)
+deriving stock instance Eq (Key a)
 instance ToField   (Key a) where
   toField = toField . unKey
 instance FromField (Key a) where

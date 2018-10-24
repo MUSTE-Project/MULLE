@@ -413,7 +413,7 @@ getActiveLessons
   → db [Types.ActiveLesson]
 getActiveLessons token = do
   user <- getUser token
-  fmap step . groupOn ActiveLessonForUser.name <$> getActiveLessonsForUser user
+  fmap step . groupOn ActiveLessonForUser.lesson <$> getActiveLessonsForUser user
   where
   step ∷ (NonEmpty Types.ActiveLessonForUser) → Types.ActiveLesson
   step xs@(Types.ActiveLessonForUser{..} :| _) = Types.ActiveLesson
