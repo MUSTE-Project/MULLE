@@ -29,11 +29,13 @@ CREATE TABLE Session (
 );
 
 CREATE TABLE Exercise (
-  Id          INTEGER PRIMARY KEY,
-  SourceTree  BLOB,
-  TargetTree  BLOB,
-  Lesson      INTEGER,
-  Timeout     NUMERIC NOT NULL DEFAULT 0,
+  Id            INTEGER PRIMARY KEY,
+  SourceTree    BLOB,
+  TargetTree    BLOB,
+  Lesson        INTEGER,
+  Timeout       NUMERIC NOT NULL DEFAULT 0,
+  -- The order in which exercises appear in a lesson.
+  ExerciseOrder NUMERIC NOT NULL,
 
   FOREIGN KEY(Lesson) REFERENCES Lesson(Id)
 );
@@ -58,7 +60,9 @@ CREATE TABLE Lesson (
   -- A value of 1 indicates RTL.
   SourceDirection   BOOL NOT NULL DEFAULT 0,
   TargetDirection   BOOL NOT NULL DEFAULT 0,
-  HighlightMatches  BOOL NOT NULL DEFAULT 0
+  HighlightMatches  BOOL NOT NULL DEFAULT 0,
+  -- Should exercise appear in a randomized order?
+  RandomizeOrder    BOOL NOT NULL DEFAULT 0
 );
 
 -- FIXME Why not simply add a nullable column to the ExerciseList table?

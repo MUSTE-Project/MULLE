@@ -83,6 +83,7 @@ toDatabaseLesson Data.Lesson{..}
   , sourceDirection     = dir srcDir
   , targetDirection     = dir trgDir
   , highlightMatches    = highlightMatches
+  , randomizeOrder      = randomizeOrder
   }
   where
   Data.LessonSettings{..} = settings
@@ -94,14 +95,15 @@ toDatabaseLesson Data.Lesson{..}
     Data.RectoVerso → Database.RectoVerso
 
 toDatabaseExercise ∷ Data.Lesson → [Database.Exercise]
-toDatabaseExercise Data.Lesson{..} = step <$> exercises'
+toDatabaseExercise Data.Lesson{..} = step <$> zip [0..] exercises'
   where
-  step Data.Exercise{..}
+  step (n, Data.Exercise{..})
     = Database.Exercise
     { sourceLinearization = lin srcL source
     , targetLinearization = lin trgL target
     , lesson              = key
     , timeout             = 0
+    , exerciseOrder       = n
     }
   Data.LessonSettings{..} = settings
   Data.Languages srcL trgL = languages
@@ -123,8 +125,9 @@ insertLessons ∷ Connection → [Database.Lesson] → IO ()
 insertLessons c = SQL.executeMany c q
   where
 
-  q = [sql|INSERT INTO Lesson
+  q = [sql|
 -- insertLessons
+INSERT INTO Lesson
 ( Id
 , Name
 , Description
@@ -139,7 +142,10 @@ insertLessons c = SQL.executeMany c q
 , SourceDirection
 , TargetDirection
 , HighlightMatches
-) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?);|]
+, RandomizeOrder
+)
+VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+;|]
 
 insertExercises ∷ Connection → [Database.Exercise] → IO ()
 insertExercises c = SQL.executeMany c q
@@ -148,5 +154,11 @@ insertExercises c = SQL.executeMany c q
   q = [sql|
 -- insertExercises
 INSERT INTO Exercise
-(SourceTree,TargetTree,Lesson,Timeout)
-VALUES (?,?,?,?);|]
+( SourceTree
+, TargetTree
+, Lesson
+, Timeout
+, ExerciseOrder
+)
+VALUES (?,?,?,?,?);
+|]

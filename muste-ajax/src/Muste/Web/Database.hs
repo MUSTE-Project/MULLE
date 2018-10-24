@@ -67,6 +67,8 @@ import qualified Muste
 import qualified Muste.Web.Database.Types  as Types
 import qualified Muste.Web.Database.Types  as ActiveLessonForUser
   (ActiveLessonForUser(..))
+import qualified Muste.Web.Database.Types  as ExerciseLesson
+  (ExerciseLesson(..))
 import qualified Muste.Web.Database.Types  as User (User(..))
 import           Muste.Web.Types.Score (Score)
 
@@ -151,7 +153,37 @@ SELECT
   , SourceDirection
   , TargetDirection
   , HighlightMatches
+  , RandomizeOrder
 FROM Lesson;
+|]
+
+getLesson
+  ∷ MonadDB r db
+  ⇒ Types.Key Types.Lesson
+  → db Types.Lesson
+getLesson l = Unsafe.head <$> query q (Only l)
+
+  where
+  q = [sql|
+-- getLessons
+SELECT
+    Id
+  , Name
+  , Description
+  , Grammar
+  , SourceLanguage
+  , TargetLanguage
+  , ExerciseCount
+  , Enabled
+  , SearchLimitDepth
+  , SearchLimitSize
+  , Repeatable
+  , SourceDirection
+  , TargetDirection
+  , HighlightMatches
+  , RandomizeOrder
+FROM Lesson
+WHERE Id = ?;
 |]
 
 -- FIXME In this contexts the naming suggests that the user is
@@ -604,22 +636,24 @@ wrapIoError io =
 shuffle ∷ MonadIO m ⇒ [a] → m [a]
 shuffle = liftIO . QC.generate . QC.shuffle
 
-getTreePairs
+getExerciseLessons
   ∷ MonadDB r db
   ⇒ Types.Key Types.Lesson
   → db [Types.ExerciseLesson]
-getTreePairs lesson = query q (Only lesson)
+getExerciseLessons lesson = query q (Only lesson)
   where
   q = [sql|
--- getTreePairs
-SELECT Exercise,
-  Lesson,
-  Name,
-  SourceTree,
-  TargetTree,
-  SourceDirection,
-  TargetDirection,
-  HighlightMatches
+-- getExerciseLessons
+SELECT
+  Exercise
+, Lesson
+, Name
+, SourceTree
+, TargetTree
+, SourceDirection
+, TargetDirection
+, HighlightMatches
+, ExerciseOrder
 FROM ExerciseLesson
 WHERE Lesson = ?;
 |]
@@ -630,16 +664,8 @@ newLesson
   → Types.Key Types.Lesson
   → db Types.ExerciseLesson
 newLesson user lesson = do
-  -- get exercise count
-  -- Only count ← fromMaybe errNonUniqueLesson . listToMaybe
-    -- <$> query @(Only Int) exerciseCountQuery (Only lesson)
-  count ← getExerciseCount lesson
-  -- get lesson round
   lessonRound ← getLessonRound user lesson
-  selectedTrees ← do
-    trees ← getTreePairs lesson
-    -- randomly select
-    take (fromIntegral count) <$> shuffle trees
+  selectedTrees ← pickExercises lesson
   exerciseLesson ← case selectedTrees of
     []      → throwDbError NoExercisesInLesson
 
@@ -657,6 +683,21 @@ newLesson user lesson = do
       }
   insertExercises $ step <$> zip [lessonRound..] selectedTrees
   pure exerciseLesson
+
+-- | Picks a new set of exercises for a lesson.  The number we pick is
+-- given by the lesson.  The lesson also says if we should present the
+-- exercises in a randomized order or use the @ExerciseOrder@ column
+-- of the @Exercise@ table to decide this.
+pickExercises
+  ∷ MonadDB r db
+  ⇒ Types.Key Types.Lesson
+  → db [Types.ExerciseLesson]
+pickExercises lesson = do
+  Types.Lesson{..} ← getLesson lesson
+  es ← take (fromIntegral exerciseCount) <$> getExerciseLessons lesson
+  if randomizeOrder
+  then shuffle es
+  else pure $ sortOn ExerciseLesson.exerciseOrder es
 
 startLessonAux ∷ MonadDB r db ⇒ Types.StartedLesson → db ()
 startLessonAux = execute [sql|
@@ -772,7 +813,7 @@ WHERE User = ?
   AND Lesson = ?;
 |]
 
--- Gets an unfinished exercise
+-- | Gets an unfinished exercise.
 getExercise
   ∷ MonadDB r db
   ⇒ Types.Key Types.Lesson
@@ -789,14 +830,15 @@ getExercise lesson user round
   q = [sql|
 -- getExercise
 SELECT
-  Exercise.Id,
-  Lesson.Id,
-  Lesson.Name,
-  SourceTree,
-  TargetTree,
-  SourceDirection,
-  TargetDirection,
-  HighlightMatches
+    Exercise.Id
+  , Lesson.Id
+  , Lesson.Name
+  , SourceTree
+  , TargetTree
+  , SourceDirection
+  , TargetDirection
+  , HighlightMatches
+  , ExerciseOrder
 FROM ExerciseList
 JOIN Exercise ON Exercise = Exercise.Id
 JOIN Lesson   ON Lesson   = Lesson.Id

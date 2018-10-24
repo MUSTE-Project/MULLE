@@ -27,7 +27,7 @@ import Prelude as X
   elem, (<*>), foldMap, putStrLn, putStr, flip, const, sequence, take,
   mapM_, mapM, ioError, error, repeat, foldl, seq, mod, div, print,
   realToFrac, fromIntegral)
-import Data.List                 as X (sort, last, nub)
+import Data.List                 as X (sort, last, nub, sortOn)
 import Data.List.NonEmpty        as X (NonEmpty(..), groupBy)
 import Data.Bool                 as X (bool)
 import Data.Function             as X ((&), on)

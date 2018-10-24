@@ -181,6 +181,7 @@ data ExerciseLesson = ExerciseLesson
   , srcDir           ∷ Direction
   , trgDir           ∷ Direction
   , highlightMatches ∷ Bool
+  , exerciseOrder    ∷ Numeric
   }
 
 deriving stock    instance Show    ExerciseLesson
@@ -199,6 +200,7 @@ data Exercise = Exercise
   , targetLinearization ∷ Unannotated
   , lesson              ∷ Key Lesson
   , timeout             ∷ Numeric
+  , exerciseOrder       ∷ Numeric
   }
 
 deriving stock    instance Show    Exercise
@@ -241,6 +243,7 @@ data Lesson = Lesson
   , sourceDirection     ∷ Direction
   , targetDirection     ∷ Direction
   , highlightMatches    ∷ Bool
+  , randomizeOrder      ∷ Bool
   }
 
 deriving stock    instance Show    Lesson

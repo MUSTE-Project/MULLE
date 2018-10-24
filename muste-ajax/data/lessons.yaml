@@ -203,3 +203,45 @@
       target: " program main &/ function main &+ ( &+ ) { &/ &_ x += 3 × 4 &+ ; &/ } &/ "
     - source: " program main &/ function f &+ ( &+ ) { &/ &_ print 4 + 3 &+ ; &/ } &/ "
       target: " program main &/ function main &+ ( &+ ) { &/ } &/ "
+
+
+- name: "Two lessons"
+  key: 10
+  description: "A super simple lesson with two exercises"
+  search-options:
+    size: 7
+  settings:
+    grammar: "exemplum/Exemplum"
+  languages:
+    source: "ExemplumTest"
+    target: "ExemplumTest"
+  exercises:
+    - source: the girl read Paris
+      target: the girl read book
+    - source: the girl read Paris
+      target: the girl read book
+
+- name: "So random"
+  key: 11
+  description: "Testing that randomized exercise order works correctly"
+  search-options:
+    size: 7
+  settings:
+    grammar: "exemplum/Exemplum"
+    randomize-exercise-order: yes
+  languages:
+    source: "ExemplumEng"
+    target: "ExemplumTest"
+  exercises:
+    - source: Paris
+      target: book
+    - source: many kings love Paris
+      target: the girl read book
+    - source: many kings love Paris
+      target: the girl read book
+    - source: many kings love Paris
+      target: the girl read book
+    - source: many kings love Paris
+      target: the girl read book
+    - source: many kings love Paris
+      target: the girl read book

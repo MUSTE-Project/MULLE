@@ -60,6 +60,8 @@ data LessonSettings = LessonSettings
   -- How many exercises need to be solved for the lesson to be
   -- considered solved.
   , exerciseCount    ∷ Maybe Int
+  -- Randomize the order of the exercises.
+  , randomizeOrder   ∷ Bool
   }
 
 deriving stock instance Show LessonSettings
@@ -68,12 +70,13 @@ instance FromJSON LessonSettings where
   parseJSON = Aeson.withObject "search-options"
     $  \v → LessonSettings
     <$> v .:  "grammar"
-    <*> v .:? "enabled"           .!= True
-    <*> v .:? "repeatable"        .!= True
-    <*> v .:? "source-direction"  .!= Ajax.VersoRecto
-    <*> v .:? "target-direction"  .!= Ajax.VersoRecto
-    <*> v .:? "highlight-matches" .!= True
+    <*> v .:? "enabled"                  .!= True
+    <*> v .:? "repeatable"               .!= True
+    <*> v .:? "source-direction"         .!= Ajax.VersoRecto
+    <*> v .:? "target-direction"         .!= Ajax.VersoRecto
+    <*> v .:? "highlight-matches"        .!= True
     <*> v .:? "exercise-count"
+    <*> v .:? "randomize-exercise-order" .!= False
 
 newtype Sentence = Sentence Text
 
