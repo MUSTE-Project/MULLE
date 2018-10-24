@@ -135,6 +135,7 @@ a.button {
     padding-bottom: 0.5em;
     border-color: #acacac;
     user-select: none;
+    text-align: left;
 }
 .clickable {
     z-index: 15;
