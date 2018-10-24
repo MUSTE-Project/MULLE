@@ -155,7 +155,7 @@ SELECT
   Lesson.Id,
   Lesson.Name,
   Lesson.Description,
-  COALESCE(ExerciseCount,0),
+  COALESCE(ExerciseCount,0) AS ExerciseCount,
   Score,
   FinishedExercise.Exercise IS NOT NULL AS Finished,
   -- Exercise.Id,
