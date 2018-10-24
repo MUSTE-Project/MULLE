@@ -104,7 +104,7 @@ instance FromJSON Exercise where
     <*> v .:  "target"
 
 data Lesson = Lesson
-  { key            ∷ Database.Key
+  { key            ∷ Database.Key Database.Lesson
   , name           ∷ Text
   , description    ∷ Text
   , settings       ∷ LessonSettings

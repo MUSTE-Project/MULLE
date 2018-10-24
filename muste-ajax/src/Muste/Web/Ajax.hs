@@ -256,7 +256,7 @@ instance ToJSON MenuList where
     ]
 
 data User = User
-  { key      ∷ Database.Key
+  { key      ∷ Database.Key Database.User
   , name     ∷ Text
   }
 
@@ -305,7 +305,7 @@ instance FromJSON ChangePassword where
     <*> v .: "new-password"
 
 data Lesson = Lesson
-  { key  ∷ Database.Key
+  { key  ∷ Database.Key Database.Lesson
   , name ∷ Text
   }
 

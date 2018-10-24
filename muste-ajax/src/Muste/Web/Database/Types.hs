@@ -14,7 +14,8 @@
 
 {-# OPTIONS_GHC -Wall #-}
 {-# Language StandaloneDeriving , GeneralizedNewtypeDeriving ,
-    TypeOperators , DuplicateRecordFields, DeriveAnyClass, RecordWildCards #-}
+    TypeOperators , DuplicateRecordFields, DeriveAnyClass,
+    RecordWildCards #-}
 
 module Muste.Web.Database.Types
   ( User(..)
@@ -81,16 +82,21 @@ deriving newtype instance FromField Numeric
 deriving newtype instance ToJSON    Numeric
 deriving newtype instance FromJSON  Numeric
 
-newtype Key = Key Int64
+-- | Identified keys.
+data Key a = Key { unKey ∷ Int64 }
 
-deriving stock   instance Show      Key
-deriving newtype instance ToField   Key
-deriving newtype instance FromField Key
-deriving newtype instance ToJSON    Key
-deriving newtype instance FromJSON  Key
+deriving stock instance Show      (Key a)
+instance ToField   (Key a) where
+  toField = toField . unKey
+instance FromField (Key a) where
+  fromField = fmap Key . fromField
+instance ToJSON    (Key a) where
+  toJSON = toJSON . unKey
+instance FromJSON  (Key a) where
+  parseJSON = fmap Key . parseJSON
 
 data User = User
-  { key                 ∷ Key
+  { key                 ∷ Key User
   , name                ∷ Text
   , password            ∷ Blob
   , salt                ∷ Blob
@@ -146,7 +152,7 @@ deriving anyclass instance FromRow ChangePassword
 -- * Start time.
 -- * End time.
 data Session = Session
-  { user                ∷ Key
+  { user                ∷ Key User
   , token               ∷ Text
   , startTime           ∷ UTCTime
   , lastActive          ∷ UTCTime
@@ -158,8 +164,8 @@ deriving anyclass instance ToRow   Session
 deriving anyclass instance FromRow Session
 
 data ExerciseLesson = ExerciseLesson
-  { exercise         ∷ Key
-  , lessonKey        ∷ Key
+  { exercise         ∷ Key Exercise
+  , lessonKey        ∷ Key Lesson
   , lessonName       ∷ Text
   , source           ∷ Unannotated
   , target           ∷ Unannotated
@@ -182,7 +188,7 @@ deriving anyclass instance FromRow ExerciseLesson
 data Exercise = Exercise
   { sourceLinearization ∷ Unannotated
   , targetLinearization ∷ Unannotated
-  , lesson              ∷ Key
+  , lesson              ∷ Key Lesson
   , timeout             ∷ Numeric
   }
 
@@ -211,7 +217,7 @@ instance FromField Direction where
       True → RectoVerso
 
 data Lesson = Lesson
-  { key                 ∷ Key
+  { key                 ∷ Key Lesson
   , name                ∷ Text
   , description         ∷ Text
   , grammar             ∷ Text
@@ -244,8 +250,8 @@ deriving anyclass instance FromRow Lesson
 -- * The amount of clicks it took.
 -- * The round it was in the lesson.
 data FinishedExercise = FinishedExercise
-  { user                ∷ Key
-  , exercise            ∷ Key
+  { user                ∷ Key User
+  , exercise            ∷ Key Exercise
   , score               ∷ Score
   , round               ∷ Numeric
   }
@@ -262,8 +268,8 @@ deriving anyclass instance FromRow FinishedExercise
 -- * The (name of the) user that started the lessson.
 -- * The round.
 data StartedLesson = StartedLesson
-  { lesson              ∷ Key
-  , user                ∷ Key
+  { lesson              ∷ Key Lesson
+  , user                ∷ Key User
   , round               ∷ Numeric
   }
 
@@ -281,8 +287,8 @@ deriving anyclass instance FromRow StartedLesson
 -- * The number of clicks it took to finish.
 -- * The number of rounds.
 data FinishedLesson = FinishedLesson
-  { lesson              ∷ Key
-  , user                ∷ Key
+  { lesson              ∷ Key Lesson
+  , user                ∷ Key User
   , score               ∷ Score
   , round               ∷ Numeric
   }
@@ -301,8 +307,8 @@ deriving anyclass instance FromRow FinishedLesson
 -- * The lesson it belongs to.
 -- * The round.
 data ExerciseList = ExerciseList
-  { user     ∷ Key
-  , exercise ∷ Key
+  { user     ∷ Key User
+  , exercise ∷ Key Exercise
   , round    ∷ Numeric
   }
 
@@ -314,14 +320,14 @@ deriving anyclass instance FromRow ExerciseList
 -- Like below but wuthout passedcount
 -- FIXME Better name
 data ActiveLessonForUser = ActiveLessonForUser
-  { lesson        ∷ Key
+  { lesson        ∷ Key Lesson
   , name          ∷ Text
   , description   ∷ Text
   , exercisecount ∷ Numeric
   , score         ∷ Nullable Score
   , finished      ∷ Bool
   , enabled       ∷ Bool
-  , user          ∷ Maybe Key
+  , user          ∷ Maybe (Key User)
   }
 
 deriving stock    instance Show    ActiveLessonForUser
@@ -332,7 +338,7 @@ deriving anyclass instance FromRow ActiveLessonForUser
 -- | Not like 'Types.Lesson'.  'Types.Lesson' refers to the
 -- representation in the database.  This is the type used in "Ajax".
 data ActiveLesson = ActiveLesson
-  { lesson        ∷ Key
+  { lesson        ∷ Key Lesson
   , name          ∷ Text
   , description   ∷ Text
   , exercisecount ∷ Numeric
@@ -372,9 +378,9 @@ instance ToJSON ActiveLesson where
     ]
 
 data UserLessonScore = UserLessonScore
-  { lesson     ∷ Key
+  { lesson     ∷ Key Lesson
   , lessonName ∷ Text
-  , user       ∷ Key
+  , user       ∷ Key User
   , userName   ∷ Text
   , score      ∷ Score
   }

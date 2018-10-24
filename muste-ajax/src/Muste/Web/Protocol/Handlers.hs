@@ -46,14 +46,11 @@ import qualified Muste.Sentence.Unannotated  as Unannotated
 import           Muste.Sentence.Unannotated (Unannotated)
 
 import qualified Muste.Web.Ajax              as Ajax
-import qualified Muste.Web.Ajax              as Lesson
-  ( Lesson(..) )
-import qualified Muste.Web.Ajax              as ClientTree
-  ( ClientTree(..) )
+import qualified Muste.Web.Ajax              as Lesson ( Lesson(..) )
+import qualified Muste.Web.Ajax              as ClientTree ( ClientTree(..) )
 import qualified Muste.Web.Database          as Database
 import qualified Muste.Web.Database.Types    as Database
-import qualified Muste.Web.Database.Types    as Database.User
-  ( User(..) )
+import qualified Muste.Web.Database.Types    as Database.User ( User(..) )
 import           Muste.Web.Protocol.Class
 import qualified Muste.Web.Types.Score       as Score
 
@@ -163,7 +160,7 @@ askContexts = asks contexts
 handleLessonInit
   ∷ ∀ m
   . MonadProtocol m
-  ⇒ Database.Key -- ^ Lesson
+  ⇒ Database.Key Database.Lesson
   → m Ajax.MenuResponse
 handleLessonInit lesson = do
   token ← getToken
@@ -208,9 +205,8 @@ dir = \case
 -- 'Ajax.ClientTree's are considered equal in this case if they have
 -- just one 'TTree' in common.  We respond to the caller whether the
 -- exercise is over.  In either case we also return two new
--- 'Ajax.ClientTree's -- these are used if the exercise continues.
--- For more information about what these contain see the documentation
--- there.
+-- 'Ajax.ClientTree's. For more information about what these contain
+-- see the documentation there.
 handleMenuRequest
   ∷ ∀ m
   . MonadProtocol m

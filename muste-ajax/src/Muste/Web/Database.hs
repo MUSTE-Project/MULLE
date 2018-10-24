@@ -189,7 +189,7 @@ INSERT INTO User (Username, Password, Salt, Enabled) VALUES (?,?,?,?);
 -- | Removes an existing user from the database.
 rmUser
   ∷ MonadDB r db
-  ⇒ Types.Key
+  ⇒ Types.Key Types.User
   → db ()
 rmUser = void . execute q . Only
   where
@@ -247,7 +247,7 @@ changePassword Types.ChangePassword{..} = do
 
 createSession
   ∷ MonadDB r db
-  ⇒ Types.Key -- ^ User
+  ⇒ Types.Key Types.User
   → db Types.Session
 createSession user = do
   -- Remove any existing session.
@@ -265,7 +265,7 @@ createSession user = do
 
 getSession
   ∷ MonadDB r db
-  ⇒ Types.Key -- ^ User
+  ⇒ Types.Key Types.User
   → db (Maybe Text)
 getSession user = fmap fromOnly . listToMaybe <$> query q (Only user)
   where
@@ -300,7 +300,7 @@ genToken timeStamp = convertString (show (hash @ByteString @SHA3_512 sessionData
 -- moment overly simplified.
 startSession
   :: MonadDB r db
-  => Types.Key -- ^ User
+  => Types.Key Types.User
   -> db Text
 startSession user = do
   session@(Types.Session _ token _ _) <- createSession user
@@ -417,7 +417,7 @@ getActiveLessons token = do
 getActiveLessonsForUser
   ∷ ∀ r db
   . MonadDB r db
-  ⇒ Types.Key
+  ⇒ Types.Key Types.User
   → db [Types.ActiveLessonForUser]
 getActiveLessonsForUser user = query q (Only user)
   where
@@ -433,9 +433,8 @@ WHERE User IS NULL OR User = ?;
 -- exercises and adding them to the users exercise list
 startLesson
   :: MonadDB r db
-  => Text      -- ^ Token
-  -> Types.Key -- ^ Lesson name
-  -- * Source- language and tree, target- langauge and tree.
+  => Text                    -- ^ Token
+  -> Types.Key Types.Lesson
   -> db Types.ExerciseLesson
 startLesson token lesson = do
   user ← getUser token
@@ -446,8 +445,8 @@ startLesson token lesson = do
 
 checkStarted
   ∷ MonadDB r db
-  ⇒ Types.Key -- ^ User
-  → Types.Key -- ^ Lesson
+  ⇒ Types.Key Types.User
+  → Types.Key Types.Lesson
   → db Bool
 checkStarted user lesson
   =   (0 /=) . fromOnly . Unsafe.head
@@ -461,7 +460,8 @@ WHERE User = ?
   AND Lesson = ?;
 |]
 
-getUser ∷ MonadDB r db ⇒ Text → db Types.Key
+-- TODO Surely the sql query should select the user id, not the id of the token!!
+getUser ∷ MonadDB r db ⇒ Text → db (Types.Key Types.User)
 getUser token = do
   xs ← query userQuery (Only token)
   case xs of
@@ -585,7 +585,7 @@ shuffle = liftIO . QC.generate . QC.shuffle
 
 getTreePairs
   :: MonadDB r db
-  => Types.Key
+  => Types.Key Types.Lesson
   -> db [Types.ExerciseLesson]
 getTreePairs lesson = query q (Only lesson)
   where
@@ -605,8 +605,8 @@ WHERE Lesson = ?;
 
 newLesson
   :: MonadDB r db
-  => Types.Key
-  -> Types.Key
+  => Types.Key Types.User
+  -> Types.Key Types.Lesson
   -> db Types.ExerciseLesson
 newLesson user lesson = do
   -- get exercise count
@@ -651,8 +651,8 @@ INSERT INTO ExerciseList (User,Exercise,Round) VALUES (?,?,?);
 
 getLessonRound
   ∷ MonadDB r db
-  ⇒ Types.Key
-  → Types.Key
+  ⇒ Types.Key Types.User
+  → Types.Key Types.Lesson
   → db Types.Numeric
 getLessonRound user lesson =
   fromOnly . Unsafe.head <$> query q (user,lesson)
@@ -674,8 +674,8 @@ WHERE
 
 continueLesson
   ∷ MonadDB r db
-  ⇒ Types.Key -- ^ Username
-  → Types.Key -- ^ Lesson name
+  ⇒ Types.Key Types.User
+  → Types.Key Types.Lesson
   → db Types.ExerciseLesson
 continueLesson user lesson = do
   round ← getLessonRound user lesson
@@ -685,7 +685,7 @@ continueLesson user lesson = do
 finishExercise
   ∷ MonadDB r db
   ⇒ Text            -- ^ Token
-  → Types.Key       -- ^ Lesson
+  → Types.Key Types.Lesson
   → Score           -- ^ Score
   → db Bool
 finishExercise token lesson score = do
@@ -706,9 +706,9 @@ finishExercise token lesson score = do
 
 checkFinished
   ∷ MonadDB r db
-  ⇒ Types.Key -- ^ User
-  → Types.Key -- ^ Exercise
-  → Types.Key -- ^ Lesson
+  ⇒ Types.Key Types.User
+  → Types.Key Types.Exercise
+  → Types.Key Types.Lesson
   → db Bool
 checkFinished user exercise lesson = do
   finishedCount ← getFinishedExercises user exercise
@@ -717,8 +717,8 @@ checkFinished user exercise lesson = do
 
 finishLesson
   ∷ MonadDB r db
-  ⇒ Types.Key     -- ^ User
-  → Types.Key     -- ^ Lesson
+  ⇒ Types.Key Types.User
+  → Types.Key Types.Lesson
   → Types.Numeric -- ^ Round
   → db ()
 finishLesson user lesson round = do
@@ -755,8 +755,8 @@ WHERE User = ?
 -- Gets an unfinished exercise
 getExercise
   ∷ MonadDB r db
-  ⇒ Types.Key     -- ^ Lesson
-  → Types.Key     -- ^ User
+  ⇒ Types.Key Types.Lesson
+  → Types.Key Types.User
   → Types.Numeric -- ^ Round
   → db Types.ExerciseLesson
 getExercise lesson user round
@@ -804,8 +804,9 @@ VALUES (?,?,?,?);
 
 getFinishedExercises
   ∷ MonadDB r db
-  ⇒ Types.Key -- ^ User
-  → Types.Key -- ^ Exercise
+  ⇒ Types.Key Types.User
+-- TODO Shouldn't this be the lesson in stead?
+  → Types.Key Types.Exercise
   → db Types.Numeric
 getFinishedExercises user lesson =
   fromOnly . Unsafe.head <$> query q (user,lesson)
@@ -820,7 +821,7 @@ AND Exercise = ?;
 
 getExerciseCount
   ∷ MonadDB r db
-  ⇒ Types.Key -- ^ Lesson
+  ⇒ Types.Key Types.Lesson
   → db Types.Numeric
 getExerciseCount lesson =
   fromOnly . Unsafe.head <$> query q (Only lesson)
@@ -835,8 +836,8 @@ WHERE Id = ?;
 -- | Get the score for the user and lesson.
 getScore
   ∷ MonadDB r db
-  ⇒ Types.Key -- ^ User
-  → Types.Key -- ^ Lesson
+  ⇒ Types.Key Types.User
+  → Types.Key Types.Lesson
   → db Score
 getScore user lesson
   =   mconcat . fmap fromOnly
