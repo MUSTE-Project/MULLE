@@ -16,3 +16,6 @@
 [submodule "libs/digestive-functors"]
 	path = libs/digestive-functors
 	url  = git@github.com:jaspervdj/digestive-functors.git
+[submodule "libs/gf-rgl"]
+	path = libs/gf-rgl
+	url = git@github.com:GrammaticalFramework/gf-rgl.git
