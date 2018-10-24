@@ -475,7 +475,6 @@ WHERE User = ?
   AND Lesson = ?;
 |]
 
--- TODO Surely the sql query should select the user id, not the id of the token!!
 getUser
   ∷ MonadDB r db
   ⇒ Types.Token
@@ -490,7 +489,7 @@ getUser token = do
   userQuery
     = [sql|
 -- getuser
-SELECT Id
+SELECT User
 FROM Session
 WHERE Token = ?;
 |]
