@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common:api
 concrete PrimaRulesAPI of PrimaRules = open Prelude in {
   lincat
     S, AP, Cl, NP, CN, VP, CS, ListNP = SS ;

@@ -1,2 +1,2 @@
---# -path=/home/herb/src/foreign/GF/lib/src/english
+--# -path=prelude:abstract:common:api:english
 concrete TertiaEng of Tertia = TertiaLexEng, TertiaRulesEng;

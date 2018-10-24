@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common:api
 incomplete concrete TertiaLexI of TertiaLex = Cat ** open Structural,Lexicon,PrimaLex,SecundaLex in {
   lin
     Gallia_PN = PrimaLex.Gallia_PN ; -- Prima

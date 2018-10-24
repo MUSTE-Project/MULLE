@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common:api
 incomplete concrete QuartaLexI of QuartaLex = Cat ** open Structural,Lexicon,SecundaLex,TertiaLex,Syntax in {
   lin
     liber_N = Lexicon.book_N ;

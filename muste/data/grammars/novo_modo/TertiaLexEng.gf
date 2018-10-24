@@ -1,4 +1,4 @@
---# -path=/home/herb/src/foreign/GF/lib/src/english
+--# -path=prelude:abstract:common:api:english
 concrete TertiaLexEng of TertiaLex = CatEng ** TertiaLexI with (Cat=CatEng),(Structural=StructuralEng),(Lexicon=LexiconEng),(PrimaLex=PrimaLexEng),(SecundaLex=SecundaLexEng) ** open ParadigmsEng,(D=DictEng) in {
   lin
     -- p41

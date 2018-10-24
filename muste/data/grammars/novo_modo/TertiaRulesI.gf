@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common:api
 incomplete concrete TertiaRulesI of TertiaRules = Cat ** open Syntax,Extra,PrimaRules in {
   lin
     useA = PrimaRules.useA ;

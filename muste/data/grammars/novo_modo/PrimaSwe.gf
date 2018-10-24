@@ -1,4 +1,4 @@
--- --# -path=/home/herb/src/foreign/GF/lib/src/swedish
+--# -path=prelude:abstract:common:api:scandinavian:swedish
 concrete PrimaSwe of Prima = PrimaLexSwe, PrimaRulesSwe ** {
   flags startcat=Utt ;
 };

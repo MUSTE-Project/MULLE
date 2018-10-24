@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common:api
 abstract PrimaLex = Cat ** {
 
 fun

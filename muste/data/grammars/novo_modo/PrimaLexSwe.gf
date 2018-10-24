@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common:api:scandinavian:swedish
 concrete PrimaLexSwe of PrimaLex = CatSwe ** PrimaLexI
   with (Cat=CatSwe), (Structural=StructuralSwe), (Lexicon=LexiconSwe) **
   open ParadigmsSwe, (Irreg=IrregSwe), (Verb=VerbSwe), (Res=ResSwe), Prelude in {

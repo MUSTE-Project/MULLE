@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common:api
 incomplete concrete PrimaRulesI of PrimaRules = Cat, Conjunction **
   open Syntax in {
 

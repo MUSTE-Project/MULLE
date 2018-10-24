@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common:api:english
 concrete PrimaLexEng of PrimaLex = CatEng ** PrimaLexI
   with (Cat=CatEng), (Structural=StructuralEng), (Lexicon=LexiconEng) **
   open ParadigmsEng, (Irreg=IrregEng), (Verb=VerbEng), (Res=ResEng), Prelude in {

@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common:api:english
 concrete SecundaRulesEng of SecundaRules = CatEng ** SecundaRulesI
   with (Syntax=SyntaxEng), (PrimaRules=PrimaRulesEng) **
   open (R=ResEng), Prelude, ParamX in {

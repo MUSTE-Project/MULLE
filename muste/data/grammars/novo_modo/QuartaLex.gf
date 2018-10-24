@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common:api
 abstract QuartaLex = Cat ** {
   fun
     liber_N : N ;

@@ -1,4 +1,4 @@
---# -path=latin-rgl/api:latin-rgl:.
+--# -path=prelude:abstract:common:latin-rgl/api:api:latin-rgl
 concrete TertiaLexLat of TertiaLex = CatLat ** TertiaLexI with (Cat=CatLat),(Structural=StructuralLat),(Lexicon=LexiconLat),(PrimaLex=PrimaLexLat),(SecundaLex=SecundaLexLat) ** open ParadigmsLat,ResLat in {
   lin
     -- p41
