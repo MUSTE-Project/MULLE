@@ -75,7 +75,7 @@ toDatabaseLesson Data.Lesson{..}
   , grammar             = grammar
   , sourceLanguage      = sourceLanguage
   , targetLanguage      = targetLanguage
-  , exerciseCount       = fromIntegral $ length exercises'
+  , exerciseCount       = fromIntegral $ fromMaybe (length exercises') exerciseCount
   , enabled             = enabled
   , searchLimitDepth    = fromIntegral <$> searchDepthLimit
   , searchLimitSize     = fromIntegral <$> searchSizeLimit

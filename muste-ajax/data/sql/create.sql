@@ -47,7 +47,9 @@ CREATE TABLE Lesson (
   Grammar           TEXT NOT NULL,
   SourceLanguage    TEXT NOT NULL,
   TargetLanguage    TEXT NOT NULL,
-  -- TODO Create a view where this is a computed column.
+  -- Exercise count does *not* say how many exercises are associated
+  -- with this lesson.  Rather it says how many exercises the user is
+  -- expected to complete for the lesson to be considered solved.
   ExerciseCount     NUMERIC NOT NULL,
   Enabled           BOOL NOT NULL DEFAULT 0,
   SearchLimitDepth  INT DEFAULT NULL,
