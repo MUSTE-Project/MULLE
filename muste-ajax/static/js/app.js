@@ -1,5 +1,7 @@
 /*global $ Handlebars jQuery Set Map countdown : true*/
 var AGGLUTINATION = '&+';
+var NEWLINE = '&/';
+var INDENT = '&_';
 var PUNCTUATION = /^[,;.?!)]$/;
 var PREFIXPUNCT = /^[¿¡(]$/;
 
@@ -561,69 +563,13 @@ function intersection(m, n) {
   return new Set([...m].filter(function(x) {return n.has(x);}));
 }
 
+// special spacing tokens all start with "&"
+function is_space_token(space) {
+  return typeof space == "string" && space[0] == '&';
+}
+
+
 function show_lin(lang, lin, x, settings) {
-  var menu = x.menu;
-
-  function gen_item(validMenus, idx) {
-    var spacyData = {
-      nr: idx,
-      lang: lang,
-      'valid-menus': validMenus,
-      'direction': x.direction
-    };
-    var $span = $('<span>');
-    if(validMenus === 'nothing') return $span;
-    return $span
-      .addClass('clickable')
-      .data(spacyData)
-      .click(click_word);
-  }
-
-  function gen_space(validMenus, idx) {
-    return gen_item(validMenus, idx)
-      .addClass('space');
-  }
-
-  function gen_word(validMenus, idx, linTok) {
-    var classes = linTok['classes'];
-    var matchingClasses = linTok['matching-classes'];
-    var concrete = linTok['concrete'];
-    var match = matchingClasses.size > 0;
-    var wordData = {
-      nr: i,
-      lang: lang,
-      'classes': classes,
-      /* , subtree:subtree */
-      'valid-menus': validMenus,
-      'direction': x.direction
-    };
-    // Perhaps we could generalize gen_space and use that here as well?
-    var wordspan = $('<span>')
-      .addClass('word');
-    if(validMenus !== 'nothing') {
-      wordspan.addClass('clickable')
-        .data(wordData)
-        .click(click_word);
-    }
-    wordspan
-      .html(concrete + '<sub class="debug">' + (match ? '=' : '') + JSON.stringify(classes) /* + ' ' + show_tree(subtree) */ + '</sub>')
-      .appendTo(sentence);
-    if (match && settings['highlight-matches']) {
-      wordspan.addClass('match');
-      var h = hash_array_of_string(Array.from(matchingClasses));
-      var c = int_to_rgba(h);
-      var css = {
-        'border-color': c
-      };
-      wordspan.css(css);
-    }
-    var css_word = {};
-    if(concrete == AGGLUTINATION) {
-      css_word['display'] = 'none';
-    }
-    return wordspan.css(css_word);
-  }
-
   var css = {
     'direction': mk_direction(x.direction),
     'unicode-bidi': 'bidi-override'
@@ -631,26 +577,103 @@ function show_lin(lang, lin, x, settings) {
   var sentence = $('#' + lang)
     .empty()
     .css(css);
-  // var tree = parse_tree(DATA[lang].tree);
-  for (var i=0; i < lin.length; i++) {
-    var linTok = lin[i];
+
+  for (var i=0; i <= lin.length; i++) {
     var previous = i > 0 ? lin[i-1].concrete : null;
-    var current = linTok.concrete;
-    var spacing = (previous == AGGLUTINATION || current == AGGLUTINATION || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
-      ? ' ' : ' &emsp; ';
-    var validMenusSpace = getValidMenusSpace(i, menu);
-    var validMenus = getValidMenus(i, menu);
+    var current = i < lin.length ? lin[i].concrete : null;
 
-    gen_space(validMenusSpace, i)
-      .html(spacing)
-      .appendTo(sentence);
+    // generate the space between tokens
+    var validMenusSpace = getValidMenusSpace(i, x.menu);
+    var isClickableSpace = validMenusSpace !== 'nothing';
+    var isInvisibleSpace =
+        (is_space_token(previous) || is_space_token(current) ||
+         PREFIXPUNCT.test(previous) || PUNCTUATION.test(current));
 
-    gen_word(validMenus, i, linTok);
+    var spaceSpan = $('<span>')
+        .addClass('space')
+        .html(isInvisibleSpace ? '' : '&emsp;')
+        .appendTo(sentence);
+
+    if (isClickableSpace) {
+      spaceSpan
+        .addClass('clickable')
+        .click(click_word)
+        .data({'nr': i,
+               'lang': lang,
+               'valid-menus': validMenusSpace,
+               'direction': x.direction
+              });
+
+      // make clickable spaces visible (greyed out)
+      // TODO: this should be configurable
+      // alternatives: &oplus; ⊕ (U+2295 "CIRCLED PLUS"), or &#xFE62; ﹢ (U+FE62 "SMALL PLUS SIGN")
+      spaceSpan.html(isInvisibleSpace ? '+' : ' + ')
+        .css('font-size', '75%')
+        .css('opacity', 0.3);
+    }
+
+    // generate the token following the space
+    if (i < lin.length) {
+      var validMenusWord = getValidMenus(i, x.menu);
+      var isClickableWord = validMenusWord !== 'nothing';
+      var classes = lin[i]['classes'];
+      var matchingClasses = lin[i]['matching-classes'];
+      var isMatch = matchingClasses.size > 0;
+
+      var wordSpan = $('<span>')
+          .addClass('word')
+          .html(current)
+          .appendTo(sentence);
+
+      if (isClickableWord) {
+        wordSpan
+          .addClass('clickable')
+          .click(click_word)
+          .data({'nr': i,
+                 'lang': lang,
+                 'classes': classes,
+                 'valid-menus': validMenusWord,
+                 'direction': x.direction
+                });
+      }
+
+      if (isMatch && settings['highlight-matches']) {
+        wordSpan.addClass('match');
+        var h = hash_array_of_string(Array.from(matchingClasses));
+        var c = int_to_rgba(h);
+        wordSpan.css('border-color', c);
+      }
+
+      if (is_space_token(current)) {
+        // the special space tokens are shown using special greyed-out symbols
+        // TODO: this should be configurable
+        if(current == NEWLINE) {
+          // &#x23ce; ⏎ (U+23CE "RETURN SYMBOL")
+          // alternative: &crarr; ↵ (U+21B5 "DOWNWARDS ARROW WITH CORNER LEFTWARDS")
+          wordSpan.html(isClickableWord ? '⏎' : '')
+            .css('font-size', '75%')
+            .css('opacity', 0.3)
+            .append($('<br>'));
+        }
+        if (current == AGGLUTINATION) {
+          // &bull; • (U+2022 "BULLET"), alternative: · (U+00B7 "MIDDLE DOT")
+          wordSpan.html(isClickableWord ? '&bull;' : '')
+            .css('font-size', '75%')
+            .css('opacity', 0.3);
+        }
+        if (current == INDENT) {
+          // &hellip; … (U+2026 "HORIZONTAL ELLIPSIS")
+          // &emsp; (U+00A0 "NO-BREAK SPACE")
+          wordSpan.html(isClickableWord ? '&hellip;' : '&emsp;')
+            .css('opacity', 0.3);
+        }
+      }
+
+      $('<sub class="debug">')
+        .text((isMatch ? '=' : '') + JSON.stringify(classes))
+        .appendTo(wordSpan);
+    }
   }
-  var validMenusSpaceFinal = getValidMenusSpace(lin.length, menu);
-  gen_space(validMenusSpaceFinal, lin.length)
-    .html('&emsp;')
-    .appendTo(sentence);
 }
 
 function mk_direction(direction) {
@@ -772,7 +795,7 @@ function click_word(event) {
       var pword = tok.concrete;
       var marked = tok['selected'];
       var css = {};
-      if(pword == AGGLUTINATION) {
+      if(is_space_token(pword)) {
         css['display'] = 'none';
       }
       var $container;
