@@ -547,12 +547,10 @@ instance MonadTrans DbT where
 
 type Db a = DbT IO a
 
--- instance
-
 runDbT ∷ DbT m a -> Connection -> m (Either Error a)
 runDbT (DbT db) c = runExceptT $ runReaderT db c
 
--- TODO Better maybe to switch to 'SQL.queryNamed'?
+-- FIXME Consider switching to 'SQL.queryNamed'?
 query
   ∷ ∀ res q r db
   . MonadDB r db
@@ -721,18 +719,17 @@ finishExercise token lesson score = do
     , score    = score
     , round    = round
     }
-  finished ← checkFinished user exercise lesson
+  finished ← checkFinished user lesson
   when finished $ finishLesson user lesson round
   pure finished
 
 checkFinished
   ∷ MonadDB r db
   ⇒ Types.Key Types.User
-  → Types.Key Types.Exercise
   → Types.Key Types.Lesson
   → db Bool
-checkFinished user exercise lesson = do
-  finishedCount ← getFinishedExercises user exercise
+checkFinished user lesson = do
+  finishedCount ← getFinishedExercises user lesson
   exerciseCount ← getExerciseCount lesson
   pure $ finishedCount >= exerciseCount
 
@@ -826,8 +823,7 @@ VALUES (?,?,?,?);
 getFinishedExercises
   ∷ MonadDB r db
   ⇒ Types.Key Types.User
--- TODO Shouldn't this be the lesson in stead?
-  → Types.Key Types.Exercise
+  → Types.Key Types.Lesson
   → db Types.Numeric
 getFinishedExercises user lesson =
   fromOnly . Unsafe.head <$> query q (user,lesson)
@@ -836,8 +832,10 @@ getFinishedExercises user lesson =
 -- getFinishedExercises
 SELECT COUNT(*)
 FROM FinishedExercise F
+JOIN Exercise ON Exercise = Exercise.Id
+JOIN Lesson   ON Lesson   = Lesson.Id
 WHERE User = ?
-AND Exercise = ?;
+AND Lesson = ?;
 |]
 
 getExerciseCount
