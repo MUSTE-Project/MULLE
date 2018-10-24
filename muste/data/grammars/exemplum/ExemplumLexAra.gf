@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common:arabic
 concrete ExemplumLexAra of ExemplumLex = ExemplumCatAra **
   ExemplumLexI - [john_PN,or_Conj,today_Adv,it_Pron,he_Pron,she_Pron,they_Pron]
   with (Cat=CatAra), (Grammar=GrammarAra), (Lexicon=LexiconAra) **

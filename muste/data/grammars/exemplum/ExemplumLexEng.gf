@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common:english
 concrete ExemplumLexEng of ExemplumLex = CatEng ** ExemplumLexI
   with (Cat=CatEng), (Grammar=GrammarEng), (Lexicon=LexiconEng) **
   open ParadigmsEng, (Irreg=IrregEng), Prelude in {

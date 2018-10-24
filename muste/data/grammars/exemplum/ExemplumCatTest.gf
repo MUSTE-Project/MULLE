@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common
 concrete ExemplumCatTest of Cat = {
 
 lincat
