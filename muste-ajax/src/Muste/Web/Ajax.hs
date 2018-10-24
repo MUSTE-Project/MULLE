@@ -63,7 +63,7 @@ deriving instance Show ClientTree
 
 instance FromJSON ClientTree where
   parseJSON = Aeson.withObject "tree"
-     $ \v -> ClientTree
+     $ \v → ClientTree
     <$> v .: "sentence"
     <*> v .: "direction"
 
@@ -144,7 +144,7 @@ instance ToJSON Direction where
     VersoRecto → "ltr"
     RectoVerso → "rtl"
 
-oneOf ∷ (Foldable t, Alternative f) => t (f a) -> f a
+oneOf ∷ (Foldable t, Alternative f) => t (f a) → f a
 oneOf = foldl (<|>) empty
 
 -- | 'ServerTree's represent the data needed to display a sentence in
@@ -163,7 +163,7 @@ data ServerTree = ServerTree
   } deriving (Show)
 
 instance FromJSON ServerTree where
-  parseJSON = Aeson.withObject "server-tree" $ \v -> ServerTree
+  parseJSON = Aeson.withObject "server-tree" $ \v → ServerTree
     <$> v .:  "sentence"
     <*> v .:  "menu"
     <*> v .:? "direction" .!= VersoRecto
@@ -234,7 +234,7 @@ instance ToJSON MenuSettings where
 
 instance FromJSON MenuSettings where
   parseJSON = Aeson.withObject "settings"
-     $ \v -> MenuSettings
+     $ \v → MenuSettings
     <$> v .: "highlight-matches"
 
 -- Better name might be menus?
@@ -264,7 +264,7 @@ deriving stock instance Show User
 
 instance FromJSON User where
   parseJSON = Aeson.withObject "user"
-     $ \v -> User
+     $ \v → User
     <$> v .: "key"
     <*> v .: "name"
 
@@ -283,7 +283,7 @@ deriving stock instance Show CreateUser
 
 instance FromJSON CreateUser where
   parseJSON = Aeson.withObject "user"
-     $ \v -> CreateUser
+     $ \v → CreateUser
     <$> v .: "name"
     <*> v .: "password"
 
@@ -299,7 +299,7 @@ deriving stock instance Show ChangePassword
 
 instance FromJSON ChangePassword where
   parseJSON = Aeson.withObject "user"
-     $ \v -> ChangePassword
+     $ \v → ChangePassword
     <$> v .: "name"
     <*> v .: "old-password"
     <*> v .: "new-password"
@@ -319,7 +319,7 @@ instance ToJSON Lesson where
 
 instance FromJSON Lesson where
   parseJSON = Aeson.withObject "user"
-     $ \v -> Lesson
+     $ \v → Lesson
     <$> v .: "key"
     <*> v .: "name"
 

@@ -68,6 +68,8 @@ dependencies:
   - base64-bytestring    >= 1.0.0.1  && < 1.1
   - bytestring           >= 0.10.8.1 && < 0.11
   - containers           >= 0.5.7.1  && < 0.6
+  # I wonder why we're not simply using cryptonite, which is anyways a
+  # dependency.
   - crypto-random-api    >= 0.2.0    && < 0.3
   - cryptonite           >= 0.23     && < 0.26
   - direct-sqlite        >= 2.3.21   && < 2.4

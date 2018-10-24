@@ -85,7 +85,7 @@ throwApiError ∷ MonadProtocol m ⇒ ApiError → m a
 throwApiError = throwError . ProtocolApiError
 
 -- | Reads the data from the request and deserializes from JSON.
-getMessage ∷ ∀ json m . FromJSON json ⇒ MonadProtocol m => m json
+getMessage ∷ ∀ json m . FromJSON json ⇒ MonadProtocol m ⇒ m json
 getMessage = do
   s ← Snap.runRequestBody Streams.read >>= \case
     Nothing → throwApiError ErrReadBody
@@ -96,19 +96,19 @@ getMessage = do
 
 -- TODO Token should be set as an HTTP Unsafe.header.
 -- | Gets the current session token.
-getToken :: MonadProtocol m ⇒ m Database.Token
+getToken ∷ MonadProtocol m ⇒ m Database.Token
 getToken = do
-  m <- getTokenCookie
+  m ← getTokenCookie
   case m of
-    Just c -> pure $ Database.Token $ convertString $ Snap.cookieValue c
-    Nothing -> throwApiError NoAccessToken
+    Just c → pure $ Database.Token $ convertString $ Snap.cookieValue c
+    Nothing → throwApiError NoAccessToken
 
-getTokenCookie :: MonadProtocol m ⇒ m (Maybe Snap.Cookie)
+getTokenCookie ∷ MonadProtocol m ⇒ m (Maybe Snap.Cookie)
 getTokenCookie = Snap.getCookie "LOGIN_TOKEN"
 
 
 -- * Handlers
-lessonsHandler :: MonadProtocol m ⇒ m (Response Ajax.LessonList)
+lessonsHandler ∷ MonadProtocol m ⇒ m (Response Ajax.LessonList)
 lessonsHandler = do
   t ← getToken
   lessons ← Database.getActiveLessons t
@@ -120,7 +120,7 @@ lessonHandler = pure <$> Snap.pathArg (handleLessonInit . Database.Key)
 menuHandler ∷ MonadProtocol m ⇒ m (Response Ajax.MenuResponse)
 menuHandler = getMessage >>= fmap pure . handleMenuRequest
 
-loginHandler :: MonadProtocol m ⇒ m (Response Ajax.LoginSuccess)
+loginHandler ∷ MonadProtocol m ⇒ m (Response Ajax.LoginSuccess)
 loginHandler = Snap.method Snap.POST
   $ getMessage >>= fmap pure . handleLoginRequest
 
@@ -130,9 +130,9 @@ logoutHandler
   $ getToken >>= handleLogoutRequest
 
 setLoginCookie
-  :: MonadProtocol m
-  => Text -- ^ The token
-  -> m ()
+  ∷ MonadProtocol m
+  ⇒ Text -- ^ The token
+  → m ()
 setLoginCookie tok
   = Snap.modifyResponse $ Snap.addResponseCookie c
   where
@@ -155,7 +155,7 @@ handleLoginRequest Ajax.LoginRequest{..} = do
   setLoginCookie token
   pure $ Ajax.LoginSuccess token
 
-askContexts :: MonadProtocol m ⇒ m Contexts
+askContexts ∷ MonadProtocol m ⇒ m Contexts
 askContexts = asks contexts
 
 handleLessonInit
@@ -341,17 +341,17 @@ getContext ctxts lesson s
   >>= lookupM (LanguageNotFound s) s
 
 lookupM
-  :: MonadThrow m
-  => Exception e
-  => Ord k
-  => e -> k -> Map k a -> m a
+  ∷ MonadThrow m
+  ⇒ Exception e
+  ⇒ Ord k
+  ⇒ e → k → Map k a → m a
 lookupM err k = liftMaybe err . Map.lookup k
 
 -- | Lift a 'Maybe' to any 'MonadThrow'.
-liftMaybe :: MonadThrow m => Exception e => e -> Maybe a -> m a
+liftMaybe ∷ MonadThrow m ⇒ Exception e ⇒ e → Maybe a → m a
 liftMaybe e = \case
-  Nothing -> throwM e
-  Just a  -> pure a
+  Nothing → throwM e
+  Just a  → pure a
 
 -- | @'makeTree' ctxt lesson src trg tree@ Creates a 'ServerTree' from
 -- a source trees and a target tree.  The 'Menu' is provided given

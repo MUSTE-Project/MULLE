@@ -36,37 +36,38 @@ module Muste.Web.Database
   , getUserLessonScores
   ) where
 
-import Prelude ()
-import Muste.Prelude
-import qualified Muste.Prelude.Unsafe as Unsafe
-import Muste.Prelude.Extra
-import Muste.Prelude.SQL
+import           Prelude ()
+import           Muste.Prelude
+import qualified Muste.Prelude.Unsafe      as Unsafe
+import           Muste.Prelude.Extra
+import           Muste.Prelude.SQL
   ( Query, Connection, Only(Only), fromOnly
   , ToRow, FromRow, sql
   )
-import qualified Muste.Prelude.SQL as SQL
+import qualified Muste.Prelude.SQL         as SQL
 
-import qualified Data.List.NonEmpty as NonEmpty
+import qualified Data.List.NonEmpty        as NonEmpty
 
-import qualified Crypto.Random.API as Crypto
-import qualified Crypto.KDF.PBKDF2 as Crypto
-import qualified Crypto.Hash       as Crypto
+import qualified Crypto.Random.API         as Crypto
+import qualified Crypto.KDF.PBKDF2         as Crypto
+import qualified Crypto.Hash               as Crypto
 
-import Data.ByteString (ByteString)
-import qualified Data.Text.Encoding     as T
-import qualified Data.Time.Clock        as Time
-import qualified Data.Time.Format       as Time
-import Control.Monad.Reader
+import           Data.ByteString (ByteString)
+import qualified Data.Text.Encoding        as T
+import qualified Data.Time.Clock           as Time
+import qualified Data.Time.Format          as Time
+import           Control.Monad.Reader
 
 -- FIXME QuickCheck seems like a heavy dependency just to get access
 -- to `shuffle`.
-import qualified Test.QuickCheck as QC (shuffle, generate)
+import qualified Test.QuickCheck           as QC (shuffle, generate)
 
 import qualified Muste
 
-import qualified Muste.Web.Database.Types as Types
-import qualified Muste.Web.Database.Types as ActiveLessonForUser (ActiveLessonForUser(..))
-import qualified Muste.Web.Database.Types as User (User(..))
+import qualified Muste.Web.Database.Types  as Types
+import qualified Muste.Web.Database.Types  as ActiveLessonForUser
+  (ActiveLessonForUser(..))
+import qualified Muste.Web.Database.Types  as User (User(..))
 import           Muste.Web.Types.Score (Score)
 
 data Error
@@ -104,8 +105,9 @@ instance Exception Error where
       <> displayException e
     UserAlreadyExists → "The username is taken"
 
--- | hashPasswd returns a SHA512 hash of a PBKDF2 encoded password
--- (SHA512,10000 iterations,1024 bytes output)
+-- | @'hashPasswd' pw salt@ encodes @pw@ using PBKDF2 (using @salt@ as
+-- cyrptographic salt, doing 1e4 iterations and creating 1KiB
+-- output). It then SHA 512 encodes this.
 hashPassword
   ∷ Text       -- ^ Password in clear text
   → ByteString -- ^ Salt
@@ -119,7 +121,7 @@ hashPassword pw salt
 
 -- | 'createSalt' returns a SHA512 hash of 512 bytes of random data as
 -- a 'ByteString'.
-createSalt :: MonadIO io ⇒ io ByteString
+createSalt ∷ MonadIO io ⇒ io ByteString
 createSalt
   =   fst
   .   Crypto.genRandomBytes 512
@@ -129,8 +131,8 @@ getCurrentTime ∷ MonadIO io ⇒ io UTCTime
 getCurrentTime = liftIO Time.getCurrentTime
 
 getLessons
-  :: MonadDB r db
-  => db [Types.Lesson]
+  ∷ MonadDB r db
+  ⇒ db [Types.Lesson]
 getLessons = query_ 
   [sql|
 -- getLessons
@@ -159,10 +161,10 @@ FROM Lesson;
 createUser
   ∷ MonadDB r db
   ⇒ Types.CreateUser
-  -> db Types.UserSansId
+  → db Types.UserSansId
 createUser Types.CreateUser{..} = do
   -- Create a salted password
-  salt <- createSalt
+  salt ← createSalt
   pure $ Types.UserSansId
     { name     = name
     , password = hashPassword password salt
@@ -215,7 +217,7 @@ authUser
   → db Types.User
 authUser user pass = do
   -- Get password and salt from database
-  userList <- query @Types.User q (Only user)
+  userList ← query @Types.User q (Only user)
   -- Generate new password hash and compare to the stored one
   let
     h (Types.Blob s) = hashPassword pass s
@@ -309,11 +311,11 @@ genToken timeStamp
 -- | Creates a new session and returns the session token.  At the
 -- moment overly simplified.
 startSession
-  :: MonadDB r db
-  => Types.Key Types.User
-  -> db Types.Token
+  ∷ MonadDB r db
+  ⇒ Types.Key Types.User
+  → db Types.Token
 startSession user = do
-  session@(Types.Session _ token _ _) <- createSession user
+  session@(Types.Session _ token _ _) ← createSession user
   execute q session
   pure token
   where
@@ -342,9 +344,9 @@ UPDATE Session SET LastActive = ? WHERE Token = ?;
 
 -- | Returns @Just err@ if there is an error.
 verifySession
-  :: MonadDB r db
-  => Types.Token
-  -> db ()
+  ∷ MonadDB r db
+  ⇒ Types.Token
+  → db ()
 verifySession token = do
   -- Get potential user session(s)
   sessions ← getLastActive token
@@ -412,7 +414,7 @@ getActiveLessons
   ⇒ Types.Token
   → db [Types.ActiveLesson]
 getActiveLessons token = do
-  user <- getUser token
+  user ← getUser token
   fmap step . groupOn ActiveLessonForUser.lesson <$> getActiveLessonsForUser user
   where
   step ∷ (NonEmpty Types.ActiveLessonForUser) → Types.ActiveLesson
@@ -451,10 +453,10 @@ WHERE User IS NULL OR User = ?;
 -- | Start a new lesson by randomly choosing the right number of
 -- exercises and adding them to the users exercise list
 startLesson
-  :: MonadDB r db
-  => Types.Token
-  -> Types.Key Types.Lesson
-  -> db Types.ExerciseLesson
+  ∷ MonadDB r db
+  ⇒ Types.Token
+  → Types.Key Types.Lesson
+  → db Types.ExerciseLesson
 startLesson token lesson = do
   user ← getUser token
   isRunning ← checkStarted user lesson
@@ -547,7 +549,7 @@ instance MonadTrans DbT where
 
 type Db a = DbT IO a
 
-runDbT ∷ DbT m a -> Connection -> m (Either Error a)
+runDbT ∷ DbT m a → Connection → m (Either Error a)
 runDbT (DbT db) c = runExceptT $ runReaderT db c
 
 -- FIXME Consider switching to 'SQL.queryNamed'?
@@ -564,9 +566,9 @@ query qry q = do
   wrapIoError $ SQL.query c qry q
 
 query_
-  :: ∀ res r db . MonadDB r db
-  => FromRow res
-  => Query -> db [res]
+  ∷ ∀ res r db . MonadDB r db
+  ⇒ FromRow res
+  ⇒ Query → db [res]
 query_ qry = do
   c ← getConnection
   wrapIoError $ SQL.query_ c qry
@@ -599,13 +601,13 @@ wrapIoError io =
   Left e  → throwDbError $ DriverError e
   Right a → pure a
 
-shuffle :: MonadIO m => [a] -> m [a]
+shuffle ∷ MonadIO m ⇒ [a] → m [a]
 shuffle = liftIO . QC.generate . QC.shuffle
 
 getTreePairs
-  :: MonadDB r db
-  => Types.Key Types.Lesson
-  -> db [Types.ExerciseLesson]
+  ∷ MonadDB r db
+  ⇒ Types.Key Types.Lesson
+  → db [Types.ExerciseLesson]
 getTreePairs lesson = query q (Only lesson)
   where
   q = [sql|
@@ -623,10 +625,10 @@ WHERE Lesson = ?;
 |]
 
 newLesson
-  :: MonadDB r db
-  => Types.Key Types.User
-  -> Types.Key Types.Lesson
-  -> db Types.ExerciseLesson
+  ∷ MonadDB r db
+  ⇒ Types.Key Types.User
+  → Types.Key Types.Lesson
+  → db Types.ExerciseLesson
 newLesson user lesson = do
   -- get exercise count
   -- Only count ← fromMaybe errNonUniqueLesson . listToMaybe
