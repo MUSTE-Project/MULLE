@@ -477,9 +477,26 @@ getActiveLessonsForUser user = query q (Only user)
 
   q = [sql|
 -- getActiveLessonsForUser
-SELECT *
-FROM ActiveLessonsForUser
-WHERE User IS NULL OR User = ?;
+SELECT
+  Lesson.Id AS Lesson,
+  Lesson.Name,
+  Lesson.Description,
+  COALESCE(ExerciseCount,0) AS ExerciseCount,
+  Score,
+  -- TODO Remove this after fixing Muste.Web.Database.Types.ActiveLessonForUser
+  Score IS NOT NULL AS Finished,
+  -- Exercise.Id,
+  -- User.Id
+
+  Lesson.Enabled,
+  -- ExerciseList
+  FinishedExercise.User
+
+FROM Exercise
+JOIN Lesson ON Exercise.Lesson = Lesson.Id
+LEFT
+  JOIN FinishedExercise
+  ON   FinishedExercise.Exercise = Exercise.Id AND User = ? OR User IS NULL;
 |]
 
 -- | Start a new lesson by randomly choosing the right number of
@@ -680,6 +697,7 @@ newLesson user lesson = do
       { user     = user
       , exercise = exercise
       , round    = round
+      , score    = Nothing
       }
   insertExercises $ step <$> zip [lessonRound..] selectedTrees
   pure exerciseLesson
@@ -708,7 +726,7 @@ INSERT INTO StartedLesson (Lesson, User, Round) VALUES (?,?,?);
 insertExercises ∷ MonadDB r db ⇒ [Types.ExerciseList] → db ()
 insertExercises = executeMany [sql|
 -- insertExercises
-INSERT INTO ExerciseList (User,Exercise,Round) VALUES (?,?,?);
+INSERT INTO ExerciseList (User, Exercise, Round, Score) VALUES (?,?,?,?);
 |]
 
 getLessonRound
@@ -722,16 +740,15 @@ getLessonRound user lesson =
   q ∷ Query
   q = [sql|
 -- getLessonRound
-SELECT ifnull(MAX(FinishedExercise.Round) + 1,0)
-FROM FinishedExercise
-JOIN ExerciseList
-    ON ExerciseList.Exercise = FinishedExercise.Exercise
+SELECT ifnull(MAX(ExerciseList.Round) + 1,0)
+FROM ExerciseList
 JOIN Exercise ON ExerciseList.Exercise = Exercise.Id
 WHERE
-      FinishedExercise.User = ?
+  ExerciseList.User = ?
   -- Does this happen automatically if Lesson is null given the next
   -- condition?
-  AND Lesson = ?;
+  AND Lesson = ?
+  AND Score IS NOT NULL;
 |]
 
 continueLesson
@@ -756,11 +773,11 @@ finishExercise token lesson score = do
   -- get lesson round
   round ← getLessonRound user lesson
   Types.ExerciseLesson{..} ← getExercise lesson user round
-  finishExerciseAux $ Types.FinishedExercise
+  finishExerciseAux $ Types.ExerciseList
     { user     = user
     , exercise = exercise
-    , score    = score
     , round    = round
+    , score    = Just score
     }
   finished ← checkFinished user lesson
   when finished $ finishLesson user lesson round
@@ -830,7 +847,7 @@ getExercise lesson user round
   q = [sql|
 -- getExercise
 SELECT
-    Exercise.Id
+    Exercise
   , Lesson.Id
   , Lesson.Name
   , SourceTree
@@ -844,24 +861,23 @@ JOIN Exercise ON Exercise = Exercise.Id
 JOIN Lesson   ON Lesson   = Lesson.Id
 WHERE Lesson = ?
   AND User   = ?
-  AND ROUND  = ?
-  AND (User, Exercise) NOT IN (
-    SELECT User, Exercise
-    FROM FinishedExercise
-  );
+  AND Round  = ?
+  AND Score IS NULL;
 |]
 
 finishExerciseAux
   ∷ MonadDB r db
-  ⇒ Types.FinishedExercise
+  ⇒ Types.ExerciseList
   → db ()
-finishExerciseAux = execute q
+finishExerciseAux Types.ExerciseList{..} = execute q (score, user, exercise, round)
   where
   q = [sql|
 -- finishExerciseAux
-INSERT INTO FinishedExercise
-  (User, Exercise, Score, Round)
-VALUES (?,?,?,?);
+UPDATE ExerciseList
+SET Score = ?
+WHERE User     = ?
+AND   Exercise = ?
+AND   Round    = ?;
 |]
 
 getFinishedExercises
@@ -875,11 +891,12 @@ getFinishedExercises user lesson =
   q = [sql|
 -- getFinishedExercises
 SELECT COUNT(*)
-FROM FinishedExercise F
+FROM ExerciseList
 JOIN Exercise ON Exercise = Exercise.Id
 JOIN Lesson   ON Lesson   = Lesson.Id
 WHERE User = ?
-AND Lesson = ?;
+AND Lesson = ?
+AND Score NOT NULL;
 |]
 
 getExerciseCount
@@ -910,10 +927,11 @@ getScore user lesson
   q = [sql|
 -- getScore
 SELECT Score
-FROM FinishedExercise
+FROM ExerciseList
 JOIN Exercise ON Exercise = Exercise.Id
 WHERE User = ?
-AND Lesson = ?;
+AND Lesson = ?
+AND Score NOT NULL;
 |]
 
 -- | The user and their score on each excercise.  If score and user is

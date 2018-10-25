@@ -4,7 +4,6 @@ DROP TABLE IF EXISTS User;
 DROP TABLE IF EXISTS Session;
 DROP TABLE IF EXISTS Lesson;
 DROP TABLE IF EXISTS Exercise;
-DROP TABLE IF EXISTS FinishedExercise;
 DROP TABLE IF EXISTS StartedLesson;
 DROP TABLE IF EXISTS FinishedLesson;
 DROP TABLE IF EXISTS ExerciseList;
@@ -65,26 +64,6 @@ CREATE TABLE Lesson (
   RandomizeOrder    BOOL NOT NULL DEFAULT 0
 );
 
--- FIXME Why not simply add a nullable column to the ExerciseList table?
-CREATE TABLE FinishedExercise (
-  User      INTEGER,
-  Exercise  INTEGER,
-  Round     INTEGER,
-  Score     BLOB NOT NULL,
-
-  PRIMARY
-    KEY (User, Exercise, Round),
-  FOREIGN
-    KEY (User)
-    REFERENCES User(Id),
-  FOREIGN
-    KEY (Exercise)
-    REFERENCES Exercise(Id)
-  FOREIGN
-    KEY (User, Exercise, Round)
-    REFERENCES ExerciseList(User, Exercise, Found)
-);
-
 CREATE TABLE StartedLesson (
   Lesson   INTEGER,
   User     INTEGER,
@@ -118,6 +97,7 @@ CREATE TABLE ExerciseList (
   User      INTEGER,
   Exercise  INTEGER,
   Round     NUMERIC NOT NULL DEFAULT 1,
+  Score     BLOB, -- nullable!
 
   PRIMARY KEY (User, Exercise, Round),
   FOREIGN
@@ -140,10 +120,11 @@ CREATE VIEW ExerciseLesson AS
 DROP VIEW IF EXISTS FinishedExerciseLesson;
 CREATE VIEW FinishedExerciseLesson AS
   SELECT *
-  FROM FinishedExercise
-  JOIN Exercise ON FinishedExercise.Exercise = Exercise.Id
+  FROM ExerciseList
+  JOIN Exercise ON ExerciseList.Exercise     = Exercise.Id
   JOIN Lesson   ON Exercise.Lesson           = Lesson.Id
-  JOIN User     ON FinishedExercise.User     = User.Id;
+  JOIN User     ON ExerciseList.User         = User.Id
+  WHERE Score NOT NULL;
 
 
 -- The passed exercises by user and lesson
@@ -155,33 +136,10 @@ CREATE VIEW PassedLesson AS
   FROM FinishedLesson
   GROUP BY Lesson, User;
 
-DROP VIEW IF EXISTS ActiveLessonsForUser;
-CREATE VIEW ActiveLessonsForUser AS
-SELECT
-  Lesson.Id,
-  Lesson.Name,
-  Lesson.Description,
-  COALESCE(ExerciseCount,0) AS ExerciseCount,
-  Score,
-  FinishedExercise.Exercise IS NOT NULL AS Finished,
-  -- Exercise.Id,
-  -- User.Id
-  Lesson.Enabled,
-  -- ExerciseList
-  ExerciseList.User
-
-FROM Exercise
-JOIN Lesson ON Exercise.Lesson = Lesson.Id
-LEFT JOIN ExerciseList ON ExerciseList.Exercise = Exercise.Id
-
--- FROM Exercise
--- JOIN ExerciseList ON ExerciseList.Exercise = Exercise.Id
--- JOIN Lesson on Lesson = Lesson.Id
--- LEFT JOIN User ON ExerciseList.User = User.Id
-
-LEFT JOIN FinishedExercise
-  ON FinishedExercise.User = ExerciseList.User
-  AND FinishedExercise.Exercise = Exercise.Id;
+DROP VIEW IF EXISTS FinishedExercise;
+CREATE VIEW FinishedExercise AS
+SELECT *
+FROM ExerciseList
+WHERE Score IS NOT NULL;
 
 COMMIT TRANSACTION;
-

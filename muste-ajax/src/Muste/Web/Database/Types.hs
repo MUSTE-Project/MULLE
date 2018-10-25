@@ -25,7 +25,6 @@ module Muste.Web.Database.Types
   , Session(..)
   , Exercise(..)
   , Lesson(..)
-  , FinishedExercise(..)
   , StartedLesson(..)
   , FinishedLesson(..)
   , ExerciseList(..)
@@ -251,27 +250,6 @@ deriving stock    instance Generic Lesson
 deriving anyclass instance ToRow   Lesson
 deriving anyclass instance FromRow Lesson
 
--- | Representation of a 'FinishedExercise' in the database.  Consists
--- of:
---
--- * The username of the one who finished it.
--- * The source sentence.
--- * The target sentence.
--- * The name of the lesson it belongs to.
--- * The time it took to finish.
--- * The amount of clicks it took.
--- * The round it was in the lesson.
-data FinishedExercise = FinishedExercise
-  { user                ∷ Key User
-  , exercise            ∷ Key Exercise
-  , score               ∷ Score
-  , round               ∷ Numeric
-  }
-
-deriving stock    instance Show    FinishedExercise
-deriving stock    instance Generic FinishedExercise
-deriving anyclass instance ToRow   FinishedExercise
-deriving anyclass instance FromRow FinishedExercise
 
 -- | Representation of a 'StartedLesson' in the
 -- database.  Consists of:
@@ -310,18 +288,12 @@ deriving stock    instance Generic FinishedLesson
 deriving anyclass instance ToRow   FinishedLesson
 deriving anyclass instance FromRow FinishedLesson
 
--- | Representation of an 'ExerciseList' in the database.  Consists
--- of:
---
--- * User name.
--- * Source language.
--- * Target language.
--- * The lesson it belongs to.
--- * The round.
 data ExerciseList = ExerciseList
   { user     ∷ Key User
   , exercise ∷ Key Exercise
   , round    ∷ Numeric
+  -- A 'Just' value indicates that the exercise has been solved.
+  , score    ∷ Maybe Score
   }
 
 deriving stock    instance Show    ExerciseList
@@ -336,6 +308,8 @@ data ActiveLessonForUser = ActiveLessonForUser
   , name          ∷ Text
   , description   ∷ Text
   , exercisecount ∷ Numeric
+  -- TODO Score should not be nullable, but rather Maybe. A value of
+  -- Nothing indicated the exercise is not solved.
   , score         ∷ Nullable Score
   , finished      ∷ Bool
   , enabled       ∷ Bool
