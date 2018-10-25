@@ -4,6 +4,8 @@ Change log
 HEAD
 ---
 
+Automatically build the grammars when building `muste`.
+
 Show high score bar-chart on lessons page.
 
 When restarting cycling through the menus, hide it once.

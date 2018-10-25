@@ -14,7 +14,6 @@ For the impatient:
 
     git submodule update --init
     ln -s stack-lts-12.yaml stack.yaml
-    make install
     stack install muste-ajax
     muste-ajax --recreate-db
     cd muste-ajax/static/
@@ -111,9 +110,10 @@ today:
 
 ### Building
 
-If the grammar-files (in `muste/data/grammars/`) have changed (or if
-you just cloned the repository) you need to install the grammar-files.
-This can be achieved with:
+The grammar-files (in `muste/data/grammars/`) must be kept up-to-date
+and installed in a global location for the application to work
+correctly.  This should be handled automatically by the cabal build
+script.  If this somehow goes wrong you can do it automatically using:
 
     make install
 

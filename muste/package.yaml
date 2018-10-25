@@ -75,6 +75,12 @@ default-extensions:
   - MultiParamTypeClasses
   - DerivingStrategies
 
+extra-source-files:
+  - data/grammars/Makefile
+  - data/grammars/exemplum/*.gf
+  - data/grammars/misc/*.gf
+  - data/grammars/novo_modo/*.gf
+
 library:
   exposed-modules:
     - Muste
@@ -109,6 +115,13 @@ library:
     - Muste.Sentence.Token
     - Muste.Sentence.Token.Class
     - Muste.Prelude.ReExports
+
+custom-setup:
+  dependencies:
+    - base
+    - Cabal
+    - turtle
+    - text
 
 executables:
   muste:

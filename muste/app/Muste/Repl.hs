@@ -224,6 +224,6 @@ ini = liftIO $ putStrLn $ unlines
   , "An empty menu will be displayed (just newline) this is likely caused"
   , "by the sentence not being understood by the current grammar."
   , ""
-  , "The grammar and language can be specified on the command line"
+  , "The grammar and language must be specified on the command line"
   , "(run with `--help` to see usage)."
   ]
