@@ -1,4 +1,4 @@
-/*global $ Handlebars jQuery Set Map countdown : true*/
+/*global $ Handlebars jQuery Set Map countdown Promise : true*/
 var AGGLUTINATION = '&+';
 var NEWLINE = '&/';
 var INDENT = '&_';
@@ -407,7 +407,6 @@ function start_lesson(lesson) {
 
 function handle_menu_response(r) {
   var key = r.lesson.key;
-  var menu = r.menu;
   // FIXME Naughty string interpolation!
   change_page('#page-exercise', '?key=' + key);
   DATA = r;
@@ -418,7 +417,7 @@ function handle_menu_response(r) {
     return;
   }
   // NB This call blocks!
-  confirm_promisified_slow_and_racy("Exercise complete. Continue lesson?")
+  confirm_promisified_slow_and_racy('Exercise complete. Continue lesson?')
     .then(function(c) {
       if(!c) {
         retrieve_lessons();
@@ -565,7 +564,7 @@ function intersection(m, n) {
 
 // special spacing tokens all start with "&"
 function is_space_token(space) {
-  return typeof space == "string" && space[0] == '&';
+  return typeof space == 'string' && space[0] == '&';
 }
 
 
@@ -590,19 +589,19 @@ function show_lin(lang, lin, x, settings) {
          PREFIXPUNCT.test(previous) || PUNCTUATION.test(current));
 
     var spaceSpan = $('<span>')
-        .addClass('space')
-        .html(isInvisibleSpace ? '' : '&emsp;')
-        .appendTo(sentence);
+      .addClass('space')
+      .html(isInvisibleSpace ? '' : '&emsp;')
+      .appendTo(sentence);
 
     if (isClickableSpace) {
       spaceSpan
         .addClass('clickable')
         .click(click_word)
         .data({'nr': i,
-               'lang': lang,
-               'valid-menus': validMenusSpace,
-               'direction': x.direction
-              });
+          'lang': lang,
+          'valid-menus': validMenusSpace,
+          'direction': x.direction
+        });
 
       // make clickable spaces visible (greyed out)
       // TODO: this should be configurable
@@ -621,20 +620,21 @@ function show_lin(lang, lin, x, settings) {
       var isMatch = matchingClasses.size > 0;
 
       var wordSpan = $('<span>')
-          .addClass('word')
-          .html(current)
-          .appendTo(sentence);
+        .addClass('word')
+        .html(current)
+        .appendTo(sentence);
 
       if (isClickableWord) {
         wordSpan
           .addClass('clickable')
           .click(click_word)
-          .data({'nr': i,
-                 'lang': lang,
-                 'classes': classes,
-                 'valid-menus': validMenusWord,
-                 'direction': x.direction
-                });
+          .data({
+            'nr': i,
+            'lang': lang,
+            'classes': classes,
+            'valid-menus': validMenusWord,
+            'direction': x.direction
+          });
       }
 
       if (isMatch && settings['highlight-matches']) {
@@ -1135,9 +1135,9 @@ function setup_score_bars(ScoreBar) {
 //
 // [1]: https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
 function confirm_promisified_slow_and_racy(msg) {
-  return new Promise(function (resolve, reject) {
+  return new Promise(function (resolve) {
     window.setTimeout(function() {
       resolve(window.confirm(msg));
-    }, 100)
+    }, 100);
   });
 }
