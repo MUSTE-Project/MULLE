@@ -17,7 +17,6 @@ For the impatient:
     stack install muste-ajax
     muste-ajax --recreate-db
     cd muste-ajax/static/
-    npm install
 
 And then navigate to
 
@@ -46,7 +45,8 @@ by running (in the `gf-rgl` directory):
 
     runghc Make install DictEng.gf DictSwe.gf
 
-The front-end dependencies are managed with `npm`.
+The front-end dependencies are managed with `npm`.  This is also
+required to successfully run the web UI.
 
 ### Setup
 

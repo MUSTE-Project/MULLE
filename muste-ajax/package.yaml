@@ -60,6 +60,7 @@ data-files:
 
 extra-source-files:
   - config.yaml
+  - static/package.json
 
 dependencies:
   - QuickCheck           >= 2.9.2    && < 2.12
@@ -137,6 +138,13 @@ library:
 
   other-modules:
     - Paths_muste_ajax
+
+custom-setup:
+  dependencies:
+    - base
+    - Cabal
+    - turtle
+    - text
 
 executable:
   source-dirs:

@@ -35,14 +35,9 @@ make ∷ MonadIO io ⇒ [Text] → io ()
 make = echoed "make"
 
 echoed ∷ MonadIO io ⇒ Text → [Text] → io ()
-echoed c xs = Turtle.stdout $ Turtle.inproc c xs empty
+echoed c xs = Turtle.stdout $ inprocs c xs empty
 
 -- | Like 'Turtle.inproc' but throws on non-zero exit codes.  Also,
 -- returns whole output, not just a line.
-inprocs ∷ Text → [Text] → Shell Line → Shell Text
-inprocs cmd args s = do
-  (exitCode, stdout, _) ← Turtle.procStrictWithErr cmd args s
-  case exitCode of
-    ExitSuccess → pure stdout
-    _           → liftIO (throwIO (ProcFailed cmd args exitCode))
-
+inprocs ∷ Text → [Text] → Shell Line → Shell Line
+inprocs cmd args s = either id id <$> Turtle.inprocWithErr cmd args s
