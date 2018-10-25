@@ -204,6 +204,7 @@ instance HasErrorIdentifier Database.Error where
     Database.DriverError{}             → 9
     Database.UserAlreadyExists         → 10
     Database.NoActiveExercisesInLesson → 11
+    Database.LessonAlreadySolved       → 12
   errorResponseCode = \case
     Database.NoUserFound               → 401
     Database.LangNotFound              → 400
@@ -218,6 +219,7 @@ instance HasErrorIdentifier Database.Error where
     -- Not quite sure what is the right option here.
     Database.UserAlreadyExists         → 400
     Database.NoActiveExercisesInLesson → 400
+    Database.LessonAlreadySolved       → 400
 
 instance ToJSON ProtocolError where
   toJSON err = object

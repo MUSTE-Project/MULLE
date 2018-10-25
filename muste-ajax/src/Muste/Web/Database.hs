@@ -85,6 +85,7 @@ data Error
   | DriverError SomeException
   | UserAlreadyExists
   | NoActiveExercisesInLesson
+  | LessonAlreadySolved
 
 deriving stock instance Show Error
 instance Exception Error where
@@ -106,6 +107,7 @@ instance Exception Error where
       →  "Unhandled driver error: "
       <> displayException e
     UserAlreadyExists → "The username is taken"
+    LessonAlreadySolved → "This lesson has already been solved.  You cannot restart it!"
 
 -- | @'hashPasswd' pw salt@ encodes @pw@ using PBKDF2 (using @salt@ as
 -- cyrptographic salt, doing 1e4 iterations and creating 1KiB
@@ -682,6 +684,10 @@ newLesson
   → db Types.ExerciseLesson
 newLesson user lesson = do
   lessonRound ← getLessonRound user lesson
+  -- FIXME To reduce confusing we will disallow re-starting exercises
+  -- until we know what we really want to do in this situation.
+  finished ← checkFinished user lesson
+  when finished $ throwDbError LessonAlreadySolved
   selectedTrees ← pickExercises lesson
   exerciseLesson ← case selectedTrees of
     []      → throwDbError NoExercisesInLesson
