@@ -31,13 +31,11 @@ installGrammars = make ["-C", "data/grammars", "install"]
 
 -- | @make@ a single target.  Throws on error.
 make ∷ MonadIO io ⇒ [Text] → io ()
--- make xs = Turtle.procs "make" xs empty
 make = echoed "make"
 
 echoed ∷ MonadIO io ⇒ Text → [Text] → io ()
 echoed c xs = Turtle.stdout $ inprocs c xs empty
 
--- | Like 'Turtle.inproc' but throws on non-zero exit codes.  Also,
--- returns whole output, not just a line.
+-- | Like 'Turtle.inproc' but throws on non-zero exit codes.
 inprocs ∷ Text → [Text] → Shell Line → Shell Line
 inprocs cmd args s = either id id <$> Turtle.inprocWithErr cmd args s

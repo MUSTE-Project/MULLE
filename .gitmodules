@@ -4,9 +4,6 @@
 [submodule "libs/sqlite-simple"]
 	path = libs/sqlite-simple
 	url  = git@github.com:MUSTE-Project/sqlite-simple.git
-[submodule "libs/gf-core"]
-	path = libs/gf-core
-	url  = git@github.com:GrammaticalFramework/gf-core.git
 [submodule "libs/haskell-cgi"]
 	path = libs/haskell-cgi
 	url  = git@github.com:MUSTE-Project/haskell-cgi.git
