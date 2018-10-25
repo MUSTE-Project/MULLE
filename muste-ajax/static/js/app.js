@@ -461,7 +461,12 @@ function show_exercise(resp) {
 // }
 
 function display_lesson_counter(d) {
-  $('#lessoncounter').text(d.lesson + ': övning ' + d.passed + ' av ' + d.total);
+  var s = d.lesson
+      + ': '
+      + d.passed
+      + ' avklarade av '
+      + d.total + ' övningar.';
+  $('#lessoncounter').text(s);
 }
 
 function show_exercise_complete(resp) {
