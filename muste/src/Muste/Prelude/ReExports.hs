@@ -37,7 +37,7 @@ import Control.Monad.IO.Class    as X (MonadIO(liftIO))
 import Control.Exception         as X
   (Exception, SomeException, throwIO, displayException, throw, try,
   fromException, toException, catch, ErrorCall(ErrorCall))
-import Data.Maybe                as X (fromMaybe, fromJust, listToMaybe)
+import Data.Maybe                as X (fromMaybe, fromJust, listToMaybe, isJust)
 import Control.Monad.Fail        as X (MonadFail(fail))
 import Control.Monad.Catch       as X (MonadThrow(throwM))
 import Data.Text                 as X (Text)

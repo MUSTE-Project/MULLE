@@ -43,7 +43,7 @@ module Muste.Web.Database.Types
 
 import Prelude ()
 import Muste.Prelude
-import Muste.Prelude.SQL (FromRow, ToRow, Nullable, ToField(..), FromField(..))
+import Muste.Prelude.SQL (FromRow, ToRow, ToField(..), FromField(..))
 import Data.Int (Int64)
 
 import Data.ByteString (ByteString)
@@ -308,10 +308,7 @@ data ActiveLessonForUser = ActiveLessonForUser
   , name          ∷ Text
   , description   ∷ Text
   , exercisecount ∷ Numeric
-  -- TODO Score should not be nullable, but rather Maybe. A value of
-  -- Nothing indicated the exercise is not solved.
-  , score         ∷ Nullable Score
-  , finished      ∷ Bool
+  , score         ∷ Maybe Score
   , enabled       ∷ Bool
   , user          ∷ Maybe (Key User)
   }
@@ -329,7 +326,7 @@ data ActiveLesson = ActiveLesson
   , description   ∷ Text
   , exercisecount ∷ Numeric
   , passedcount   ∷ Numeric
-  , score         ∷ Score
+  , score         ∷ Maybe Score
   , finished      ∷ Bool
   , enabled       ∷ Bool
   }

@@ -457,7 +457,9 @@ getActiveLessons token = do
     , name          = name
     , description   = description
     , exercisecount = exercisecount
-    , score         = foldMap (SQL.runNullable . ActiveLessonForUser.score) xs
+    , score         = sconcat <$> maybeScores
+    -- This shuold be the same as asking whether 'score' is a 'Just'
+    -- cell.
     , finished      = passedcount == exercisecount
     , enabled       = enabled
     -- , passedcount   = NonEmpty.length xs
@@ -467,7 +469,15 @@ getActiveLessons token = do
     passedcount
       = fromIntegral
       $ length
-      $ NonEmpty.filter ActiveLessonForUser.finished xs
+      $ NonEmpty.filter isFinished xs
+    isFinished ∷ Types.ActiveLessonForUser → Bool
+    isFinished = isJust . ActiveLessonForUser.score
+    scores ∷ NonEmpty (Maybe Score)
+    scores = ActiveLessonForUser.score <$> xs
+    -- If just a single score is a Nothing we say that the score is a
+    -- nothing.  Though they should all agree.
+    maybeScores ∷ Maybe (NonEmpty Score)
+    maybeScores = traverse identity scores
 
 getActiveLessonsForUser
   ∷ ∀ r db
@@ -485,13 +495,7 @@ SELECT
   Lesson.Description,
   COALESCE(ExerciseCount,0) AS ExerciseCount,
   Score,
-  -- TODO Remove this after fixing Muste.Web.Database.Types.ActiveLessonForUser
-  Score IS NOT NULL AS Finished,
-  -- Exercise.Id,
-  -- User.Id
-
   Lesson.Enabled,
-  -- ExerciseList
   FinishedExercise.User
 
 FROM Exercise
