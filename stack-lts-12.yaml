@@ -36,3 +36,4 @@ extra-deps:
   commit: b923c8bbc8bd39a196530860670232e69263c690
 # User goal `multiset`
 - multiset-0.3.4
+- repline-0.2.0.0
