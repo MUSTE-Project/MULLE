@@ -16,7 +16,6 @@ For the impatient:
     ln -s stack-lts-12.yaml stack.yaml
     stack install muste-ajax
     muste-ajax --recreate-db
-    cd muste-ajax/static/
 
 And then navigate to
 
