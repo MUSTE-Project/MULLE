@@ -31,18 +31,9 @@ just need to initialize the submodules:
     git submodule update --init
 
 To be able to build the grammar files you will also need to install
-`gf-core` and `gf-rgl`.  Please follow the guidelines in
+`gf-core`.  Please follow the guidelines in
 
 - <https://github.com/GrammaticalFramework/gf-core>
-- <https://github.com/GrammaticalFramework/gf-rgl>
-
-To compile and install the RGLs do:
-
-    cd libs/gf-rgl
-    make
-    runghc Make install DictEng.gf DictSwe.gf
-
-TODO This is not quite working on my machine.
 
 The front-end dependencies are managed with `npm`.  This is also
 required to successfully run the web UI.
