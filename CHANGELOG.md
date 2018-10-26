@@ -4,7 +4,11 @@ Change log
 HEAD
 ---
 
-Automatically build the grammars when building `muste`.
+### Interface changes
+
+Disallow re-starting solved lessons.
+
+Make highlighting matching words configurable.
 
 Show high score bar-chart on lessons page.
 
@@ -13,6 +17,29 @@ When restarting cycling through the menus, hide it once.
 Make items with no menus unclickable
 
 Add support for rtl scripts.
+
+### Other changes
+
+Entry for Haskell Communities and Activities Report.
+
+### Techincal bits
+
+Support for building with `cabal new-build`.  Tested with
+`cabal-install version 2.2.0.0`.
+
+Untested And Totally Unsopported[tm] experiments with travis-ci.
+
+Automatically build the js-deps when building `muste-ajax`.
+
+Automatically build the grammars when building `muste`.
+
+#### Database changes
+
+Implement `Finished{Lesosn,Exercise}` as views.
+
+Make interfacing with the sqlite back end more robust:
+  * Use named query parameters.
+  * More type-safe primary keys (using phantom types).
 
 0.2.7.0
 ---
