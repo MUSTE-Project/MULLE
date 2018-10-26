@@ -1,33 +1,24 @@
+--# -path=prelude:abstract:common:arabic
 concrete ExemplumRulesAra of ExemplumRules =
   ExemplumCatAra, TenseX-[Utt] **
-  ExemplumRulesI-[useCl,useS,focusAdv,conjNP,complVA,apposCN]
+  ExemplumRulesI-[useS,focusAdv,conjNP,complVA]
   with (Cat=CatAra), (Conjunction=ConjunctionAra), (Grammar=GrammarAra) **
-  open ParadigmsAra, ResAra, Prelude in {
+  open ParadigmsAra, (Res=ResAra), Prelude in {
 
 lin
   useS s = s ;
   focusAdv adv s = {s = adv.s ++ s.s} ;
-  apposCN cn pn = ApposCNx cn (UsePN pn) ;
   complVA = ComplVAx ;
-
-  -- this is a real hack: transforming Simul/Anter to Pres/Past
-  useCl pol ant cl = 
-    {s = pol.s ++ ant.s ++ case ant.a of {
-       ASimul => cl.s ! ResAra.Pres ! pol.p ! Verbal ;
-       AAnter => cl.s ! ResAra.Past ! pol.p ! Verbal
-       }} ;
+  -- conjNP not implemented yet
 
 oper
 
-  ApposCNx : CN -> NP -> CN ;
-  ApposCNx cn np = lin CN {s = cn.s; g = cn.g; h = cn.h;
-                           adj = \\num,stat,cas => cn.adj!num!stat!cas ++ np.s!cas} ;
-
+  -- This is a hack since ComplVA is not implemented in the RGL yet
   ComplVAx : VA -> AP -> VP ;
-  ComplVAx v ap = insertObj (ap2np ap) (predV v) ;
+  ComplVAx v ap = Res.insertObj (ap2np ap) (Res.predV v ** {c2 = []}) ;
 
   ap2np : AP -> NP ;
-  ap2np ap = lin NP {s = \\cas => ap.s ! NoHum ! Fem ! Sg ! Indef ! cas;
-                     a = {pgn = Per3 Fem Sg; isPron = False}};
+  ap2np ap = lin NP {s = \\cas => ap.s ! Res.NoHum ! Res.Fem ! Res.Sg ! Res.Indef ! cas;
+                     a = {pgn = Res.Per3 Res.Fem Res.Sg; isPron = False}};
 
 }

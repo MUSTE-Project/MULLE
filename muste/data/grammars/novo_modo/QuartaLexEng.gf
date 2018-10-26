@@ -1,4 +1,4 @@
---# -path=/home/herb/src/foreign/GF/lib/src/english
+--# -path=prelude:abstract:common:api:english
 concrete QuartaLexEng of QuartaLex = CatEng ** QuartaLexI with (Cat=CatEng),(Structural=StructuralEng),(Lexicon=LexiconEng),(PrimaLex=PrimaLexEng),(SecundaLex=SecundaLexEng),(TertiaLex=TertiaLexEng),(Syntax=SyntaxEng) ** open ParadigmsEng,(D=DictEng),ParamX,Prelude,ResEng in {
   lin
     hic_Pron = { s = \\c => StructuralEng.this_Quant.sp ! True ! Sg ! c ; a = AgP3Sg Masc ; sp = \\_ => [] };

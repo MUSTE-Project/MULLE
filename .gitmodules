@@ -1,18 +1,29 @@
 [submodule "libs/GF-latin"]
 	path = libs/GF-latin
 	url  = git@github.com:daherb/GF-latin.git
+
 [submodule "libs/sqlite-simple"]
 	path = libs/sqlite-simple
 	url  = git@github.com:MUSTE-Project/sqlite-simple.git
-[submodule "libs/gf-core"]
-	path = libs/gf-core
-	url  = git@github.com:GrammaticalFramework/gf-core.git
+
 [submodule "libs/haskell-cgi"]
 	path = libs/haskell-cgi
 	url  = git@github.com:MUSTE-Project/haskell-cgi.git
+
 [submodule "libs/snap-extras"]
 	path = libs/snap-extras
 	url  = git@github.com:MUSTE-Project/snap-extras.git
+
 [submodule "libs/digestive-functors"]
 	path = libs/digestive-functors
 	url  = git@github.com:jaspervdj/digestive-functors.git
+
+[submodule "libs/gf-rgl"]
+	path = libs/gf-rgl
+	url = git@github.com:GrammaticalFramework/gf-rgl.git
+
+# This is only needed when building with cabal. Otherwise this
+# dependency is manage by stack.
+[submodule "libs/gf-core"]
+	path = libs/gf-core
+	url = git@github.com:GrammaticalFramework/gf-core.git

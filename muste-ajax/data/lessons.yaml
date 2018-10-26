@@ -91,19 +91,26 @@
     - source: Romani eos docebant
       target: de undervisade romarna
 
-- name: "Eng->Swe"
+- name: "Eng->Swe (highlight on)"
   key: 3
-  description: "Eng->Swe"
+  description: "Eng->Swe (highlight on)"
   search-options:
     size: 7
   settings:
     grammar: "exemplum/Exemplum"
+    highlight-matches: on
   languages:
     source: "ExemplumEng"
     target: "ExemplumSwe"
   exercises:
     - source: many kings love Paris
+      target: en god kung älskar Paris
+    - source: "good kings don't read books"
       target: en god kung läser en bok
+    - source: the king reads a book in Paris
+      target: en kung läser en bok
+    - source: a king reads a good book
+      target: en kung i Paris läser en bok
 
 - name: "Eng->Lat"
   key: 4
@@ -120,13 +127,14 @@
     - source: many kings love Paris
       target: rex bonus librum legit
 
-- name: "Eng->Spa"
+- name: "Eng->Spa (highlight off)"
   key: 5
-  description: "Eng->Spa"
+  description: "Eng->Spa (highlight off)"
   search-options:
     size: 7
   settings:
     grammar: "exemplum/Exemplum"
+    highlight-matches: off
   languages:
     source: "ExemplumEng"
     target: "ExemplumSpa"
@@ -155,7 +163,8 @@
   search-options:
     size: 7
   settings:
-    grammar: "exemplum/Exemplum"
+    grammar:   "exemplum/Exemplum"
+    target-direction: rtl
   languages:
     source: "ExemplumEng"
     target: "ExemplumAra"
@@ -163,16 +172,76 @@
     - source: many kings love Paris
       target:  يَقْرَأُ مَلِكٌ جوَيِّدٌ كِتابً 
 
-- name: "Eng->Test"
+- name: "RTL and agglutination test"
   key: 8
-  description: "Eng->Test"
+  description: "Testing that right-to-left and agglutination works"
+  search-options:
+    size: 7
+  settings:
+    grammar: "exemplum/Exemplum"
+    target-direction: rtl
+  languages:
+    source: "ExemplumEng"
+    target: "ExemplumTest"
+  exercises:
+    - source: many kings love Paris
+      target: the girl read book
+
+- name: "Programming"
+  key: 9
+  description: "An imperative programming language"
+  search-options:
+    size: 7
+  settings:
+    grammar: "programming/Imperative"
+    highlight-matches: off
+  languages:
+    source: "ImperativeCnc"
+    target: "ImperativeCnc"
+  exercises:
+    - source: " program f &/ function f &+ ( &+ ) { &/ } &/ "
+      target: " program main &/ function main &+ ( &+ ) { &/ &_ x += 3 × 4 &+ ; &/ } &/ "
+    - source: " program main &/ function f &+ ( &+ ) { &/ &_ print 4 + 3 &+ ; &/ } &/ "
+      target: " program main &/ function main &+ ( &+ ) { &/ } &/ "
+
+
+- name: "Two lessons"
+  key: 10
+  description: "A super simple lesson with two exercises"
   search-options:
     size: 7
   settings:
     grammar: "exemplum/Exemplum"
   languages:
+    source: "ExemplumTest"
+    target: "ExemplumTest"
+  exercises:
+    - source: the girl read Paris
+      target: the girl read book
+    - source: the girl read Paris
+      target: the girl read book
+
+- name: "So random"
+  key: 11
+  description: "Testing that randomized exercise order works correctly"
+  search-options:
+    size: 7
+  settings:
+    grammar: "exemplum/Exemplum"
+    randomize-exercise-order: yes
+  languages:
     source: "ExemplumEng"
     target: "ExemplumTest"
   exercises:
+    - source: Paris
+      target: book
+    - source: many kings love Paris
+      target: the girl read book
+    - source: many kings love Paris
+      target: the girl read book
+    - source: many kings love Paris
+      target: the girl read book
+    - source: many kings love Paris
+      target: the girl read book
     - source: many kings love Paris
       target: the girl read book

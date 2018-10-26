@@ -1,2 +1,2 @@
---# -path=latin-rgl/api:latin-rgl:.
+--# -path=prelude:abstract:common:latin-rgl/api:api:latin-rgl
 concrete QuartaLat of Quarta = QuartaLexLat, QuartaRulesLat;

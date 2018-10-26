@@ -40,6 +40,7 @@ import           Data.Map (Map)
 import           Data.Vector (Vector)
 import qualified Snap
 import           Snap (MonadSnap)
+import qualified Data.List as List
 
 import qualified Muste
 import           Muste (Context)
@@ -144,8 +145,9 @@ instance Exception ApiError where
 newtype ErrorIdentifier = ErrorIdentifier (Vector Int)
 
 deriving newtype instance IsList ErrorIdentifier
-deriving newtype instance FromJSON ErrorIdentifier
-deriving newtype instance ToJSON ErrorIdentifier
+instance ToJSON ErrorIdentifier where
+  toJSON (ErrorIdentifier v)
+    = toJSON @String $ List.intercalate "-" $ map show $ toList v
 deriving newtype instance Semigroup ErrorIdentifier
 
 -- There might be better ways of handling this I suppose...  Another
@@ -204,6 +206,7 @@ instance HasErrorIdentifier Database.Error where
     Database.DriverError{}             → 9
     Database.UserAlreadyExists         → 10
     Database.NoActiveExercisesInLesson → 11
+    Database.LessonAlreadySolved       → 12
   errorResponseCode = \case
     Database.NoUserFound               → 401
     Database.LangNotFound              → 400
@@ -218,6 +221,7 @@ instance HasErrorIdentifier Database.Error where
     -- Not quite sure what is the right option here.
     Database.UserAlreadyExists         → 400
     Database.NoActiveExercisesInLesson → 400
+    Database.LessonAlreadySolved       → 400
 
 instance ToJSON ProtocolError where
   toJSON err = object

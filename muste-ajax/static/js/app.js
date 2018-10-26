@@ -1,5 +1,7 @@
-/*global $ Handlebars jQuery Set Map countdown : true*/
-var NOSPACING = '&+';
+/*global $ Handlebars jQuery Set Map countdown Promise : true*/
+var AGGLUTINATION = '&+';
+var NEWLINE = '&/';
+var INDENT = '&_';
 var PUNCTUATION = /^[,;.?!)]$/;
 var PREFIXPUNCT = /^[¿¡(]$/;
 
@@ -9,7 +11,9 @@ var LOGIN_TOKEN = null;
 var EXERCISES = [];
 var VIRTUAL_ROOT = '/';
 var SERVER = VIRTUAL_ROOT + 'api/';
-
+var MUSTE_ERRORS = {
+  'no-unsolved-lessons': '2-11'
+}
 jQuery().ready(init);
 
 function init() {
@@ -346,6 +350,7 @@ var lesson_list_template = ' \
     {{#if score}} \
     <p> \
      Your score so far: <span>{{score.clicks}} klick i {{score.time}} sekunder</span> \
+     <canvas class="score" data-lesson="{{lesson}}" data-score="{{json score}}"></canvas></td> \
     </p> \
     {{/if}} \
     <p> \
@@ -382,7 +387,9 @@ function register_lessons_listener($) {
       };
     });
   }
-  $(window).on('lessons-loaded', update_exercises);
+  $(window)
+    .on('lessons-loaded', update_exercises)
+    .on('lessons-loaded', window.fetch_high_scores);
 }
 
 // Warning defined but never used.  What gives?
@@ -395,31 +402,43 @@ function select_lesson(evt) { // eslint-disable-line no-unused-vars
 
 
 function start_lesson(lesson) {
+  var errMsg = 'This lesson has already been solved, you cannot solve it again.';
   start_timer();
   muste_request({}, 'lesson/' + lesson)
-    .then(handle_menu_response);
+    .then(handle_menu_response)
+    .fail(function(e) {
+      var err = e.responseJSON.error;
+      if(err.id === MUSTE_ERRORS['no-unsolved-lessons']) {
+        alert(errMsg);
+      }
+    });
 }
 
 function handle_menu_response(r) {
-  // FIXME Naughty string interpolation!
-  change_page('#page-exercise', '?key=' + r.key);
-  DATA = r;
   var key = r.lesson.key;
-  var menu = r.menu;
-  if(menu !== null) {
-    show_exercise(r);
-  } else {
-    if(r['lesson-over'] == true) {
-      show_exercise_complete(r);
-      return;
-    }
-    continue_lesson(key);
+  // FIXME Naughty string interpolation!
+  change_page('#page-exercise', '?key=' + key);
+  DATA = r;
+  show_exercise(r);
+  if(!r['exercise-over']) return;
+  if(r['lesson-over'] == true) {
+    show_exercise_complete(r);
+    return;
   }
+  // NB This call blocks!
+  confirm_promisified_slow_and_racy('Exercise complete. Continue lesson?')
+    .then(function(c) {
+      if(!c) {
+        retrieve_lessons();
+        return;
+      }
+      continue_lesson(key);
+    });
 }
 
 function continue_lesson(key) {
   // We need to sequence fetch_lessons and start_lesson due to the way
-  // updating the lesson counter is handlded.
+  // updating the lesson counter is handled.
   fetch_lessons().then(function () {
     start_lesson(key);
   });
@@ -433,7 +452,7 @@ function show_exercise(resp) {
   clean_server_data(menu.src);
   clean_server_data(menu.src);
   build_matching_classes(menu);
-  show_sentences(menu);
+  show_sentences(menu, resp.settings);
   // The score is the exercise score.  Only in the case when we are
   // continuing a lesson will this be non-trivial.
   // display_score(resp.score);
@@ -451,7 +470,12 @@ function show_exercise(resp) {
 // }
 
 function display_lesson_counter(d) {
-  $('#lessoncounter').text(d.lesson + ': övning ' + d.passed + ' av ' + d.total);
+  var s = d.lesson
+      + ': '
+      + d.passed
+      + ' avklarade av '
+      + d.total + ' övningar.';
+  $('#lessoncounter').text(s);
 }
 
 function show_exercise_complete(resp) {
@@ -500,15 +524,15 @@ function build_matching_classes(data) {
   });
 }
 
-function show_sentences(data) {
+function show_sentences(data, settings) {
   var src = data.src;
   var trg = data.trg;
   var srcL = ct_linearization(src);
   var trgL = ct_linearization(trg);
   matchy_magic(srcL, trgL);
   matchy_magic(trgL, srcL);
-  show_lin('src', srcL, src.menu);
-  show_lin('trg', trgL, trg.menu);
+  show_lin('src', srcL, src, settings);
+  show_lin('trg', trgL, trg, settings);
 }
 
 function all_classes(xs) {
@@ -552,70 +576,131 @@ function intersection(m, n) {
   return new Set([...m].filter(function(x) {return n.has(x);}));
 }
 
-function show_lin(lang, lin, menu) {
+// special spacing tokens all start with "&"
+function is_space_token(space) {
+  return typeof space == 'string' && space[0] == '&';
+}
 
-  function gen_item(validMenus, idx) {
-    var spacyData = {
-      nr: idx,
-      lang: lang,
-      'valid-menus': validMenus
-    };
-    return $('<span>')
-      .addClass('clickable')
-      .data(spacyData)
-      .click(click_word);
-  }
 
-  function gen_space(validMenus, idx) {
-    return gen_item(validMenus, idx).addClass('space');
-  }
+function show_lin(lang, lin, x, settings) {
+  var css = {
+    'direction': mk_direction(x.direction),
+    'unicode-bidi': 'bidi-override'
+  };
+  var sentence = $('#' + lang)
+    .empty()
+    .css(css);
 
-  function gen_word(validMenus, idx, linTok) {
-    var classes = linTok['classes'];
-    var matchingClasses = linTok['matching-classes'];
-    var match = matchingClasses.size > 0;
-    var wordData = {
-      nr: i,
-      lang: lang,
-      'classes': classes,
-      /* , subtree:subtree */
-      'valid-menus': validMenus
-    };
-    // Perhaps we could generalize gen_space and use that here as well?
-    var wordspan = $('<span>')
-      .addClass('word clickable').data(wordData)
-      .html(current + '<sub class="debug">' + (match ? '=' : '') + JSON.stringify(classes) /* + ' ' + show_tree(subtree) */ + '</sub>')
-      .click(click_word)
-      .appendTo(sentence);
-    if (match) {
-      wordspan.addClass('match');
-      var h = hash_array_of_string(Array.from(matchingClasses));
-      var c = int_to_rgba(h);
-      wordspan.css({'border-color': c});
-    }
-    return gen_item(validMenus, idx).addClass('word');
-  }
-
-  var sentence = $('#' + lang).empty();
-  // var tree = parse_tree(DATA[lang].tree);
-  for (var i=0; i < lin.length; i++) {
-    var linTok = lin[i];
+  for (var i=0; i <= lin.length; i++) {
     var previous = i > 0 ? lin[i-1].concrete : null;
-    var current = linTok.concrete;
-    var spacing = (previous == NOSPACING || current == NOSPACING || PREFIXPUNCT.test(previous) || PUNCTUATION.test(current))
-      ? ' ' : ' &emsp; ';
-    var validMenusSpace = getValidMenusSpace(i, menu);
-    var validMenus = getValidMenus(i, menu);
+    var current = i < lin.length ? lin[i].concrete : null;
 
-    gen_space(validMenusSpace, i)
-      .html(spacing)
+    // generate the space between tokens
+    var validMenusSpace = getValidMenusSpace(i, x.menu);
+    var isClickableSpace = validMenusSpace !== 'nothing';
+    var isInvisibleSpace =
+        (is_space_token(previous) || is_space_token(current) ||
+         PREFIXPUNCT.test(previous) || PUNCTUATION.test(current));
+
+    var spaceSpan = $('<span>')
+      .addClass('space')
+      .html(isInvisibleSpace ? '' : '&emsp;')
       .appendTo(sentence);
 
-    gen_word(validMenus, i, linTok);
+    if (isClickableSpace) {
+      spaceSpan
+        .addClass('clickable')
+        .click(click_word)
+        .data({'nr': i,
+          'lang': lang,
+          'valid-menus': validMenusSpace,
+          'direction': x.direction
+        });
+
+      // make clickable spaces visible (greyed out)
+      // TODO: this should be configurable
+      // alternatives: &oplus; ⊕ (U+2295 "CIRCLED PLUS"), or &#xFE62; ﹢ (U+FE62 "SMALL PLUS SIGN")
+      spaceSpan.html(isInvisibleSpace ? '+' : ' + ')
+        .css('font-size', '75%')
+        .css('opacity', 0.3);
+    }
+
+    // generate the token following the space
+    if (i < lin.length) {
+      var validMenusWord = getValidMenus(i, x.menu);
+      var isClickableWord = validMenusWord !== 'nothing';
+      var classes = lin[i]['classes'];
+      var matchingClasses = lin[i]['matching-classes'];
+      var isMatch = matchingClasses.size > 0;
+
+      var wordSpan = $('<span>')
+        .addClass('word')
+        .html(current)
+        .appendTo(sentence);
+
+      if (isClickableWord) {
+        wordSpan
+          .addClass('clickable')
+          .click(click_word)
+          .data({
+            'nr': i,
+            'lang': lang,
+            'classes': classes,
+            'valid-menus': validMenusWord,
+            'direction': x.direction
+          });
+      }
+
+      if (isMatch && settings['highlight-matches']) {
+        wordSpan.addClass('match');
+        var h = hash_array_of_string(Array.from(matchingClasses));
+        var c = int_to_rgba(h);
+        wordSpan.css('border-color', c);
+      }
+
+      if (is_space_token(current)) {
+        // the special space tokens are shown using special greyed-out symbols
+        // TODO: this should be configurable
+        if(current == NEWLINE) {
+          // &#x23ce; ⏎ (U+23CE "RETURN SYMBOL")
+          // alternative: &crarr; ↵ (U+21B5 "DOWNWARDS ARROW WITH CORNER LEFTWARDS")
+          wordSpan.html(isClickableWord ? '⏎' : '')
+            .css('font-size', '75%')
+            .css('opacity', 0.3)
+            .append($('<br>'));
+        }
+        if (current == AGGLUTINATION) {
+          // &bull; • (U+2022 "BULLET"), alternative: · (U+00B7 "MIDDLE DOT")
+          wordSpan.html(isClickableWord ? '&bull;' : '')
+            .css('font-size', '75%')
+            .css('opacity', 0.3);
+        }
+        if (current == INDENT) {
+          // &hellip; … (U+2026 "HORIZONTAL ELLIPSIS")
+          // &emsp; (U+00A0 "NO-BREAK SPACE")
+          wordSpan.html(isClickableWord ? '&hellip;' : '&emsp;')
+            .css('opacity', 0.3);
+        }
+      }
+
+      $('<sub class="debug">')
+        .text((isMatch ? '=' : '') + JSON.stringify(classes))
+        .appendTo(wordSpan);
+    }
   }
-  gen_space(getValidMenusSpace(lin.length, menu), lin.length)
-    .html('&emsp;').click(click_word)
-    .appendTo(sentence);
+}
+
+function mk_direction(direction) {
+  switch(direction) {
+  case 'left-to-right':
+  case 'ltr':
+  case 'verso-recto':
+    return 'ltr';
+  case 'right-to-left':
+  case 'rtl':
+  case 'recto-verso':
+    return 'rtl';
+  }
 }
 
 function int_to_rgba(num) {
@@ -666,7 +751,7 @@ function click_word(event) {
     }
     else if (clicked.hasClass('space')) {
       // Alternate between clicking `clicked`'s neighbors.
-      // TODO Unimplemented.
+      // TODO Unipmlemented.
       return path;
     }
     else {
@@ -680,20 +765,80 @@ function click_word(event) {
   var path = clicked.data().path;
   var validMenus = clicked.data('valid-menus');
   var idx = clicked.data('nr');
+  var direction = mk_direction(clicked.data('direction'));
+  // Marks some tokens to not be displayed.  Doesn't remove any
+  // tokens, only marks them.
+  var threshold = 1;
+  function mark_relevant(toks, sel) {
+    var t = 0;
+    for(var i = 0 ; i < toks.length + threshold ; i++) {
+      var tok = toks[i];
+      if(tok !== undefined) {
+        var s = is_selected(sel, i);
+        tok['selected'] = s;
+        if(s) t = threshold * 2 + 1;
+      }
+      var x = toks[i - threshold];
+      if(x === undefined) continue;
+      x['relevant'] = t > 0;
+      t--;
+    }
+    // TODO: How to elegantly ensure checking relevancy of the last
+    // `threshold` elements?
+  }
+  function mk_ellipsis() {
+    var p = $('<span class="ellipsis">');
+    var e = $('<span class="words">')
+      .hide()
+      .click(function() {
+        $(this).show();
+      });
+    p.append(e)
+      .append($('<span>...</span>'));
+    return {
+      parent: p,
+      words: e
+    };
+  }
   function mark_selected_words(lin, sel) {
+    mark_relevant(lin, sel);
+    var $initial = menuitem;
+    var $prevEllipsis;
     for(var i = 0 ; i < lin.length ; i++) {
-      var pword = lin[i].concrete;
-      // var marked = prefixOf(selection, pword.path);
-      var marked = is_selected(sel, i);
+      var tok = lin[i];
+      var pword = tok.concrete;
+      var marked = tok['selected'];
+      var css = {};
+      if(is_space_token(pword)) {
+        css['display'] = 'none';
+      }
+      var $container;
+      if(tok.relevant) {
+        $container = $initial;
+      } else {
+        css['opacity'] = '0.5';
+        var prevTok = lin[i-1];
+        // If there was not previous token, or if the previous token
+        // was relevant, then we must must create a new ellipsis.
+        if(prevTok === undefined || prevTok.relevant) {
+          var e = mk_ellipsis();
+          $container = e.words;
+          e.parent.appendTo($initial);
+          $prevEllipsis = $container;
+        } else {
+          // It's an invariant that `$prevEllipsis` should be set now.
+          $container = $prevEllipsis;
+        }
+      }
       $('<span>').text(pword)
         .addClass(marked ? 'marked' : 'greyed')
-        .appendTo(menuitem);
-      $('<span>').text(' ').appendTo(menuitem);
+        .appendTo($container)
+        .css(css);
+      $('<span>').text(' ').appendTo($container);
     }
   }
   if(validMenus === 'nothing') {
-    // Fake an empty menu.
-    validMenus = {next: function() {return [[], []];}, reset: function (){}};
+    throw 'This should not happen';
   }
   if(validMenus === undefined) {
     throw 'No menu found';
@@ -708,7 +853,12 @@ function click_word(event) {
 
     // These are the valid menus.  Now we must toggle between them
     // somehow.
-    var selsnmen = validMenus.next();
+    var nextElem = validMenus.next();
+    if(nextElem === 'reset') {
+      $(document).trigger('overlay-out');
+      return;
+    }
+    var selsnmen = nextElem.value;
     // Again we changed the selection, we can try mapping the snd
     // component.
     selection  = selsnmen[0];
@@ -723,25 +873,34 @@ function click_word(event) {
       })
       .addClass('striked');
 
-    $('#menus').data('selection', selection);
-    var ul = $('<ul>').appendTo($('#menus'));
+    var $menus = $('#menus');
+    $menus.data('selection', selection);
+    var css = {
+      'direction': direction,
+      'unicode-bidi': 'bidi-override'
+    };
+    var ul = $('<ul>')
+      .appendTo($menus);
     for (var i = 0; i < menus.length; i++) {
       var pr = menus[i];
       var item = pr[1]; // snd
       var menuitem = $('<span class="clickable">')
         .data('item', item)
         .data('lang', lang)
-          .click(function() {
-            var d = $(this).data();
-            select_menuitem(d.item, d.lang);
-          });
+        .click(function() {
+          var d = $(this).data();
+          select_menuitem(d.item, d.lang);
+        });
       var lin = item;
       if (lin.length == 0) {
         $('<span>').html('&empty;').appendTo(menuitem);
       } else {
         mark_selected_words(lin, pr[0]);
       }
-      $('<li>').append(menuitem).appendTo(ul);
+      $('<li>')
+        .css(css)
+        .append(menuitem)
+        .appendTo(ul);
 
     }
   }
@@ -768,7 +927,7 @@ function popup_menu(menu) {
     });
 }
 
-// is_selected :: Menu.Seleection -> Int -> Bool
+// is_selected :: Menu.Selection -> Int -> Bool
 function is_selected(sel, idx) {
   function within(intval, i) {
     var a = intval[0];
@@ -802,8 +961,13 @@ function iterateMenu(idx, mp) {
   if(a.length === 0) return 'nothing';
   return {
     next: function() {
-      i = (i+1) % a.length;
-      return a[i];
+      i++;
+      if(i === a.length) {
+        // TODO Return 'reset' now.
+        i = initial;
+        return 'reset';
+      }
+      return {'value': a[i]};
     },
     reset: function() {
       i = initial;
@@ -846,7 +1010,8 @@ function* lookupKeySetWith(idx, map, f) {
 
 function to_client_tree(t) {
   return {
-    'sentence': t.sentence
+    'sentence': t.sentence,
+    'direction': t.direction
   };
 }
 
@@ -863,7 +1028,8 @@ function select_menuitem(item, lang) {
       'time': get_elapsed_time_as_seconds()
     },
     'src': to_client_tree(menu.src),
-    'trg': to_client_tree(menu.trg)
+    'trg': to_client_tree(menu.trg),
+    'settings': data.settings
   };
   muste_request(menuRequest, 'menu').then(handle_menu_response);
   $(document).trigger('overlay-out');
@@ -882,21 +1048,35 @@ var high_scores_template = `
 
 var render_high_scores = Handlebars.compile(high_scores_template);
 
-function fetch_high_scores () {
+// Used by a button on the html page.
+window.fetch_high_scores = function() {
   muste_request({}, 'high-scores')
     .then(function (xs) {
       $(window).trigger('high-scores-loaded', {scores: xs});
     });
-}
+};
 
 function register_high_score_handler($) {
-  $(window).on('high-scores-loaded', display_high_scores);
+  $(window).on('high-scores-loaded', function(_, e) {
+    var scores = e.scores;
+    set_global_highscore_mapping(scores);
+    display_high_scores(scores);
+    setup_score_bars(window.ScoreBar);
+  });
 }
 
-function display_high_scores(_, scores) {
+function set_global_highscore_mapping(scores) {
+  var xs = scores.map(function(score) {
+    return [score.lesson.key, score.score];
+  });
+  var m = new Map(xs);
+  window['high-scores'] = m;
+}
+
+function display_high_scores(scores) {
   var p = $('#high-scores-table');
   p.empty();
-  var e = render_high_scores(scores.scores);
+  var e = render_high_scores(scores);
   p.html(e);
 }
 
@@ -914,8 +1094,64 @@ function register_busy_indicator($) {
   });
   $w.on('api-load-end', function () {
     sem--;
-    if(sem > 0) return
+    if(sem > 0) return;
     $busy.addClass('idle');
     $('.overlay').hide();
+  });
+}
+
+window.ScoreBar = (function() {
+  function normalize(x) {
+    return 1 / Math.log(x + 1);
+  }
+  function valuation(score) {
+    return normalize(score.clicks) * normalize(score.time);
+  }
+  function getHighscore(lesson) {
+    var h = window['high-scores'];
+    return h.get(lesson);
+  }
+  function setup(_, canvas) {
+    var $canvas = $(canvas).show();
+    var data = $canvas.data();
+    var score = data['score'];
+    var lesson = data['lesson'];
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'green';
+    var highscore = getHighscore(lesson);
+    // TODO What to do then?
+    if(highscore === undefined) {
+      $canvas.hide();
+      return;
+    }
+    var h = valuation(highscore);
+    var v = valuation(score);
+    var w = canvas.width * v / h;
+    ctx.fillRect(0, 0, w, canvas.height);
+  }
+  return {
+    'setup': setup
+  };
+})();
+
+function setup_score_bars(ScoreBar) {
+  $('.score[data-score]').each(ScoreBar.setup);
+}
+
+// A promisified version of `window.confirm`. I had an issue that the
+// DOM was not updated prior to showing the dialog, hence this hack.
+// Issues:
+//
+// * `setTimeout` is not comme il faut.
+// * It may not accurately solve the problem it's trying to solve.
+//   How are we sure the DOM has been updated.  Perhaps use the new
+//   mutation observer api to reliably solve this?[1]
+//
+// [1]: https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
+function confirm_promisified_slow_and_racy(msg) {
+  return new Promise(function (resolve) {
+    window.setTimeout(function() {
+      resolve(window.confirm(msg));
+    }, 100);
   });
 }

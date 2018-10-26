@@ -1,0 +1,53 @@
+# This configuration is experimental!
+
+resolver: nightly-2018-10-23
+
+packages:
+- ./muste/
+- ./muste-ajax/
+
+extra-deps:
+  - git: git@github.com:MUSTE-Project/gf-core.git
+    commit: b93165fccd5cd6fa6c5ff3cd1e972eb7800f35fc
+    subdirs:
+    # The repo defines several packages.  We only need the haskell
+    # runtime
+    - src/runtime/haskell/      # pgf.cabal
+  - git: git@github.com:MUSTE-Project/haskell-cgi.git
+    commit: b45aabe6ccfd5aa81c5883b25fef019d60e9d9d0
+  # Needed to satisfy `snap`
+  - git: git@github.com:fredefox/snap.git
+    commit: 119e81cbfd6cf6d267a91d8b5da81a5facb9d3a3
+  - heist-1.1
+  - map-syntax-0.3
+  - pwstore-fast-2.4.4
+  - xmlhtml-0.2.5.2
+  # User goal `snap-extra`
+  # We need a version of `snap-extras` with relaxed version bounds.
+  - git: git@github.com:fredefox/snap-extras.git
+    commit: 80ebcfde49943d2d77d17a90f914989ba3454024
+  # We need a version of `digest-functors` supporting the new version of
+  # `base`.  This just hasn't been uploaded to Hackage yet.
+  - git: git@github.com:jaspervdj/digestive-functors.git
+    commit: 525b022f7b8cef46d044cb6a62683875ddbd1a25
+    subdirs:
+      - digestive-functors
+      - digestive-functors-heist
+      - digestive-functors-snap
+  # User goal `sqlite-simple`
+  - git: git@github.com:MUSTE-Project/sqlite-simple.git
+    commit: b923c8bbc8bd39a196530860670232e69263c690
+  # User goal `multiset`
+  - git: git@github.com:twanvl/multiset.git
+    commit: c0457279ce53366b65b9ae0524fbab4e61809a26
+
+  - git: git@github.com:fredefox/jmacro.git
+    commit: 9f22bb7e2c87431e9d8b8f074c729a617a753812
+
+  - repline-0.1.7.0@sha256:6c48190fe68a0757c4fdd8b9e96381cbb8b07d942a3d5df62ffcbd6f4ac09467,1107
+  - snap-core-1.0.3.2@sha256:ca3d21b7dc153589e8ca6e6fab629df4a096706b06003f843c2fb193c7b09072,9562
+  - snap-server-1.1.0.0@sha256:50faf3d8672296150f2d6fb5b72067a626e9cda5c84c658ba86fe7b2b01d2d29,15074
+  - haskell-src-meta-0.8.0.3@sha256:a032bef13356962b96200d5e97c4a878c5f603b240ff4208675b56786efef88f,2072
+  - io-streams-haproxy-1.0.0.2@sha256:34c5d2cf5fdc6103d9bdb5745d770f9fe856be2455dce57a62abd853800a8519,3042
+
+allow-newer: yes

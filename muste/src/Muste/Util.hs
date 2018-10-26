@@ -11,9 +11,6 @@ import Prelude ()
 import Muste.Prelude
 import Muste.Prelude.Extra
 
-import Control.Monad.Fail (MonadFail(fail))
-import Text.Printf
-import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as Text
 

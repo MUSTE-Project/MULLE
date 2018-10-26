@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common:api:scandinavian:swedish
 concrete SecundaLexSwe of SecundaLex = CatSwe ** SecundaLexI
   with (Structural=StructuralSwe), (Lexicon=LexiconSwe), (PrimaLex=PrimaLexSwe) **
   open ParadigmsSwe, (I=IrregSwe), (D=DictSwe), Prelude, NumeralSwe in {

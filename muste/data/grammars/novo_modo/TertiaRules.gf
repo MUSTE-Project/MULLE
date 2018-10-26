@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common:api
 abstract TertiaRules = Cat ** {
   cat CS ;
   fun

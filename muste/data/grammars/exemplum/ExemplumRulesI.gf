@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common
 incomplete concrete ExemplumRulesI of ExemplumRules = Cat, Tense **
   open Grammar, Prelude in {
 

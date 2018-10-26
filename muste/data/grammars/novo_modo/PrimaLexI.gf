@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common:api
 incomplete concrete PrimaLexI of PrimaLex = Cat **
   open Structural, Lexicon in {
 

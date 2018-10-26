@@ -1,3 +1,5 @@
+<!-- [![Build Status](https://secure.travis-ci.org/MUSTE-Project/MULLE.png)](http://travis-ci.org/MUSTE-Project/MULLE) -->
+
 MULLE
 =====
 
@@ -12,11 +14,8 @@ For the impatient:
 
     git submodule update --init
     ln -s stack-lts-12.yaml stack.yaml
-    make install
     stack install muste-ajax
     muste-ajax --recreate-db
-    cd muste-ajax/static/
-    npm install
 
 And then navigate to
 
@@ -32,20 +31,12 @@ just need to initialize the submodules:
     git submodule update --init
 
 To be able to build the grammar files you will also need to install
-`gf-core` and `gf-core`.  Please follow the guidelines in
+`gf-core`.  Please follow the guidelines in
 
 - <https://github.com/GrammaticalFramework/gf-core>
-- <https://github.com/GrammaticalFramework/gf-rgl>
 
-To compile and install the RGLs, run the make scripts in the `gf-rgl`
-directory.
-
-You also have to install the dictionary files `DictEng` and `DictSwe`,
-by running (in the `gf-rgl` directory):
-
-    runghc Make install DictEng.gf DictSwe.gf
-
-The front-end dependencies are managed with `npm`.
+The front-end dependencies are managed with `npm`.  This is also
+required to successfully run the web UI.
 
 ### Setup
 
@@ -53,7 +44,7 @@ To setup one of the packages you need to select which GHC version you
 want to use.  Currently I've only tested this with 8.4.3.  To e.g. use
 this version do
 
-    ln -s stack-8.4.3.yaml stack.yaml
+    ln -s stack-lts-12.yaml stack.yaml
 
 You can now simply build the projects with `stack build` and browse
 the Haddock documentation with `stack haddock --open`.
@@ -64,17 +55,18 @@ Currently configuration of the package `muste-ajax` is done using the
 a YAML configuration file.  See the values in the file
 `muste-ajax/config.yaml`.  In the directory `muste-ajax/config` there
 are examples of other configuration files.  To pick an alternative
-configuration option you can e.g. from the muste-ajax directory do:
+configuration option you can e.g. do the following from `muste-ajax/`:
 
-  ln -sf config/desired-config.yaml config.yaml
+    ln -sf config/desired-config.yaml config.yaml
 
 Here is documentation on the available options:
 
-* `port`: The port to the server listens on
-* `virtual-root`: used when the requests to the application is not made
-  against the href `/`.  NB! If you need to override this you should
-  also change the value of `VIRTUAL_ROOT` in `muste-ajax/static/muste-gui.js`.
-* `serve-static-relative`: useful during developing since changes to
+* `port`: The port that the server listens on.
+* `virtual-root`: Used when the requests to the application is not
+  made against the href `/`.  NB! If you need to override this you
+  should also change the value of `VIRTUAL_ROOT` in
+  `muste-ajax/static/muste-gui.js`.
+* `serve-static-relative`: Useful during developing since changes to
   static files (e.g. the front end JavaScript code) is served from a
   path relative to where the `muste-ajax` executable is run.  This
   allows you to change those files without rebuilding the application.
@@ -82,7 +74,7 @@ Here is documentation on the available options:
 * `log-dir`: Location where the logs are kept.
 
 Partially/unsupported options:
-}
+
 * `www-root` Directory where the data files are located.  Currently
   you should probably just leave this value empty as the copying of
   data-files does not respect this flag.
@@ -108,9 +100,10 @@ today:
 
 ### Building
 
-If the grammar-files (in `muste/data/grammars/`) have changed (or if
-you just cloned the repository) you need to install the grammar-files.
-This can be achieved with:
+The grammar-files (in `muste/data/grammars/`) must be kept up-to-date
+and installed in a global location for the application to work
+correctly.  This should be handled automatically by the cabal build
+script.  If this somehow goes wrong you can do it automatically using:
 
     make install
 
@@ -127,7 +120,8 @@ And run
 
     npm install
 
-To get fetch all dependencies.
+To get fetch all dependencies.  This is also executed automatically by
+the setup-script when you do `stack build`.
 
 ### Installing
 

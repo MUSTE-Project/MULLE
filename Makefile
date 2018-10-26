@@ -1,3 +1,5 @@
+# The install target is called automatically on re-builds.
+
 .PHONY: all clean grammars grammars/clean ghcid
 
 all: grammars

@@ -46,11 +46,11 @@ import qualified Muste.Sentence.Unannotated  as Unannotated
 import           Muste.Sentence.Unannotated (Unannotated)
 
 import qualified Muste.Web.Ajax              as Ajax
-import qualified Muste.Web.Ajax              as Lesson
-  ( Lesson(..) )
-import           Muste.Web.Ajax (ClientTree, ServerTree)
+import qualified Muste.Web.Ajax              as Lesson ( Lesson(..) )
+import qualified Muste.Web.Ajax              as ClientTree ( ClientTree(..) )
 import qualified Muste.Web.Database          as Database
 import qualified Muste.Web.Database.Types    as Database
+import qualified Muste.Web.Database.Types    as Database.User ( User(..) )
 import           Muste.Web.Protocol.Class
 import qualified Muste.Web.Types.Score       as Score
 
@@ -85,7 +85,7 @@ throwApiError ∷ MonadProtocol m ⇒ ApiError → m a
 throwApiError = throwError . ProtocolApiError
 
 -- | Reads the data from the request and deserializes from JSON.
-getMessage ∷ ∀ json m . FromJSON json ⇒ MonadProtocol m => m json
+getMessage ∷ ∀ json m . FromJSON json ⇒ MonadProtocol m ⇒ m json
 getMessage = do
   s ← Snap.runRequestBody Streams.read >>= \case
     Nothing → throwApiError ErrReadBody
@@ -96,19 +96,19 @@ getMessage = do
 
 -- TODO Token should be set as an HTTP Unsafe.header.
 -- | Gets the current session token.
-getToken :: MonadProtocol m ⇒ m Text
+getToken ∷ MonadProtocol m ⇒ m Database.Token
 getToken = do
-  m <- getTokenCookie
+  m ← getTokenCookie
   case m of
-    Just c -> pure $ convertString $ Snap.cookieValue c
-    Nothing -> throwApiError NoAccessToken
+    Just c → pure $ Database.Token $ convertString $ Snap.cookieValue c
+    Nothing → throwApiError NoAccessToken
 
-getTokenCookie :: MonadProtocol m ⇒ m (Maybe Snap.Cookie)
+getTokenCookie ∷ MonadProtocol m ⇒ m (Maybe Snap.Cookie)
 getTokenCookie = Snap.getCookie "LOGIN_TOKEN"
 
 
 -- * Handlers
-lessonsHandler :: MonadProtocol m ⇒ m (Response Ajax.LessonList)
+lessonsHandler ∷ MonadProtocol m ⇒ m (Response Ajax.LessonList)
 lessonsHandler = do
   t ← getToken
   lessons ← Database.getActiveLessons t
@@ -120,20 +120,21 @@ lessonHandler = pure <$> Snap.pathArg (handleLessonInit . Database.Key)
 menuHandler ∷ MonadProtocol m ⇒ m (Response Ajax.MenuResponse)
 menuHandler = getMessage >>= fmap pure . handleMenuRequest
 
-loginHandler :: MonadProtocol m ⇒ m (Response Ajax.LoginSuccess)
+loginHandler ∷ MonadProtocol m ⇒ m (Response Ajax.LoginSuccess)
 loginHandler = Snap.method Snap.POST
   $ getMessage >>= fmap pure . handleLoginRequest
 
 logoutHandler ∷ MonadProtocol m ⇒ m (Response ())
 logoutHandler
   = Snap.method Snap.POST
-  $ getToken >>= fmap pure . handleLogoutRequest
+  $ getToken >>= handleLogoutRequest
 
 setLoginCookie
-  :: MonadProtocol m
-  => Text -- ^ The token
-  -> m ()
-setLoginCookie tok = Snap.modifyResponse $ Snap.addResponseCookie c
+  ∷ MonadProtocol m
+  ⇒ Text -- ^ The token
+  → m ()
+setLoginCookie tok
+  = Snap.modifyResponse $ Snap.addResponseCookie c
   where
     c = Snap.Cookie "LOGIN_TOKEN" (convertString tok)
       Nothing Nothing (pure "/") False False
@@ -149,43 +150,64 @@ handleLoginRequest
   ⇒ Ajax.LoginRequest
   → m Ajax.LoginSuccess
 handleLoginRequest Ajax.LoginRequest{..} = do
-  void $ Database.authUser name password
-  token ← Database.startSession name
+  user ← Database.authUser name password
+  Database.Token token ← Database.startSession $ Database.User.key user
   setLoginCookie token
   pure $ Ajax.LoginSuccess token
 
-askContexts :: MonadProtocol m ⇒ m Contexts
+askContexts ∷ MonadProtocol m ⇒ m Contexts
 askContexts = asks contexts
 
 handleLessonInit
   ∷ ∀ m
   . MonadProtocol m
-  ⇒ Database.Key -- ^ Lesson
+  ⇒ Database.Key Database.Lesson
   → m Ajax.MenuResponse
 handleLessonInit lesson = do
   token ← getToken
   Database.ExerciseLesson{..} ← Database.startLesson token lesson
-  menu ← assembleMenus lessonName source target
+  menu ← assembleMenus $ AssembleMenu
+    { lesson = lessonName
+    , source = Ajax.ClientTree
+      { sentence = source
+      , direction = dir srcDir
+      }
+    , target = Ajax.ClientTree
+      { sentence = target
+      , direction = dir trgDir
+      }
+    }
   verifyMessage $ Ajax.MenuResponse
     { lesson = Ajax.Lesson
       { key  = lesson
       , name = lessonName
       }
     , score    = mempty
-    , menu     = Just menu
-    , finished = False
+    , menu     = menu
+    , lessonFinished = False
+    -- Strictly speaking we can't know this for sure, but we'll just
+    -- have a guess.
+    , exerciseFinished = False
+    , settings = Just $ Ajax.MenuSettings
+      { highlightMatches = highlightMatches
+      }
     }
 
+dir ∷ Database.Direction → Ajax.Direction
+dir = \case
+  Database.VersoRecto → Ajax.VersoRecto
+  Database.RectoVerso → Ajax.RectoVerso
+
 -- | This request is called after the user selects a new sentence from
--- the drop-down menu.  A request consists of two 'ClientTree's (the
--- source and the target sentece) these can represent multiple actual
--- sentences ('TTree's).  We determine if the current exercise is over
--- by checking the source and target tree for equality.  'ClientTree's
--- are considered equal in this case if they have just one 'TTree' in
--- common.  We respond to the caller whether the exercise is over.  In
--- either case we also return two new 'ClientTree's -- these are used
--- if the exercise continues.  For more information about what these
--- contain see the documentation there.
+-- the drop-down menu.  A request consists of two 'Ajax.ClientTree's
+-- (the source and the target sentece) these can represent multiple
+-- actual sentences ('TTree's).  We determine if the current exercise
+-- is over by checking the source and target tree for equality.
+-- 'Ajax.ClientTree's are considered equal in this case if they have
+-- just one 'TTree' in common.  We respond to the caller whether the
+-- exercise is over.  In either case we also return two new
+-- 'Ajax.ClientTree's. For more information about what these contain
+-- see the documentation there.
 handleMenuRequest
   ∷ ∀ m
   . MonadProtocol m
@@ -202,23 +224,23 @@ handleMenuRequest Ajax.MenuRequest{..} = do
       = score
       & Score.addClick 1
       & Score.setTime time
-  finished ← oneSimiliarTree lessonName src trg
-  (lessonFinished, menu) ←
-    if finished
-    then do
-      f ← Database.finishExercise token key newScore
-      pure (f, Nothing)
-    else do
-      m ← assembleMenus lessonName (un src) (un trg)
-      pure (False, Just m)
-  verifyMessage $ Ajax.MenuResponse
-    { lesson   = lesson
-    , score    = newScore
-    , menu     = menu
-    , finished = lessonFinished
+  exerciseFinished ← oneSimiliarTree lessonName src trg
+  lessonFinished   ← if exerciseFinished
+    then Database.finishExercise token key newScore
+    else pure False
+  menu ← assembleMenus $ AssembleMenu
+    { lesson = lessonName
+    , source = src
+    , target = trg
     }
-  where
-  un (Ajax.ClientTree t) = t
+  verifyMessage $ Ajax.MenuResponse
+    { lesson           = lesson
+    , score            = newScore
+    , menu             = menu
+    , lessonFinished   = lessonFinished
+    , exerciseFinished = exerciseFinished
+    , settings         = settings
+    }
 
 annotate
   ∷ MonadProtocol m
@@ -239,8 +261,8 @@ oneSimiliarTree
   ∷ ∀ m
   . MonadProtocol m
   ⇒ Text
-  → ClientTree
-  → ClientTree
+  → Ajax.ClientTree
+  → Ajax.ClientTree
   → m Bool
 oneSimiliarTree lesson src trg = do
   srcS ← parse src
@@ -249,25 +271,28 @@ oneSimiliarTree lesson src trg = do
   where
   oneInCommon ∷ Ord a ⇒ Set a → Set a → Bool
   oneInCommon a b = not $ Set.null $ Set.intersection a b
-  parse ∷ ClientTree → m (Set TTree)
+  parse ∷ Ajax.ClientTree → m (Set TTree)
   parse = fmap Set.fromList . disambiguate lesson
 
 disambiguate
   ∷ ∀ m
   . MonadProtocol m
   ⇒ Text
-  → ClientTree
+  → Ajax.ClientTree
   → m [TTree]
-disambiguate lesson (Ajax.ClientTree t) = do
+disambiguate lesson Ajax.ClientTree{..} = do
   cs ← askContexts
   let
     getC ∷ Unannotated → m Context
     getC u = liftEither $ getContext cs lesson (Sentence.language u)
-  c ← getC t
-  pure $ Sentence.disambiguate c t
+  c ← getC sentence
+  pure $ Sentence.disambiguate c sentence
 
-handleLogoutRequest ∷ MonadProtocol m ⇒ Text → m ()
-handleLogoutRequest = Database.endSession
+handleLogoutRequest
+  ∷ MonadProtocol m
+  ⇒ Database.Token
+  → m (Response ())
+handleLogoutRequest = fmap pure . Database.endSession
 
 -- | @'verifySession' tok@ verifies the user identified by @tok@.
 -- This method throws (using one of the error instances of
@@ -280,23 +305,28 @@ verifySession = getToken >>= Database.verifySession
 verifyMessage ∷ MonadProtocol m ⇒ a → m a
 verifyMessage msg = msg <$ verifySession
 
+data AssembleMenu = AssembleMenu
+  { lesson ∷ Text
+  , source ∷ Ajax.ClientTree
+  , target ∷ Ajax.ClientTree
+  }
+
 -- | Gets the menus for a lesson.  This consists of a source tree and
 -- a target tree.
 assembleMenus
   ∷ MonadProtocol m
-  ⇒ Text
-  → Unannotated
-  → Unannotated
+  ⇒ AssembleMenu
   → m Ajax.MenuList
-assembleMenus lesson sourceTree targetTree = do
+-- assembleMenus lesson sourceTree targetTree srcDir trgDir = do
+assembleMenus AssembleMenu{..} = do
   c ← askContexts
   let mkTree = makeTree c lesson
   let ann = annotate lesson
-  src ← ann sourceTree
-  trg ← ann targetTree
+  src ← ann $ ClientTree.sentence source
+  trg ← ann $ ClientTree.sentence target
   pure $ Ajax.MenuList
-    { src = mkTree src
-    , trg = mkTree trg
+    { src = mkTree src $ ClientTree.direction source
+    , trg = mkTree trg $ ClientTree.direction target
     }
 
 getContext
@@ -311,17 +341,17 @@ getContext ctxts lesson s
   >>= lookupM (LanguageNotFound s) s
 
 lookupM
-  :: MonadThrow m
-  => Exception e
-  => Ord k
-  => e -> k -> Map k a -> m a
+  ∷ MonadThrow m
+  ⇒ Exception e
+  ⇒ Ord k
+  ⇒ e → k → Map k a → m a
 lookupM err k = liftMaybe err . Map.lookup k
 
 -- | Lift a 'Maybe' to any 'MonadThrow'.
-liftMaybe :: MonadThrow m => Exception e => e -> Maybe a -> m a
+liftMaybe ∷ MonadThrow m ⇒ Exception e ⇒ e → Maybe a → m a
 liftMaybe e = \case
-  Nothing -> throwM e
-  Just a  -> pure a
+  Nothing → throwM e
+  Just a  → pure a
 
 -- | @'makeTree' ctxt lesson src trg tree@ Creates a 'ServerTree' from
 -- a source trees and a target tree.  The 'Menu' is provided given
@@ -330,11 +360,15 @@ makeTree
   ∷ Contexts
   → Text
   → Annotated
-  → ServerTree
-makeTree c lesson s
-  = Ajax.ServerTree s menu
+  → Ajax.Direction
+  → Ajax.ServerTree
+makeTree c lesson s d
+  = Ajax.ServerTree
+  { sentence  = s
+  , menu      = Muste.getMenu Menu.emptyPruneOpts ctxt (Sentence.linearization s)
+  , direction = d
+  }
   where
-  menu = Muste.getMenu Menu.emptyPruneOpts ctxt (Sentence.linearization s)
   ctxt = throwLeft $ getContext c lesson language
   language = Sentence.language s
 

@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common:api
 concrete SecundaLexAPI of SecundaLex = open Prelude, PrimaLexAPI in {
   lincat
     N, PN, A, Pron, V2, Adv, Conj, VA, Prep, V3, V, Det, VV, Predet, Quant = SS;

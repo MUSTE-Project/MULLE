@@ -2,10 +2,12 @@
 --
 -- This functionality is provided by the backend
 -- "System.Control.Repline".
+
 {-# OPTIONS_GHC -Wall #-}
 {-# Language RecordWildCards, NamedFieldPuns, TemplateHaskell,
   DeriveAnyClass, OverloadedStrings, MultiParamTypeClasses,
-  DerivingStrategies, MultiWayIf #-}
+  DerivingStrategies, MultiWayIf, CPP #-}
+
 module Muste.Repl
   -- * The repl monad
   ( Muste
@@ -86,9 +88,24 @@ runMuste opts env
   >>> flip runReaderT opts
   >>> flip evalStateT env
 
+evalRepl
+  ∷ Repl.MonadException m
+  ⇒ String                      -- ^ Banner
+  → Repl.Command (HaskelineT m) -- ^ Command
+  → Repl.Options (HaskelineT m) -- ^ Options
+  → Repl.CompleterStyle m       -- ^ Tab completion
+  → HaskelineT m a              -- ^ Initializer
+  → m ()
+evalRepl b c o s i
+#if MIN_VERSION_repline(0,2,0)
+  = Repl.evalRepl (pure b) c o (pure ':') s i
+#else
+  = Repl.evalRepl b c o s i
+#endif
+
 interactively ∷ Options → Env → Repl.Command (HaskelineT (Muste IO)) → IO ()
 interactively opts env cmd
-  = Repl.evalRepl "§ " cmd options completer ini
+  = evalRepl "§ " cmd options completer ini
   & runMuste opts env
 
 -- I think there's a bug in the instantiation of `MonadReader` for
@@ -111,7 +128,7 @@ updateMenu s = do
   comp ← getCompact
   let menuList = Mono.mapToList m
   let compDoc = Doc.vsep
-        $  [ Doc.fill 60 "Selection" <+> "N:o menu items, total:" 
+        $  [ Doc.fill 60 "Selection" <+> "N:o menu items, total:"
              <+> pretty (sum (map (length . snd) menuList))
            ]
         <> (purdy <$> menuList)
@@ -172,7 +189,7 @@ prettyLin sel tokens  = Doc.hsep tokens''
           leftbraces  = [ pos  | (pos,pos') <- intervals, pos < pos' ]
           rightbraces = [ pos' | (pos,pos') <- intervals, pos < pos' ]
           count x     = length . filter (x==)
-          tokens'     = [ Doc.hcat (List.replicate (count i leftbraces) "[") <> pretty tok <> 
+          tokens'     = [ Doc.hcat (List.replicate (count i leftbraces) "[") <> pretty tok <>
                           Doc.hcat (List.replicate (count (i+1) rightbraces) "]")
                         | (i, tok) <- zip [0..] tokens ]
           tokens''    = [ if i `elem` insertions then "[]" <+> tok' else tok'
@@ -207,6 +224,6 @@ ini = liftIO $ putStrLn $ unlines
   , "An empty menu will be displayed (just newline) this is likely caused"
   , "by the sentence not being understood by the current grammar."
   , ""
-  , "The grammar and language can be specified on the command line"
+  , "The grammar and language must be specified on the command line"
   , "(run with `--help` to see usage)."
   ]

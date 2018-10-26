@@ -4,7 +4,10 @@
   Original URL: https://github.com/koengit/grammarfeat
   Adopted by Herbert Lange for Muste
 -}
+
+{-# OPTIONS_GHC -Wall -Wcompat #-}
 {-# Language OverloadedStrings #-}
+
 module Muste.Feat
   ( mkFEAT
   , featCard
@@ -16,7 +19,6 @@ module Muste.Feat
 import Prelude ()
 import Muste.Prelude
 import qualified Muste.Prelude.Unsafe as Unsafe
-import Muste.Prelude.Extra
 
 import Muste.Grammar.Internal (Rule(Function), Grammar)
 import qualified Muste.Grammar.Internal as Grammar

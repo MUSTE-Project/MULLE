@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common:api
 abstract SecundaRules = Cat ** { -- , Conjunction ** {
   cat CS ;
   fun

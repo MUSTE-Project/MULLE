@@ -30,15 +30,18 @@ module Muste.Web.Ajax
   , LoginSuccess(..)
   , LessonList(..)
   , MenuResponse(..)
+  , MenuSettings(..)
   , HighScore(..)
   , Lesson(..)
   , Score(..)
+  , Direction(..)
   ) where
 
 import Prelude ()
 import Muste.Prelude
 
-import Data.Aeson ((.:), (.=), (.:?))
+import Data.Aeson ((.:), (.=), (.:?), (.!=))
+import Data.Aeson.Types (Parser)
 import qualified Data.Aeson as Aeson
 
 import Muste
@@ -49,18 +52,25 @@ import qualified Muste.Web.Database.Types as Database
 
 import           Muste.Web.Types.Score (Score(..))
 
-newtype ClientTree = ClientTree { unClientTree ∷ Unannotated }
+data ClientTree = ClientTree
+  { sentence      ∷ Unannotated
+  -- Asking the client to supply these is a bit of a hack.  We just
+  -- send it back unmodified!
+  , direction     ∷ Direction
+  }
 
 deriving instance Show ClientTree
 
 instance FromJSON ClientTree where
   parseJSON = Aeson.withObject "tree"
-     $ \v -> ClientTree
+     $ \v → ClientTree
     <$> v .: "sentence"
+    <*> v .: "direction"
 
 instance ToJSON ClientTree where
-  toJSON (ClientTree sentence) = Aeson.object
-    [ "sentence" .= sentence
+  toJSON ClientTree{..} = Aeson.object
+    [ "sentence"  .= sentence
+    , "direction" .= direction
     ]
 
 data LoginRequest = LoginRequest
@@ -82,30 +92,60 @@ instance ToJSON LoginRequest where
     ]
 
 data MenuRequest = MenuRequest
-  { lesson ∷ Lesson
+  { lesson   ∷ Lesson
   -- FIXME I feel like this should not be a part of the menu response.
   -- In stead we should store the score along with the users session,
   -- and only when the exercise is done respond with the final score.
-  , score  ∷ Score
-  , src    ∷ ClientTree
-  , trg    ∷ ClientTree
+  , score    ∷ Score
+  , src      ∷ ClientTree
+  , trg      ∷ ClientTree
+  -- FIXME Ditto the comment about the field `score`.
+  , settings ∷ Maybe MenuSettings
   }
 
 instance ToJSON MenuRequest where
   toJSON MenuRequest{..} = Aeson.object
-    [ "lesson" .= lesson
-    , "score"  .= score
-    , "src"    .= src
-    , "trg"    .= trg
+    [ "lesson"   .= lesson
+    , "score"    .= score
+    , "src"      .= src
+    , "trg"      .= trg
+    , "settings" .= settings
     ]
 
 instance FromJSON MenuRequest where
   parseJSON = Aeson.withObject "menu-request"
     $  \b → MenuRequest
-    <$> b .: "lesson"
-    <*> b .: "score"
-    <*> b .: "src"
-    <*> b .: "trg"
+    <$> b .:  "lesson"
+    <*> b .:  "score"
+    <*> b .:  "src"
+    <*> b .:  "trg"
+    <*> b .:? "settings"
+
+data Direction = VersoRecto | RectoVerso
+
+deriving stock instance Show Direction
+
+instance FromJSON Direction where
+  parseJSON val
+    =   VersoRecto `aka` ["left-to-right", "ltr", "verso-recto"]
+    <|> RectoVerso `aka` ["right-to-left", "rtl", "recto-verso"]
+    where
+    aka ∷ Direction
+      → [Text]
+      → Parser Direction
+    aka d xs = oneOf $ step <$> xs
+      where
+      step kw = Aeson.withText "Direction" k val
+        where
+        k t = if kw == t then pure d else empty
+
+instance ToJSON Direction where
+  toJSON = \case
+    VersoRecto → "ltr"
+    RectoVerso → "rtl"
+
+oneOf ∷ (Foldable t, Alternative f) => t (f a) → f a
+oneOf = foldl (<|>) empty
 
 -- | 'ServerTree's represent the data needed to display a sentence in
 -- the GUI.  The naming is maybe not the best, but the reason it is
@@ -119,17 +159,20 @@ instance FromJSON MenuRequest where
 data ServerTree = ServerTree
   { sentence  ∷ Annotated
   , menu      ∷ Menu
+  , direction ∷ Direction
   } deriving (Show)
 
 instance FromJSON ServerTree where
-  parseJSON = Aeson.withObject "server-tree" $ \v -> ServerTree
-    <$> v .: "sentence"
-    <*> v .: "menu"
+  parseJSON = Aeson.withObject "server-tree" $ \v → ServerTree
+    <$> v .:  "sentence"
+    <*> v .:  "menu"
+    <*> v .:? "direction" .!= VersoRecto
 
 instance ToJSON ServerTree where
   toJSON ServerTree{..} = Aeson.object
-    [ "sentence" .= sentence
-    , "menu"     .= menu
+    [ "sentence"  .= sentence
+    , "menu"      .= menu
+    , "direction" .= direction
     ]
 
 data LoginSuccess = LoginSuccess Text
@@ -157,31 +200,42 @@ instance ToJSON LessonList where
     ]
 
 data MenuResponse = MenuResponse
-  -- A key to the lesson
-  { lesson     ∷ Lesson
+  { lesson           ∷ Lesson
   -- This is the score for the exercise.  Not the lesson!  I think we
   -- should just remove this.
-  , score      ∷ Score
-  , menu       ∷ Maybe MenuList
-  , finished   ∷ Bool
+  , score            ∷ Score
+  , menu             ∷ MenuList
+  , lessonFinished   ∷ Bool
+  , exerciseFinished ∷ Bool
+  , settings         ∷ Maybe MenuSettings
   }
-
-instance FromJSON MenuResponse where
-  parseJSON = Aeson.withObject "menu"
-    $ \ o → MenuResponse
-    <$> o .:  "lesson"
-    <*> o .:  "score"
-    <*> o .:? "menu"
-    <*> o .:  "lesson-over"
 
 instance ToJSON MenuResponse where
   toJSON MenuResponse{..} =
     Aeson.object
-      [ "lesson"      .= lesson
-      , "score"       .= score
-      , "menu"        .= menu
-      , "lesson-over" .= finished
+      [ "lesson"        .= lesson
+      , "score"         .= score
+      , "menu"          .= menu
+      , "lesson-over"   .= lessonFinished
+      , "exercise-over" .= exerciseFinished
+      , "settings"      .= settings
       ]
+
+newtype MenuSettings = MenuSettings
+  { highlightMatches ∷ Bool
+  }
+
+deriving stock instance Show MenuSettings
+
+instance ToJSON MenuSettings where
+  toJSON MenuSettings{..} = Aeson.object
+    [ "highlight-matches" .= highlightMatches
+    ]
+
+instance FromJSON MenuSettings where
+  parseJSON = Aeson.withObject "settings"
+     $ \v → MenuSettings
+    <$> v .: "highlight-matches"
 
 -- Better name might be menus?
 data MenuList = MenuList
@@ -202,7 +256,7 @@ instance ToJSON MenuList where
     ]
 
 data User = User
-  { key      ∷ Database.Key
+  { key      ∷ Database.Key Database.User
   , name     ∷ Text
   }
 
@@ -210,7 +264,7 @@ deriving stock instance Show User
 
 instance FromJSON User where
   parseJSON = Aeson.withObject "user"
-     $ \v -> User
+     $ \v → User
     <$> v .: "key"
     <*> v .: "name"
 
@@ -229,7 +283,7 @@ deriving stock instance Show CreateUser
 
 instance FromJSON CreateUser where
   parseJSON = Aeson.withObject "user"
-     $ \v -> CreateUser
+     $ \v → CreateUser
     <$> v .: "name"
     <*> v .: "password"
 
@@ -245,13 +299,13 @@ deriving stock instance Show ChangePassword
 
 instance FromJSON ChangePassword where
   parseJSON = Aeson.withObject "user"
-     $ \v -> ChangePassword
+     $ \v → ChangePassword
     <$> v .: "name"
     <*> v .: "old-password"
     <*> v .: "new-password"
 
 data Lesson = Lesson
-  { key  ∷ Database.Key
+  { key  ∷ Database.Key Database.Lesson
   , name ∷ Text
   }
 
@@ -265,7 +319,7 @@ instance ToJSON Lesson where
 
 instance FromJSON Lesson where
   parseJSON = Aeson.withObject "user"
-     $ \v -> Lesson
+     $ \v → Lesson
     <$> v .: "key"
     <*> v .: "name"
 

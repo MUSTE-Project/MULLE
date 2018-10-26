@@ -1,4 +1,4 @@
-GRAMMARS = novo_modo exemplum
+GRAMMARS = novo_modo exemplum programming
 
 XDG_DATA_DIR=$$HOME/.local/share
 

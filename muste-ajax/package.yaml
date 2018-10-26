@@ -1,5 +1,5 @@
 name:                muste-ajax
-version:             0.2.7.0
+version:             0.2.8.0
 license:             Artistic-2.0
 license-file:        LICENSE
 author:              Herbert Lange
@@ -12,8 +12,6 @@ flags:
     description: Build as a CGI program
     manual: true
     default: false
-
-ghc-options: -fmax-valid-substitutions=0
 
 default-extensions:
   - ConstraintKinds
@@ -62,6 +60,7 @@ data-files:
 
 extra-source-files:
   - config.yaml
+  - static/package.json
 
 dependencies:
   - QuickCheck           >= 2.9.2    && < 2.12
@@ -70,6 +69,8 @@ dependencies:
   - base64-bytestring    >= 1.0.0.1  && < 1.1
   - bytestring           >= 0.10.8.1 && < 0.11
   - containers           >= 0.5.7.1  && < 0.6
+  # I wonder why we're not simply using cryptonite, which is anyways a
+  # dependency.
   - crypto-random-api    >= 0.2.0    && < 0.3
   - cryptonite           >= 0.23     && < 0.26
   - direct-sqlite        >= 2.3.21   && < 2.4
@@ -125,6 +126,7 @@ library:
   exposed-modules:
     - Muste.Web.Ajax
     - Muste.Web.Database
+    - Muste.Web.Database.Class
     - Muste.Web.Database.Types
     - Muste.Web.Types.Score
     - Muste.Web.Config
@@ -137,6 +139,13 @@ library:
 
   other-modules:
     - Paths_muste_ajax
+
+custom-setup:
+  dependencies:
+    - base
+    - Cabal
+    - turtle
+    - text
 
 executable:
   source-dirs:

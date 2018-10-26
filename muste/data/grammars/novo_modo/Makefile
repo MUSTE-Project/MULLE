@@ -1,4 +1,4 @@
-GFMAKE = gf --make
+GFMAKE = gf --make --gf-lib-path=gf-rgl
 LANGS = Lat Eng Swe
 GRAMMARS = Prima.pgf Secunda.pgf
 

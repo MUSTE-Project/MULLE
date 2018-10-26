@@ -1,0 +1,25 @@
+# NB Currently untested!
+language: haskell
+
+sudo: on
+
+git:
+  submodules: on
+
+services:
+  - docker
+  - npm
+
+install:
+  - git submodule update --init
+  - ln -s stack-lts-12.yaml stack.yaml
+  # pgf
+  - docker pull odanoburu/haskell-gf:3.9.1
+  # build grammars
+  - make install
+  - cd muste-ajax/static
+  - npm install
+
+script:
+  - stack build --pedantic
+  - stack test

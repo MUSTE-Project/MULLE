@@ -1,4 +1,4 @@
---# -path=latin-rgl/api:latin-rgl:.
+--# -path=prelude:abstract:common:api
 concrete PrimaLexAPI of PrimaLex = open Prelude in{
   lincat PN, N, A, V2, VA, V, Adv, Conj, Pron, Det = SS ;
   lin

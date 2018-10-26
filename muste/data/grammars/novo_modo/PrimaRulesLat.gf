@@ -1,4 +1,4 @@
---# -path=latin-rgl/api:latin-rgl:.
+--# -path=prelude:abstract:common:latin-rgl/api:api:latin-rgl
 concrete PrimaRulesLat of PrimaRules = CatLat ** PrimaRulesI
   with (Cat=CatLat), (Syntax=SyntaxLat), (Conjunction=ConjunctionLat) **
   open ResLat, Prelude in {

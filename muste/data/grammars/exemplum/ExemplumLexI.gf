@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common
 incomplete concrete ExemplumLexI of ExemplumLex = Cat **
   open Grammar, Lexicon in {
 

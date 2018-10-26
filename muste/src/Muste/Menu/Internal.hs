@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall -Wcompat #-}
 {-# Language CPP, UndecidableInstances, OverloadedLists #-}
 module Muste.Menu.Internal
   ( Menu(..)
@@ -16,7 +16,6 @@ module Muste.Menu.Internal
 import Prelude ()
 import Muste.Prelude
 import qualified Muste.Prelude.Unsafe as Unsafe
-import Muste.Prelude.Extra
 
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -68,7 +67,9 @@ deriving instance Generic Interval
 instance NFData Interval where
 
 sizeInterval ∷ Interval → Int
-sizeInterval (Interval (i, j)) = j - i
+sizeInterval (Interval (i, j)) = 100 * (j - i) + 1
+-- The added small constant is so that empty intervals are also counted.
+-- With this, the selection {2-3} will come before {2-2,2-3}.
 
 emptyInterval ∷ Interval → Bool
 emptyInterval (Interval (i, j)) = i == j

@@ -1,6 +1,7 @@
 name:                muste
-version:             0.2.7.0
+version:             0.2.8.0
 license:             BSD3
+license-file:        LICENSE
 author:              Herbert Lange
 maintainer:          herbert.lange@cse.gu.se
 
@@ -22,7 +23,7 @@ source-dirs:
 
 dependencies:
   - aeson              >= 1.1.2.0  && < 1.4
-  - base               >= 4.9.1.0  && < 4.12
+  - base               >= 4.9.1.0  && < 4.13
   - base64-bytestring  >= 1.0.0.1  && < 1.1
   - binary             >= 0.8.3.0  && < 0.9
   - bytestring         >= 0.10.8.1 && < 0.11
@@ -36,7 +37,7 @@ dependencies:
   - prettyprinter      >= 1.1.1    && < 1.3
   - sqlite-simple      >= 0.4.16.1 && < 0.5
   - string-conversions >= 0.4.0.1  && < 0.5
-  - template-haskell   >= 2.11.1.0 && < 2.14
+  - template-haskell   >= 2.11.1.0 && < 2.15
   - text               >= 1.2.2.2  && < 1.3
   - tostring           >= 0.2.1.1  && < 0.3
   - array              >= 0.5.2    && < 0.6
@@ -57,8 +58,6 @@ when:
       - -Wno-name-shadowing
       - -Werr
 
-ghc-options: -fmax-valid-substitutions=0
-
 default-extensions:
   - UnicodeSyntax
   - NamedWildCards
@@ -76,6 +75,12 @@ default-extensions:
   - TypeFamilies
   - MultiParamTypeClasses
   - DerivingStrategies
+
+extra-source-files:
+  - data/grammars/Makefile
+  - data/grammars/exemplum/*.gf
+  - data/grammars/misc/*.gf
+  - data/grammars/novo_modo/*.gf
 
 library:
   exposed-modules:
@@ -112,6 +117,13 @@ library:
     - Muste.Sentence.Token.Class
     - Muste.Prelude.ReExports
 
+custom-setup:
+  dependencies:
+    - base
+    - Cabal
+    - turtle
+    - text
+
 executables:
   muste:
     source-dirs:
@@ -122,7 +134,7 @@ executables:
     dependencies:
       - muste
       - haskeline            >= 0.7.4.3  && < 0.8
-      - repline              >= 0.1.7.0  && < 0.2
+      - repline              >= 0.1.7.0  && < 0.3
       - optparse-applicative >= 0.14.2.0 && < 0.15
       - gitrev               >= 1.3.1    && < 1.4
 

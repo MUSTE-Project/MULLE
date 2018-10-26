@@ -28,6 +28,10 @@ module Muste.Prelude.SQL
   , SQL.Only(Only)
   , SQL.fromOnly
   , SQL.setTrace
+  , ToNamed(..)
+  , SQL.NamedParam(..)
+  , SQL.queryNamed
+  , SQL.executeNamed
   ) where
 
 import Prelude ()
@@ -66,3 +70,11 @@ instance (Monoid a, Binary a, Typeable a) ⇒ SQL.FromField (Nullable a) where
   fromField = fmap Nullable . fromNullableBlob
 instance Binary a ⇒ SQL.ToField (Nullable a) where
   toField = toBlob
+
+-- We could consider making 'ToRow' a super-class but it's not
+-- strictly necessary.
+class ToNamed a where
+  toNamed ∷ a → [SQL.NamedParam]
+
+instance ToNamed [SQL.NamedParam] where
+  toNamed = identity

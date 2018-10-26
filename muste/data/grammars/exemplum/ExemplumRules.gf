@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common
 abstract ExemplumRules = Cat, Tense ** {
 
 fun

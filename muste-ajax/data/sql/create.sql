@@ -4,9 +4,7 @@ DROP TABLE IF EXISTS User;
 DROP TABLE IF EXISTS Session;
 DROP TABLE IF EXISTS Lesson;
 DROP TABLE IF EXISTS Exercise;
-DROP TABLE IF EXISTS FinishedExercise;
 DROP TABLE IF EXISTS StartedLesson;
-DROP TABLE IF EXISTS FinishedLesson;
 DROP TABLE IF EXISTS ExerciseList;
 
 CREATE TABLE User (
@@ -29,15 +27,21 @@ CREATE TABLE Session (
 );
 
 CREATE TABLE Exercise (
-  Id          INTEGER PRIMARY KEY,
-  SourceTree  BLOB,
-  TargetTree  BLOB,
-  Lesson      INTEGER,
-  Timeout     NUMERIC NOT NULL DEFAULT 0,
+  Id            INTEGER PRIMARY KEY,
+  -- FIXME Rename to SourceLinearization
+  SourceTree    BLOB,
+  -- FIXME Rename to TargetLinearization
+  TargetTree    BLOB,
+  Lesson        INTEGER,
+  Timeout       NUMERIC NOT NULL DEFAULT 0,
+  -- The order in which exercises appear in a lesson.
+  ExerciseOrder NUMERIC NOT NULL,
 
   FOREIGN KEY(Lesson) REFERENCES Lesson(Id)
 );
 
+-- FIXME We should change lesson to have a two foregin keys 'src' and
+-- 'trg' to another table that describes a sentence.
 CREATE TABLE Lesson (
   Id                INTEGER PRIMARY KEY,
   Name              TEXT,
@@ -45,38 +49,27 @@ CREATE TABLE Lesson (
   Grammar           TEXT NOT NULL,
   SourceLanguage    TEXT NOT NULL,
   TargetLanguage    TEXT NOT NULL,
-  -- TODO Create a view where this is a computed column.
+  -- Exercise count does *not* say how many exercises are associated
+  -- with this lesson.  Rather it says how many exercises the user is
+  -- expected to complete for the lesson to be considered solved.
   ExerciseCount     NUMERIC NOT NULL,
   Enabled           BOOL NOT NULL DEFAULT 0,
   SearchLimitDepth  INT DEFAULT NULL,
   SearchLimitSize   INT DEFAULT NULL,
-  Repeatable        BOOL NOT NULL DEFAULT 1
-);
-
--- FIXME Why not simply add a nullable column to the ExerciseList table?
-CREATE TABLE FinishedExercise (
-  User      INTEGER,
-  Exercise  INTEGER,
-  Round     INTEGER,
-  Score     BLOB NOT NULL,
-
-  PRIMARY
-    KEY (User, Exercise, Round),
-  FOREIGN
-    KEY (User)
-    REFERENCES User(Id),
-  FOREIGN
-    KEY (Exercise)
-    REFERENCES Exercise(Id)
-  FOREIGN
-    KEY (User, Exercise, Round)
-    REFERENCES ExerciseList(User, Exercise, Found)
+  Repeatable        BOOL NOT NULL DEFAULT 1,
+  -- A value of 1 indicates RTL.
+  SourceDirection   BOOL NOT NULL DEFAULT 0,
+  TargetDirection   BOOL NOT NULL DEFAULT 0,
+  HighlightMatches  BOOL NOT NULL DEFAULT 0,
+  -- Should exercise appear in a randomized order?
+  RandomizeOrder    BOOL NOT NULL DEFAULT 0
 );
 
 CREATE TABLE StartedLesson (
   Lesson   INTEGER,
   User     INTEGER,
   Round    NUMERIC NOT NULL DEFAULT 1,
+  Score    BLOB,
 
   PRIMARY KEY(Lesson, User, Round),
   FOREIGN
@@ -87,25 +80,17 @@ CREATE TABLE StartedLesson (
     REFERENCES User(Id)
 );
 
-CREATE TABLE FinishedLesson (
-  Lesson   INTEGER,
-  User     INTEGER,
-  Score    BLOB NOT NULL,
-  Round    NUMERIC NOT NULL DEFAULT 1,
-
-  PRIMARY KEY (Lesson, User, Round),
-  FOREIGN
-    KEY            (User)
-    REFERENCES User(Id),
-  FOREIGN
-    KEY              (Lesson)
-    REFERENCES Lesson(Id)
-);
+DROP VIEW IF EXISTS FinishedLesson;
+CREATE VIEW FinishedLesson AS
+SELECT *
+FROM StartedLesson
+WHERE Score IS NOT NULL;
 
 CREATE TABLE ExerciseList (
   User      INTEGER,
   Exercise  INTEGER,
   Round     NUMERIC NOT NULL DEFAULT 1,
+  Score     BLOB, -- nullable!
 
   PRIMARY KEY (User, Exercise, Round),
   FOREIGN
@@ -128,10 +113,11 @@ CREATE VIEW ExerciseLesson AS
 DROP VIEW IF EXISTS FinishedExerciseLesson;
 CREATE VIEW FinishedExerciseLesson AS
   SELECT *
-  FROM FinishedExercise
-  JOIN Exercise ON FinishedExercise.Exercise = Exercise.Id
+  FROM ExerciseList
+  JOIN Exercise ON ExerciseList.Exercise     = Exercise.Id
   JOIN Lesson   ON Exercise.Lesson           = Lesson.Id
-  JOIN User     ON FinishedExercise.User     = User.Id;
+  JOIN User     ON ExerciseList.User         = User.Id
+  WHERE Score NOT NULL;
 
 
 -- The passed exercises by user and lesson
@@ -143,33 +129,10 @@ CREATE VIEW PassedLesson AS
   FROM FinishedLesson
   GROUP BY Lesson, User;
 
-DROP VIEW IF EXISTS ActiveLessonsForUser;
-CREATE VIEW ActiveLessonsForUser AS
-SELECT
-  Lesson.Id,
-  Lesson.Name,
-  Lesson.Description,
-  COALESCE(ExerciseCount,0),
-  Score,
-  FinishedExercise.Exercise IS NOT NULL AS Finished,
-  -- Exercise.Id,
-  -- User.Id
-  Lesson.Enabled,
-  -- ExerciseList
-  ExerciseList.User
-
-FROM Exercise
-JOIN Lesson ON Exercise.Lesson = Lesson.Id
-LEFT JOIN ExerciseList ON ExerciseList.Exercise = Exercise.Id
-
--- FROM Exercise
--- JOIN ExerciseList ON ExerciseList.Exercise = Exercise.Id
--- JOIN Lesson on Lesson = Lesson.Id
--- LEFT JOIN User ON ExerciseList.User = User.Id
-
-LEFT JOIN FinishedExercise
-  ON FinishedExercise.User = ExerciseList.User
-  AND FinishedExercise.Exercise = Exercise.Id;
+DROP VIEW IF EXISTS FinishedExercise;
+CREATE VIEW FinishedExercise AS
+SELECT *
+FROM ExerciseList
+WHERE Score IS NOT NULL;
 
 COMMIT TRANSACTION;
-

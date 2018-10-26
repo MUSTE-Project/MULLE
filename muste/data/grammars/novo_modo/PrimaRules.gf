@@ -1,3 +1,4 @@
+--# -path=prelude:abstract:common:api
 abstract PrimaRules = Cat, Conjunction ** {
 
 cat CS ;
