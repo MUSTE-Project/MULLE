@@ -5,9 +5,6 @@
 -- Stability   : experimental
 -- Portability : POSIX
 
--- FIXME So many methods need access to a lesson and a user.  Perhaps
--- we should just add this to the database monad.
-
 {-# OPTIONS_GHC -Wall #-}
 {-# Language QuasiQuotes, RecordWildCards, MultiWayIf, DeriveAnyClass,
   NamedFieldPuns #-}
@@ -42,7 +39,7 @@ import qualified Muste.Prelude.Unsafe      as Unsafe
 import           Muste.Prelude.Extra
 import           Muste.Prelude.SQL
   ( Query, Connection, Only(Only), fromOnly
-  , ToRow, FromRow, sql
+  , FromRow, sql, ToNamed, NamedParam(..)
   )
 import qualified Muste.Prelude.SQL         as SQL
 
@@ -163,7 +160,7 @@ getLesson
   ∷ MonadDB r db
   ⇒ Types.Key Types.Lesson
   → db Types.Lesson
-getLesson l = Unsafe.head <$> query q (Only l)
+getLesson l = Unsafe.head <$> queryNamed q [":Lesson" := l]
 
   where
   q = [sql|
@@ -185,7 +182,7 @@ SELECT
   , HighlightMatches
   , RandomizeOrder
 FROM Lesson
-WHERE Id = ?;
+WHERE Id = :Lesson;
 |]
 
 -- FIXME In this contexts the naming suggests that the user is
@@ -213,7 +210,7 @@ addUser
   → db ()
 addUser usr@Types.CreateUser{..} = do
   u ← createUser usr
-  execute q u `catchDbError` h
+  executeNamed @Types.UserSansId q u `catchDbError` h
   where
   h e = case e of
     -- DriverError e → case fromException @SQL.ResultError $ toException e of
@@ -226,7 +223,8 @@ addUser usr@Types.CreateUser{..} = do
     _ → throwDbError e
   q = [sql|
 -- addUser
-INSERT INTO User (Username, Password, Salt, Enabled) VALUES (?,?,?,?);
+INSERT INTO User (Username, Password, Salt, Enabled)
+VALUES (:Username, :Password, :Salt, :Enabled);
 |]
 
 -- | Removes an existing user from the database.
@@ -234,14 +232,14 @@ rmUser
   ∷ MonadDB r db
   ⇒ Types.Key Types.User
   → db ()
-rmUser = void . execute q . Only
+rmUser u = void $ executeNamed q [ ":User" := u ]
   where
 
   q = [sql|
 -- rmUser
 DELETE
 FROM User
-WHERE Id = ?;
+WHERE Id = :User;
 |]
 
 authUser
@@ -251,7 +249,7 @@ authUser
   → db Types.User
 authUser user pass = do
   -- Get password and salt from database
-  userList ← query @Types.User q (Only user)
+  userList ← queryNamed @Types.User q [":Username" := user]
   -- Generate new password hash and compare to the stored one
   let
     h (Types.Blob s) = hashPassword pass s
@@ -272,7 +270,7 @@ SELECT
   Salt,
   Enabled
 FROM User
-WHERE Username = ?;
+WHERE Username = :Username;
 |]
 
 changePassword
@@ -310,26 +308,26 @@ getSession
   ∷ MonadDB r db
   ⇒ Types.Key Types.User
   → db (Maybe Types.Token)
-getSession user = fmap fromOnly . listToMaybe <$> query q (Only user)
+getSession user = fmap fromOnly . listToMaybe <$> queryNamed q [":User" := user]
   where
   q = [sql|
 -- getSession
 SELECT Token
 FROM Session
-WHERE User = ?;
+WHERE User = :User;
 |]
 
 endSession
   ∷ MonadDB r db
   ⇒ Types.Token
   → db ()
-endSession user = execute q (Only user)
+endSession t = executeNamed q [ ":Token" := t ]
   where
   q = [sql|
 -- endSession
 DELETE
 FROM Session
-WHERE Token = ?;
+WHERE Token = :Token;
 |]
 
 -- FIXME Reduce the three-layered string conversion going on here.
@@ -350,13 +348,13 @@ startSession
   → db Types.Token
 startSession user = do
   session@(Types.Session _ token _ _) ← createSession user
-  execute q session
+  executeNamed q session
   pure token
   where
   q = [sql|
 -- startSession
 INSERT INTO Session (User, Token, Starttime, LastActive)
-VALUES (?,?,?,?);
+VALUES (:User, :Token, :Starttime, :LastActive);
 |]
 
 formatTime ∷ UTCTime → String
@@ -369,11 +367,13 @@ updateActivity
 updateActivity token = do
   -- We should use to- from- row instances for UTCTime in stead.
   timeStamp ← formatTime <$> getCurrentTime
-  execute q (timeStamp,token)
+  executeNamed q [ ":LastActive" := timeStamp, ":Token" := token ]
   where
   q = [sql|
 -- updateActivity
-UPDATE Session SET LastActive = ? WHERE Token = ?;
+UPDATE Session
+SET LastActive = :LastActive
+WHERE Token = :Token;
 |]
 
 -- | Returns @Just err@ if there is an error.
@@ -414,7 +414,7 @@ getLastActive
   ⇒ Types.Token
   → db UTCTime
 getLastActive t = do
-  xs ← query q (Only t)
+  xs ← queryNamed q [":Token" := t]
   case xs of
     []         → throwDbError NotCurrentSession
     (Only x:_) → pure x
@@ -424,20 +424,20 @@ getLastActive t = do
 -- getLastActive
 SELECT LastActive
 FROM Session
-WHERE Token = ?;
+WHERE Token = :Token;
 |]
 
 deleteSession
   ∷ MonadDB r db
   ⇒ Types.Token
   → db ()
-deleteSession token = execute q (Only token)
+deleteSession token = executeNamed q [ ":Token" := token ]
   where
   q = [sql|
 -- deleteSession
 DELETE
 FROM Session
-WHERE Token = ?;
+WHERE Token = :Token;
 |]
 
 -- | List all the lessons i.e. lesson name, description and exercise
@@ -484,7 +484,7 @@ getActiveLessonsForUser
   . MonadDB r db
   ⇒ Types.Key Types.User
   → db [Types.ActiveLessonForUser]
-getActiveLessonsForUser user = query q (Only user)
+getActiveLessonsForUser user = queryNamed q [":User" := user]
   where
 
   q = [sql|
@@ -502,7 +502,7 @@ FROM Exercise
 JOIN Lesson ON Exercise.Lesson = Lesson.Id
 LEFT
   JOIN FinishedExercise
-  ON   FinishedExercise.Exercise = Exercise.Id AND User = ? OR User IS NULL;
+  ON   FinishedExercise.Exercise = Exercise.Id AND User = :User OR User IS NULL;
 |]
 
 -- | Start a new lesson by randomly choosing the right number of
@@ -526,14 +526,14 @@ checkStarted
   → db Bool
 checkStarted user lesson
   =   (0 /=) . fromOnly . Unsafe.head
-  <$> query @(Only Int) q (user,lesson)
+  <$> queryNamed @(Only Int) q [":User" := user, ":Lesson" := lesson]
   where
   q = [sql|
 -- checkStarted
 SELECT COUNT(*)
 FROM StartedLesson
-WHERE User = ?
-  AND Lesson = ?;
+WHERE User = :User
+  AND Lesson = :Lesson;
 |]
 
 getUser
@@ -541,7 +541,7 @@ getUser
   ⇒ Types.Token
   → db (Types.Key Types.User)
 getUser token = do
-  xs ← query userQuery (Only token)
+  xs ← queryNamed userQuery [":Token" := token]
   case xs of
     []       → throwDbError NoUserFound
     [Only x] → pure x
@@ -552,7 +552,7 @@ getUser token = do
 -- getuser
 SELECT User
 FROM Session
-WHERE Token = ?;
+WHERE Token = :Token;
 |]
 
 class HasConnection v where
@@ -607,46 +607,50 @@ type Db a = DbT IO a
 runDbT ∷ DbT m a → Connection → m (Either Error a)
 runDbT (DbT db) c = runExceptT $ runReaderT db c
 
--- FIXME Consider switching to 'SQL.queryNamed'?
-query
-  ∷ ∀ res q r db
-  . MonadDB r db
-  ⇒ ToRow q
-  ⇒ FromRow res
-  ⇒ Query
-  → q
-  → db [res]
-query qry q = do
-  c ← getConnection
-  wrapIoError $ SQL.query c qry q
-
 query_
   ∷ ∀ res r db . MonadDB r db
   ⇒ FromRow res
   ⇒ Query → db [res]
-query_ qry = do
-  c ← getConnection
-  wrapIoError $ SQL.query_ c qry
+query_ qry = wrappedWithCon $ \c →
+  SQL.query_ c qry
 
-execute
-  ∷ MonadDB r db
-  ⇒ ToRow q
+queryNamed
+  ∷ ∀ res q r db
+  . MonadDB r db
+  ⇒ ToNamed q
+  ⇒ FromRow res
+  ⇒ Query
+  → q
+  → db [res]
+queryNamed q a = wrappedWithCon $ \c →
+  SQL.queryNamed c q (SQL.toNamed a)
+
+executeNamed
+  ∷ ∀ q db r
+  . MonadDB r db
+  ⇒ ToNamed q
   ⇒ Query
   → q
   → db ()
-execute qry q = do
-  c ← getConnection
-  wrapIoError $ SQL.execute c qry q
+executeNamed q a = wrappedWithCon $ \c →
+  SQL.executeNamed c q (SQL.toNamed a)
 
-executeMany
+-- This /may/ not be as efficient as using 'SQL.executeMany', but
+-- unfortunately they do not exposed a version of that wih named
+-- params.
+executeManyNamed
   ∷ MonadDB r db
-  ⇒ ToRow q
+  ⇒ ToNamed x
   ⇒ Query
-  → [q]
+  → [x]
   → db ()
-executeMany qry qs = do
+executeManyNamed q xs = wrappedWithCon $ \c →
+  void $ traverse (SQL.executeNamed c q . SQL.toNamed) xs
+
+wrappedWithCon ∷ MonadDB r db ⇒ (Connection → IO a) -> db a
+wrappedWithCon act = do
   c ← getConnection
-  wrapIoError $ SQL.executeMany c qry qs
+  wrapIoError $ act c
 
 -- | Wraps any io error in our application specific 'DriverError'
 -- wrapper.
@@ -663,7 +667,7 @@ getExerciseLessons
   ∷ MonadDB r db
   ⇒ Types.Key Types.Lesson
   → db [Types.ExerciseLesson]
-getExerciseLessons lesson = query q (Only lesson)
+getExerciseLessons lesson = queryNamed q [":Lesson" := lesson]
   where
   q = [sql|
 -- getExerciseLessons
@@ -678,7 +682,7 @@ SELECT
 , HighlightMatches
 , ExerciseOrder
 FROM ExerciseLesson
-WHERE Lesson = ?;
+WHERE Lesson = :Lesson;
 |]
 
 newLesson
@@ -728,15 +732,17 @@ pickExercises lesson = do
   else pure $ sortOn ExerciseLesson.exerciseOrder es
 
 startLessonAux ∷ MonadDB r db ⇒ Types.StartedLesson → db ()
-startLessonAux = execute [sql|
+startLessonAux = executeNamed [sql|
 -- startLessonAux
-INSERT INTO StartedLesson (Lesson, User, Round) VALUES (?,?,?);
+INSERT INTO StartedLesson (Lesson, User, Round)
+VALUES (:Lesson, :User, :Round);
 |]
 
 insertExercises ∷ MonadDB r db ⇒ [Types.ExerciseList] → db ()
-insertExercises = executeMany [sql|
+insertExercises = executeManyNamed [sql|
 -- insertExercises
-INSERT INTO ExerciseList (User, Exercise, Round, Score) VALUES (?,?,?,?);
+INSERT INTO ExerciseList (User, Exercise, Round, Score)
+VALUES (:User, :Exercise, :Round, :Score);
 |]
 
 getLessonRound
@@ -745,7 +751,7 @@ getLessonRound
   → Types.Key Types.Lesson
   → db Types.Numeric
 getLessonRound user lesson =
-  fromOnly . Unsafe.head <$> query q (user,lesson)
+  fromOnly . Unsafe.head <$> queryNamed q [ ":User" := user, ":Lesson" := lesson ]
   where
   q ∷ Query
   q = [sql|
@@ -754,10 +760,10 @@ SELECT ifnull(MAX(ExerciseList.Round) + 1,0)
 FROM ExerciseList
 JOIN Exercise ON ExerciseList.Exercise = Exercise.Id
 WHERE
-  ExerciseList.User = ?
+  ExerciseList.User = :User
   -- Does this happen automatically if Lesson is null given the next
   -- condition?
-  AND Lesson = ?
+  AND Lesson = :Lesson
   AND Score IS NOT NULL;
 |]
 
@@ -822,17 +828,20 @@ finishLessonAux
   ∷ MonadDB r db
   ⇒ Types.FinishedLesson
   → db ()
-finishLessonAux Types.FinishedLesson{..} = do
-  execute q (score, user, lesson, round)
+finishLessonAux Types.FinishedLesson{..}
+  = executeNamed q
+  [ ":Score"  := score
+  , ":User"   := user
+  , ":Lesson" := lesson
+  ]
   where
 
   q = [sql|
 -- finishLesson, q0
 UPDATE StartedLesson
-SET Score    = ?
-WHERE User   = ?
-  AND Lesson = ?
-  AND Round  = ?;
+SET Score    = :Score
+WHERE User   = :User
+  AND Lesson = :Lesson;
 |]
 
 -- | Gets an unfinished exercise.
@@ -843,7 +852,8 @@ getExercise
   → Types.Numeric -- ^ Round
   → db Types.ExerciseLesson
 getExercise lesson user round
-  = query q (lesson,user,round) >>= \case
+  = queryNamed q [ ":Lesson" := lesson, ":User" := user, ":Round" := round ]
+  >>= \case
     [x] → pure x
     _ → throwDbError NoActiveExercisesInLesson
 
@@ -864,9 +874,9 @@ SELECT
 FROM ExerciseList
 JOIN Exercise ON Exercise = Exercise.Id
 JOIN Lesson   ON Lesson   = Lesson.Id
-WHERE Lesson = ?
-  AND User   = ?
-  AND Round  = ?
+WHERE Lesson = :Lesson
+  AND User   = :User
+  AND Round  = :Round
   AND Score IS NULL;
 |]
 
@@ -874,15 +884,15 @@ finishExerciseAux
   ∷ MonadDB r db
   ⇒ Types.ExerciseList
   → db ()
-finishExerciseAux Types.ExerciseList{..} = execute q (score, user, exercise, round)
+finishExerciseAux = executeNamed q
   where
   q = [sql|
 -- finishExerciseAux
 UPDATE ExerciseList
-SET Score = ?
-WHERE User     = ?
-AND   Exercise = ?
-AND   Round    = ?;
+SET Score      = :Score
+WHERE User     = :User
+AND   Exercise = :Exercise
+AND   Round    = :Round;
 |]
 
 getFinishedExercises
@@ -890,8 +900,9 @@ getFinishedExercises
   ⇒ Types.Key Types.User
   → Types.Key Types.Lesson
   → db Types.Numeric
-getFinishedExercises user lesson =
-  fromOnly . Unsafe.head <$> query q (user,lesson)
+getFinishedExercises user lesson
+  =   fromOnly . Unsafe.head
+  <$> queryNamed q [ ":User" := user, ":Lesson" := lesson ]
   where
   q = [sql|
 -- getFinishedExercises
@@ -899,8 +910,8 @@ SELECT COUNT(*)
 FROM ExerciseList
 JOIN Exercise ON Exercise = Exercise.Id
 JOIN Lesson   ON Lesson   = Lesson.Id
-WHERE User = ?
-AND Lesson = ?
+WHERE User = :User
+AND Lesson = :Lesson
 AND Score NOT NULL;
 |]
 
@@ -909,13 +920,13 @@ getExerciseCount
   ⇒ Types.Key Types.Lesson
   → db Types.Numeric
 getExerciseCount lesson =
-  fromOnly . Unsafe.head <$> query q (Only lesson)
+  fromOnly . Unsafe.head <$> queryNamed q [":Lesson" := lesson]
   where
   q = [sql|
 -- getExerciseCount
 SELECT ExerciseCount
 FROM Lesson
-WHERE Id = ?;
+WHERE Id = :Lesson;
 |]
 
 -- | Get the score for the user and lesson.
@@ -926,7 +937,10 @@ getScore
   → db Score
 getScore user lesson
   =   mconcat . fmap fromOnly
-  <$> query @(Only Score) q (user, lesson)
+  <$> queryNamed @(Only Score) q
+  [ ":User"   := user
+  , ":Lesson" := lesson
+  ]
   where
 
   q = [sql|
@@ -934,8 +948,8 @@ getScore user lesson
 SELECT Score
 FROM ExerciseList
 JOIN Exercise ON Exercise = Exercise.Id
-WHERE User = ?
-AND Lesson = ?
+WHERE User = :User
+AND Lesson = :Lesson
 AND Score NOT NULL;
 |]
 

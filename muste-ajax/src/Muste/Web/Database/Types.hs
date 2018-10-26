@@ -117,11 +117,11 @@ deriving anyclass instance ToRow   User
 deriving anyclass instance FromRow User
 instance ToNamed User where
   toNamed User{..} =
-    [ "Id"        := key
-    , "Username"  := name
-    , "Password"  := password
-    , "Salt"      := salt
-    , "Enabled"   := enabled
+    [ ":Id"        := key
+    , ":Username"  := name
+    , ":Password"  := password
+    , ":Salt"      := salt
+    , ":Enabled"   := enabled
     ]
 
 data UserSansId = UserSansId
@@ -137,10 +137,10 @@ deriving anyclass instance ToRow   UserSansId
 deriving anyclass instance FromRow UserSansId
 instance ToNamed UserSansId where
   toNamed UserSansId{..} =
-    [ "Username"  := name
-    , "Password"  := password
-    , "Salt"      := salt
-    , "Enabled"   := enabled
+    [ ":Username"  := name
+    , ":Password"  := password
+    , ":Salt"      := salt
+    , ":Enabled"   := enabled
     ]
 
 data CreateUser = CreateUser
@@ -155,9 +155,9 @@ deriving anyclass instance ToRow   CreateUser
 deriving anyclass instance FromRow CreateUser
 instance ToNamed CreateUser where
   toNamed CreateUser{..} =
-    [ "Username"  := name
-    , "Password"  := password
-    , "Enabled"   := enabled
+    [ ":Username"  := name
+    , ":Password"  := password
+    , ":Enabled"   := enabled
     ]
 
 -- If we made it so that only /already/ authenticated users could
@@ -175,9 +175,9 @@ deriving anyclass instance ToRow   ChangePassword
 deriving anyclass instance FromRow ChangePassword
 instance ToNamed ChangePassword where
   toNamed ChangePassword{..} =
-    [ "Username"    := name
-    , "OldPassword" := oldPassword
-    , "NewPassword" := newPassword
+    [ ":Username"    := name
+    , ":OldPassword" := oldPassword
+    , ":NewPassword" := newPassword
     ]
 
 newtype Token = Token Text
@@ -201,10 +201,10 @@ deriving anyclass instance ToRow   Session
 deriving anyclass instance FromRow Session
 instance ToNamed Session where
   toNamed Session{..} =
-    [ "User"        := user
-    , "Token"       := token
-    , "Starttime"   := startTime
-    , "LastActive"  := lastActive
+    [ ":User"        := user
+    , ":Token"       := token
+    , ":Starttime"   := startTime
+    , ":LastActive"  := lastActive
     ]
 
 -- NB Doesn't quite correspond to the view.
@@ -226,15 +226,15 @@ deriving anyclass instance ToRow   ExerciseLesson
 deriving anyclass instance FromRow ExerciseLesson
 instance ToNamed ExerciseLesson where
   toNamed ExerciseLesson{..} =
-    [ "Exercise"         := exercise
-    , "LessonKey"        := lessonKey
-    , "LessonName"       := lessonName
-    , "Source"           := source
-    , "Target"           := target
-    , "SrcDir"           := srcDir
-    , "TrgDir"           := trgDir
-    , "HighlightMatches" := highlightMatches
-    , "ExerciseOrder"    := exerciseOrder
+    [ ":Exercise"         := exercise
+    , ":LessonKey"        := lessonKey
+    , ":LessonName"       := lessonName
+    , ":Source"           := source
+    , ":Target"           := target
+    , ":SrcDir"           := srcDir
+    , ":TrgDir"           := trgDir
+    , ":HighlightMatches" := highlightMatches
+    , ":ExerciseOrder"    := exerciseOrder
     ]
 
 -- NB Doesn't really correspond to the db.
@@ -252,11 +252,11 @@ deriving anyclass instance ToRow   Exercise
 deriving anyclass instance FromRow Exercise
 instance ToNamed Exercise where
   toNamed Exercise{..} =
-    [ "sourceLinearization" := sourceLinearization
-    , "targetLinearization" := targetLinearization
-    , "lesson"              := lesson
-    , "timeout"             := timeout
-    , "exerciseOrder"       := exerciseOrder
+    [ ":SourceLinearization" := sourceLinearization
+    , ":TargetLinearization" := targetLinearization
+    , ":Lesson"              := lesson
+    , ":Timeout"             := timeout
+    , ":ExerciseOrder"       := exerciseOrder
     ]
 
 data Direction = VersoRecto | RectoVerso
@@ -302,21 +302,21 @@ deriving anyclass instance ToRow   Lesson
 deriving anyclass instance FromRow Lesson
 instance ToNamed Lesson where
   toNamed Lesson{..} =
-    [ "Id"                := key
-    , "Name"              := name
-    , "Description"       := description
-    , "Grammar"           := grammar
-    , "SourceLanguage"    := sourceLanguage
-    , "TargetLanguage"    := targetLanguage
-    , "ExerciseCount"     := exerciseCount
-    , "Enabled"           := enabled
-    , "SearchLimitDepth"  := searchLimitDepth
-    , "SearchLimitSize"   := searchLimitSize
-    , "Repeatable"        := repeatable
-    , "SourceDirection"   := sourceDirection
-    , "TargetDirection"   := targetDirection
-    , "HighlightMatches"  := highlightMatches
-    , "RandomizeOrder"    := randomizeOrder
+    [ ":Id"                := key
+    , ":Name"              := name
+    , ":Description"       := description
+    , ":Grammar"           := grammar
+    , ":SourceLanguage"    := sourceLanguage
+    , ":TargetLanguage"    := targetLanguage
+    , ":ExerciseCount"     := exerciseCount
+    , ":Enabled"           := enabled
+    , ":SearchLimitDepth"  := searchLimitDepth
+    , ":SearchLimitSize"   := searchLimitSize
+    , ":Repeatable"        := repeatable
+    , ":SourceDirection"   := sourceDirection
+    , ":TargetDirection"   := targetDirection
+    , ":HighlightMatches"  := highlightMatches
+    , ":RandomizeOrder"    := randomizeOrder
     ]
 
 data StartedLesson = StartedLesson
@@ -331,9 +331,9 @@ deriving anyclass instance ToRow   StartedLesson
 deriving anyclass instance FromRow StartedLesson
 instance ToNamed StartedLesson where
   toNamed StartedLesson{..} =
-    [ "Lesson"   := lesson
-    , "User"     := user
-    , "Round"    := round
+    [ ":Lesson"   := lesson
+    , ":User"     := user
+    , ":Round"    := round
     ]
 
 data FinishedLesson = FinishedLesson
@@ -349,10 +349,10 @@ deriving anyclass instance ToRow   FinishedLesson
 deriving anyclass instance FromRow FinishedLesson
 instance ToNamed FinishedLesson where
   toNamed FinishedLesson{..} =
-    [ "Lesson" := lesson
-    , "User"   := user
-    , "Score"  := score
-    , "Round"  := score
+    [ ":Lesson" := lesson
+    , ":User"   := user
+    , ":Score"  := score
+    , ":Round"  := score
     ]
 
 data ExerciseList = ExerciseList
@@ -369,10 +369,10 @@ deriving anyclass instance ToRow   ExerciseList
 deriving anyclass instance FromRow ExerciseList
 instance ToNamed ExerciseList where
   toNamed ExerciseList{..} =
-    [ "User"      := user
-    , "Exercise"  := exercise
-    , "Round"     := round
-    , "Score"     := score
+    [ ":User"      := user
+    , ":Exercise"  := exercise
+    , ":Round"     := round
+    , ":Score"     := score
     ]
 
 -- Like below but wuthout passedcount
@@ -393,13 +393,13 @@ deriving anyclass instance ToRow   ActiveLessonForUser
 deriving anyclass instance FromRow ActiveLessonForUser
 instance ToNamed ActiveLessonForUser where
   toNamed ActiveLessonForUser{..} =
-    [ "Lesson"        := lesson
-    , "Name"          := name
-    , "Description"   := description
-    , "Exercisecount" := exercisecount
-    , "Score"         := score
-    , "Enabled"       := enabled
-    , "User"          := user
+    [ ":Lesson"        := lesson
+    , ":Name"          := name
+    , ":Description"   := description
+    , ":Exercisecount" := exercisecount
+    , ":Score"         := score
+    , ":Enabled"       := enabled
+    , ":User"          := user
     ]
 
 -- FIXME Just belongs in "Muste.Web.Ajax".
@@ -457,9 +457,9 @@ deriving anyclass instance ToRow   UserLessonScore
 deriving anyclass instance FromRow UserLessonScore
 instance ToNamed UserLessonScore where
   toNamed UserLessonScore{..} =
-    [ "Lesson"     := lesson
-    , "LessonName" := lessonName
-    , "User"       := user
-    , "UserName"   := userName
-    , "Score"      := score
+    [ ":Lesson"     := lesson
+    , ":LessonName" := lessonName
+    , ":User"       := user
+    , ":UserName"   := userName
+    , ":Score"      := score
     ]

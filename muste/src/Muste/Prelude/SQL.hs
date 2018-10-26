@@ -75,3 +75,6 @@ instance Binary a ⇒ SQL.ToField (Nullable a) where
 -- strictly necessary.
 class ToNamed a where
   toNamed ∷ a → [SQL.NamedParam]
+
+instance ToNamed [SQL.NamedParam] where
+  toNamed = identity
