@@ -120,7 +120,8 @@ And run
 
     npm install
 
-To get fetch all dependencies.
+To get fetch all dependencies.  This is also executed automatically by
+the setup-script when you do `stack build`.
 
 ### Installing
 
