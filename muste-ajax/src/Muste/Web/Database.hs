@@ -820,24 +820,19 @@ finishLesson user lesson round = do
 
 finishLessonAux
   ∷ MonadDB r db
-  ⇒ Types.FinishedLesson -- ^ Lesson
+  ⇒ Types.FinishedLesson
   → db ()
-finishLessonAux l@(Types.FinishedLesson{..}) = do
-  execute q0 l
-  execute q1 (user, lesson)
+finishLessonAux Types.FinishedLesson{..} = do
+  execute q (score, user, lesson, round)
   where
 
-  q0 = [sql|
+  q = [sql|
 -- finishLesson, q0
-INSERT INTO FinishedLesson (Lesson, User, Score, Round) VALUES (?, ?, ?, ?);
-|]
-
-  q1 = [sql|
--- finishLesson, q1
-DELETE
-FROM StartedLesson
-WHERE User = ?
-  AND Lesson = ?;
+UPDATE StartedLesson
+SET Score    = ?
+WHERE User   = ?
+  AND Lesson = ?
+  AND Round  = ?;
 |]
 
 -- | Gets an unfinished exercise.

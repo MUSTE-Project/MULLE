@@ -5,7 +5,6 @@ DROP TABLE IF EXISTS Session;
 DROP TABLE IF EXISTS Lesson;
 DROP TABLE IF EXISTS Exercise;
 DROP TABLE IF EXISTS StartedLesson;
-DROP TABLE IF EXISTS FinishedLesson;
 DROP TABLE IF EXISTS ExerciseList;
 
 CREATE TABLE User (
@@ -29,7 +28,9 @@ CREATE TABLE Session (
 
 CREATE TABLE Exercise (
   Id            INTEGER PRIMARY KEY,
+  -- FIXME Rename to SourceLinearization
   SourceTree    BLOB,
+  -- FIXME Rename to TargetLinearization
   TargetTree    BLOB,
   Lesson        INTEGER,
   Timeout       NUMERIC NOT NULL DEFAULT 0,
@@ -68,6 +69,7 @@ CREATE TABLE StartedLesson (
   Lesson   INTEGER,
   User     INTEGER,
   Round    NUMERIC NOT NULL DEFAULT 1,
+  Score    BLOB,
 
   PRIMARY KEY(Lesson, User, Round),
   FOREIGN
@@ -78,20 +80,11 @@ CREATE TABLE StartedLesson (
     REFERENCES User(Id)
 );
 
-CREATE TABLE FinishedLesson (
-  Lesson   INTEGER,
-  User     INTEGER,
-  Score    BLOB NOT NULL,
-  Round    NUMERIC NOT NULL DEFAULT 1,
-
-  PRIMARY KEY (Lesson, User, Round),
-  FOREIGN
-    KEY            (User)
-    REFERENCES User(Id),
-  FOREIGN
-    KEY              (Lesson)
-    REFERENCES Lesson(Id)
-);
+DROP VIEW IF EXISTS FinishedLesson;
+CREATE VIEW FinishedLesson AS
+SELECT *
+FROM StartedLesson
+WHERE Score IS NOT NULL;
 
 CREATE TABLE ExerciseList (
   User      INTEGER,
