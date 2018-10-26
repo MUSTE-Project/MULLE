@@ -40,6 +40,7 @@ import           Data.Map (Map)
 import           Data.Vector (Vector)
 import qualified Snap
 import           Snap (MonadSnap)
+import qualified Data.List as List
 
 import qualified Muste
 import           Muste (Context)
@@ -144,8 +145,9 @@ instance Exception ApiError where
 newtype ErrorIdentifier = ErrorIdentifier (Vector Int)
 
 deriving newtype instance IsList ErrorIdentifier
-deriving newtype instance FromJSON ErrorIdentifier
-deriving newtype instance ToJSON ErrorIdentifier
+instance ToJSON ErrorIdentifier where
+  toJSON (ErrorIdentifier v)
+    = toJSON @String $ List.intercalate "-" $ map show $ toList v
 deriving newtype instance Semigroup ErrorIdentifier
 
 -- There might be better ways of handling this I suppose...  Another

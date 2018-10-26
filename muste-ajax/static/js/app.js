@@ -11,7 +11,9 @@ var LOGIN_TOKEN = null;
 var EXERCISES = [];
 var VIRTUAL_ROOT = '/';
 var SERVER = VIRTUAL_ROOT + 'api/';
-
+var MUSTE_ERRORS = {
+  'no-unsolved-lessons': '2-11'
+}
 jQuery().ready(init);
 
 function init() {
@@ -400,9 +402,16 @@ function select_lesson(evt) { // eslint-disable-line no-unused-vars
 
 
 function start_lesson(lesson) {
+  var errMsg = 'This lesson has already been solved, you cannot solve it again.';
   start_timer();
   muste_request({}, 'lesson/' + lesson)
-    .then(handle_menu_response);
+    .then(handle_menu_response)
+    .fail(function(e) {
+      var err = e.responseJSON.error;
+      if(err.id === MUSTE_ERRORS['no-unsolved-lessons']) {
+        alert(errMsg);
+      }
+    });
 }
 
 function handle_menu_response(r) {
