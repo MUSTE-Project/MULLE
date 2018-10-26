@@ -7,12 +7,11 @@ import qualified Distribution.Simple.Setup as Dist
 import Distribution.Types.HookedBuildInfo (HookedBuildInfo)
 import Distribution.Simple (UserHooks(..))
 import qualified Distribution.Simple as Dist
-import Turtle (Shell, Line, ExitCode(..), ProcFailed(..))
+import Turtle (Shell, Line)
 import qualified Turtle as Turtle
 import Data.Text (Text)
-import Control.Monad.IO.Class (MonadIO(liftIO))
+import Control.Monad.IO.Class (MonadIO)
 import Control.Applicative (empty)
-import Control.Exception (throwIO)
 
 main ∷ IO ()
 main
@@ -20,12 +19,12 @@ main
   $ hooks
 
 hooks ∷ UserHooks
-hooks = Dist.simpleUserHooks { preBuild }
+hooks = Dist.simpleUserHooks { preConf }
   where
-  preBuild ∷ Dist.Args → Dist.BuildFlags → IO HookedBuildInfo
-  preBuild args flags
+  preConf ∷ Dist.Args → Dist.ConfigFlags → IO HookedBuildInfo
+  preConf args flags
     =  npmInstall
-    *> Dist.preBuild Dist.simpleUserHooks args flags
+    *> Dist.preConf Dist.simpleUserHooks args flags
 
 npmInstall ∷ IO ()
 npmInstall = do
