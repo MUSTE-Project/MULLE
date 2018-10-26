@@ -38,7 +38,7 @@ import           Muste.Prelude
 import qualified Muste.Prelude.Unsafe      as Unsafe
 import           Muste.Prelude.Extra
 import           Muste.Prelude.SQL
-  ( Query, Only(..), sql, NamedParam(..)  )
+  ( Only(..), sql, NamedParam(..)  )
 import qualified Muste.Prelude.SQL         as SQL
 
 import qualified Data.List.NonEmpty        as NonEmpty
@@ -107,8 +107,10 @@ getCurrentTime = liftIO Time.getCurrentTime
 getLessons
   ∷ MonadDB r db
   ⇒ db [Types.Lesson]
-getLessons = query_ 
-  [sql|
+getLessons = query_ q
+  where
+
+  q = [sql|
 -- getLessons
 SELECT
     Id
@@ -283,6 +285,7 @@ getSession
   → db (Maybe Types.Token)
 getSession user = fmap fromOnly . listToMaybe <$> queryNamed q [":User" := user]
   where
+
   q = [sql|
 -- getSession
 SELECT Token
@@ -296,6 +299,7 @@ endSession
   → db ()
 endSession t = executeNamed q [ ":Token" := t ]
   where
+
   q = [sql|
 -- endSession
 DELETE
@@ -324,6 +328,7 @@ startSession user = do
   executeNamed q session
   pure token
   where
+
   q = [sql|
 -- startSession
 INSERT INTO Session (User, Token, Starttime, LastActive)
@@ -342,6 +347,7 @@ updateActivity token = do
   timeStamp ← formatTime <$> getCurrentTime
   executeNamed q [ ":LastActive" := timeStamp, ":Token" := token ]
   where
+
   q = [sql|
 -- updateActivity
 UPDATE Session
@@ -349,7 +355,7 @@ SET LastActive = :LastActive
 WHERE Token = :Token;
 |]
 
--- | Returns @Just err@ if there is an error.
+-- | Throws @SessionTimeout@ if the session has timed out.
 verifySession
   ∷ MonadDB r db
   ⇒ Types.Token
@@ -360,7 +366,8 @@ verifySession token = do
   -- from here might not be executed due to lazy evaluation...
   -- Compute the difference in time stamps
   newTimeStamp ← getCurrentTime
-  -- ... until here. check if a session exists and it is has been active in the last 30 minutes
+  -- ... until here. check if a session exists and it is has been
+  -- active in the last 30 minutes
   case expired sessions newTimeStamp of
     Nothing → pure ()
     Just err → do
@@ -406,6 +413,7 @@ deleteSession
   → db ()
 deleteSession token = executeNamed q [ ":Token" := token ]
   where
+
   q = [sql|
 -- deleteSession
 DELETE
@@ -470,7 +478,6 @@ SELECT
   Score,
   Lesson.Enabled,
   FinishedExercise.User
-
 FROM Exercise
 JOIN Lesson ON Exercise.Lesson = Lesson.Id
 LEFT
@@ -501,6 +508,7 @@ checkStarted user lesson
   =   (0 /=) . fromOnly . Unsafe.head
   <$> queryNamed @(Only Int) q [":User" := user, ":Lesson" := lesson]
   where
+
   q = [sql|
 -- checkStarted
 SELECT COUNT(*)
@@ -514,14 +522,14 @@ getUser
   ⇒ Types.Token
   → db (Types.Key Types.User)
 getUser token = do
-  xs ← queryNamed userQuery [":Token" := token]
+  xs ← queryNamed q [":Token" := token]
   case xs of
     []       → throwDbError NoUserFound
     [Only x] → pure x
     _        → throwDbError MultipleUsers
   where
-  userQuery
-    = [sql|
+
+  q = [sql|
 -- getuser
 SELECT User
 FROM Session
@@ -567,9 +575,7 @@ newLesson user lesson = do
   selectedTrees ← pickExercises lesson
   exerciseLesson ← case selectedTrees of
     []      → throwDbError NoExercisesInLesson
-
     (x : _) → pure x
-
   -- save in database
   startLessonAux $ Types.StartedLesson lesson user lessonRound
   let
@@ -600,14 +606,20 @@ pickExercises lesson = do
   else pure $ sortOn ExerciseLesson.exerciseOrder es
 
 startLessonAux ∷ MonadDB r db ⇒ Types.StartedLesson → db ()
-startLessonAux = executeNamed [sql|
+startLessonAux = executeNamed q
+  where
+
+  q = [sql|
 -- startLessonAux
 INSERT INTO StartedLesson (Lesson, User, Round)
 VALUES (:Lesson, :User, :Round);
 |]
 
 insertExercises ∷ MonadDB r db ⇒ [Types.ExerciseList] → db ()
-insertExercises = executeManyNamed [sql|
+insertExercises = executeManyNamed q
+  where
+
+  q = [sql|
 -- insertExercises
 INSERT INTO ExerciseList (User, Exercise, Round, Score)
 VALUES (:User, :Exercise, :Round, :Score);
@@ -621,7 +633,7 @@ getLessonRound
 getLessonRound user lesson =
   fromOnly . Unsafe.head <$> queryNamed q [ ":User" := user, ":Lesson" := lesson ]
   where
-  q ∷ Query
+
   q = [sql|
 -- getLessonRound
 SELECT ifnull(MAX(ExerciseList.Round) + 1,0)
@@ -705,7 +717,7 @@ finishLessonAux Types.FinishedLesson{..}
   where
 
   q = [sql|
--- finishLesson, q0
+-- finishLesson
 UPDATE StartedLesson
 SET Score    = :Score
 WHERE User   = :User
@@ -724,7 +736,6 @@ getExercise lesson user round
   >>= \case
     [x] → pure x
     _ → throwDbError NoActiveExercisesInLesson
-
   where
 
   q = [sql|
@@ -754,6 +765,7 @@ finishExerciseAux
   → db ()
 finishExerciseAux = executeNamed q
   where
+
   q = [sql|
 -- finishExerciseAux
 UPDATE ExerciseList
@@ -772,6 +784,7 @@ getFinishedExercises user lesson
   =   fromOnly . Unsafe.head
   <$> queryNamed q [ ":User" := user, ":Lesson" := lesson ]
   where
+
   q = [sql|
 -- getFinishedExercises
 SELECT COUNT(*)
@@ -790,6 +803,7 @@ getExerciseCount
 getExerciseCount lesson =
   fromOnly . Unsafe.head <$> queryNamed q [":Lesson" := lesson]
   where
+
   q = [sql|
 -- getExerciseCount
 SELECT ExerciseCount
@@ -828,8 +842,10 @@ AND Score NOT NULL;
 getUserLessonScores
   ∷ MonadDB r db
   ⇒ db [Types.UserLessonScore]
-getUserLessonScores = query_
-  [sql|
+getUserLessonScores = query_ q
+  where
+
+  q = [sql|
 -- getUserLessonScores
 SELECT
   Lesson.Id,
