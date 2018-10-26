@@ -1,6 +1,7 @@
 name:                muste
 version:             0.2.7.0
 license:             BSD3
+license-file:        LICENSE
 author:              Herbert Lange
 maintainer:          herbert.lange@cse.gu.se
 

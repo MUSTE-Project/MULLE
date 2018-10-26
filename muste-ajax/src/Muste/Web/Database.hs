@@ -1,4 +1,4 @@
--- | Handles CRUD operations.
+-- | Handles CRUD operations (and a bit of logic).
 --
 -- Module      : Muste.Web.Database
 -- License     : Artistic License 2.0
