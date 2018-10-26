@@ -36,6 +36,8 @@ import qualified Data.Set                    as Set
 import           Data.Set (Set)
 import qualified Snap
 import qualified System.IO.Streams           as Streams
+import qualified Data.List.NonEmpty as NonEmpty
+import qualified GHC.Num as Math
 
 import qualified Muste
 import           Muste (Context, TTree)
@@ -51,6 +53,8 @@ import qualified Muste.Web.Ajax              as ClientTree ( ClientTree(..) )
 import qualified Muste.Web.Database          as Database
 import qualified Muste.Web.Database.Types    as Database
 import qualified Muste.Web.Database.Types    as Database.User ( User(..) )
+import qualified Muste.Web.Database.Types
+  as Database.UserLessonScore ( UserLessonScore(..) )
 import           Muste.Web.Protocol.Class
 import qualified Muste.Web.Types.Score       as Score
 
@@ -373,8 +377,14 @@ makeTree c lesson s d
   language = Sentence.language s
 
 highScoresHandler ∷ MonadProtocol m ⇒ m (Response [Ajax.HighScore])
-highScoresHandler = pure . fmap go <$> Database.getUserLessonScores
+highScoresHandler = pure . step <$> Database.getUserLessonScores
   where
+  -- Group by lesson, then sort by the valuation of the score.
+  step ∷ [Database.UserLessonScore] → [Ajax.HighScore]
+  step = NonEmpty.groupBy theLesson >>> fmap byValuation
+  byValuation  = NonEmpty.sortBy theValuation >>> NonEmpty.head >>> go
+  theLesson    = ((==) `on` Database.UserLessonScore.lesson)
+  theValuation = compare `on` Math.negate . Score.valuation . Database.UserLessonScore.score
   go ∷ Database.UserLessonScore → Ajax.HighScore
   go Database.UserLessonScore{..} = Ajax.HighScore
     { lesson = Ajax.Lesson

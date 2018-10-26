@@ -12,12 +12,15 @@ module Muste.Web.Types.Score
   ( Score(..)
   , addClick
   , setTime
+  , valuation
   ) where
 
 import Prelude ()
 import Muste.Prelude
 import Muste.Prelude.SQL (FromField, ToField)
 import qualified Muste.Prelude.SQL as SQL
+import qualified GHC.Float as Math
+import           GHC.Real ((/))
 
 import Data.Aeson ((.:), (.=))
 import qualified Data.Aeson as Aeson
@@ -73,3 +76,28 @@ instance FromField Score where
 
 instance ToField Score where
   toField = SQL.toBlob
+
+
+-- This also has an implementation in js:
+
+--   function normalize(x) {
+--     return 1 / Math.log(x + 1);
+--   }
+--   function valuation(score) {
+--     return normalize(score.clicks) * normalize(score.time);
+--   }
+--
+-- They must agree.
+--
+-- FIXME Don't do the above.  Just compute the valuation server-side.
+-- | The product of "normalization" the various metrics of a score.
+-- The "normalization" ensures that
+
+-- * A positive metric contributes a positive weight
+-- * Smaller values are better
+-- * Margins near the optimum (zero) are more significant.
+valuation ∷ Score → Double
+valuation Score{..} = normalize clicks * normalize time
+  where
+  normalize ∷ Real n ⇒ n → Double
+  normalize (realToFrac → x) = 1 / Math.log (x + 1)

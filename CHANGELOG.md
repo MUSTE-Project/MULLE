@@ -4,6 +4,9 @@ Change log
 HEAD
 ---
 
+Ensure that only the best score is returned for each lesson when
+fetching high scores.
+
 0.2.8.0
 ---
 

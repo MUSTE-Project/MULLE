@@ -16,6 +16,7 @@ import Prelude as X
 
   -- Data
   IO, Int, Integer, Float, Maybe(..), Either(..), Bool(..), Char,
+  Double,
 
   -- Aliases
   String, FilePath,
@@ -26,7 +27,7 @@ import Prelude as X
   max, min, sum, unwords, words, lines, unlines, or, and, notElem,
   elem, (<*>), foldMap, putStrLn, putStr, flip, const, sequence, take,
   mapM_, mapM, ioError, error, repeat, foldl, seq, mod, div, print,
-  realToFrac, fromIntegral)
+  realToFrac, fromIntegral, compare)
 import Data.List                 as X (sort, last, nub, sortOn)
 import Data.List.NonEmpty        as X (NonEmpty(..), groupBy)
 import Data.Bool                 as X (bool)
