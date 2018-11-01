@@ -55,7 +55,10 @@ import qualified Muste.Web.Database.Types    as Database
 import qualified Muste.Web.Database.Types    as Database.User ( User(..) )
 import qualified Muste.Web.Database.Types
   as Database.UserLessonScore ( UserLessonScore(..) )
+import qualified Muste.Web.Database.Types    as ActiveLessonForUser
+  (ActiveLessonForUser(..))
 import           Muste.Web.Protocol.Class
+import           Muste.Web.Types.Score (Score)
 import qualified Muste.Web.Types.Score       as Score
 
 liftEither ∷ MonadError ProtocolError m ⇒ SomeException ~ e ⇒ Either e a → m a
@@ -110,13 +113,42 @@ getToken = do
 getTokenCookie ∷ MonadProtocol m ⇒ m (Maybe Snap.Cookie)
 getTokenCookie = Snap.getCookie "LOGIN_TOKEN"
 
-
--- * Handlers
 lessonsHandler ∷ MonadProtocol m ⇒ m (Response Ajax.LessonList)
 lessonsHandler = do
   t ← getToken
-  lessons ← Database.getActiveLessons t
+  lessons ← getActiveLessons t
   pure <$> verifyMessage (Ajax.LessonList lessons)
+
+getActiveLessons ∷ MonadProtocol m ⇒ Database.Token → m [Ajax.ActiveLesson]
+getActiveLessons t =
+  fmap step . groupOn ActiveLessonForUser.lesson <$> Database.getActiveLessons t
+  where
+  step ∷ NonEmpty Database.ActiveLessonForUser → Ajax.ActiveLesson
+  step xs@(Database.ActiveLessonForUser{..} :| _) = Ajax.ActiveLesson
+    { lesson        = lesson
+    , name          = name
+    , description   = description
+    , exercisecount = exercisecount
+    , score         = sconcat <$> maybeScores
+    -- This shuold be the same as asking whether 'score' is a 'Just'
+    -- cell.
+    , finished      = passedcount == exercisecount
+    , enabled       = enabled
+    , passedcount   = passedcount
+    }
+    where
+    passedcount
+      = fromIntegral
+      $ length
+      $ NonEmpty.filter isFinished xs
+    isFinished ∷ Database.ActiveLessonForUser → Bool
+    isFinished = isJust . ActiveLessonForUser.score
+    scores ∷ NonEmpty (Maybe Score)
+    scores = ActiveLessonForUser.score <$> xs
+    -- If just a single score is a Nothing we say that the score is a
+    -- nothing.  Though they should all agree.
+    maybeScores ∷ Maybe (NonEmpty Score)
+    maybeScores = traverse identity scores
 
 lessonHandler ∷ MonadProtocol m ⇒ m (Response Ajax.MenuResponse)
 lessonHandler = pure <$> Snap.pathArg (handleLessonInit . Database.Key)

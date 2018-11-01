@@ -18,10 +18,7 @@ module Muste.Web.Ajax
   ( ServerTree(..)
   , ClientTree(..)
   , LoginRequest(..)
-  -- FIXME Better probably just to make an almost identical definition
-  -- here and then convert between them (maybe even using 'coerce' for
-  -- the sake of efficiency)
-  , Database.ActiveLesson(..)
+  , ActiveLesson(..)
   , User(..)
   , CreateUser(..)
   , ChangePassword(..)
@@ -187,7 +184,7 @@ instance ToJSON LoginSuccess where
     [ "login-succes" .= token
     ]
 
-newtype LessonList = LessonList [Database.ActiveLesson]
+newtype LessonList = LessonList [ActiveLesson]
 
 instance FromJSON LessonList where
   parseJSON = Aeson.withObject "lesson-list"
@@ -337,3 +334,41 @@ instance ToJSON HighScore where
     , "user"       .= user
     , "score"      .= score
     ]
+data ActiveLesson = ActiveLesson
+  { lesson        ∷ Database.Key Database.Lesson
+  , name          ∷ Text
+  , description   ∷ Text
+  , exercisecount ∷ Database.Numeric
+  , passedcount   ∷ Database.Numeric
+  , score         ∷ Maybe Score
+  , finished      ∷ Bool
+  , enabled       ∷ Bool
+  }
+
+deriving stock    instance Show    ActiveLesson
+deriving stock    instance Generic ActiveLesson
+
+instance FromJSON ActiveLesson where
+  parseJSON = Aeson.withObject "Lesson"
+    $ \v -> ActiveLesson
+    <$> v .: "lesson"
+    <*> v .: "name"
+    <*> v .: "description"
+    <*> v .: "exercisecount"
+    <*> v .: "passedcount"
+    <*> v .: "score"
+    <*> v .: "passed"
+    <*> v .: "enabled"
+
+instance ToJSON ActiveLesson where
+  toJSON ActiveLesson{..} = Aeson.object
+    [ "lesson"        .= lesson
+    , "name"          .= name
+    , "description"   .= description
+    , "exercisecount" .= exercisecount
+    , "passedcount"   .= passedcount
+    , "score"         .= score
+    , "passed"        .= finished
+    , "enabled"       .= enabled
+    ]
+

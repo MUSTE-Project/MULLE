@@ -36,12 +36,9 @@ module Muste.Web.Database
 import           Prelude ()
 import           Muste.Prelude
 import qualified Muste.Prelude.Unsafe      as Unsafe
-import           Muste.Prelude.Extra
 import           Muste.Prelude.SQL
   ( Only(..), sql, NamedParam(..)  )
 import qualified Muste.Prelude.SQL         as SQL
-
-import qualified Data.List.NonEmpty        as NonEmpty
 
 import qualified Crypto.Random.API         as Crypto
 import qualified Crypto.KDF.PBKDF2         as Crypto
@@ -57,8 +54,6 @@ import qualified Data.Time.Format          as Time
 import qualified Test.QuickCheck           as QC (shuffle, generate)
 
 import qualified Muste.Web.Database.Types  as Types
-import qualified Muste.Web.Database.Types  as ActiveLessonForUser
-  (ActiveLessonForUser(..))
 import qualified Muste.Web.Database.Types  as ExerciseLesson
   (ExerciseLesson(..))
 import qualified Muste.Web.Database.Types  as User (User(..))
@@ -427,38 +422,10 @@ getActiveLessons
   ∷ ∀ r db
   . MonadDB r db
   ⇒ Types.Token
-  → db [Types.ActiveLesson]
+  → db [Types.ActiveLessonForUser]
 getActiveLessons token = do
   user ← getUser token
-  fmap step . groupOn ActiveLessonForUser.lesson <$> getActiveLessonsForUser user
-  where
-  step ∷ (NonEmpty Types.ActiveLessonForUser) → Types.ActiveLesson
-  step xs@(Types.ActiveLessonForUser{..} :| _) = Types.ActiveLesson
-    { lesson        = lesson
-    , name          = name
-    , description   = description
-    , exercisecount = exercisecount
-    , score         = sconcat <$> maybeScores
-    -- This shuold be the same as asking whether 'score' is a 'Just'
-    -- cell.
-    , finished      = passedcount == exercisecount
-    , enabled       = enabled
-    -- , passedcount   = NonEmpty.length xs
-    , passedcount   = passedcount
-    }
-    where
-    passedcount
-      = fromIntegral
-      $ length
-      $ NonEmpty.filter isFinished xs
-    isFinished ∷ Types.ActiveLessonForUser → Bool
-    isFinished = isJust . ActiveLessonForUser.score
-    scores ∷ NonEmpty (Maybe Score)
-    scores = ActiveLessonForUser.score <$> xs
-    -- If just a single score is a Nothing we say that the score is a
-    -- nothing.  Though they should all agree.
-    maybeScores ∷ Maybe (NonEmpty Score)
-    maybeScores = traverse identity scores
+  getActiveLessonsForUser user
 
 getActiveLessonsForUser
   ∷ ∀ r db

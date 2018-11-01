@@ -29,7 +29,6 @@ module Muste.Web.Database.Types
   , FinishedLesson(..)
   , ExerciseList(..)
   , ActiveLessonForUser(..)
-  , ActiveLesson(..)
   , UserLessonScore(..)
   , Key(..)
   , Muste.TTree
@@ -54,8 +53,7 @@ import Muste.Prelude.SQL
 import Data.Int (Int64)
 
 import Data.ByteString (ByteString)
-import Data.Aeson (FromJSON(..), (.:), ToJSON(..), (.=))
-import qualified Data.Aeson as Aeson
+import Data.Aeson (FromJSON(..), ToJSON(..))
 
 import qualified Muste (TTree)
 import qualified Muste.Sentence.Unannotated as Sentence (Unannotated)
@@ -400,47 +398,6 @@ instance ToNamed ActiveLessonForUser where
     , ":Score"         := score
     , ":Enabled"       := enabled
     , ":User"          := user
-    ]
-
--- FIXME Just belongs in "Muste.Web.Ajax".
--- | Not like 'Types.Lesson'.  'Types.Lesson' refers to the
--- representation in the database.  This is the type used in "Ajax".
-data ActiveLesson = ActiveLesson
-  { lesson        ∷ Key Lesson
-  , name          ∷ Text
-  , description   ∷ Text
-  , exercisecount ∷ Numeric
-  , passedcount   ∷ Numeric
-  , score         ∷ Maybe Score
-  , finished      ∷ Bool
-  , enabled       ∷ Bool
-  }
-
-deriving stock    instance Show    ActiveLesson
-deriving stock    instance Generic ActiveLesson
-
-instance FromJSON ActiveLesson where
-  parseJSON = Aeson.withObject "Lesson"
-    $ \v -> ActiveLesson
-    <$> v .: "lesson"
-    <*> v .: "name"
-    <*> v .: "description"
-    <*> v .: "exercisecount"
-    <*> v .: "passedcount"
-    <*> v .: "score"
-    <*> v .: "passed"
-    <*> v .: "enabled"
-
-instance ToJSON ActiveLesson where
-  toJSON ActiveLesson{..} = Aeson.object
-    [ "lesson"        .= lesson
-    , "name"          .= name
-    , "description"   .= description
-    , "exercisecount" .= exercisecount
-    , "passedcount"   .= passedcount
-    , "score"         .= score
-    , "passed"        .= finished
-    , "enabled"       .= enabled
     ]
 
 data UserLessonScore = UserLessonScore
