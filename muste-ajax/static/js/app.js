@@ -291,6 +291,9 @@ function display_error(resp) {
 
 function register_handlebars_helper() {
   Handlebars.registerHelper({
+    not: function (v) {
+      return !v;
+    },
     eq: function (v1, v2) {
       return v1 === v2;
     },
@@ -358,7 +361,7 @@ var lesson_list_template = ' \
     </p> \
    </div> \
    <div class="lesson-info-button"> \
-    <button {{#if enabled}}{{else}}disabled{{/if}} onclick="start_lesson({{lesson}});">Solve</button> \
+    <button {{#if (or passed (not enabled))}}disabled{{/if}} onclick="start_lesson({{lesson}});">Solve</button> \
    </div> \
   </div> \
  </div> \
