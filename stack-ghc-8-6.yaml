@@ -16,8 +16,10 @@ extra-deps:
   - git: git@github.com:MUSTE-Project/haskell-cgi.git
     commit: b45aabe6ccfd5aa81c5883b25fef019d60e9d9d0
   # Needed to satisfy `snap`
-  - git: git@github.com:fredefox/snap.git
-    commit: 119e81cbfd6cf6d267a91d8b5da81a5facb9d3a3
+  # - git: git@github.com:fredefox/snap.git
+    # commit: 119e81cbfd6cf6d267a91d8b5da81a5facb9d3a3
+  - libs/snap
+  - libs/Haskell-Turtle-Library
   - heist-1.1
   - map-syntax-0.3
   - pwstore-fast-2.4.4
@@ -49,5 +51,7 @@ extra-deps:
   - snap-server-1.1.0.0@sha256:50faf3d8672296150f2d6fb5b72067a626e9cda5c84c658ba86fe7b2b01d2d29,15074
   - haskell-src-meta-0.8.0.3@sha256:a032bef13356962b96200d5e97c4a878c5f603b240ff4208675b56786efef88f,2072
   - io-streams-haproxy-1.0.0.2@sha256:34c5d2cf5fdc6103d9bdb5745d770f9fe856be2455dce57a62abd853800a8519,3042
+  - managed-1.0.6@sha256:1da884195081d70b6bec475db985017431eb42564bf648ad6968640ddafe25b0,1535
+  - optional-args-1.0.2@sha256:f3b5ea2354b1ec16153dfe46f1b4e61a9c324b93ce6ccd8550665c59622cc37f,835
 
 allow-newer: yes

@@ -17,3 +17,9 @@ optional-packages:
 
   # digestive-functors
   libs/digestive-functors
+
+  libs/multiset
+
+  libs/snap
+
+  libs/jmacro

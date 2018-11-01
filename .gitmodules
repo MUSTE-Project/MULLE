@@ -26,4 +26,19 @@
 # dependency is manage by stack.
 [submodule "libs/gf-core"]
 	path = libs/gf-core
-	url = git@github.com:GrammaticalFramework/gf-core.git
+	url = git@github.com:MUSTE-Project/gf-core.git
+
+[submodule "libs/multiset"]
+	path = libs/multiset
+	url = git@github.com:twanvl/multiset.git
+
+[submodule "libs/snap"]
+	path = libs/snap
+	url = git@github.com:fredefox/snap.git
+
+[submodule "libs/jmacro"]
+	path = libs/jmacro
+	url = git@github.com:fredefox/jmacro.git
+[submodule "libs/Haskell-Turtle-Library"]
+	path = libs/Haskell-Turtle-Library
+	url = git@github.com:Gabriel439/Haskell-Turtle-Library.git
