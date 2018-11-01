@@ -65,13 +65,20 @@ CREATE TABLE Lesson (
   RandomizeOrder    BOOL NOT NULL DEFAULT 0
 );
 
+-- Previous a "finished lesson" was implemented as a seperate table.
+-- Now, this is simply done by distinguishing between the two using
+-- the 'Score' column.
+--
+-- Since we want to be able to have a finished lesson at the same time
+-- a currently running lesson, we can have at most two
+-- lesson,user,round combinations now.
 CREATE TABLE StartedLesson (
   Lesson   INTEGER,
   User     INTEGER,
+  -- FIXME Could be implemented as a view?
   Round    NUMERIC NOT NULL DEFAULT 1,
   Score    BLOB,
 
-  PRIMARY KEY(Lesson, User, Round),
   FOREIGN
     KEY              (Lesson)
     REFERENCES Lesson(Id),
@@ -85,6 +92,12 @@ CREATE VIEW FinishedLesson AS
 SELECT *
 FROM StartedLesson
 WHERE Score IS NOT NULL;
+
+DROP VIEW IF EXISTS UnfinishedLesson;
+CREATE VIEW UnfinishedLesson AS
+SELECT *
+FROM StartedLesson
+WHERE Score IS NULL;
 
 CREATE TABLE ExerciseList (
   User      INTEGER,

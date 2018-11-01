@@ -480,7 +480,7 @@ checkStarted user lesson
   q = [sql|
 -- checkStarted
 SELECT COUNT(*)
-FROM StartedLesson
+FROM UnfinishedLesson
 WHERE User = :User
   AND Lesson = :Lesson;
 |]
@@ -593,6 +593,9 @@ INSERT INTO ExerciseList (User, Exercise, Round, Score)
 VALUES (:User, :Exercise, :Round, :Score);
 |]
 
+-- FIXME It makes more sense to query @StartedLesson@ to figure out
+-- how far along the lesson is or perhaps implement this as a view or
+-- something.  Should be more robust...
 getLessonRound
   ∷ MonadDB r db
   ⇒ Types.Key Types.User
@@ -657,6 +660,8 @@ checkFinished user lesson = do
   exerciseCount ← getExerciseCount lesson
   pure $ finishedCount >= exerciseCount
 
+-- | This method will update the score for a given @StartedLesson@ and
+-- ensure that there is only one entry per user/lesson combination.
 finishLesson
   ∷ MonadDB r db
   ⇒ Types.Key Types.User
@@ -665,29 +670,32 @@ finishLesson
   → db ()
 finishLesson user lesson round = do
   score ← getScore user lesson
-  finishLessonAux $ Types.FinishedLesson
+  deleteStartedLessons user lesson
+  executeNamed q $ Types.FinishedLesson
     { user   = user
     , lesson = lesson
     , score  = score
     , round  = succ round
     }
-
-finishLessonAux
-  ∷ MonadDB r db
-  ⇒ Types.FinishedLesson
-  → db ()
-finishLessonAux Types.FinishedLesson{..}
-  = executeNamed q
-  [ ":Score"  := score
-  , ":User"   := user
-  , ":Lesson" := lesson
-  ]
   where
 
   q = [sql|
 -- finishLesson
-UPDATE StartedLesson
-SET Score    = :Score
+INSERT INTO StartedLesson (Lesson, User, Round, Score)
+VALUES  (:Lesson, :User, :Round, :Score);
+|]
+
+deleteStartedLessons
+  ∷ MonadDB r db
+  ⇒ Types.Key Types.User
+  → Types.Key Types.Lesson
+  → db ()
+deleteStartedLessons u l = executeNamed q [":User" := u, ":Lesson" := l]
+  where
+
+  q = [sql|
+-- deleteStartedLesson
+DELETE FROM StartedLesson
 WHERE User   = :User
   AND Lesson = :Lesson;
 |]
@@ -836,24 +844,7 @@ resetLesson
   → db ()
 resetLesson t l = do
   u ← getUser t
-  deleteStartedLesson u l
   deleteExerciseList u l
-
--- | Unsets the "finishedness" of a lesson for a given user/lesson.
-deleteStartedLesson
-  ∷ MonadDB r db
-  ⇒ Types.Key Types.User
-  → Types.Key Types.Lesson
-  → db ()
-deleteStartedLesson u l = executeNamed q [":User" := u, ":Lesson" := l]
-  where
-
-  q = [sql|
--- deleteStartedLesson
-DELETE FROM StartedLesson
-WHERE Lesson = :Lesson
-AND   User   = :User;
-|]
 
 -- | Deletes the exercise for a given user/lesson.
 deleteExerciseList
