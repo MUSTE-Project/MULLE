@@ -362,6 +362,7 @@ var lesson_list_template = ' \
    </div> \
    <div class="lesson-info-button"> \
     <button {{#if (or passed (not enabled))}}disabled{{/if}} onclick="start_lesson({{lesson}});">Solve</button> \
+    {{#if passed}}<button onclick="restart_lesson({{lesson}});">Restart</button>{{/if}} \
    </div> \
   </div> \
  </div> \
@@ -405,16 +406,17 @@ function select_lesson(evt) { // eslint-disable-line no-unused-vars
 
 
 function start_lesson(lesson) {
-  var errMsg = 'This lesson has already been solved, you cannot solve it again.';
+  start_lesson_aux(lesson, {restart: false});
+}
+
+function restart_lesson(lesson) {
+  start_lesson_aux(lesson, {restart: true});
+}
+
+function start_lesson_aux(lesson, data) {
   start_timer();
-  muste_request({}, 'lesson/' + lesson)
-    .then(handle_menu_response)
-    .fail(function(e) {
-      var err = e.responseJSON.error;
-      if(err.id === MUSTE_ERRORS['no-unsolved-lessons']) {
-        alert(errMsg);
-      }
-    });
+  muste_request(data, 'lesson/' + lesson)
+    .then(handle_menu_response);
 }
 
 function handle_menu_response(r) {

@@ -151,7 +151,20 @@ getActiveLessons t =
     maybeScores = traverse identity scores
 
 lessonHandler ∷ MonadProtocol m ⇒ m (Response Ajax.MenuResponse)
-lessonHandler = pure <$> Snap.pathArg (handleLessonInit . Database.Key)
+lessonHandler = Snap.method Snap.POST $ do
+  l ← Snap.pathArg (pure . Database.Key @Database.Lesson)
+  Ajax.StartLessonSettings restart ← getMessage @Ajax.StartLessonSettings
+  when restart (resetLesson l)
+  pure <$> handleLessonInit l
+
+-- | Removes all finished exercises for the given lesson.
+resetLesson
+  ∷ MonadProtocol m
+  ⇒ Database.Key Database.Lesson
+  → m ()
+resetLesson l = do
+  t ← getToken
+  Database.resetLesson t l
 
 menuHandler ∷ MonadProtocol m ⇒ m (Response Ajax.MenuResponse)
 menuHandler = getMessage >>= fmap pure . handleMenuRequest
@@ -429,3 +442,4 @@ highScoresHandler = pure . step <$> Database.getUserLessonScores
         }
     , score = score
     }
+

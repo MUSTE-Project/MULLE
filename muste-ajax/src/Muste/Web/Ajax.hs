@@ -32,6 +32,7 @@ module Muste.Web.Ajax
   , Lesson(..)
   , Score(..)
   , Direction(..)
+  , StartLessonSettings(..)
   ) where
 
 import Prelude ()
@@ -334,6 +335,7 @@ instance ToJSON HighScore where
     , "user"       .= user
     , "score"      .= score
     ]
+
 data ActiveLesson = ActiveLesson
   { lesson        ∷ Database.Key Database.Lesson
   , name          ∷ Text
@@ -372,3 +374,15 @@ instance ToJSON ActiveLesson where
     , "enabled"       .= enabled
     ]
 
+-- | Determines if we should restart a lesson if it is not already started.
+newtype StartLessonSettings = StartLessonSettings
+  { restart       ∷ Bool
+  }
+
+deriving stock    instance Show    StartLessonSettings
+deriving stock    instance Generic StartLessonSettings
+
+instance FromJSON StartLessonSettings where
+  parseJSON = Aeson.withObject "settings"
+    $ \v -> StartLessonSettings
+    <$> v .:? "restart" .!= False

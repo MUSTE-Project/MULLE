@@ -31,6 +31,7 @@ module Muste.Web.Database
   , updateActivity
   , rmUser
   , getUserLessonScores
+  , resetLesson
   ) where
 
 import           Prelude ()
@@ -826,4 +827,50 @@ JOIN User
 LEFT
   JOIN Lesson
   ON Lesson = Lesson.Id;
+|]
+
+resetLesson
+  ∷ MonadDB r db
+  ⇒ Types.Token
+  → Types.Key Types.Lesson
+  → db ()
+resetLesson t l = do
+  u ← getUser t
+  deleteStartedLesson u l
+  deleteExerciseList u l
+
+-- | Unsets the "finishedness" of a lesson for a given user/lesson.
+deleteStartedLesson
+  ∷ MonadDB r db
+  ⇒ Types.Key Types.User
+  → Types.Key Types.Lesson
+  → db ()
+deleteStartedLesson u l = executeNamed q [":User" := u, ":Lesson" := l]
+  where
+
+  q = [sql|
+-- deleteStartedLesson
+DELETE FROM StartedLesson
+WHERE Lesson = :Lesson
+AND   User   = :User;
+|]
+
+-- | Deletes the exercise for a given user/lesson.
+deleteExerciseList
+  ∷ MonadDB r db
+  ⇒ Types.Key Types.User
+  → Types.Key Types.Lesson
+  → db ()
+deleteExerciseList u l = executeNamed q [":User" := u, ":Lesson" := l]
+  where
+
+  q = [sql|
+-- deleteExerciseList
+DELETE FROM ExerciseList
+WHERE User = :User
+AND Exercise IN (
+  SELECT Id
+  FROM Exercise
+  WHERE Lesson = :Lesson
+);
 |]
