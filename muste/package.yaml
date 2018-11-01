@@ -22,12 +22,12 @@ source-dirs:
   - src/
 
 dependencies:
-  - aeson              >= 1.1.2.0  && < 1.4
+  - aeson              >= 1.1.2.0  && < 1.5
   - base               >= 4.9.1.0  && < 4.13
   - base64-bytestring  >= 1.0.0.1  && < 1.1
   - binary             >= 0.8.3.0  && < 0.9
   - bytestring         >= 0.10.8.1 && < 0.11
-  - containers         >= 0.5.7.1  && < 0.6
+  - containers         >= 0.5.7.1  && < 0.7
   - exceptions         >= 0.8.3    && < 0.11
   - file-embed         >= 0.0.10   && < 0.1
   - filepath           >= 1.4.1.1  && < 1.5
@@ -48,7 +48,7 @@ dependencies:
   - monad-control      >= 1.0.2    && < 1.1
   - transformers-base  >= 0.4.5    && < 0.5
   - snap               >= 1.1.1.0  && < 1.2
-  - yaml               >= 0.8.32   && < 0.9
+  - yaml               >= 0.8.32   && < 0.11
   - time               >= 1.8.0    && < 1.9
 
 when:
