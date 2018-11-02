@@ -6,7 +6,7 @@
 -- Portability : POSIX
 
 {-# OPTIONS_GHC -Wall -Wcompat #-}
-{-# Language RecordWildCards, DeriveAnyClass #-}
+{-# Language RecordWildCards #-}
 
 module Muste.Web.Types.Score
   ( Score(..)

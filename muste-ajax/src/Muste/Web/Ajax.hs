@@ -173,7 +173,7 @@ instance ToJSON ServerTree where
     , "direction" .= direction
     ]
 
-data LoginSuccess = LoginSuccess Text
+newtype LoginSuccess = LoginSuccess Text
 
 instance FromJSON LoginSuccess where
   parseJSON = Aeson.withObject "login-success"

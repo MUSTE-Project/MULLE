@@ -41,7 +41,7 @@ data SearchOptions = SearchOptions
   , pruneSearchSize    ∷ Maybe Int
   }
 
-data Command = Command SubCommand
+newtype Command = Command SubCommand
 
 data SubCommand = Muste Options | PreCompute PreComputeOpts
 

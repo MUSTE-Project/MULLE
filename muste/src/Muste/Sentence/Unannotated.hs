@@ -107,8 +107,7 @@ mkLinearization c t
   & fromList
   where
   step ∷ OldLinearization.LinToken → Token.Unannotated
-  step (OldLinearization.LinToken { .. })
-    = Token.unannotated ltlin
+  step OldLinearization.LinToken{..} = Token.unannotated ltlin
 
 -- | @'unannotated' c t@ creates a 'Sentence' of @t@.  The 'Sentence' 
 -- will be a valid such in the grammar and languages specified by the

@@ -34,7 +34,7 @@ initDb = do
   putStrLn "Initializing database... Done"
 
 withConnection ∷ FilePath → (Connection → IO ()) → IO ()
-withConnection db m = do
+withConnection db m =
   SQL.withConnection db $ \c → do
     SQL.setTrace c (Just Text.putStrLn)
     m c

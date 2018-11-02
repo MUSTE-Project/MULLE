@@ -1,4 +1,3 @@
-{-# Language TemplateHaskell, OverloadedStrings #-}
 module Test.Common (failDoc, renderDoc) where
 
 import Prelude

@@ -9,7 +9,7 @@ import qualified Options.Applicative as O
 import Control.Applicative ((<**>))
 import qualified Development.GitRev as Dev
 
-data Options = Options
+newtype Options = Options
   { initDb ∷ Bool
   }
 

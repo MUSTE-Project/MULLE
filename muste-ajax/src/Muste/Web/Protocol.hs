@@ -87,7 +87,7 @@ mkContext
   → m (Text, Map.Map Sentence.Language Context)
 mkContext Database.Lesson{..} = do
   m ← Muste.getLangAndContext nfo grammar
-  pure $ (name, Map.mapKeys f m)
+  pure (name, Map.mapKeys f m)
   where
   f ∷ Text → Sentence.Language
   f l = Sentence.Language (Sentence.Grammar grammar) l

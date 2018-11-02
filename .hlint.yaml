@@ -11,6 +11,7 @@
 - ignore: {name: "Redundant compare"}
 - ignore: {name: "Use list literal"}
 - ignore: {name: "Use const"}
+- ignore: {name: "Use traverse_"}
 
 # A hack to ignore some code beyond our control such as e.g.:
 #
@@ -19,4 +20,4 @@
 #   elem (take 3 (reverse f)) ["era", "ere", "eri"]
 # Perhaps:
 #   take 3 (reverse f) `elem` ["era", "ere", "eri"]
-- ignore: {within: [Main]}
+- ignore: {within: [Main, Both, ConvertLex, Old2New]}

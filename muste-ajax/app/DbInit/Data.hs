@@ -1,7 +1,7 @@
-{-# Language TemplateHaskell, OverloadedStrings, OverloadedLists,
-  DuplicateRecordFields #-}
-{-# OPTIONS_GHC -Wall #-}
 -- | Data used for inititializing the database
+
+{-# Language OverloadedStrings, OverloadedLists, DuplicateRecordFields #-}
+{-# OPTIONS_GHC -Wall #-}
 
 module DbInit.Data
   ( SearchOptions(..)
