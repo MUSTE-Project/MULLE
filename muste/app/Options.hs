@@ -95,14 +95,21 @@ optionsParser
       <> O.metavar "PATH"
       )
 
+dup ∷ a → (a, a)
+dup a = (a, a)
+
 searchOptionsParser ∷ Parser SearchOptions
 searchOptionsParser
-  = SearchOptions
-  <$> adjTreeSearchDepthParser
-  <*> adjTreeSearchSizeParser
-  <*> pruneSearchDepthParser
-  <*> pruneSearchSizeParser
+  = (\(d0, d1) (s0, s1) → SearchOptions d0 s0 d1 s1)
+  <$> depths
+  <*> sizes
   where
+  depths = fmap dup searchDepthParser
+    <|> (,) <$> adjTreeSearchDepthParser <*> pruneSearchDepthParser
+
+  sizes = fmap dup searchSizeParser
+    <|> (,) <$> adjTreeSearchSizeParser  <*> pruneSearchSizeParser
+
   adjTreeSearchDepthParser ∷ Parser (Maybe Int)
   adjTreeSearchDepthParser
     = optional
@@ -117,10 +124,7 @@ searchOptionsParser
     = optional
     $ O.option O.auto
       (  O.long "max-adjtree-size"
-      <> O.help
-        (  "Limit search size when creating adjunction trees. "
-        <> warnNotUsed
-        )
+      <> O.help "Limit search size when creating adjunction trees. "
       <> O.metavar "SIZE"
       )
 
@@ -129,17 +133,9 @@ searchOptionsParser
     = optional
     $ O.option O.auto
       (  O.long "max-prune-depth"
-      <> O.help
-        (  "Limit search depth when pruning trees. "
-        <> warnNotUsed
-        )
+      <> O.help "Limit search depth when pruning trees. "
       <> O.metavar "DEPTH"
       )
-
-  warnNotUsed
-        =   "WARNING: This options is not currently being used. "
-        <> "Please see the discussion at: "
-        <> "https://github.com/MUSTE-Project/MULLE/issues/46"
 
   pruneSearchSizeParser ∷ Parser (Maybe Int)
   pruneSearchSizeParser
@@ -147,6 +143,26 @@ searchOptionsParser
     $ O.option O.auto
       (  O.long "max-prune-size"
       <> O.help "Limit search size when pruning trees"
+      <> O.metavar "SIZE"
+      )
+
+  searchDepthParser ∷ Parser (Maybe Int)
+  searchDepthParser
+    = optional
+    $ O.option O.auto
+      (  O.long "max-search-depth"
+      <> O.help
+        "Limit search depth when pruning trees and creating adjunction trees."
+      <> O.metavar "DEPTH"
+      )
+
+  searchSizeParser ∷ Parser (Maybe Int)
+  searchSizeParser
+    = optional
+    $ O.option O.auto
+      (  O.long "max-search-size"
+      <> O.help
+        "Limit search size when pruning trees and creating adjunction trees."
       <> O.metavar "SIZE"
       )
 
