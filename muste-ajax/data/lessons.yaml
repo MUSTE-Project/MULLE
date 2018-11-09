@@ -154,8 +154,10 @@
     source: "ExemplumEng"
     target: "ExemplumChi"
   exercises:
-    - source: many kings love Paris
-      target:  一 个 好 国 王 读 一 本 书 
+    - source: a good king loves books
+      target: " 一 个 好 国 王 读 些 书 "  # a good king reads books
+    - source: a good king loves books
+      target: " 一 个 国 王 爱 巴 黎 "  # a king loves Paris
 
 - name: "Eng->Ara"
   key: 7
@@ -169,8 +171,10 @@
     source: "ExemplumEng"
     target: "ExemplumAra"
   exercises:
-    - source: many kings love Paris
-      target:  يَقْرَأُ مَلِكٌ جوَيِّدٌ كِتابً 
+    - source: a good king loves books
+      target: " مَلِكٌ جَيِّدٌ يَقْرَأُ كُتُبً "  # a good king reads books
+    - source: a good king loves books
+      target: " مَلِكٌ يَحِبُّ بارِيسَ "  # a king loves Paris
 
 - name: "RTL and agglutination test"
   key: 8
