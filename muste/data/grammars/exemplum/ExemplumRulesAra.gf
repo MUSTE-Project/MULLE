@@ -14,8 +14,8 @@ lin
 oper
 
   -- This is a hack since ComplVA is not implemented in the RGL yet
-  ComplVAx : VA -> AP -> VP ;
-  ComplVAx v ap = Res.insertObj (ap2np ap) (Res.predV v ** {c2 = []}) ;
+  ComplVAx : Res.Verb2 -> AP -> VP ;
+  ComplVAx v ap = Res.insertObj (ap2np ap) (Res.predVSlash v) ;
 
   ap2np : AP -> NP ;
   ap2np ap = lin NP {s = \\cas => ap.s ! Res.NoHum ! Res.Fem ! Res.Sg ! Res.Indef ! cas;
