@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# Language UnicodeSyntax, TemplateHaskell, OverloadedStrings,
+{-# Language UnicodeSyntax, OverloadedStrings, 
   DuplicateRecordFields #-}
 module Options
   ( getOptions
@@ -13,9 +13,9 @@ module Options
 import Prelude ()
 import Muste.Prelude
 import Options.Applicative (Parser, execParser, ParserInfo)
+import qualified Muste.Prelude.Unsafe as Unsafe
 import qualified Options.Applicative as O
 import Control.Applicative ((<**>), optional)
-import qualified Development.GitRev as Dev
 
 data Options = Options
   { interactiveMode    ∷ Bool
@@ -217,7 +217,7 @@ getOptions
   $ O.info (commandParser <**> O.helper <**> version) mempty
 
 version ∷ Parser (a → a)
-version = O.infoOption gitDescription $ mconcat
+version = O.infoOption Unsafe.gitDescription $ mconcat
   [ O.long "version"
   , O.help "Output version information and exit"
   , O.hidden
@@ -228,6 +228,3 @@ header = "muste cli - CLI for the Multi Semantic Text Editor (MUSTE)"
 
 descr ∷ String
 descr = "Runs the CLI for the Multi Semantic Text Editor"
-
-gitDescription ∷ String
-gitDescription = $(Dev.gitDescribe)

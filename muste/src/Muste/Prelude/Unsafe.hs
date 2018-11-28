@@ -1,10 +1,13 @@
 {-# OPTIONS_GHC -Wall -Wcompat #-}
+{-# Language TemplateHaskell #-}
+
 module Muste.Prelude.Unsafe where
 
 import Prelude hiding (head, read, (!!), undefined)
 -- We could maybe emit a warning when using these?
 import qualified Prelude as Unsafe
 import qualified Data.Maybe as Unsafe
+import qualified Development.GitRev as GitRev
 
 -- Use pattern-matching, 'listToMaybe' or the version from 'NonEmpty'.
 head ∷ [a] → a
@@ -31,3 +34,6 @@ tail = Unsafe.tail
 
 fromJust ∷ Maybe a → a
 fromJust = Unsafe.fromJust
+
+gitDescription ∷ String
+gitDescription = $(GitRev.gitDescribe)
