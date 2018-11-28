@@ -1,81 +1,65 @@
 {-# OPTIONS_GHC -Wall -Wcompat #-}
-{-# Language RecordWildCards, NamedFieldPuns, TemplateHaskell,
-  DeriveAnyClass, OverloadedStrings, MultiParamTypeClasses,
-  DerivingStrategies #-}
+{-# Language RecordWildCards #-}
+
 module Main (main) where
 
+import Prelude ()
 import Muste.Prelude
-import qualified Data.Binary as Binary
+import qualified Data.Binary                  as Binary
+import qualified Data.Text                    as Text
 
-import Muste (Grammar)
-import qualified Muste.Util             as Muste
-import Muste.AdjunctionTrees (BuilderInfo(..))
-import qualified Muste.Menu as Menu
-import qualified Muste.AdjunctionTrees as AdjunctionTrees
-import Muste.AdjunctionTrees (AdjunctionTrees)
-import qualified Muste.Grammar.Internal as Grammar
-import Muste.Linearization.Internal (Context(Context))
-import qualified Data.Text as Text
+import qualified Muste                        as Muste
+import qualified Muste.Util                   as Util
+import qualified Muste.Menu                   as Menu
+import qualified Muste.AdjunctionTrees        as AdjTrees
+import qualified Muste.Grammar.Internal       as Grammar
+import qualified Muste.Linearization.Internal as Lin
+import qualified Muste.Repl                   as Repl
+import qualified Options                      as O
 
-import Options (Options(Options), PreComputeOpts(PreComputeOpts))
-import qualified Options
-import qualified Muste.Repl             as Repl
+makeEnv :: Text -> O.SearchOptions -> O.MusteOptions -> IO Repl.Env
+makeEnv grammar searchOpts O.MusteOptions{..} =
+    Repl.Env <$> 
+    do g <- getGrammar grammar
+       case input of
+         Nothing -> return $ Util.unsafeGetContext (builderInfo searchOpts) g language
+         Just p  -> do adj <- Binary.decodeFile p
+                       return $ Lin.Context g (Util.unsafeGetLang g language) adj
 
-makeEnv ∷ Options → IO Repl.Env
-makeEnv opts@(Options{..}) = Repl.Env <$> getContext
-  where
-  getContext ∷ IO Context
-  getContext = do
-    g ← getGrammar grammar
-    case input of
-      Nothing → pure  $ Muste.unsafeGetContext (builderInfo opts) g language
-      Just p → do
-        adj ← Binary.decodeFile @AdjunctionTrees p
-        pure $ Context g (Muste.unsafeGetLang g language) adj
-
-getGrammar ∷ MonadIO io ⇒ Text → io Grammar
+getGrammar :: Text -> IO Muste.Grammar
 getGrammar = Grammar.getGrammarOneOff
 
-builderInfo ∷ Options → BuilderInfo
-builderInfo Options { searchOptions = Options.SearchOptions{..} }
-  = BuilderInfo
-  { searchDepth = adjTreeSearchDepth
-  , searchSize  = adjTreeSearchSize
-  }
+builderInfo :: O.SearchOptions -> AdjTrees.BuilderInfo
+builderInfo O.SearchOptions{..} =
+    AdjTrees.BuilderInfo { searchDepth = adjTreeSearchDepth
+                         , searchSize  = adjTreeSearchSize
+                         }
 
-muste ∷ Options.Options → IO ()
-muste opts@Options{ searchOptions = Options.SearchOptions{..}, ..} = do
-  let pruneOpts ∷ Menu.PruneOpts
-      pruneOpts = Menu.PruneOpts
-        { searchDepth = pruneSearchDepth
-        , searchSize  = pruneSearchSize
-        }
-      replOpts ∷ Repl.Options
-      replOpts = Repl.Options printNodes printCompact pruneOpts
-  e ← makeEnv opts
-  -- If there are any sentences supplied on the command line, run them
-  -- all.
-  void $ Repl.detachedly replOpts e (traverse Repl.updateMenu sentences)
-  -- If we are also in interactive mode, start the interactive session.
-  when interactiveMode
-    $ Repl.interactively replOpts e (Repl.updateMenu . Text.pack)
+pruneOpts :: O.SearchOptions -> Menu.PruneOpts
+pruneOpts O.SearchOptions{..} =
+    Menu.PruneOpts { searchDepth = pruneSearchDepth
+                   , searchSize  = pruneSearchSize
+                   }
 
-precompute ∷ Options.PreComputeOpts → IO ()
-precompute
-  Options.PreComputeOpts{ searchOptions = Options.SearchOptions{..}, ..}
-  = do
-    g ← getGrammar grammar
-    Binary.encodeFile output $ AdjunctionTrees.getAdjunctionTrees opts g
-  where
-  opts ∷ BuilderInfo
-  opts = BuilderInfo
-    { searchDepth = adjTreeSearchDepth
-    , searchSize  = adjTreeSearchSize
-    }
+muste :: Text -> O.SearchOptions -> O.MusteOptions -> IO ()
+muste grammar searchOpts opts@O.MusteOptions{..} =
+    do e <- makeEnv grammar searchOpts opts
+       if null sentences then
+           -- If not sentences are supplied on the command line, start the interactive session.
+           Repl.interactively replOpts e (Repl.updateMenu . Text.pack)
+       else
+           -- If there are any sentences supplied on the command line, run them all.
+           Repl.detachedly replOpts e (mapM_ Repl.updateMenu sentences)
+    where replOpts :: Repl.Options
+          replOpts = Repl.Options printNodes printCompact (pruneOpts searchOpts)
+
+precompute :: Text -> O.SearchOptions -> O.PrecomputeOptions -> IO ()
+precompute grammar searchOpts O.PrecomputeOptions{..} = 
+    do g <- getGrammar grammar
+       Binary.encodeFile output $ AdjTrees.getAdjunctionTrees (builderInfo searchOpts) g
 
 main :: IO ()
-main = do
-  Options.Command cmd ← Options.getOptions
-  case cmd of
-    Options.Muste opts → muste opts
-    Options.PreCompute g → precompute g
+main = do O.Options{command=cmd, ..} <- O.getOptions
+          case cmd of
+            O.Muste      opts -> muste      grammar searchOptions opts
+            O.Precompute opts -> precompute grammar searchOptions opts
