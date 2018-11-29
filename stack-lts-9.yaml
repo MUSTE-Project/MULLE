@@ -25,9 +25,7 @@ extra-deps:
 - map-syntax-0.3
 - pwstore-fast-2.4.4
 - xmlhtml-0.2.5.2
-# User goal `snap-extra`
-- git: git@github.com:MUSTE-Project/snap-extras.git
-  commit: 3faf1af4ec2acbc379aa8dc71b64d5ff73f729d0
+- snap-extras-0.12.2.1
 - git: git@github.com:MUSTE-Project/digestive-functors.git
   commit: b3a8d1d21c4029873270c9ff8c12e7eb49a34cbd
   subdirs:

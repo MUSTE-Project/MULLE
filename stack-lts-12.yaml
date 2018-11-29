@@ -19,10 +19,7 @@ extra-deps:
 - map-syntax-0.3
 - pwstore-fast-2.4.4
 - xmlhtml-0.2.5.2
-# User goal `snap-extra`
-# We need a version of `snap-extras` with relaxed version bounds.
-- git: git@github.com:MUSTE-Project/snap-extras.git
-  commit: 3faf1af4ec2acbc379aa8dc71b64d5ff73f729d0
+- snap-extras-0.12.2.1
 # We need a version of `digest-functors` supporting the new version of
 # `base`.  This just hasn't been uploaded to Hackage yet.
 - git: git@github.com:jaspervdj/digestive-functors.git
