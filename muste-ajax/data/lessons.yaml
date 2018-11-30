@@ -10,7 +10,7 @@
   search-options:
     # Leaving out the key means that the search will be unrestricted.
     # depth: 4
-    size: 8
+    size: 4
   languages:
     source: "PrimaLat"
     target: "PrimaSwe"
@@ -42,14 +42,13 @@
   settings:
     grammar: "novo_modo/Secunda"
   search-options:
-    size: 6
+    size: 4
   languages:
     source: "SecundaLat"
     target: "SecundaSwe"
   exercises:
-    # Imperative has been removed from SecundaLat, because the RGL has changed:
-    # - source: nolite
-    #   target: de glädjas
+    - source: nolite
+      target: de glädjas
     - source: gaudent
       target: vägra
     - source: Romani eos vincebant
@@ -116,8 +115,7 @@
   key: 4
   description: "Eng->Lat"
   search-options:
-    # The Latin grammar is extremely ambiguous
-    size: 1
+    size: 4
   settings:
     grammar: "exemplum/Exemplum"
   languages:
