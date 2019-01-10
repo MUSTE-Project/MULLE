@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall -Wcompat #-}
-{-# Language CPP, UndecidableInstances, OverloadedLists #-}
+{-# Language CPP, UndecidableInstances, OverloadedLists, OverloadedStrings #-}
 module Muste.Menu.Internal
   ( Menu(..)
   , getMenu
@@ -21,10 +21,12 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.IntSet (IntSet)
+import qualified Data.IntSet as IntSet
 import qualified Data.Array as Array
 import Data.MonoTraversable
 import qualified Data.Containers as Mono
-import Data.List (intercalate)
+import qualified Data.List as List
 import Data.Aeson (ToJSONKey, toJSONKey, ToJSONKeyFunction(ToJSONKeyValue), toJSON, toEncoding,
                    FromJSONKey, fromJSONKey, FromJSONKeyFunction(FromJSONKeyValue), parseJSON)
 import Control.DeepSeq (NFData)
@@ -38,7 +40,6 @@ import Muste.Tree.Internal (TTree(..), Path, Category)
 import qualified Muste.Tree.Internal as Tree
 import qualified Muste.Prune as Prune
 import Data.Function ((&))
-import qualified Data.Text.Prettyprint.Doc as Doc
 
 import qualified Muste.Sentence as Sentence
 import qualified Muste.Sentence.Linearization as Sentence (Linearization)
@@ -103,8 +104,12 @@ deriving instance Semigroup Selection
 deriving instance Monoid Selection
 
 instance Pretty Selection where
-  pretty sel = Doc.braces $ pretty $ intercalate "," $ map go $ Set.toList $ runSelection sel
-    where go (Interval (i,j)) = show i ++ "-" ++ show j
+  pretty sel = pretty $ showSelection sel
+
+showSelection :: Selection -> String
+showSelection sel = "{" ++ List.intercalate "," [ show i ++ "-" ++ show j |
+                                             Interval (i,j) <- Set.toList (runSelection sel)]
+                    ++ "}"
 
 -- * First, some basic functions and types:
 
@@ -211,7 +216,7 @@ getMenuItems opts ctxt sentence
         showopts _ = "Pruning: " ++ show opts
         adjMap     = Mono.mapToList (ctxtPrecomputed ctxt)
         adjTrees   = adjMap >>= \(_, ts) → ts
-        
+
 
 diagnose ∷ String → (a → String) → (b → String) → (a → b) → (a → b)
 #ifdef DIAGNOSTICS
@@ -236,13 +241,13 @@ collectTreeSubstitutions opts ctxt oldtrees
 
 collectMenuItems :: Set (([Tokn], [Node]), ([Tokn], [Node])) -> Set (Selection, Selection, [Tokn])
 collectMenuItems = Set.map align
-    where align ((oldwords, oldnodes), (newwords, newnodes)) = (oldselection, newselection, newwords)
-              where (oldselection, newselection) = splitAlignments edits
-                    edits = nodeedits <> wordedits
+    where align ((oldwords, oldnodes), (newwords, newnodes)) = (Selection oldselection, Selection newselection, newwords)
+              where oldselection = Set.fromList (makeEmptyIntervals oldinsertions ++ groupConsecutive oldreplacements)
+                    newselection = Set.fromList (makeEmptyIntervals newinsertions ++ groupConsecutive newreplacements)
                     -- the node edits are used for finding insertion points:
-                    nodeedits = filter (      emptyInterval . fst) $ alignSequences oldnodes newnodes
+                    (_, oldinsertions, _, newinsertions) = cnvEdits $ alignSequences oldnodes newnodes
                     -- the word edits are used for finding which words have changed:
-                    wordedits = filter (not . emptyInterval . fst) $ alignSequences oldwords newwords
+                    (oldreplacements, _, newreplacements, _) = cnvEdits $ alignSequences oldwords newwords
                     
 
 buildMenu ∷ Context -> Set (Selection, Selection, [Tokn]) → Menu
@@ -257,17 +262,10 @@ buildMenu ctxt items
 
 
 
--- * LCS
+-- * LCS = Least Common Subsequence
 
-type Edit = (Interval, Interval)
-
-splitAlignments :: [Edit] -> (Selection, Selection)
-splitAlignments [] = (mempty, mempty)
-splitAlignments ((ij, kl) : edits) = ([ij] <> oldselection, [kl] <> newselection)
-    where (oldselection, newselection) = splitAlignments edits
-
-alignSequences :: Eq a => [a] -> [a] -> [Edit]
-alignSequences xs ys = cleanEdits $ mergeEdits $ snd $ a Array.! (0,0)
+alignSequences :: Eq a => [a] -> [a] -> [Edit' a]
+alignSequences xs ys = snd $ a Array.! (0,0)
     where n = length xs
           m = length ys
           a = Array.array ((0,0),(n,m)) $ l0 ++ l1 ++ l2 ++ l3
@@ -290,16 +288,23 @@ alignSequences xs ys = cleanEdits $ mergeEdits $ snd $ a Array.! (0,0)
 
 type Edit' a = (([a], Int, Int), ([a], Int, Int))
 
-cleanEdits :: [Edit' a] -> [Edit]
-cleanEdits eds = [ (Interval (i,j), Interval (k,l)) | ((_,i,j), (_,k,l)) <- eds ]
 
-mergeEdits :: Eq a => [Edit' a] -> [Edit' a]
-mergeEdits [] = []
-mergeEdits (edit@((xs,_,_), (xs',_,_)) : edits)
-    | xs == xs' = mergeEdits edits
-    | otherwise = merge edit edits
-    where
-    merge e [] = [e]
-    merge e@((xs0,i,_j), (xs0',i',_j')) (((ys,_k,l), (ys',_k',l')) : edits')
-        | ys == ys' = e : mergeEdits edits
-        | otherwise = merge ((xs0++ys,i,l), (xs0'++ys',i',l')) edits'
+cnvEdits :: Eq a => [Edit' a] -> (IntSet, IntSet, IntSet, IntSet)
+cnvEdits [] = (IntSet.empty, IntSet.empty, IntSet.empty, IntSet.empty)
+cnvEdits (((xs,i,j), (xs',i',j')) : edits)
+    | xs == xs' = cnvEdits edits
+    | otherwise = (IntSet.union tokens (IntSet.fromList [i..j-1]),
+                   if i == j then IntSet.insert i spaces else spaces,
+                   IntSet.union tokens' (IntSet.fromList [i'..j'-1]),
+                   if i' == j' then IntSet.insert i' spaces' else spaces')
+    where (tokens, spaces, tokens', spaces') = cnvEdits edits
+
+
+makeEmptyIntervals :: IntSet -> [Interval]
+makeEmptyIntervals positions = [ Interval (i,i) | i <- IntSet.toList positions ]
+
+groupConsecutive :: IntSet -> [Interval]
+groupConsecutive positions = [ Interval (i, i + length group) |
+                               group <- groups, let i = snd (Unsafe.head group) ]
+    where groups = List.groupBy (\(i,n) (j,m) -> j-i == m-n) $ zip [0..] $ IntSet.toList positions
+

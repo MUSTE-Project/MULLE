@@ -704,7 +704,7 @@ function show_lin(lang, src, settings) {
         if (SPECIALS.spacetokens.bind.has(current)) {
           // &bull; • (U+2022 "BULLET")
           // &middot; · (U+00B7 "MIDDLE DOT")
-          wordSpan.html(isClickableWord ? '&bull;' : '')
+          wordSpan.html(isClickableWord ? ' ' : '')
             .addClass('spaceword bind');
         }
         if (SPECIALS.spacetokens.indent.has(current)) {
