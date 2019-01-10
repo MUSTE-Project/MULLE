@@ -61,6 +61,7 @@ CREATE TABLE Lesson (
   SourceDirection   BOOL NOT NULL DEFAULT 0,
   TargetDirection   BOOL NOT NULL DEFAULT 0,
   HighlightMatches  BOOL NOT NULL DEFAULT 0,
+  ShowSourceSentence  BOOL NOT NULL DEFAULT 0,
   -- Should exercise appear in a randomized order?
   RandomizeOrder    BOOL NOT NULL DEFAULT 0
 );

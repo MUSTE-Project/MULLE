@@ -197,6 +197,7 @@
   settings:
     grammar: "programming/Imperative"
     highlight-matches: off
+    show-source-sentence: off
   languages:
     source: "ImperativeCnc"
     target: "ImperativeCnc"

@@ -239,6 +239,7 @@ handleLessonInit lesson = do
     , exerciseFinished = False
     , settings = Just $ Ajax.MenuSettings
       { highlightMatches = highlightMatches
+      , showSourceSentence = showSourceSentence
       }
     }
 

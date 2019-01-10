@@ -83,6 +83,7 @@ toDatabaseLesson Data.Lesson{..}
   , sourceDirection     = dir srcDir
   , targetDirection     = dir trgDir
   , highlightMatches    = highlightMatches
+  , showSourceSentence  = showSourceSentence
   , randomizeOrder      = randomizeOrder
   }
   where
@@ -142,9 +143,10 @@ INSERT INTO Lesson
 , SourceDirection
 , TargetDirection
 , HighlightMatches
+, ShowSourceSentence
 , RandomizeOrder
 )
-VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 ;|]
 
 insertExercises ∷ Connection → [Database.Exercise] → IO ()

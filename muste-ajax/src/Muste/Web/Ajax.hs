@@ -219,21 +219,24 @@ instance ToJSON MenuResponse where
       , "settings"      .= settings
       ]
 
-newtype MenuSettings = MenuSettings
+data MenuSettings = MenuSettings
   { highlightMatches ∷ Bool
+  , showSourceSentence :: Bool
   }
 
 deriving stock instance Show MenuSettings
 
 instance ToJSON MenuSettings where
   toJSON MenuSettings{..} = Aeson.object
-    [ "highlight-matches" .= highlightMatches
+    [ "highlight-matches"    .= highlightMatches
+    , "show-source-sentence" .= showSourceSentence
     ]
 
 instance FromJSON MenuSettings where
   parseJSON = Aeson.withObject "settings"
      $ \v → MenuSettings
     <$> v .: "highlight-matches"
+    <*> v .: "show-source-sentence"
 
 -- Better name might be menus?
 data MenuList = MenuList

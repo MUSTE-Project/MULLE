@@ -536,6 +536,8 @@ function show_sentences(data, settings) {
   var trgL = ct_linearization(trg);
   matchy_magic(srcL, trgL);
   matchy_magic(trgL, srcL);
+  console.log('show-source-sentence', settings['show-source-sentence']);
+  $('#src').toggle(settings['show-source-sentence']);
   show_lin('src', srcL, src, settings);
   show_lin('trg', trgL, trg, settings);
 }

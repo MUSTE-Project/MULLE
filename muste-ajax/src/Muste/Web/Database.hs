@@ -123,6 +123,7 @@ SELECT
   , SourceDirection
   , TargetDirection
   , HighlightMatches
+  , ShowSourceSentence
   , RandomizeOrder
 FROM Lesson;
 |]
@@ -151,6 +152,7 @@ SELECT
   , SourceDirection
   , TargetDirection
   , HighlightMatches
+  , ShowSourceSentence
   , RandomizeOrder
 FROM Lesson
 WHERE Id = :Lesson;
@@ -524,6 +526,7 @@ SELECT
 , SourceDirection
 , TargetDirection
 , HighlightMatches
+, ShowSourceSentence
 , ExerciseOrder
 FROM ExerciseLesson
 WHERE Lesson = :Lesson;
@@ -725,6 +728,7 @@ SELECT
   , SourceDirection
   , TargetDirection
   , HighlightMatches
+  , ShowSourceSentence
   , ExerciseOrder
 FROM ExerciseList
 JOIN Exercise ON Exercise = Exercise.Id

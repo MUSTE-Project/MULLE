@@ -215,6 +215,7 @@ data ExerciseLesson = ExerciseLesson
   , srcDir           ∷ Direction
   , trgDir           ∷ Direction
   , highlightMatches ∷ Bool
+  , showSourceSentence ∷ Bool
   , exerciseOrder    ∷ Numeric
   }
 
@@ -232,6 +233,7 @@ instance ToNamed ExerciseLesson where
     , ":SrcDir"           := srcDir
     , ":TrgDir"           := trgDir
     , ":HighlightMatches" := highlightMatches
+    , ":ShowSourceSentence" := showSourceSentence
     , ":ExerciseOrder"    := exerciseOrder
     ]
 
@@ -291,6 +293,7 @@ data Lesson = Lesson
   , sourceDirection     ∷ Direction
   , targetDirection     ∷ Direction
   , highlightMatches    ∷ Bool
+  , showSourceSentence  ∷ Bool
   , randomizeOrder      ∷ Bool
   }
 
@@ -314,6 +317,7 @@ instance ToNamed Lesson where
     , ":SourceDirection"   := sourceDirection
     , ":TargetDirection"   := targetDirection
     , ":HighlightMatches"  := highlightMatches
+    , ":ShowSourceSentence" := showSourceSentence
     , ":RandomizeOrder"    := randomizeOrder
     ]
 

@@ -57,6 +57,7 @@ data LessonSettings = LessonSettings
   , srcDir           ∷ Ajax.Direction
   , trgDir           ∷ Ajax.Direction
   , highlightMatches ∷ Bool
+  , showSourceSentence ∷ Bool
   -- How many exercises need to be solved for the lesson to be
   -- considered solved.
   , exerciseCount    ∷ Maybe Int
@@ -75,6 +76,7 @@ instance FromJSON LessonSettings where
     <*> v .:? "source-direction"         .!= Ajax.VersoRecto
     <*> v .:? "target-direction"         .!= Ajax.VersoRecto
     <*> v .:? "highlight-matches"        .!= True
+    <*> v .:? "show-source-sentence"     .!= True
     <*> v .:? "exercise-count"
     <*> v .:? "randomize-exercise-order" .!= False
 
