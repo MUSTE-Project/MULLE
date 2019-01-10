@@ -6,6 +6,8 @@ module Muste.Grammar
   , GrammarT
   , runGrammarT
   , getGrammar
+  , getGrammarOneOff
+  , parseSentence
   , HasKnownGrammars(..)
   , KnownGrammars
   , noGrammars

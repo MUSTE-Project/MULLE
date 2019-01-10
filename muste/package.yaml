@@ -85,7 +85,6 @@ extra-source-files:
 
 library:
   exposed-modules:
-    - Muste
     - Muste.Tree
     - Muste.Grammar
     - Muste.Linearization

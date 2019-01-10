@@ -1,6 +1,6 @@
 module Muste.Linearization
   ( Linearization
-  , Context(ctxtGrammar, ctxtPrecomputed)
+  , Context(..)
   , buildContext
   , getLangAndContext
   , mkLin

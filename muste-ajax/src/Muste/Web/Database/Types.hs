@@ -31,7 +31,7 @@ module Muste.Web.Database.Types
   , ActiveLessonForUser(..)
   , UserLessonScore(..)
   , Key(..)
-  , Muste.TTree
+  , TTree
   , Sentence.Unannotated
   , Blob(..)
   , Numeric(..)
@@ -55,7 +55,7 @@ import Data.Int (Int64)
 import Data.ByteString (ByteString)
 import Data.Aeson (FromJSON(..), ToJSON(..))
 
-import qualified Muste (TTree)
+import Muste.Tree (TTree)
 import qualified Muste.Sentence.Unannotated as Sentence (Unannotated)
 import Muste.Sentence.Unannotated (Unannotated)
 

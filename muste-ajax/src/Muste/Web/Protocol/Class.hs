@@ -42,9 +42,9 @@ import qualified Snap
 import           Snap (MonadSnap)
 import qualified Data.List as List
 
-import qualified Muste
-import           Muste (Context)
+import           Muste.Linearization (Context)
 import qualified Muste.Sentence      as Sentence
+import qualified Muste.Grammar       as Grammar
 
 import qualified Muste.Web.Database  as Database
 import           Muste.Web.Database (MonadDatabaseError(..))
@@ -57,10 +57,10 @@ type Contexts = Map Text (Map Sentence.Language Context)
 data AppState = AppState
   { connection    ∷ Connection
   , contexts      ∷ Contexts
-  , knownGrammars ∷ Muste.KnownGrammars
+  , knownGrammars ∷ Grammar.KnownGrammars
   }
 
-instance Muste.HasKnownGrammars AppState where
+instance Grammar.HasKnownGrammars AppState where
   giveKnownGrammars = knownGrammars
 
 -- | A simple monad transformer for handling responding to requests.
@@ -79,7 +79,7 @@ deriving newtype instance MonadPlus m    ⇒ MonadPlus    (ProtocolT m)
 deriving newtype instance Monad m        ⇒ Alternative  (ProtocolT m)
 deriving newtype instance MonadSnap m    ⇒ MonadSnap    (ProtocolT m)
 deriving newtype instance Monad m        ⇒ MonadError ProtocolError (ProtocolT m)
-deriving newtype instance Muste.MonadGrammar m ⇒ Muste.MonadGrammar (ProtocolT m)
+deriving newtype instance Grammar.MonadGrammar m ⇒ Grammar.MonadGrammar (ProtocolT m)
 
 instance Monad m ⇒ MonadDatabaseError (ProtocolT m) where
   throwDbError = ProtocolT . throwError . DatabaseError
@@ -237,7 +237,7 @@ type MonadProtocol m =
   , Database.MonadDatabaseError m
   , MonadError ProtocolError m
   , MonadSnap m
-  , Muste.MonadGrammar m
+  , Grammar.MonadGrammar m
   )
 
 instance Database.HasConnection AppState where

@@ -8,12 +8,12 @@ import Muste.Prelude
 import qualified Data.Binary                  as Binary
 import qualified Data.Text                    as Text
 
-import qualified Muste                        as Muste
+import Muste.Grammar (Grammar)
 import qualified Muste.Util                   as Util
 import qualified Muste.Menu                   as Menu
 import qualified Muste.AdjunctionTrees        as AdjTrees
-import qualified Muste.Grammar.Internal       as Grammar
-import qualified Muste.Linearization.Internal as Lin
+import qualified Muste.Grammar                as Grammar
+import qualified Muste.Linearization          as Linearization
 import qualified Muste.Repl                   as Repl
 import qualified Options                      as O
 
@@ -24,9 +24,9 @@ makeEnv grammar searchOpts O.MusteOptions{..} =
        case input of
          Nothing -> return $ Util.unsafeGetContext (builderInfo searchOpts) g language
          Just p  -> do adj <- Binary.decodeFile p
-                       return $ Lin.Context g (Util.unsafeGetLang g language) adj
+                       return $ Linearization.Context g (Util.unsafeGetLang g language) adj
 
-getGrammar :: Text -> IO Muste.Grammar
+getGrammar :: Text -> IO Grammar
 getGrammar = Grammar.getGrammarOneOff
 
 builderInfo :: O.SearchOptions -> AdjTrees.BuilderInfo

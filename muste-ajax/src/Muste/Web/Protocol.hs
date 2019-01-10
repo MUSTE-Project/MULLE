@@ -33,8 +33,7 @@ import qualified Snap
 import           Snap (MonadSnap)
 import qualified Snap.Util.CORS               as Cors
 
-import qualified Muste
-import           Muste (Context)
+import qualified Muste.Grammar                as Grammar
 import qualified Muste.Linearization          as Linearization
 import qualified Muste.Sentence               as Sentence
 
@@ -61,12 +60,12 @@ initApp db = do
   liftIO  $ putStrLn "Initializing app..."
   conn    ← openConnection db
   ctxts   ← initContexts conn
-  knownGs ← Muste.noGrammars
+  knownGs ← Grammar.noGrammars
   liftIO  $ putStrLn "Initializing app... Done"
   pure    $ AppState conn ctxts knownGs
 
 initContexts ∷ MonadIO io ⇒ Connection → io Contexts
-initContexts conn = Muste.runGrammarT $ do
+initContexts conn = Grammar.runGrammarT $ do
   c ← flip Database.runDbT conn $ do
     lessons ← Database.getLessons
     mkContexts lessons
@@ -76,17 +75,17 @@ initContexts conn = Muste.runGrammarT $ do
 
 mkContexts
   ∷ MonadDB r m
-  ⇒ Muste.MonadGrammar m
+  ⇒ Grammar.MonadGrammar m
   ⇒ [Database.Lesson]
   → m Contexts
 mkContexts xs = Map.fromList <$> traverse mkContext xs
 
 mkContext
-  ∷ Muste.MonadGrammar m
+  ∷ Grammar.MonadGrammar m
   ⇒ Database.Lesson
-  → m (Text, Map.Map Sentence.Language Context)
+  → m (Text, Map.Map Sentence.Language Linearization.Context)
 mkContext Database.Lesson{..} = do
-  m ← Muste.getLangAndContext nfo grammar
+  m ← Linearization.getLangAndContext nfo grammar
   pure (name, Map.mapKeys f m)
   where
   f ∷ Text → Sentence.Language
@@ -127,7 +126,7 @@ apiRoutes =
     (|>) ∷ ∀ txt json snap
       . ToJSON json
       ⇒ MonadSnap snap
-      ⇒ Muste.MonadGrammar snap
+      ⇒ Grammar.MonadGrammar snap
       ⇒ txt
       → ProtocolT snap (Response json)
       → (txt, snap ())

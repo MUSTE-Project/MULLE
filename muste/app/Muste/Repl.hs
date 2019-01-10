@@ -40,12 +40,12 @@ import Control.Monad.Reader
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 
-import Muste hiding (getMenu)
-import qualified Muste.Grammar.Internal       as Grammar
+import qualified Muste.Grammar       as Grammar
 import Muste.Menu (Menu)
-import qualified Muste.Menu.Internal          as Menu
+import qualified Muste.Menu          as Menu
 import qualified Muste.Sentence.Annotated     as Annotated
-import qualified Muste.Linearization.Internal as Linearization
+import qualified Muste.Linearization as Linearization
+import Muste.Tree (TTree)
 
 -- | Options for the REPL.
 data Options = Options
@@ -56,7 +56,7 @@ data Options = Options
 
 -- | Data used during execution of the REPL.
 data Env = Env
-  { ctxt ∷ Context
+  { ctxt ∷ Linearization.Context
   }
 
 -- | The monad used for interacting with the MUSTE library.
@@ -144,7 +144,7 @@ updateMenu s = do
             (pretty sel <> ":" <+> prettyLin sel (Text.words s))
         <+> pretty (length items)
 
-prettyMenu ∷ ∀ a . Bool → Context → Text → Menu → Doc a
+prettyMenu ∷ ∀ a . Bool → Linearization.Context → Text → Menu → Doc a
 prettyMenu verbose ctxt s = Doc.vsep . fmap (uncurry go) . open
   where
   open = fmap @[] (fmap @((,) Menu.Selection) Set.toList)
@@ -206,7 +206,7 @@ getMenuFor s = do
   opts ← askPruneOpts
   pure $ Menu.getMenuItems opts c s
 
-getContext ∷ Repl Context
+getContext ∷ Repl Linearization.Context
 getContext = gets $ \(Env { .. }) → ctxt
 
 options ∷ Repl.Options (HaskelineT (Muste IO))

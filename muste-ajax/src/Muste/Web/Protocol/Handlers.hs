@@ -39,8 +39,8 @@ import qualified System.IO.Streams           as Streams
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified GHC.Num as Math
 
-import qualified Muste
-import           Muste (Context, TTree)
+import           Muste.Linearization (Context)
+import           Muste.Tree (TTree)
 import qualified Muste.Menu                  as Menu
 import qualified Muste.Sentence              as Sentence
 import           Muste.Sentence.Annotated (Annotated)
@@ -414,7 +414,7 @@ makeTree
 makeTree c lesson s d
   = Ajax.ServerTree
   { sentence  = s
-  , menu      = Muste.getMenu Menu.emptyPruneOpts ctxt (Sentence.linearization s)
+  , menu      = Menu.getMenu Menu.emptyPruneOpts ctxt (Sentence.linearization s)
   , direction = d
   }
   where

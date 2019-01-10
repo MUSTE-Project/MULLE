@@ -34,7 +34,7 @@ import qualified Muste.Prelude.SQL         as SQL
 
 import           Control.Monad.Reader
 
-import qualified Muste
+import Muste.Grammar (MonadGrammar)
 
 data Error
   = NoUserFound
@@ -115,7 +115,7 @@ deriving newtype instance Monad m   ⇒ Applicative (DbT m)
 deriving newtype instance Monad m   ⇒ Monad       (DbT m)
 deriving newtype instance MonadIO m ⇒ MonadIO     (DbT m)
 deriving newtype instance Monad m   ⇒ MonadReader Connection (DbT m)
-deriving newtype instance Muste.MonadGrammar m ⇒ Muste.MonadGrammar (DbT m)
+deriving newtype instance MonadGrammar m ⇒ MonadGrammar (DbT m)
 
 instance MonadTrans DbT where
   lift = DbT . lift . lift

@@ -42,7 +42,7 @@ import Data.Aeson ((.:), (.=), (.:?), (.!=))
 import Data.Aeson.Types (Parser)
 import qualified Data.Aeson as Aeson
 
-import Muste
+import Muste.Menu (Menu)
 import Muste.Sentence.Unannotated (Unannotated)
 import Muste.Sentence.Annotated (Annotated)
 
