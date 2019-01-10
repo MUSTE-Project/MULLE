@@ -202,10 +202,8 @@
     source: "ImperativeCnc"
     target: "ImperativeCnc"
   exercises:
-    - source: " program f &/ function f &+ ( &+ ) { &/ } &/ "
-      target: " program main &/ function main &+ ( &+ ) { &/ &_ x += 3 × 4 &+ ; &/ } &/ "
-    - source: " program main &/ function f &+ ( &+ ) { &/ &_ print 4 + 3 &+ ; &/ } &/ "
-      target: " program main &/ function main &+ ( &+ ) { &/ } &/ "
+    - source: " program f ; function f &+ ( ) { } "
+      target: " program main ; function main &+ ( ) { x += 3 × 4 ; } "
 
 
 - name: "Two lessons"
