@@ -456,7 +456,6 @@ function show_exercise(resp) {
   var menu = resp.menu;
   clean_server_data(menu.src);
   clean_server_data(menu.trg);
-  build_matching_classes(menu);
   show_sentences(menu, resp.settings);
   // The score is the exercise score.  Only in the case when we are
   // continuing a lesson will this be non-trivial.
@@ -513,21 +512,6 @@ function clean_server_data(data) {
   data.menu = new Map(data.menu);
 }
 
-
-function build_matching_classes(data) {
-  var MAX_CLASSES = 4;
-
-  data.matching_classes = {};
-  var matching_class = 0;
-  ['src', 'trg'].forEach(function(lang) {
-    ct_linearization(data[lang]).forEach(function(token) {
-      if (token.matched && token.matched.length && !data.matching_classes[token.path]) {
-        data.matching_classes[token.path] = 'match-' + matching_class;
-        matching_class = (matching_class + 1) % MAX_CLASSES;
-      }
-    });
-  });
-}
 
 function show_sentences(data, settings) {
   var src = data.src;
