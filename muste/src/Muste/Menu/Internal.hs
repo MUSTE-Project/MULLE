@@ -242,12 +242,13 @@ collectTreeSubstitutions opts ctxt oldtrees
 collectMenuItems :: Set (([Tokn], [Node]), ([Tokn], [Node])) -> Set (Selection, Selection, [Tokn])
 collectMenuItems = Set.map align
     where align ((oldwords, oldnodes), (newwords, newnodes)) = (Selection oldselection, Selection newselection, newwords)
-              where oldselection = Set.fromList (makeEmptyIntervals oldinsertions ++ groupConsecutive oldreplacements)
+              where oldselection = Set.fromList (makeEmptyIntervals oldinsertions' ++ groupConsecutive oldreplacements')
                     newselection = Set.fromList (makeEmptyIntervals newinsertions ++ groupConsecutive newreplacements)
                     -- the node edits are used for finding insertion points:
                     (_, oldinsertions, _, newinsertions) = cnvEdits $ alignSequences oldnodes newnodes
                     -- the word edits are used for finding which words have changed:
                     (oldreplacements, _, newreplacements, _) = cnvEdits $ alignSequences oldwords newwords
+                    (oldinsertions', oldreplacements') = growBinds oldwords oldinsertions oldreplacements
                     
 
 buildMenu ∷ Context -> Set (Selection, Selection, [Tokn]) → Menu
@@ -307,4 +308,25 @@ groupConsecutive :: IntSet -> [Interval]
 groupConsecutive positions = [ Interval (i, i + length group) |
                                group <- groups, let i = snd (Unsafe.head group) ]
     where groups = List.groupBy (\(i,n) (j,m) -> j-i == m-n) $ zip [0..] $ IntSet.toList positions
+
+
+growBinds :: [Tokn] -> IntSet -> IntSet -> (IntSet, IntSet)
+growBinds tokens insertions replacements = (insertions', replacements')
+    where binds = [ i | (i, tok) <- zip [0..] tokens, tok == bindingToken ]
+          beforetokens = IntSet.fromList
+                         [ i-1 | i <- binds, i > 0,
+                           IntSet.member i insertions || IntSet.member i replacements,
+                           not (IntSet.member (i+1) replacements) ]
+          aftertokens  = IntSet.fromList
+                         [ i+1 | i <- binds, i+1 < length tokens,
+                           IntSet.member (i+1) insertions || IntSet.member i replacements,
+                           not (IntSet.member (i-1) replacements)  ]
+          bindtokens = IntSet.fromList [ i | i <- binds, IntSet.member i insertions || IntSet.member (i+1) insertions ]
+          replacements' = IntSet.unions [replacements, beforetokens, aftertokens, bindtokens]
+          todelete = IntSet.fromList [ j | i <- binds, j <- [i,i+1] ]
+          insertions' = IntSet.difference insertions todelete
+
+
+bindingToken :: Tokn
+bindingToken = "&+"
 
