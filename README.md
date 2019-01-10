@@ -179,3 +179,10 @@ aid.  Consider using this command:
 
     stack haddock --haddock-internal --no-haddock-deps --force-dirty
 
+Diagnostics
+---
+
+To get more verbose diagnostics output, compile with:
+
+    stack install --ghc-options="-DDIAGNOSTICS"
+
