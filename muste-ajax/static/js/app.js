@@ -455,7 +455,7 @@ function show_exercise(resp) {
   var lessonName = lesson.name;
   var menu = resp.menu;
   clean_server_data(menu.src);
-  clean_server_data(menu.src);
+  clean_server_data(menu.trg);
   build_matching_classes(menu);
   show_sentences(menu, resp.settings);
   // The score is the exercise score.  Only in the case when we are
