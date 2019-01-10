@@ -82,6 +82,10 @@ strong {
     /* border: 1px green solid; */
 }
 
+h1 {
+    margin: 0px;
+}
+
 button, .button {
     background-color: white;
     margin: 0.3em;

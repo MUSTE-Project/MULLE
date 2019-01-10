@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
- <title>MUSTE</title>
+ <title>MULLE (MUSTE Language Learning Environment)</title>
  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
  <meta name="viewport" content="width=device-width, initial-scale=1" />
  <link rel="stylesheet" href="/css/muste.css" />
@@ -17,8 +17,8 @@
   <div hidden class="overlay"></div>
 
   <div class="page" id="page-login">
-   <div>
-    <h1 class="title">MUSTE: Latinträning</h1>
+   <div class="title">
+     <h1>MULLE</h1><strong>(MUSTE Language Learning Environment)</strong>
    </div>
    <div class="container">
     <form id="loginform" method="post">
@@ -48,7 +48,9 @@
      <button data-pager="#page-high-scores" onclick="fetch_high_scores()">High scores</button>
      <button id="logoutbutton">Logga ut</button>
     </span>
-    <h1 class="title">MUSTE: Latinträning</h1>
+    <div class="title">
+      <h1>MULLE</h1><strong>(MUSTE Language Learning Environment)</strong>
+    </div>
    </div>
    <div>
     <div class="container" id="lessonslist"></div>
@@ -86,8 +88,8 @@
   <!-- / page-exercise -->
 
   <div class="page" id="page-create-user">
-   <div>
-    <h1 class="title">Create user</h1>
+   <div class="title">
+    <h1>Create user</h1>
    </div>
    <div class="container">
     <form action="create-user" method="post">
@@ -116,8 +118,8 @@
   <!-- / page-change-password -->
 
   <div class="page" id="page-change-password">
-   <div>
-    <h1 class="title">Skift lösenord</h1>
+   <div class="title">
+    <h1>Skift lösenord</h1>
     <pre>TODO Maybe this should only be accessible when the user is logged in.  In that case we don't have to ask for the old password.</pre>
    </div>
    <div class="container">
@@ -155,7 +157,9 @@
     <div class="right">
      <button data-pager="#page-lessons">Show lessons</button>
     </div>
-    <h1 class="title">High scores</h1>
+    <div class="title">
+      <h1>High scores</h1>
+    </div>
    </div>
    <div class="container">
     <table>
