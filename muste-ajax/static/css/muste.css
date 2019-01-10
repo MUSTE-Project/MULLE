@@ -275,6 +275,31 @@ button {
     line-height.  Ideally we'd use `lh` here, but it's experimental
     and has little support. */
     height: 2ex;
+    min-width: 1em;
+}
+
+.linebreak::after {
+    content: "";
+    display: block;
+}
+
+.bind {}
+
+.indent,
+.indent1 { margin-left: 1em }
+.indent2 { margin-left: 2em }
+.indent3 { margin-left: 3em }
+.indent4 { margin-left: 4em }
+.indent5 { margin-left: 5em }
+
+.spaceword {
+    opacity: 0;
+    /* font-size: 75%; */
+}
+
+.spaceword:hover {
+    opacity: 0.3;
+    /* font-size: 100%; */
 }
 
 .clickable:hover, button:hover, label:hover {

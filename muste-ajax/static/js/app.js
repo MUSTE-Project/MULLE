@@ -1,9 +1,40 @@
 /*global $ Handlebars jQuery Set Map countdown Promise : true*/
-var AGGLUTINATION = '&+';
-var NEWLINE = '&/';
-var INDENT = '&_';
-var PUNCTUATION = /^[,;.?!)]$/;
-var PREFIXPUNCT = /^[¿¡(]$/;
+
+// TODO: special tokens should be configurable
+var SPECIALS = {
+  'spacetokens': {
+    'bind'   : new Set(['&+']),
+    'newline': new Set(['&/']),
+    'indent' : new Set(['&_']),
+  },
+  'invisible': {
+    'pre' : new Set(['¿', '¡', '(']),
+    'post': new Set([',', ';', '.', '?', '!']),
+  },
+  'indentation': {
+    'linebreak': {
+      'pre' : new Set([';', '{', '}']),
+      'post': new Set(),
+    },
+    'indent': {
+      'pre' : new Set(['{']),
+      'post': new Set(),
+    },
+    'dedent': {
+      'pre' : new Set(),
+      'post': new Set(['}']),
+    },
+  },
+};
+
+var SPACETOKENS = new Set([
+  null,
+  ...SPECIALS.spacetokens.bind,
+  ...SPECIALS.spacetokens.newline,
+  ...SPECIALS.spacetokens.indent
+]);
+
+
 
 var DATA = null;
 var LOGIN_TOKEN = null;
@@ -573,6 +604,7 @@ function show_lin(lang, src, settings) {
     .empty()
     .css(css);
 
+  var indentation = 0;
   for (var i=0; i <= lin.length; i++) {
     var previous = i > 0 ? lin[i-1].concrete : null;
     var current = i < lin.length ? lin[i].concrete : null;
@@ -581,30 +613,44 @@ function show_lin(lang, src, settings) {
     var validMenusSpace = getValidMenusSpace(i, src.menu);
     var isClickableSpace = validMenusSpace !== 'nothing';
     var isInvisibleSpace =
-        (is_space_token(previous) || is_space_token(current) ||
-         PREFIXPUNCT.test(previous) || PUNCTUATION.test(current));
+        SPECIALS.invisible.pre.has(previous) || SPACETOKENS.has(previous) || 
+        SPECIALS.invisible.post.has(current) || SPACETOKENS.has(current);
+    var isLinebreakSpace =
+        SPECIALS.indentation.linebreak.pre.has(previous) ||
+        SPECIALS.indentation.linebreak.post.has(current);
+    var isIndent =
+        SPECIALS.indentation.indent.pre.has(previous) ||
+        SPECIALS.indentation.indent.post.has(current);
+    var isDedent =
+        SPECIALS.indentation.dedent.pre.has(previous) ||
+        SPECIALS.indentation.dedent.post.has(current);
 
     var spaceSpan = $('<span>')
-      .addClass('space')
-      .html(isInvisibleSpace ? '' : '&emsp;')
-      .appendTo(sentence);
-
-    if (isClickableSpace) {
-      spaceSpan
-        .addClass('clickable')
-        .click(click_word)
-        .data({'nr': i,
+        .addClass('space')
+        .html(isInvisibleSpace ? ' ' : '&nbsp;')
+        .appendTo(sentence)
+        .data({
+          'nr': i,
           'lang': lang,
           'valid-menus': validMenusSpace,
           'direction': src.direction
         });
 
+    if (isClickableSpace) {
+      spaceSpan
+        .addClass('clickable')
+        .click(click_word);
+
       // make clickable spaces visible (greyed out)
       // TODO: this should be configurable
-      // alternatives: &oplus; ⊕ (U+2295 "CIRCLED PLUS"), or &#xFE62; ﹢ (U+FE62 "SMALL PLUS SIGN")
+      // &oplus; ⊕ (U+2295 "CIRCLED PLUS")
+      // &#xFE62; ﹢ (U+FE62 "SMALL PLUS SIGN")
       spaceSpan.html(isInvisibleSpace ? '+' : ' + ')
-        .css('font-size', '75%')
-        .css('opacity', 0.3);
+        .addClass('spaceword');
+    }
+
+    if (isLinebreakSpace) {
+      spaceSpan.addClass('linebreak');
     }
 
     // generate the token following the space
@@ -616,14 +662,9 @@ function show_lin(lang, src, settings) {
       var isMatch = matchingClasses.size > 0;
 
       var wordSpan = $('<span>')
-        .addClass('word')
-        .html(current)
-        .appendTo(sentence);
-
-      if (isClickableWord) {
-        wordSpan
-          .addClass('clickable')
-          .click(click_word)
+          .addClass('word')
+          .html(current)
+          .appendTo(sentence)
           .data({
             'nr': i,
             'lang': lang,
@@ -631,6 +672,17 @@ function show_lin(lang, src, settings) {
             'valid-menus': validMenusWord,
             'direction': src.direction
           });
+
+      if (isLinebreakSpace) {
+        if (isIndent) indentation++;
+        if (isDedent) indentation--;
+        wordSpan.addClass('indent' + indentation);
+      }
+
+      if (isClickableWord) {
+        wordSpan
+          .addClass('clickable')
+          .click(click_word);
       }
 
       if (isMatch && settings['highlight-matches']) {
@@ -640,28 +692,26 @@ function show_lin(lang, src, settings) {
         wordSpan.css('border-color', c);
       }
 
-      if (is_space_token(current)) {
+      if (SPACETOKENS.has(current)) {
         // the special space tokens are shown using special greyed-out symbols
         // TODO: this should be configurable
-        if(current == NEWLINE) {
+        if (SPECIALS.spacetokens.newline.has(current)) {
           // &#x23ce; ⏎ (U+23CE "RETURN SYMBOL")
-          // alternative: &crarr; ↵ (U+21B5 "DOWNWARDS ARROW WITH CORNER LEFTWARDS")
+          // &crarr; ↵ (U+21B5 "DOWNWARDS ARROW WITH CORNER LEFTWARDS")
           wordSpan.html(isClickableWord ? '⏎' : '')
-            .css('font-size', '75%')
-            .css('opacity', 0.3)
-            .append($('<br>'));
+            .addClass('spaceword linebreak');
         }
-        if (current == AGGLUTINATION) {
-          // &bull; • (U+2022 "BULLET"), alternative: · (U+00B7 "MIDDLE DOT")
+        if (SPECIALS.spacetokens.bind.has(current)) {
+          // &bull; • (U+2022 "BULLET")
+          // &middot; · (U+00B7 "MIDDLE DOT")
           wordSpan.html(isClickableWord ? '&bull;' : '')
-            .css('font-size', '75%')
-            .css('opacity', 0.3);
+            .addClass('spaceword bind');
         }
-        if (current == INDENT) {
+        if (SPECIALS.spacetokens.indent.has(current)) {
           // &hellip; … (U+2026 "HORIZONTAL ELLIPSIS")
-          // &emsp; (U+00A0 "NO-BREAK SPACE")
-          wordSpan.html(isClickableWord ? '&hellip;' : '&emsp;')
-            .css('opacity', 0.3);
+          // &nbsp; (U+00A0 "NO-BREAK SPACE")
+          wordSpan.html(isClickableWord ? '&hellip;' : '&nbsp;&nbsp;')
+            .addClass('spaceword indent');
         }
       }
 
