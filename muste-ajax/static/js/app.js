@@ -494,14 +494,6 @@ function show_exercise_complete(resp) {
   }, 500);
 }
 
-// ct_linearization :: ClientTree -> Sentence.Linearization
-function ct_linearization(t) {
-  return t.sentence.linearization;
-}
-function ct_setLinearization(t, l) {
-  t.sentence.linearization = l;
-}
-
 function login_success(resp) {
   LOGIN_TOKEN = resp.token;
   window.sessionStorage.setItem('LOGIN_TOKEN',LOGIN_TOKEN);
@@ -516,14 +508,12 @@ function clean_server_data(data) {
 function show_sentences(data, settings) {
   var src = data.src;
   var trg = data.trg;
-  var srcL = ct_linearization(src);
-  var trgL = ct_linearization(trg);
-  matchy_magic(srcL, trgL);
-  matchy_magic(trgL, srcL);
+  matchy_magic(src, trg);
+  matchy_magic(trg, src);
   console.log('show-source-sentence', settings['show-source-sentence']);
   $('#src').toggle(settings['show-source-sentence']);
-  show_lin('src', srcL, src, settings);
-  show_lin('trg', trgL, trg, settings);
+  show_lin('src', src, settings);
+  show_lin('trg', trg, settings);
 }
 
 function all_classes(xs) {
@@ -555,8 +545,8 @@ function hash_string(s) {
 }
 
 function matchy_magic(src, trg) {
-  var cs = all_classes(src);
-  trg.forEach(function(x) {
+  var cs = all_classes(src.sentence.linearization);
+  trg.sentence.linearization.forEach(function(x) {
     var s = intersection(cs, new Set(x['classes']));
     x['matching-classes'] = s;
   });
@@ -573,9 +563,10 @@ function is_space_token(space) {
 }
 
 
-function show_lin(lang, lin, x, settings) {
+function show_lin(lang, src, settings) {
+  var lin = src.sentence.linearization;
   var css = {
-    'direction': mk_direction(x.direction),
+    'direction': mk_direction(src.direction),
     'unicode-bidi': 'bidi-override'
   };
   var sentence = $('#' + lang)
@@ -587,7 +578,7 @@ function show_lin(lang, lin, x, settings) {
     var current = i < lin.length ? lin[i].concrete : null;
 
     // generate the space between tokens
-    var validMenusSpace = getValidMenusSpace(i, x.menu);
+    var validMenusSpace = getValidMenusSpace(i, src.menu);
     var isClickableSpace = validMenusSpace !== 'nothing';
     var isInvisibleSpace =
         (is_space_token(previous) || is_space_token(current) ||
@@ -605,7 +596,7 @@ function show_lin(lang, lin, x, settings) {
         .data({'nr': i,
           'lang': lang,
           'valid-menus': validMenusSpace,
-          'direction': x.direction
+          'direction': src.direction
         });
 
       // make clickable spaces visible (greyed out)
@@ -618,7 +609,7 @@ function show_lin(lang, lin, x, settings) {
 
     // generate the token following the space
     if (i < lin.length) {
-      var validMenusWord = getValidMenus(i, x.menu);
+      var validMenusWord = getValidMenus(i, src.menu);
       var isClickableWord = validMenusWord !== 'nothing';
       var classes = lin[i]['classes'];
       var matchingClasses = lin[i]['matching-classes'];
@@ -638,7 +629,7 @@ function show_lin(lang, lin, x, settings) {
             'lang': lang,
             'classes': classes,
             'valid-menus': validMenusWord,
-            'direction': x.direction
+            'direction': src.direction
           });
       }
 
@@ -1007,7 +998,7 @@ function to_client_tree(t) {
 }
 
 function select_menuitem(item, lang) {
-  ct_setLinearization(DATA.menu[lang], item);
+  DATA.menu[lang].sentence.linearization = item;
   var data = DATA;
   var menu = data.menu;
   var score = data.score;
