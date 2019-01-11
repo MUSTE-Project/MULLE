@@ -1,43 +1,74 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language InstanceSigs #-}
 -- | A 'Set' with a dfferent 'Ord' instance.
-module Muste.Selection (Selection) where
+module Muste.Selection
+    ( Interval(Interval, runInterval)
+    , Selection(Selection, runSelection)
+    ) where
 
 import Prelude ()
 import Muste.Prelude
-import qualified Data.Text.Prettyprint.Doc as Doc
-import Data.IntSet (IntSet)
-import qualified Data.IntSet as IntSet
+import qualified Data.List as List
+import Data.Set (Set)
+import qualified Data.Set as Set
+import Data.Aeson (ToJSONKey, toJSONKey, ToJSONKeyFunction(ToJSONKeyValue), toJSON, toEncoding,
+                   FromJSONKey, fromJSONKey, FromJSONKeyFunction(FromJSONKeyValue), parseJSON)
 
--- | A selection represents parts of a 'Linearization' w.r.t a
--- linearized 'TTree'.
-newtype Selection = Selection { runSelection ∷ IntSet }
 
+newtype Interval = Interval { runInterval ∷ (Int, Int) }
+
+deriving instance ToJSONKey Interval
+deriving instance FromJSONKey Interval
+deriving instance ToJSON Interval
+deriving instance FromJSON Interval
+deriving instance Show Interval
+deriving instance Eq Interval
+deriving instance Ord Interval
+deriving instance Read Interval
+deriving instance Generic Interval
+instance NFData Interval where
+
+sizeInterval ∷ Interval → Int
+sizeInterval (Interval (i, j)) = 100 * (j - i) + 1
+-- The added small constant is so that empty intervals are also counted.
+-- With this, the selection {2-3} will come before {2-2,2-3}.
+
+emptyInterval ∷ Interval → Bool
+emptyInterval (Interval (i, j)) = i == j
+
+
+newtype Selection = Selection { runSelection ∷ Set Interval }
+
+deriving instance Read Selection
+instance ToJSONKey Selection where
+    toJSONKey = ToJSONKeyValue toJSON toEncoding
+instance FromJSONKey Selection where
+    fromJSONKey = FromJSONKeyValue parseJSON
 deriving instance Show Selection
-deriving instance Semigroup Selection
-deriving instance Monoid Selection
-deriving instance Eq Selection
-
-instance Ord Selection where
-  compare (runSelection → xs) (runSelection → ys)
-    = case IntSet.size xs `compare` IntSet.size ys of
-      EQ → xs `compare` ys
-      x  → x
-
-instance Pretty Selection where
-  pretty = Doc.pretty . show . IntSet.toList . runSelection
-
 deriving instance ToJSON Selection
 deriving instance FromJSON Selection
-
 instance IsList Selection where
-  type Item Selection = Int
+  type Item Selection = Interval
+  fromList = Selection . Set.fromList
+  toList = Set.toList . runSelection
+deriving instance Eq Selection
+instance Ord Selection where
+  a `compare` b = case size a `compare` size b of
+    EQ → runSelection a `compare` runSelection b
+    x  → x
+    where
+    size ∷ Selection → Int
+    size = runSelection >>> Set.map sizeInterval >>> sum
+deriving instance Generic Selection
+instance NFData Selection where
 
-  -- | Generate a selection from a list of indices.  The incides must
-  -- correspond the index into some 'Linearization'.
-  fromList ∷ [Int] → Selection
-  fromList = Selection . IntSet.fromList
+deriving instance Semigroup Selection
+deriving instance Monoid Selection
 
-  -- | Convert a selection to a list of indices.
-  toList ∷ Selection → [Int]
-  toList = IntSet.toList . runSelection
+instance Pretty Selection where
+  pretty sel = pretty $ showSelection sel
+
+showSelection :: Selection -> String
+showSelection sel = "{" ++ List.intercalate "," [ show i ++ "-" ++ show j |
+                                             Interval (i,j) <- Set.toList (runSelection sel)]
+                    ++ "}"

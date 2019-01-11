@@ -41,6 +41,7 @@ import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 
 import qualified Muste.Grammar       as Grammar
+import Muste.Selection (Selection, runInterval)
 import Muste.Menu (Menu)
 import qualified Muste.Menu          as Menu
 import qualified Muste.Sentence.Annotated     as Annotated
@@ -147,10 +148,10 @@ updateMenu s = do
 prettyMenu ∷ ∀ a . Bool → Linearization.Context → Text → Menu → Doc a
 prettyMenu verbose ctxt s = Doc.vsep . fmap (uncurry go) . open
   where
-  open = fmap @[] (fmap @((,) Menu.Selection) Set.toList)
+  open = fmap @[] (fmap @((,) Selection) Set.toList)
     . Mono.mapToList
-  go ∷ Menu.Selection
-    → [(Menu.Selection, Menu.Linearization Menu.Annotated)]
+  go ∷ Selection
+    → [(Selection, Menu.Linearization Menu.Annotated)]
     → Doc a
   go sel xs = Doc.vcat
     [ ""
@@ -159,7 +160,7 @@ prettyMenu verbose ctxt s = Doc.vsep . fmap (uncurry go) . open
     ]
     where
     prettySel = pretty sel <> ":" <+> prettyLin sel (Text.words s)
-  gogo ∷ (Menu.Selection, Menu.Linearization Menu.Annotated) → Doc a
+  gogo ∷ (Selection, Menu.Linearization Menu.Annotated) → Doc a
   gogo (sel, lin)
     = maybeVerbose prettyMenuItems
     $ prettyLin sel (map getNodes (toList lin))
@@ -182,9 +183,9 @@ prettyMenu verbose ctxt s = Doc.vsep . fmap (uncurry go) . open
     | verbose   = Doc.fill 60 docA <+> docB
     | otherwise = docA
 
-prettyLin ∷ Pretty tok => Menu.Selection → [tok] → Doc a
+prettyLin ∷ Pretty tok => Selection → [tok] → Doc a
 prettyLin sel tokens  = Doc.hsep tokens''
-    where intervals   = [ Menu.runInterval int | int <- toList sel ]
+    where intervals   = [ runInterval int | int <- toList sel ]
           insertions  = [ pos  | (pos,pos') <- intervals, pos == pos' ]
           leftbraces  = [ pos  | (pos,pos') <- intervals, pos < pos' ]
           rightbraces = [ pos' | (pos,pos') <- intervals, pos < pos' ]
