@@ -1,45 +1,45 @@
 [submodule "libs/GF-latin"]
 	path = libs/GF-latin
-	url  = git@github.com:daherb/GF-latin.git
+	url  = https://github.com/daherb/GF-latin
 
 [submodule "libs/sqlite-simple"]
 	path = libs/sqlite-simple
-	url  = git@github.com:MUSTE-Project/sqlite-simple.git
+	url  = https://github.com/MUSTE-Project/sqlite-simple
 
 [submodule "libs/haskell-cgi"]
 	path = libs/haskell-cgi
-	url  = git@github.com:MUSTE-Project/haskell-cgi.git
+	url  = https://github.com/MUSTE-Project/haskell-cgi
 
 [submodule "libs/snap-extras"]
 	path = libs/snap-extras
-	url  = git@github.com:ozataman/snap-extras.git
+	url  = https://github.com/ozataman/snap-extras
 
 [submodule "libs/digestive-functors"]
 	path = libs/digestive-functors
-	url  = git@github.com:jaspervdj/digestive-functors.git
+	url  = https://github.com/jaspervdj/digestive-functors
 
 [submodule "libs/gf-rgl"]
 	path = libs/gf-rgl
-	url = git@github.com:GrammaticalFramework/gf-rgl.git
+	url = https://github.com/GrammaticalFramework/gf-rgl
 
 # This is only needed when building with cabal. Otherwise this
 # dependency is manage by stack.
 [submodule "libs/gf-core"]
 	path = libs/gf-core
-	url = git@github.com:MUSTE-Project/gf-core.git
+	url = https://github.com/MUSTE-Project/gf-core
 
 [submodule "libs/multiset"]
 	path = libs/multiset
-	url = git@github.com:twanvl/multiset.git
+	url = https://github.com/twanvl/multiset
 
 [submodule "libs/snap"]
 	path = libs/snap
-	url = git@github.com:snapframework/snap.git
+	url = https://github.com/snapframework/snap
 
 [submodule "libs/jmacro"]
 	path = libs/jmacro
-	url = git@github.com:fredefox/jmacro.git
+	url = https://github.com/fredefox/jmacro
 
 [submodule "libs/Haskell-Turtle-Library"]
 	path = libs/Haskell-Turtle-Library
-	url = git@github.com:Gabriel439/Haskell-Turtle-Library.git
+	url = https://github.com/Gabriel439/Haskell-Turtle-Library

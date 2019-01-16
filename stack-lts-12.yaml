@@ -1,17 +1,17 @@
-resolver: lts-12.13
+resolver: lts-12.13 # => ghc-8.4.3
 
 packages:
 - ./muste/
 - ./muste-ajax/
 
 extra-deps:
-- git: git@github.com:GrammaticalFramework/gf-core.git
+- git: https://github.com/GrammaticalFramework/gf-core
   commit: e89e5f13bf50767665507aa7ffe0ccd813cb70f4
   subdirs:
   # The repo defines several packages.  We only need the haskell
   # runtime
   - src/runtime/haskell/      # pgf.cabal
-- git: git@github.com:MUSTE-Project/haskell-cgi.git
+- git: https://github.com/MUSTE-Project/haskell-cgi
   commit: b45aabe6ccfd5aa81c5883b25fef019d60e9d9d0
 # Needed to satisfy `snap`
 - snap-1.1.1.0
@@ -22,14 +22,14 @@ extra-deps:
 - snap-extras-0.12.2.1
 # We need a version of `digest-functors` supporting the new version of
 # `base`.  This just hasn't been uploaded to Hackage yet.
-- git: git@github.com:jaspervdj/digestive-functors.git
+- git: https://github.com/jaspervdj/digestive-functors
   commit: 525b022f7b8cef46d044cb6a62683875ddbd1a25
   subdirs:
     - digestive-functors
     - digestive-functors-heist
     - digestive-functors-snap
 # User goal `sqlite-simple`
-- git: git@github.com:MUSTE-Project/sqlite-simple.git
+- git: https://github.com/MUSTE-Project/sqlite-simple
   commit: b923c8bbc8bd39a196530860670232e69263c690
 # User goal `multiset`
 - multiset-0.3.4
