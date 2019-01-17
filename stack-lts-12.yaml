@@ -9,10 +9,11 @@ extra-deps:
   commit: e89e5f13bf50767665507aa7ffe0ccd813cb70f4
   subdirs:
   # The repo defines several packages.  We only need the haskell
-  # runtime
+  # runtime, which will hopefully be published on Hackage soon.
+  # See discussion here:
+  # https://github.com/GrammaticalFramework/gf-core/issues/32 
   - src/runtime/haskell/      # pgf.cabal
-- git: https://github.com/MUSTE-Project/haskell-cgi
-  commit: b45aabe6ccfd5aa81c5883b25fef019d60e9d9d0
+
 # Needed to satisfy `snap`
 - snap-1.1.1.0
 - heist-1.1
@@ -20,17 +21,16 @@ extra-deps:
 - pwstore-fast-2.4.4
 - xmlhtml-0.2.5.2
 - snap-extras-0.12.2.1
-# We need a version of `digest-functors` supporting the new version of
-# `base`.  This just hasn't been uploaded to Hackage yet.
-- git: https://github.com/jaspervdj/digestive-functors
-  commit: 525b022f7b8cef46d044cb6a62683875ddbd1a25
-  subdirs:
-    - digestive-functors
-    - digestive-functors-heist
-    - digestive-functors-snap
+- digestive-functors-0.8.4.0
+- digestive-functors-heist-0.8.8.1
+- digestive-functors-snap-0.7.0.1
+
 # User goal `sqlite-simple`
 - git: https://github.com/MUSTE-Project/sqlite-simple
   commit: b923c8bbc8bd39a196530860670232e69263c690
+
 # User goal `multiset`
 - multiset-0.3.4
+
+# User goal `repline`
 - repline-0.2.0.0
