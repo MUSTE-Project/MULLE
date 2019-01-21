@@ -1,7 +1,7 @@
 --# -path=prelude:abstract:common:english
 concrete ExemplumLexEng of ExemplumLex = CatEng ** ExemplumLexI
   with (Cat=CatEng), (Grammar=GrammarEng), (Lexicon=LexiconEng) **
-  open ParadigmsEng, (Irreg=IrregEng), Prelude in {
+  open ParadigmsEng, Prelude in {
 
 lin
   -- Note: The English RGL cannot encode the Copula as a regular verb, this is the best we can do:

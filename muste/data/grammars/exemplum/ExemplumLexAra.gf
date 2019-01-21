@@ -2,7 +2,7 @@
 concrete ExemplumLexAra of ExemplumLex = CatAra **
   ExemplumLexI - [john_PN,today_Adv]
   with (Cat=CatAra), (Grammar=GrammarAra), (Lexicon=LexiconAra) **
-  open ParadigmsAra, ResAra, Prelude in {
+  open ParadigmsAra, (Res=ResAra), Prelude in {
     
 lin
 

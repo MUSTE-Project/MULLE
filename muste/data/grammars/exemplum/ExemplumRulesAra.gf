@@ -3,7 +3,7 @@ concrete ExemplumRulesAra of ExemplumRules =
   CatAra, TenseX-[Utt] **
   ExemplumRulesI-[useS,focusAdv]
   with (Cat=CatAra), (Conjunction=ConjunctionAra), (Grammar=GrammarAra) **
-  open ParadigmsAra, (Res=ResAra), Prelude in {
+  open (Res=ResAra), Prelude in {
 
 lin
   useS s = uttS s ;
