@@ -1,6 +1,9 @@
 --# -path=prelude:abstract:common
 abstract ExemplumRules = Cat, Tense ** {
 
+cat
+  Utterance ;
+
 fun
   useN     : N    -> CN              ;
   attribCN : AP   -> CN  -> CN       ;
@@ -24,6 +27,6 @@ fun
   simpleCl : NP   -> VP  -> Cl       ;
 
   useCl    : Pol  -> Ant -> Cl -> S  ;
-  useS     : S    -> Utt             ;
-  focusAdv : Adv  -> S   -> Utt      ;
+  useS     : S           -> Utterance;
+  focusAdv : Adv  -> S   -> Utterance;
 }

@@ -1,6 +1,6 @@
 --# -path=prelude:abstract:common:arabic
 concrete ExemplumRulesAra of ExemplumRules =
-  ExemplumCatAra, TenseX-[Utt] **
+  CatAra, TenseX-[Utt] **
   ExemplumRulesI-[useS,focusAdv,conjNP,complVA]
   with (Cat=CatAra), (Conjunction=ConjunctionAra), (Grammar=GrammarAra) **
   open ParadigmsAra, (Res=ResAra), Prelude in {

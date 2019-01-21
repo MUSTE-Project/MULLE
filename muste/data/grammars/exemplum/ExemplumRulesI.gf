@@ -2,6 +2,9 @@
 incomplete concrete ExemplumRulesI of ExemplumRules = Cat, Tense **
   open Grammar, Prelude in {
 
+lincat
+  Utterance = {s : Str} ;
+
 lin
 
   useN = UseN ;
@@ -26,7 +29,7 @@ lin
   simpleCl = PredVP ;
 
   useCl pol ant cl = UseCl (TTAnt TPres ant) pol cl ;
-  useS = UttS ;
-  focusAdv adv s = UttS (AdvS adv s) ;
+  useS s = lin Utterance (UttS s) ;
+  focusAdv adv s = lin Utterance (UttS (AdvS adv s)) ;
 
 }
