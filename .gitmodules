@@ -1,6 +1,3 @@
-[submodule "libs/GF-latin"]
-	path = libs/GF-latin
-	url  = https://github.com/daherb/GF-latin
 
 [submodule "libs/gf-rgl"]
 	path = libs/gf-rgl
