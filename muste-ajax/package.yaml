@@ -1,9 +1,14 @@
 name:                muste-ajax
-version:             0.2.8.0
+version:             0.2.8.1
 license:             Artistic-2.0
 license-file:        LICENSE
-author:              Herbert Lange
-maintainer:          herbert.lange@cse.gu.se
+maintainer:
+  - Herbert Lange <herbert.lange@cse.gu.se>
+  - Peter Ljunglöf <peter.ljunglof@cse.gu.se>
+copyright:
+  - (c) 2017-2019 Herbert Lange
+  - (c) 2018-2019 Peter Ljunglöf
+  - (c) 2018      Frederik Hanghøj Iversen
 
 category:            Web
 
@@ -63,43 +68,42 @@ extra-source-files:
   - static/package.json
 
 dependencies:
-  - QuickCheck           >= 2.9.2    && < 2.12
-  - aeson                >= 1.1.2.0  && < 1.5
-  - base                 >= 4.9.1.0  && < 4.13
+  - QuickCheck           >= 2.11.3   && < 2.12
+  - aeson                >= 1.3.1.1  && < 1.5
+  - base                 >= 4.11.1.0 && < 4.13
   - base64-bytestring    >= 1.0.0.1  && < 1.1
-  - bytestring           >= 0.10.8.1 && < 0.11
-  - containers           >= 0.5.7.1  && < 0.7
-  - cryptonite           >= 0.23     && < 0.26
-  - direct-sqlite        >= 2.3.21   && < 2.4
-  - directory            >= 1.3.0.0  && < 1.4
-  - exceptions           >= 0.8.3    && < 0.11
-  - file-embed           >= 0.0.10   && < 0.1
-  - filepath             >= 1.4.1.1  && < 1.5
-  - http-types           >= 0.9.1    && < 0.13
-  - io-streams           >= 1.4.1.0  && < 1.6
-  - lens                 >= 4.15.4   && < 4.18
-  - mtl                  >= 2.2.1    && < 2.3
-  - muste                >= 0.2.3.1  && < 0.3
+  - bytestring           >= 0.10.8.2 && < 0.11
+  - containers           >= 0.5.11.0 && < 0.7
+  - cryptonite           >= 0.25     && < 0.26
+  - direct-sqlite        >= 2.3.23   && < 2.4
+  - directory            >= 1.3.1.5  && < 1.4
+  - exceptions           >= 0.10.0   && < 0.11
+  - file-embed           >= 0.0.10.1 && < 0.1
+  - filepath             >= 1.4.2    && < 1.5
+  - http-types           >= 0.12.2   && < 0.13
+  - io-streams           >= 1.5.0.1  && < 1.6
+  - lens                 >= 4.16.1   && < 4.18
+  - mtl                  >= 2.2.2    && < 2.3
+  - muste                >= 0.2.8.1  && < 0.3
   - network-uri          >= 2.6.1.0  && < 2.7
-  - optparse-applicative >= 0.13.2.0 && < 0.15
+  - optparse-applicative >= 0.14.3.0 && < 0.15
   - pgf                  >= 3.10     && < 3.11
-  - prettyprinter        >= 1.1.1    && < 1.3
-  - snap                 >= 1.1.1.0  && < 1.2
-  - snap-core            >= 1.0.3.1  && < 1.1
-  - snap-extras          >= 0.12.2.1 && < 0.13
-  - snap-server          >= 1.0.3.3  && < 1.2
-  - sqlite-simple        >= 0.4.16   && < 0.5
-  - template-haskell     >= 2.11.1.0 && < 2.15
-  - text                 >= 1.2.2.2  && < 1.3
-  - time                 >= 1.6.0.1  && < 1.9
+  - prettyprinter        >= 1.2.1    && < 1.3
+  - snap                 >= 1.1.2.0  && < 1.2
+  - snap-core            >= 1.0.3.2  && < 1.1
+  - snap-server          >= 1.1.0.0  && < 1.2
+  - sqlite-simple        >= 0.4.16.0 && < 0.5
+  - template-haskell     >= 2.13.0.0 && < 2.15
+  - text                 >= 1.2.3.1  && < 1.3
+  - time                 >= 1.8.0.2  && < 1.9
   - vector               >= 0.12.0.1 && < 0.13
-  - wai                  >= 3.2.1.1  && < 3.3
-  - warp                 >= 3.2.13   && < 3.3
-  - yaml                 >= 0.8.25   && < 0.11
+  - wai                  >= 3.2.1.2  && < 3.3
+  - warp                 >= 3.2.25   && < 3.3
+  - yaml                 >= 0.8.32   && < 0.12
   - monad-control        >= 1.0.2.3  && < 1.1
   - transformers-base    >= 0.4.5.2  && < 0.5
   - string-conversions   >= 0.4.0.1  && < 0.5
-  - memory               >= 0.14.16  && < 0.15
+  - memory               >= 0.14.18  && < 0.15
   - binary               >= 0.8.5.1  && < 0.9
 
 library:

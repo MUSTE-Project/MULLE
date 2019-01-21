@@ -15,15 +15,11 @@ extra-deps:
   - src/runtime/haskell/      # pgf.cabal
 
 # Needed to satisfy `snap`
-- snap-1.1.1.0
-- heist-1.1
+- snap-1.1.2.0
+- heist-1.1.0.1
 - map-syntax-0.3
 - pwstore-fast-2.4.4
 - xmlhtml-0.2.5.2
-- snap-extras-0.12.2.1
-- digestive-functors-0.8.4.0
-- digestive-functors-heist-0.8.8.1
-- digestive-functors-snap-0.7.0.1
 
 # User goal `multiset`
 - multiset-0.3.4

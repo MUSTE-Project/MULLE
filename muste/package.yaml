@@ -1,9 +1,14 @@
 name:                muste
-version:             0.2.8.0
+version:             0.2.8.1
 license:             BSD3
 license-file:        LICENSE
-author:              Herbert Lange
-maintainer:          herbert.lange@cse.gu.se
+maintainer:
+  - Herbert Lange <herbert.lange@cse.gu.se>
+  - Peter Ljunglöf <peter.ljunglof@cse.gu.se>
+copyright:
+  - (c) 2017-2019 Herbert Lange
+  - (c) 2018-2019 Peter Ljunglöf
+  - (c) 2018      Frederik Hanghøj Iversen
 
 synopsis:            Multimodal semantics in Text editing
 category:            Text
@@ -22,34 +27,34 @@ source-dirs:
   - src/
 
 dependencies:
-  - aeson              >= 1.1.2.0  && < 1.5
-  - base               >= 4.9.1.0  && < 4.13
+  - aeson              >= 1.3.1.1  && < 1.5
+  - base               >= 4.11.1.0 && < 4.13
   - base64-bytestring  >= 1.0.0.1  && < 1.1
-  - binary             >= 0.8.3.0  && < 0.9
-  - bytestring         >= 0.10.8.1 && < 0.11
-  - containers         >= 0.5.7.1  && < 0.7
-  - exceptions         >= 0.8.3    && < 0.11
-  - file-embed         >= 0.0.10   && < 0.1
-  - filepath           >= 1.4.1.1  && < 1.5
-  - mono-traversable   >= 1.0.6.0  && < 1.1
-  - mtl                >= 2.2.1    && < 2.3
+  - binary             >= 0.8.5.1  && < 0.9
+  - bytestring         >= 0.10.8.2 && < 0.11
+  - containers         >= 0.5.11.0 && < 0.7
+  - exceptions         >= 0.10.0   && < 0.11
+  - file-embed         >= 0.0.10.1 && < 0.1
+  - filepath           >= 1.4.2    && < 1.5
+  - mono-traversable   >= 1.0.9.0  && < 1.1
+  - mtl                >= 2.2.2    && < 2.3
   - pgf                >= 3.10     && < 3.11
-  - prettyprinter      >= 1.1.1    && < 1.3
-  - sqlite-simple      >= 0.4.16   && < 0.5
+  - prettyprinter      >= 1.2.1    && < 1.3
+  - sqlite-simple      >= 0.4.16.0 && < 0.5
   - string-conversions >= 0.4.0.1  && < 0.5
-  - template-haskell   >= 2.11.1.0 && < 2.15
-  - text               >= 1.2.2.2  && < 1.3
+  - template-haskell   >= 2.13.0.0 && < 2.15
+  - text               >= 1.2.3.1  && < 1.3
   - tostring           >= 0.2.1.1  && < 0.3
-  - array              >= 0.5.2    && < 0.6
+  - array              >= 0.5.2.0  && < 0.6
   - vector             >= 0.12.0.1 && < 0.13
-  - deepseq            >= 1.4.3    && < 1.5
+  - deepseq            >= 1.4.3.0  && < 1.5
   - multiset           >= 0.3.4    && < 0.4
-  - directory          >= 1.3.1    && < 1.4
-  - monad-control      >= 1.0.2    && < 1.1
-  - transformers-base  >= 0.4.5    && < 0.5
-  - snap               >= 1.1.1.0  && < 1.2
-  - yaml               >= 0.8.32   && < 0.11
-  - time               >= 1.8.0    && < 1.9
+  - directory          >= 1.3.1.5  && < 1.4
+  - monad-control      >= 1.0.2.3  && < 1.1
+  - transformers-base  >= 0.4.5.2  && < 0.5
+  - snap               >= 1.1.2.0  && < 1.2
+  - yaml               >= 0.8.32   && < 0.12
+  - time               >= 1.8.0.2  && < 1.9
   - gitrev             >= 1.3.1    && < 1.4
 
 when:
@@ -135,7 +140,7 @@ executables:
       - muste
       - haskeline            >= 0.7.4.3  && < 0.8
       - repline              >= 0.1.7.0  && < 0.3
-      - optparse-applicative >= 0.14.2.0 && < 0.15
+      - optparse-applicative >= 0.14.3.0 && < 0.15
 
 tests:
   test:
