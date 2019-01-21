@@ -1,4 +1,4 @@
---# -path=prelude:abstract:common:latin-rgl
+--# -path=prelude:abstract:common:latin
 concrete ExemplumLexLat of ExemplumLex = CatLat ** ExemplumLexI
   with (Cat=CatLat), (Grammar=GrammarLat), (Lexicon=LexiconLat) **
   open ParadigmsLat, (Extra=ExtraLat), (Irreg=IrregLat), Prelude in {

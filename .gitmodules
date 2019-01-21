@@ -4,4 +4,4 @@
 
 [submodule "libs/gf-rgl"]
 	path = libs/gf-rgl
-	url = https://github.com/GrammaticalFramework/gf-rgl
+	url = https://github.com/daherb/gf-rgl
