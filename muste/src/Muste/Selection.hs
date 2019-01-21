@@ -33,9 +33,6 @@ sizeInterval (Interval (i, j)) = 100 * (j - i) + 1
 -- The added small constant is so that empty intervals are also counted.
 -- With this, the selection {2-3} will come before {2-2,2-3}.
 
-emptyInterval ∷ Interval → Bool
-emptyInterval (Interval (i, j)) = i == j
-
 
 newtype Selection = Selection { runSelection ∷ Set Interval }
 
