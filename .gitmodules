@@ -2,44 +2,6 @@
 	path = libs/GF-latin
 	url  = https://github.com/daherb/GF-latin
 
-[submodule "libs/sqlite-simple"]
-	path = libs/sqlite-simple
-	url  = https://github.com/MUSTE-Project/sqlite-simple
-
-[submodule "libs/haskell-cgi"]
-	path = libs/haskell-cgi
-	url  = https://github.com/MUSTE-Project/haskell-cgi
-
-[submodule "libs/snap-extras"]
-	path = libs/snap-extras
-	url  = https://github.com/ozataman/snap-extras
-
-[submodule "libs/digestive-functors"]
-	path = libs/digestive-functors
-	url  = https://github.com/jaspervdj/digestive-functors
-
 [submodule "libs/gf-rgl"]
 	path = libs/gf-rgl
 	url = https://github.com/GrammaticalFramework/gf-rgl
-
-# This is only needed when building with cabal. Otherwise this
-# dependency is manage by stack.
-[submodule "libs/gf-core"]
-	path = libs/gf-core
-	url = https://github.com/MUSTE-Project/gf-core
-
-[submodule "libs/multiset"]
-	path = libs/multiset
-	url = https://github.com/twanvl/multiset
-
-[submodule "libs/snap"]
-	path = libs/snap
-	url = https://github.com/snapframework/snap
-
-[submodule "libs/jmacro"]
-	path = libs/jmacro
-	url = https://github.com/fredefox/jmacro
-
-[submodule "libs/Haskell-Turtle-Library"]
-	path = libs/Haskell-Turtle-Library
-	url = https://github.com/Gabriel439/Haskell-Turtle-Library
