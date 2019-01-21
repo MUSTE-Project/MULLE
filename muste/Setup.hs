@@ -6,12 +6,11 @@ import qualified Distribution.Simple.Setup as Dist
 import Distribution.Types.HookedBuildInfo (HookedBuildInfo)
 import Distribution.Simple (UserHooks(..))
 import qualified Distribution.Simple as Dist
-import Turtle (Shell, Line, ExitCode(..), ProcFailed(..))
+import Turtle (Shell, Line)
 import qualified Turtle as Turtle
 import Data.Text (Text)
-import Control.Monad.IO.Class (MonadIO(liftIO))
+import Control.Monad.IO.Class (MonadIO)
 import Control.Applicative (empty)
-import Control.Exception (throwIO)
 
 main ∷ IO ()
 main

@@ -2,7 +2,6 @@
 {-# Language UnicodeSyntax, NamedFieldPuns, OverloadedStrings,
   TypeApplications #-}
 
-
 import qualified Distribution.Simple.Setup as Dist
 import Distribution.Types.HookedBuildInfo (HookedBuildInfo)
 import Distribution.Simple (UserHooks(..))
