@@ -6,7 +6,7 @@ packages:
 
 extra-deps:
 - git: https://github.com/GrammaticalFramework/gf-core
-  commit: e89e5f13bf50767665507aa7ffe0ccd813cb70f4
+  commit: 71307d6518325392968353c52259287026dbda1e
   subdirs:
   # The repo defines several packages.  We only need the haskell
   # runtime, which will hopefully be published on Hackage soon.

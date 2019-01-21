@@ -200,15 +200,15 @@ bracketsToTuples :: TTree -> PGF.BracketedString -> Linearization
 bracketsToTuples = deep
   where
   deep :: TTree -> PGF.BracketedString -> Linearization
-  deep _     (PGF.Bracket _ _   _ _ _ []) = mempty
+  deep _     (PGF.Bracket _ _   _ _ _ _ []) = mempty
   -- Ordinary leaf
-  deep ltree (PGF.Bracket _ fid _ _ _ [PGF.Leaf token]) =
+  deep ltree (PGF.Bracket _ fid _ _ _ _ [PGF.Leaf token]) =
     Linearization [LinToken (Tree.getPath ltree fid) (Text.pack token) []]
   -- Meta leaf
-  deep ltree (PGF.Bracket _ fid _ _ [PGF.EMeta i] _) =
+  deep ltree (PGF.Bracket _ fid _ _ _ [PGF.EMeta i] _) =
     Linearization [LinToken (Tree.getPath ltree fid) ("?" <> Text.pack (show i)) []]
   -- In the middle of the tree
-  deep ltree (PGF.Bracket _ fid _ _ _ bs) =
+  deep ltree (PGF.Bracket _ fid _ _ _ _ bs) =
     broad ltree fid bs mempty
   deep _ _ = error "Muste.bracketsToTuples: Non-exhaustive pattern match"
   broad :: TTree -> Int -> [PGF.BracketedString] -> Linearization -> Linearization
