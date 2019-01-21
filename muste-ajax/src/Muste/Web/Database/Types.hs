@@ -43,8 +43,8 @@ module Muste.Web.Database.Types
 import Prelude ()
 import Muste.Prelude
 import Muste.Prelude.SQL
-  ( FromRow
-  , ToRow
+  ( FromRow(..)
+  , ToRow(..)
   , ToField(..)
   , FromField(..)
   , ToNamed(..)
@@ -60,6 +60,8 @@ import qualified Muste.Sentence.Unannotated as Sentence (Unannotated)
 import Muste.Sentence.Unannotated (Unannotated)
 
 import Muste.Web.Types.Score (Score)
+
+import Database.SQLite.Simple.FromRow.Generic
 
 newtype Blob = Blob { unBlob ∷ ByteString }
 
@@ -111,8 +113,10 @@ data User = User
 
 deriving stock    instance Show    User
 deriving stock    instance Generic User
-deriving anyclass instance ToRow   User
-deriving anyclass instance FromRow User
+instance ToRow User where
+   toRow = genericToRow
+instance FromRow User where
+   fromRow = genericFromRow
 instance ToNamed User where
   toNamed User{..} =
     [ ":Id"        := key
@@ -131,8 +135,10 @@ data UserSansId = UserSansId
 
 deriving stock    instance Show    UserSansId
 deriving stock    instance Generic UserSansId
-deriving anyclass instance ToRow   UserSansId
-deriving anyclass instance FromRow UserSansId
+instance ToRow UserSansId where
+   toRow = genericToRow
+instance FromRow UserSansId where		
+   fromRow = genericFromRow
 instance ToNamed UserSansId where
   toNamed UserSansId{..} =
     [ ":Username"  := name
@@ -149,8 +155,10 @@ data CreateUser = CreateUser
 
 deriving stock    instance Show    CreateUser
 deriving stock    instance Generic CreateUser
-deriving anyclass instance ToRow   CreateUser
-deriving anyclass instance FromRow CreateUser
+instance ToRow CreateUser where
+   toRow = genericToRow
+instance FromRow CreateUser where		
+   fromRow = genericFromRow
 instance ToNamed CreateUser where
   toNamed CreateUser{..} =
     [ ":Username"  := name
@@ -169,8 +177,10 @@ data ChangePassword = ChangePassword
 
 deriving stock    instance Show    ChangePassword
 deriving stock    instance Generic ChangePassword
-deriving anyclass instance ToRow   ChangePassword
-deriving anyclass instance FromRow ChangePassword
+instance ToRow ChangePassword where
+   toRow = genericToRow
+instance FromRow ChangePassword where		
+   fromRow = genericFromRow
 instance ToNamed ChangePassword where
   toNamed ChangePassword{..} =
     [ ":Username"    := name
@@ -195,8 +205,10 @@ data Session = Session
 
 deriving stock    instance Show    Session
 deriving stock    instance Generic Session
-deriving anyclass instance ToRow   Session
-deriving anyclass instance FromRow Session
+instance ToRow Session where
+   toRow = genericToRow
+instance FromRow Session where		
+   fromRow = genericFromRow
 instance ToNamed Session where
   toNamed Session{..} =
     [ ":User"        := user
@@ -221,8 +233,10 @@ data ExerciseLesson = ExerciseLesson
 
 deriving stock    instance Show    ExerciseLesson
 deriving stock    instance Generic ExerciseLesson
-deriving anyclass instance ToRow   ExerciseLesson
-deriving anyclass instance FromRow ExerciseLesson
+instance ToRow ExerciseLesson where
+   toRow = genericToRow
+instance FromRow ExerciseLesson where		
+   fromRow = genericFromRow
 instance ToNamed ExerciseLesson where
   toNamed ExerciseLesson{..} =
     [ ":Exercise"         := exercise
@@ -248,8 +262,10 @@ data Exercise = Exercise
 
 deriving stock    instance Show    Exercise
 deriving stock    instance Generic Exercise
-deriving anyclass instance ToRow   Exercise
-deriving anyclass instance FromRow Exercise
+instance ToRow Exercise where
+   toRow = genericToRow
+instance FromRow Exercise where		
+   fromRow = genericFromRow
 instance ToNamed Exercise where
   toNamed Exercise{..} =
     [ ":SourceLinearization" := sourceLinearization
@@ -299,8 +315,10 @@ data Lesson = Lesson
 
 deriving stock    instance Show    Lesson
 deriving stock    instance Generic Lesson
-deriving anyclass instance ToRow   Lesson
-deriving anyclass instance FromRow Lesson
+instance ToRow Lesson where
+   toRow = genericToRow
+instance FromRow Lesson where		
+   fromRow = genericFromRow
 instance ToNamed Lesson where
   toNamed Lesson{..} =
     [ ":Id"                := key
@@ -329,8 +347,10 @@ data StartedLesson = StartedLesson
 
 deriving stock    instance Show    StartedLesson
 deriving stock    instance Generic StartedLesson
-deriving anyclass instance ToRow   StartedLesson
-deriving anyclass instance FromRow StartedLesson
+instance ToRow StartedLesson where
+   toRow = genericToRow
+instance FromRow StartedLesson where		
+   fromRow = genericFromRow
 instance ToNamed StartedLesson where
   toNamed StartedLesson{..} =
     [ ":Lesson"   := lesson
@@ -347,8 +367,10 @@ data FinishedLesson = FinishedLesson
 
 deriving stock    instance Show    FinishedLesson
 deriving stock    instance Generic FinishedLesson
-deriving anyclass instance ToRow   FinishedLesson
-deriving anyclass instance FromRow FinishedLesson
+instance ToRow FinishedLesson where
+   toRow = genericToRow
+instance FromRow FinishedLesson where		
+   fromRow = genericFromRow
 instance ToNamed FinishedLesson where
   toNamed FinishedLesson{..} =
     [ ":Lesson" := lesson
@@ -367,8 +389,10 @@ data ExerciseList = ExerciseList
 
 deriving stock    instance Show    ExerciseList
 deriving stock    instance Generic ExerciseList
-deriving anyclass instance ToRow   ExerciseList
-deriving anyclass instance FromRow ExerciseList
+instance ToRow ExerciseList where
+   toRow = genericToRow
+instance FromRow ExerciseList where		
+   fromRow = genericFromRow
 instance ToNamed ExerciseList where
   toNamed ExerciseList{..} =
     [ ":User"      := user
@@ -391,8 +415,10 @@ data ActiveLessonForUser = ActiveLessonForUser
 
 deriving stock    instance Show    ActiveLessonForUser
 deriving stock    instance Generic ActiveLessonForUser
-deriving anyclass instance ToRow   ActiveLessonForUser
-deriving anyclass instance FromRow ActiveLessonForUser
+instance ToRow ActiveLessonForUser where
+   toRow = genericToRow
+instance FromRow ActiveLessonForUser where		
+   fromRow = genericFromRow
 instance ToNamed ActiveLessonForUser where
   toNamed ActiveLessonForUser{..} =
     [ ":Lesson"        := lesson
@@ -414,8 +440,10 @@ data UserLessonScore = UserLessonScore
 
 deriving stock    instance Show    UserLessonScore
 deriving stock    instance Generic UserLessonScore
-deriving anyclass instance ToRow   UserLessonScore
-deriving anyclass instance FromRow UserLessonScore
+instance ToRow UserLessonScore where
+   toRow = genericToRow
+instance FromRow UserLessonScore where		
+   fromRow = genericFromRow
 instance ToNamed UserLessonScore where
   toNamed UserLessonScore{..} =
     [ ":Lesson"     := lesson

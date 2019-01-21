@@ -25,10 +25,6 @@ extra-deps:
 - digestive-functors-heist-0.8.8.1
 - digestive-functors-snap-0.7.0.1
 
-# User goal `sqlite-simple`
-- git: https://github.com/MUSTE-Project/sqlite-simple
-  commit: b923c8bbc8bd39a196530860670232e69263c690
-
 # User goal `multiset`
 - multiset-0.3.4
 
