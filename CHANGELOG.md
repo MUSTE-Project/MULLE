@@ -7,6 +7,11 @@ HEAD
 Ensure that only the best score is returned for each lesson when
 fetching high scores.
 
+0.2.8.1
+---
+
+This version consists mainly of clean-up, simplification and removing of unused code.
+
 0.2.8.0
 ---
 
