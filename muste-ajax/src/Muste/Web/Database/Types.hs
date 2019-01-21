@@ -137,7 +137,7 @@ deriving stock    instance Show    UserSansId
 deriving stock    instance Generic UserSansId
 instance ToRow UserSansId where
    toRow = genericToRow
-instance FromRow UserSansId where		
+instance FromRow UserSansId where
    fromRow = genericFromRow
 instance ToNamed UserSansId where
   toNamed UserSansId{..} =
@@ -157,7 +157,7 @@ deriving stock    instance Show    CreateUser
 deriving stock    instance Generic CreateUser
 instance ToRow CreateUser where
    toRow = genericToRow
-instance FromRow CreateUser where		
+instance FromRow CreateUser where
    fromRow = genericFromRow
 instance ToNamed CreateUser where
   toNamed CreateUser{..} =
@@ -179,7 +179,7 @@ deriving stock    instance Show    ChangePassword
 deriving stock    instance Generic ChangePassword
 instance ToRow ChangePassword where
    toRow = genericToRow
-instance FromRow ChangePassword where		
+instance FromRow ChangePassword where
    fromRow = genericFromRow
 instance ToNamed ChangePassword where
   toNamed ChangePassword{..} =
@@ -207,7 +207,7 @@ deriving stock    instance Show    Session
 deriving stock    instance Generic Session
 instance ToRow Session where
    toRow = genericToRow
-instance FromRow Session where		
+instance FromRow Session where
    fromRow = genericFromRow
 instance ToNamed Session where
   toNamed Session{..} =
@@ -235,7 +235,7 @@ deriving stock    instance Show    ExerciseLesson
 deriving stock    instance Generic ExerciseLesson
 instance ToRow ExerciseLesson where
    toRow = genericToRow
-instance FromRow ExerciseLesson where		
+instance FromRow ExerciseLesson where
    fromRow = genericFromRow
 instance ToNamed ExerciseLesson where
   toNamed ExerciseLesson{..} =
@@ -264,7 +264,7 @@ deriving stock    instance Show    Exercise
 deriving stock    instance Generic Exercise
 instance ToRow Exercise where
    toRow = genericToRow
-instance FromRow Exercise where		
+instance FromRow Exercise where
    fromRow = genericFromRow
 instance ToNamed Exercise where
   toNamed Exercise{..} =
@@ -317,7 +317,7 @@ deriving stock    instance Show    Lesson
 deriving stock    instance Generic Lesson
 instance ToRow Lesson where
    toRow = genericToRow
-instance FromRow Lesson where		
+instance FromRow Lesson where
    fromRow = genericFromRow
 instance ToNamed Lesson where
   toNamed Lesson{..} =
@@ -349,7 +349,7 @@ deriving stock    instance Show    StartedLesson
 deriving stock    instance Generic StartedLesson
 instance ToRow StartedLesson where
    toRow = genericToRow
-instance FromRow StartedLesson where		
+instance FromRow StartedLesson where
    fromRow = genericFromRow
 instance ToNamed StartedLesson where
   toNamed StartedLesson{..} =
@@ -369,7 +369,7 @@ deriving stock    instance Show    FinishedLesson
 deriving stock    instance Generic FinishedLesson
 instance ToRow FinishedLesson where
    toRow = genericToRow
-instance FromRow FinishedLesson where		
+instance FromRow FinishedLesson where
    fromRow = genericFromRow
 instance ToNamed FinishedLesson where
   toNamed FinishedLesson{..} =
@@ -391,7 +391,7 @@ deriving stock    instance Show    ExerciseList
 deriving stock    instance Generic ExerciseList
 instance ToRow ExerciseList where
    toRow = genericToRow
-instance FromRow ExerciseList where		
+instance FromRow ExerciseList where
    fromRow = genericFromRow
 instance ToNamed ExerciseList where
   toNamed ExerciseList{..} =
@@ -417,7 +417,7 @@ deriving stock    instance Show    ActiveLessonForUser
 deriving stock    instance Generic ActiveLessonForUser
 instance ToRow ActiveLessonForUser where
    toRow = genericToRow
-instance FromRow ActiveLessonForUser where		
+instance FromRow ActiveLessonForUser where
    fromRow = genericFromRow
 instance ToNamed ActiveLessonForUser where
   toNamed ActiveLessonForUser{..} =
@@ -442,7 +442,7 @@ deriving stock    instance Show    UserLessonScore
 deriving stock    instance Generic UserLessonScore
 instance ToRow UserLessonScore where
    toRow = genericToRow
-instance FromRow UserLessonScore where		
+instance FromRow UserLessonScore where
    fromRow = genericFromRow
 instance ToNamed UserLessonScore where
   toNamed UserLessonScore{..} =
