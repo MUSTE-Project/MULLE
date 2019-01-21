@@ -41,7 +41,7 @@ import           Muste.Prelude.SQL
   ( Only(..), sql, NamedParam(..)  )
 import qualified Muste.Prelude.SQL         as SQL
 
-import qualified Crypto.Random.API         as Crypto
+import qualified Crypto.Random             as Crypto
 import qualified Crypto.KDF.PBKDF2         as Crypto
 import qualified Crypto.Hash               as Crypto
 
@@ -94,8 +94,8 @@ hashPassword pw salt
 createSalt ∷ MonadIO io ⇒ io ByteString
 createSalt
   =   fst
-  .   Crypto.genRandomBytes 512
-  <$> liftIO Crypto.getSystemRandomGen
+  .   Crypto.randomBytesGenerate 512
+  <$> liftIO Crypto.getSystemDRG
 
 getCurrentTime ∷ MonadIO io ⇒ io UTCTime
 getCurrentTime = liftIO Time.getCurrentTime
