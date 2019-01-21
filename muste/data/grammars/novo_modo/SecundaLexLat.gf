@@ -1,4 +1,4 @@
---# -path=prelude:abstract:common:latin-rgl/api:api:latin-rgl
+--# -path=prelude:abstract:common:api:latin
 concrete SecundaLexLat of SecundaLex = CatLat ** SecundaLexI-[sed_Adv]
   with (Structural=StructuralLat), (Lexicon=LexiconLat), (PrimaLex=PrimaLexLat) **
   open ParadigmsLat, ExtraLat, (I=IrregLat), Prelude, ParamX, (R=ResLat), (M=MorphoLat) in {

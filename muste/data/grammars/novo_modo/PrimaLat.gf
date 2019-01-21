@@ -1,2 +1,2 @@
---# -path=prelude:abstract:common:latin-rgl/api:api:latin-rgl
+--# -path=prelude:abstract:common:api:latin
 concrete PrimaLat of Prima = PrimaLexLat, PrimaRulesLat;

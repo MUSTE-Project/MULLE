@@ -1,4 +1,4 @@
---# -path=prelude:abstract:common:latin-rgl/api:api:latin-rgl
+--# -path=prelude:abstract:common:api:latin
 concrete QuartaLexLat of QuartaLex = CatLat ** QuartaLexI with (Cat=CatLat),(Structural=StructuralLat),(Lexicon=LexiconLat),(SecundaLex=SecundaLexLat),(TertiaLex=TertiaLexLat),(Syntax=SyntaxLat) ** open ParadigmsLat, Prelude, ResLat in {
   lin
     hic_Pron = { pers = { s = \\_,_,c => StructuralLat.this_Quant.s ! Ag Masc Sg c ; g = Masc ; n = Sg }; poss = { s = \\_,_ => [] } ; p = P3 } ;
