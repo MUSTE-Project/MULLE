@@ -21,7 +21,7 @@ import Control.Applicative ((<**>))
 -- Options type hierarchy
 
 data Options = Options
-    { grammar       :: Text   -- E.g. "exemplum/Exemplum" or "novo_modo/Prima"
+    { grammar       :: Text   -- E.g. "exemplum/Exemplum" 
     , searchOptions :: SearchOptions
     , command       :: Command
     }
@@ -135,7 +135,7 @@ grammarParser = O.strOption
     (  O.short 'G'
     <> O.long "grammar"
     <> O.help ("The grammar to use.  " <>
-               "E.g. \"novo_modo/Prima\" or \"exemplum/Exemplum\".  " <>
+               "E.g. \"exemplum/Exemplum\".  " <>
                "Please note that this is not actually a path, " <>
                "but rather must be one of the built in grammars.")
     <> O.metavar "GRAMMAR"

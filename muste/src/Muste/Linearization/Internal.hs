@@ -170,7 +170,7 @@ linearizeTree (Context grammar language _) ttree =
 getLangAndContext
   ∷ Grammar.MonadGrammar m
   ⇒ BuilderInfo
-  → Text -- ^ An identitfier for a grammar.  E.g. @novo_modo/Prima@.
+  → Text -- ^ An identitfier for a grammar.  E.g. @exemplum/Exemplum@.
   → m (Map Text Context)
 getLangAndContext nfo idf = do
   g ← Grammar.getGrammar idf
