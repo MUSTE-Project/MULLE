@@ -85,7 +85,6 @@ default-extensions:
 extra-source-files:
   - data/grammars/Makefile
   - data/grammars/exemplum/*.gf
-  - data/grammars/misc/*.gf
 
 library:
   exposed-modules:
