@@ -1,4 +1,4 @@
-GFMAKE = gf --make --gf-lib-path=gf-rgl
+GFMAKE = gf --make
 LANGS = Lat Eng Swe Spa Chi Ara Test
 GRAMMARS = Exemplum.pgf
 
