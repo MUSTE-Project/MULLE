@@ -1,4 +1,3 @@
---# -path=prelude:abstract:common:chinese
 concrete ExemplumLexChi of ExemplumLex = CatChi ** ExemplumLexI
   with (Cat=CatChi), (Grammar=GrammarChi), (Lexicon=LexiconChi) **
   open ParadigmsChi, (Res=ResChi), Prelude in {

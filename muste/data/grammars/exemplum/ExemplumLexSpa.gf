@@ -1,4 +1,3 @@
---# -path=prelude:abstract:common:romance:spanish
 concrete ExemplumLexSpa of ExemplumLex = CatSpa ** ExemplumLexI
   with (Cat=CatSpa), (Grammar=GrammarSpa), (Lexicon=LexiconSpa) **
   open ParadigmsSpa, (Diff=DiffSpa), Prelude in {

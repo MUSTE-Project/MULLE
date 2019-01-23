@@ -1,4 +1,3 @@
---# -path=prelude:abstract:common
 abstract ExemplumLex = Cat ** {
 
 fun

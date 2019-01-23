@@ -1,4 +1,3 @@
---# -path=prelude:abstract:common
 concrete ExemplumRulesTest of ExemplumRules =
   ExemplumCatTest, TenseX-[Pol,Ant,PPos,PNeg,ASimul,AAnter,Adv,Utt] **
   open Prelude in {

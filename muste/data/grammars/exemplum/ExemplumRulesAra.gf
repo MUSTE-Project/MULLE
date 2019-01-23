@@ -1,4 +1,3 @@
---# -path=prelude:abstract:common:arabic
 concrete ExemplumRulesAra of ExemplumRules =
   CatAra, TenseX-[Utt] **
   ExemplumRulesI-[useS,focusAdv]

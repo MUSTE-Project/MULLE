@@ -1,4 +1,3 @@
---# -path=prelude:abstract:common:arabic
 concrete ExemplumLexAra of ExemplumLex = CatAra **
   ExemplumLexI - [john_PN,today_Adv]
   with (Cat=CatAra), (Grammar=GrammarAra), (Lexicon=LexiconAra) **

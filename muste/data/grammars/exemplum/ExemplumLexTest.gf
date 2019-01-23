@@ -1,4 +1,3 @@
---# -path=prelude:abstract:common
 concrete ExemplumLexTest of ExemplumLex = ExemplumCatTest ** {
 
 lin

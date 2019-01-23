@@ -1,4 +1,3 @@
---# -path=prelude:abstract:common:scandinavian:swedish
 concrete ExemplumLexSwe of ExemplumLex = CatSwe ** ExemplumLexI
   with (Cat=CatSwe), (Grammar=GrammarSwe), (Lexicon=LexiconSwe) **
   open ParadigmsSwe, (Res=ResSwe), Prelude in {
