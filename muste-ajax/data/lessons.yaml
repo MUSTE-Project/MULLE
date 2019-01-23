@@ -20,22 +20,8 @@
     - source: a king reads a good book
       target: en kung i Paris läser en bok
 
-- name: "Eng->Lat"
-  key: 2
-  description: "Eng->Lat"
-  search-options:
-    size: 4
-  settings:
-    grammar: "exemplum/Exemplum"
-  languages:
-    source: "ExemplumEng"
-    target: "ExemplumLat"
-  exercises:
-    - source: many kings love Paris
-      target: rex bonus librum legit
-
 - name: "Eng->Spa (highlight off)"
-  key: 3
+  key: 2
   description: "Eng->Spa (highlight off)"
   search-options:
     size: 7
@@ -51,7 +37,7 @@
       target: un bueno rey lee un libro
 
 - name: "Eng->Chi"
-  key: 4
+  key: 3
   description: "Eng->Chi"
   search-options:
     size: 7
@@ -67,7 +53,7 @@
       target: " 一 个 国 王 爱 巴 黎 "  # a king loves Paris
 
 - name: "Eng->Ara"
-  key: 5
+  key: 4
   description: "Eng->Ara"
   search-options:
     size: 7
@@ -84,7 +70,7 @@
       target: " مَلِكٌ يَحِبُّ بارِيسَ "  # a king loves Paris
 
 - name: "RTL and agglutination test"
-  key: 6
+  key: 5
   description: "Testing that right-to-left and agglutination works"
   search-options:
     size: 7
@@ -99,7 +85,7 @@
       target: the girl read book
 
 - name: "Programming"
-  key: 7
+  key: 6
   description: "An imperative programming language"
   search-options:
     size: 7
@@ -116,7 +102,7 @@
 
 
 - name: "Two lessons"
-  key: 8
+  key: 7
   description: "A super simple lesson with two exercises"
   search-options:
     size: 7
@@ -132,7 +118,7 @@
       target: the girl read book
 
 - name: "So random"
-  key: 9
+  key: 8
   description: "Testing that randomized exercise order works correctly"
   search-options:
     size: 7

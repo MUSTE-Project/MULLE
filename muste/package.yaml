@@ -86,7 +86,6 @@ extra-source-files:
   - data/grammars/Makefile
   - data/grammars/exemplum/*.gf
   - data/grammars/misc/*.gf
-  - data/grammars/novo_modo/*.gf
 
 library:
   exposed-modules:
