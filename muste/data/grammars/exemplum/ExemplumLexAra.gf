@@ -6,8 +6,7 @@ concrete ExemplumLexAra of ExemplumLex = CatAra **
     
 lin
 
-  copula_V = dirV2 (Res.v1hollow {f = "ك"; c = "و" ; l = "ن"} Res.u) ;
-
+  copula_V = dirV2 Res.copula ;
   john_PN = mkPN " يوحنا " ;
   today_Adv = Lexicon.now_Adv ;
 
