@@ -36,7 +36,7 @@ makeLenses ''App
 -- | Handler for api requests and serving file serving.
 appInit ∷ SnapletInit App App
 appInit = makeSnaplet "muste" "Multi Semantic Text Editor"
-  (Just (pure Config.wwwRoot))
+  Nothing
   $ do
     api'    ← nestSnaplet (p "api")  api    apiInit
     static' ← nestSnaplet (p mempty) static staticInit

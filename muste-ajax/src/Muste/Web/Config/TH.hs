@@ -39,7 +39,6 @@ import qualified Muste.Web.Config.Types as Types
 
 data Config = Config
   { port          ∷ Int
-  , wwwRoot       ∷ FilePath
   , staticDir     ∷ FilePath
   , virtualRoot   ∷ FilePath
   , dataDir       ∷ FilePath
@@ -52,9 +51,6 @@ shareDir = $( runIO getDataDir >>= TH.lift )
 
 defaultPort ∷ Int
 defaultPort = 80
-
-defaultWwwRoot ∷ FilePath
-defaultWwwRoot = shareDir </> "www"
 
 defaultStaticDir ∷ FilePath
 defaultStaticDir = shareDir </> "static"
@@ -71,7 +67,6 @@ defaultLogDir = shareDir </> "log"
 instance FromJSON Config where
   parseJSON = Aeson.withObject "config" $ \v → Config
     <$> v .:? "port"                  .!= defaultPort
-    <*> v .:? "www-root"              .!= defaultWwwRoot
     <*> v .:? "static-dir"            .!= defaultStaticDir
     <*> v .:? "virtual-root"          .!= defaultVirtualRoot
     <*> v .:? "data-dir"              .!= defaultDataDir

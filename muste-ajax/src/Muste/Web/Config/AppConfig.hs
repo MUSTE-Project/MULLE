@@ -25,7 +25,6 @@ data AppConfig = AppConfig
   , errorLog    ∷ FilePath
   , port        ∷ Int
   , staticDir   ∷ FilePath
-  , wwwRoot     ∷ FilePath
   , virtualRoot ∷ FilePath
   , users       ∷ [Types.User]
   }
@@ -38,6 +37,5 @@ instance ToJSON AppConfig where
     , "error-log"    .= errorLog
     , "port"         .= port
     , "static-dir"   .= staticDir
-    , "www-root"     .= wwwRoot
     , "virtual-root" .= virtualRoot
     ]

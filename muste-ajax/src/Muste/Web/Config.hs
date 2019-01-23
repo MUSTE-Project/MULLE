@@ -27,7 +27,6 @@ module Muste.Web.Config
   , errorLog
   , port
   , staticDir
-  , wwwRoot
   , virtualRoot
   , users
   , Types.User(..)
@@ -54,7 +53,6 @@ fromConfig Cfg.Config{..} = AppConfig
   , errorLog    = logDir  </> "error"     <.> "log"
   , port        = port
   , staticDir   = staticDir
-  , wwwRoot     = wwwRoot
   , virtualRoot = virtualRoot
   , users       = users
   }
@@ -67,9 +65,6 @@ staticDir     = AppConfig.staticDir appConfig
 
 port          ∷ Int
 port          = AppConfig.port appConfig
-
-wwwRoot       ∷ FilePath
-wwwRoot       = AppConfig.wwwRoot appConfig
 
 virtualRoot   ∷ FilePath
 virtualRoot   = AppConfig.virtualRoot appConfig
