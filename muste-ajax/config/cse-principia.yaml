@@ -1,9 +1,0 @@
-virtual-root: /mulle-dev/
-port: 8081
-users:
-  - name: peter
-    password: PETER
-    enabled: yes
-  - name: herbert
-    password: HERBERT
-    enabled: yes
