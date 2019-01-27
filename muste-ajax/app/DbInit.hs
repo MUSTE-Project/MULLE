@@ -9,6 +9,7 @@ import           Muste.Prelude.SQL (Connection(Connection), sql)
 import qualified Muste.Prelude.SQL as SQL
 
 import           Data.ByteString (ByteString)
+import qualified Data.ByteString.Char8 as ByteString
 import           Data.FileEmbed (embedFile, makeRelativeToProject)
 import           Data.Text (pack, unpack)
 import           Data.Text.Encoding (decodeUtf8)
@@ -32,10 +33,10 @@ import qualified DbInit.Data as Data
 
 initDb :: Config.AppConfig -> IO ()
 initDb cfg = do
-  putStrLn "Initializing database..."
+  putStrLn "[Initializing database...]"
   mkParDir (Config.db cfg)
   withConnection (Config.db cfg) (initDbAux cfg)
-  putStrLn "Initializing database... Done"
+  putStrLn "[Initializing database... Done]"
 
 withConnection ∷ FilePath → (Connection → IO ()) → IO ()
 withConnection db m =
@@ -69,11 +70,22 @@ initDbAux cfg conn = do
   let lessons = [ lesson { Data.grammar = pack (lessonsDir </> unpack grammar) }
                 | lesson@Data.Lesson{..} <- lessons'
                 ]
+  showLessons lessonsFile lessons
   insertLessons conn   $ toDatabaseLesson <$> lessons
   insertExercises conn $ lessons >>= toDatabaseExercise
   where
   go ∷ ByteString → IO ()
   go = execRaw conn . decodeUtf8
+
+showLessons :: FilePath -> [Data.Lesson] -> IO ()
+showLessons lessonsFile lessons =
+  do printf "[Reading lessons file: %s]\n\n" lessonsFile
+     mapM_ showLess (zip [1..] lessons)
+  where showLess :: (Int, Data.Lesson) -> IO ()
+        showLess (n, lesson) =
+          do printf "[Lesson: %d]\n" n
+             printf $ ByteString.unpack $ Yaml.encode $ lesson
+             printf "\n"
 
 -- | Converts our nested structure from the config file to something
 -- suitable for a RDBMS.

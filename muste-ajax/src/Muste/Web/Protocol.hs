@@ -59,11 +59,11 @@ initApp
   ⇒ String
   → io AppState
 initApp db = do
-  liftIO  $ putStrLn "Initializing app..."
+  liftIO  $ putStrLn "[Initializing app...]"
   conn    ← openConnection db
   ctxts   ← initContexts conn
   knownGs ← Grammar.noGrammars
-  liftIO  $ putStrLn "Initializing app... Done"
+  liftIO  $ putStrLn "[Initializing app... Done]"
   pure    $ AppState conn ctxts knownGs
 
 initContexts ∷ MonadIO io ⇒ Connection → io Contexts

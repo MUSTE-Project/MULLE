@@ -1,6 +1,6 @@
 -- | Data used for inititializing the database
 
-{-# Language OverloadedStrings, OverloadedLists, DuplicateRecordFields #-}
+{-# Language OverloadedStrings, OverloadedLists, DuplicateRecordFields, RecordWildCards #-}
 {-# OPTIONS_GHC -Wall #-}
 
 module DbInit.Data
@@ -17,7 +17,7 @@ import Prelude ()
 import Muste.Prelude
 
 import Data.Text (Text)
-import Data.Aeson ((.:), FromJSON, Object, (.:?), (.!=))
+import Data.Aeson (Object, FromJSON(..), ToJSON(..), (.:), (.:?), (.!=), (.=))
 import Data.Aeson.Types (Parser)
 import qualified Data.Aeson as Aeson
 
@@ -50,6 +50,12 @@ instance FromJSON SearchOptions where
     <$> v .:? "depth"
     <*> v .:? "size"
 
+instance ToJSON SearchOptions where
+  toJSON SearchOptions{..} = Aeson.object
+    [ "depth" .= searchDepthLimit
+    , "size"  .= searchSizeLimit
+    ]
+
 data LessonSettings = LessonSettings
   { enabled          ∷ Bool
   , repeatable       ∷ Bool
@@ -78,11 +84,25 @@ instance FromJSON LessonSettings where
     <*> v .:? "exercise-count"
     <*> v .:? "randomize-exercise-order" .!= False
 
+instance ToJSON LessonSettings where
+  toJSON LessonSettings{..} = Aeson.object
+    [ "enabled"                  .= enabled
+    , "repeatable"               .= repeatable
+    , "source-direction"         .= srcDir
+    , "target-direction"         .= trgDir
+    , "highlight-matches"        .= highlightMatches
+    , "show-source-sentence"     .= showSourceSentence
+    , "exercise-count"           .= exerciseCount
+    , "randomize-exercise-order" .= randomizeOrder
+    ]
+
 newtype Sentence = Sentence Text
 
 deriving stock instance Show Sentence
 
 deriving newtype instance FromJSON Sentence
+
+deriving newtype instance ToJSON Sentence
 
 data Languages = Languages
   { source ∷ Text
@@ -97,6 +117,12 @@ instance FromJSON Languages where
     <$> v .:  "source"
     <*> v .:  "target"
 
+instance ToJSON Languages where
+  toJSON Languages{..} = Aeson.object
+    [ "source" .= source
+    , "target" .= target
+    ]
+
 data Exercise = Exercise
   { source ∷ Sentence
   , target ∷ Sentence
@@ -109,6 +135,12 @@ instance FromJSON Exercise where
     $  \v → Exercise
     <$> v .:  "source"
     <*> v .:  "target"
+
+instance ToJSON Exercise where
+  toJSON Exercise{..} = Aeson.object
+    [ "source" .= source
+    , "target" .= target
+    ]
 
 data Lesson = Lesson
   { key            ∷ Database.Key Database.Lesson
@@ -124,14 +156,25 @@ data Lesson = Lesson
 deriving stock instance Show Lesson
 
 instance FromJSON Lesson where
-  parseJSON = Aeson.withObject "search-options"
+  parseJSON = Aeson.withObject "lesson"
     $  \v → Lesson
     <$> v .:  "key"
     <*> v .:  "name"
     <*> v .:  "description"
-    <*> v .:  "settings"
+    <*> v .:? "settings"       .!= (let Just x = Aeson.decode "{}" in x)
     <*> v .:* "search-options"
     <*> v .:  "grammar"
     <*> v .:  "languages"
     <*> v .:  "exercises"
 
+instance ToJSON Lesson where
+  toJSON Lesson{..} = Aeson.object
+    [ "key"            .= key
+    , "name"           .= name
+    , "description"    .= description
+    , "settings"       .= settings
+    , "search-options" .= searchOptions
+    , "grammar"        .= grammar
+    , "languages"      .= languages
+    , "exercises"      .= exercises'
+    ]
