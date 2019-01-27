@@ -82,10 +82,6 @@ default-extensions:
   - MultiParamTypeClasses
   - DerivingStrategies
 
-extra-source-files:
-  - data/grammars/Makefile
-  - data/grammars/exemplum/*.gf
-
 library:
   exposed-modules:
     - Muste.Tree
@@ -107,7 +103,6 @@ library:
     - Muste.Linearization.Internal
     - Muste.AdjunctionTrees
     - Muste.AdjunctionTrees.Internal
-    - Muste.Data
     - Muste.Menu.Internal
     - Muste.Selection
     - Muste.Prune

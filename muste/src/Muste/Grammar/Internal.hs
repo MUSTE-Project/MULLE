@@ -61,7 +61,6 @@ import qualified Snap
 
 import Muste.Tree
 import qualified Muste.Tree.Internal as Tree
-import qualified Muste.Data as Data
 
 -- | Type 'Rule' consists of a 'String' representing the function name
 -- and a 'FunType' representing its type.
@@ -269,8 +268,8 @@ runGrammarT (GrammarT m) = do
 
 readGrammar ∷ MonadIO io ⇒ Text → io Grammar
 readGrammar p = do
-  g ← liftIO $ Data.readGrammar $ Text.unpack p
-  pure $ parseGrammar $ LB.fromStrict g
+  g ← liftIO $ LB.readFile $ Text.unpack p
+  pure $ parseGrammar g
 
 -- | Looks for a grammar at the specified location.  If the grammar is
 -- found it is added to the known grammars and returned.  If the
