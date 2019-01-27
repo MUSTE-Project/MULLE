@@ -13,7 +13,7 @@ import qualified Snap as Snap
 import qualified Snap.Util.FileServe as Snap (serveDirectory)
 import System.IO.Error (catchIOError)
 import System.FilePath (takeDirectory)
-import System.Directory (createDirectoryIfMissing)
+import System.Directory (createDirectoryIfMissing, getCurrentDirectory)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as ByteString
 import Data.Semigroup (Semigroup((<>)))
@@ -34,16 +34,16 @@ data App = App
 makeLenses ''App
 
 -- | Handler for api requests and serving file serving.
-appInit ∷ SnapletInit App App
-appInit = makeSnaplet "muste" "Multi Semantic Text Editor"
+appInit ∷ Config.AppConfig -> SnapletInit App App
+appInit cfg = makeSnaplet "muste" "Multi Semantic Text Editor"
   Nothing
   $ do
-    api'    ← nestSnaplet (p "api")  api    apiInit
-    static' ← nestSnaplet (p mempty) static staticInit
+    api'    ← nestSnaplet (p "api")  api    (apiInit cfg)
+    static' ← nestSnaplet (p mempty) static (staticInit cfg)
     pure $ App api' static'
   where
     p ∷ ByteString → ByteString
-    p = (ByteString.pack Config.virtualRoot </>)
+    p = (ByteString.pack (Config.virtualRoot cfg) </>)
 
 -- | Runs a static file server and the main api.  All requests to
 -- @/api/*@ are handled by the API.  For the protocol refer to
@@ -52,18 +52,21 @@ appInit = makeSnaplet "muste" "Multi Semantic Text Editor"
 main :: IO ()
 main = do
   opts <- Options.getOptions
-  showConfig
-  when (Options.initDb opts) DbInit.initDb
-  mapM_ mkParDir [Config.accessLog, Config.errorLog]
-  (_, site, cleanup) <- Snap.runSnaplet Nothing appInit
-  Snap.httpServe appConfig site `catchIOError` \err -> do
+  let cfgFile = Options.configFile opts
+  cfg <- Config.appConfig cfgFile
+  showConfig cfgFile cfg
+  when (Options.initDb opts) (DbInit.initDb cfg)
+  mapM_ mkParDir [Config.accessLog cfg, Config.errorLog cfg]
+  (_, site, cleanup) <- Snap.runSnaplet Nothing (appInit cfg)
+  Snap.httpServe (appConfig cfg) site `catchIOError` \err -> do
     cleanup
     ioError err
 
-showConfig ∷ IO ()
-showConfig = do
-  printf "[Configurations options]\n"
-  printf $ ByteString.unpack $ Yaml.encode $ Config.appConfig
+showConfig ∷ FilePath -> Config.AppConfig -> IO ()
+showConfig cfgFile cfg = do
+  getCurrentDirectory >>= printf "[Current Directory: %s]\n" 
+  printf "[Reading configuration file: %s]\n\n" cfgFile
+  printf $ ByteString.unpack $ Yaml.encode cfg
   printf "\n"
 
 -- | @'mkParDir' p@ Ensure that the directory that @p@ is in is
@@ -72,20 +75,20 @@ mkParDir ∷ FilePath → IO ()
 mkParDir = createDirectoryIfMissing True . takeDirectory
 
 -- | The main configuration.
-appConfig :: Snap.Config a b
-appConfig
-    = Snap.setAccessLog (ConfigFileLog Config.accessLog)
-    $ Snap.setErrorLog  (ConfigFileLog Config.errorLog)
-    $ Snap.setPort      Config.port
+appConfig :: Config.AppConfig -> Snap.Config a b
+appConfig cfg
+    = Snap.setAccessLog (ConfigFileLog (Config.accessLog cfg))
+    $ Snap.setErrorLog  (ConfigFileLog (Config.errorLog cfg))
+    $ Snap.setPort      (Config.port cfg)
     $ mempty
 
 -- | Serves static files in the @demo/@ directory.
-staticInit :: SnapletInit a ()
-staticInit = makeSnaplet "static" "Static file server" Nothing $ do
-  void $ addRoutes [("", Snap.serveDirectory Config.staticDir)]
+staticInit :: Config.AppConfig -> SnapletInit a ()
+staticInit cfg = makeSnaplet "static" "Static file server" Nothing $ do
+  void $ addRoutes [("", Snap.serveDirectory (Config.staticDir cfg))]
 
-apiInit ∷ SnapletInit a Protocol.AppState
-apiInit = Protocol.apiInit Config.db
+apiInit ∷ Config.AppConfig -> SnapletInit a Protocol.AppState
+apiInit cfg = Protocol.apiInit (Config.db cfg)
 
 (</>) ∷ IsString a ⇒ Semigroup a ⇒ a → a → a
 a </> b = a <> "/" <> b

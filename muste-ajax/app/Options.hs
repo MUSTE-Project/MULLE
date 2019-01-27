@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 
-module Options (getOptions, Options, initDb) where
+module Options (getOptions, Options(..)) where
 
 import Prelude ()
 import Muste.Prelude
@@ -8,20 +8,26 @@ import qualified Muste.Prelude.Unsafe as Unsafe
 import Options.Applicative (Parser, execParser, ParserInfo)
 import qualified Options.Applicative as O
 import Control.Applicative ((<**>))
+import System.FilePath (FilePath)
 
-newtype Options = Options
-  { initDb ∷ Bool
+data Options = Options
+  { configFile :: FilePath
+  , initDb     :: Bool
   }
 
 optionsParser ∷ Parser Options
 optionsParser = Options
-  <$> O.switch
-    ( O.long "recreate-db"
-    <> O.help
-      (  "Recreates the database. "
-      <> "WARNING: This deletes any existing data in the database."
+  <$> O.strOption
+      (  O.short 'c'
+      <> O.long "config"
+      <> O.help "The path to the main config Yaml file"
+      <> O.value "config.yaml"
+      <> O.metavar "PATH"
       )
-    )
+  <*> O.switch
+      (  O.long "recreate-db"
+      <> O.help "Recreates the database. WARNING: This deletes any existing data in the database."
+      )
 
 getOptions ∷ IO Options
 getOptions = execParser opts

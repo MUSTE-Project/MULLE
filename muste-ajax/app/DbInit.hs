@@ -10,10 +10,11 @@ import qualified Muste.Prelude.SQL as SQL
 
 import           Data.ByteString (ByteString)
 import           Data.FileEmbed (embedFile, makeRelativeToProject)
+import           Data.Text (pack, unpack)
 import           Data.Text.Encoding (decodeUtf8)
 import qualified Database.SQLite3 as SQL
 import           System.Directory (createDirectoryIfMissing)
-import           System.FilePath (takeDirectory)
+import           System.FilePath (takeDirectory, (</>))
 import qualified Data.Yaml as Yaml
 
 #ifdef DIAGNOSTICS
@@ -29,11 +30,11 @@ import qualified Muste.Web.Database.Types as Database
 
 import qualified DbInit.Data as Data
 
-initDb :: IO ()
-initDb = do
+initDb :: Config.AppConfig -> IO ()
+initDb cfg = do
   putStrLn "Initializing database..."
-  mkParDir Config.db
-  withConnection Config.db initDbAux
+  mkParDir (Config.db cfg)
+  withConnection (Config.db cfg) (initDbAux cfg)
   putStrLn "Initializing database... Done"
 
 withConnection ∷ FilePath → (Connection → IO ()) → IO ()
@@ -58,11 +59,16 @@ seedScript = $(makeRelativeToProject "data/sql/seed.sql" >>= embedFile)
 execRaw ∷ Connection → Text → IO ()
 execRaw (Connection db) qry = SQL.exec db qry
 
-initDbAux ∷ Connection → IO ()
-initDbAux conn = do
+initDbAux ∷ Config.AppConfig -> Connection → IO ()
+initDbAux cfg conn = do
   void $ traverse @[] go [ initScript, seedScript ]
-  mapM_ (dropRecreateUser conn) Config.users
-  lessons ← Yaml.decodeFileThrow Config.lessons
+  mapM_ (dropRecreateUser conn) (Config.users cfg)
+  let lessonsFile = Config.lessons cfg
+  lessons' ← Yaml.decodeFileThrow lessonsFile
+  let lessonsDir = takeDirectory lessonsFile
+  let lessons = [ lesson { Data.grammar = pack (lessonsDir </> unpack grammar) }
+                | lesson@Data.Lesson{..} <- lessons'
+                ]
   insertLessons conn   $ toDatabaseLesson <$> lessons
   insertExercises conn $ lessons >>= toDatabaseExercise
   where

@@ -51,8 +51,7 @@ instance FromJSON SearchOptions where
     <*> v .:? "size"
 
 data LessonSettings = LessonSettings
-  { grammar          ∷ Text
-  , enabled          ∷ Bool
+  { enabled          ∷ Bool
   , repeatable       ∷ Bool
   , srcDir           ∷ Ajax.Direction
   , trgDir           ∷ Ajax.Direction
@@ -70,8 +69,7 @@ deriving stock instance Show LessonSettings
 instance FromJSON LessonSettings where
   parseJSON = Aeson.withObject "search-options"
     $  \v → LessonSettings
-    <$> v .:  "grammar"
-    <*> v .:? "enabled"                  .!= True
+    <$> v .:? "enabled"                  .!= True
     <*> v .:? "repeatable"               .!= True
     <*> v .:? "source-direction"         .!= Ajax.VersoRecto
     <*> v .:? "target-direction"         .!= Ajax.VersoRecto
@@ -118,6 +116,7 @@ data Lesson = Lesson
   , description    ∷ Text
   , settings       ∷ LessonSettings
   , searchOptions  ∷ SearchOptions
+  , grammar        ∷ Text
   , languages      ∷ Languages
   , exercises'     ∷ [Exercise]
   }
@@ -132,6 +131,7 @@ instance FromJSON Lesson where
     <*> v .:  "description"
     <*> v .:  "settings"
     <*> v .:* "search-options"
+    <*> v .:  "grammar"
     <*> v .:  "languages"
     <*> v .:  "exercises"
 
