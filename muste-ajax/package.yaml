@@ -39,32 +39,7 @@ default-extensions:
   - DerivingStrategies
   - EmptyCase
 
-data-files:
-  - data/lessons.yaml
-  - static/css/muste.css
-  - static/favicon.ico
-  - static/img/congrats.jpg
-  - static/img/disabled.jpg
-  - static/img/exercise.jpg
-  - static/img/finished.jpg
-  - static/img/lessonlist.jpg
-  - static/img/logout.jpg
-  - static/img/menu.jpg
-  - static/img/menu1.jpg
-  - static/img/menu2.jpg
-  - static/img/statistics.jpg
-  - static/img/unfinished.jpg
-  - static/index.html
-  - static/instructions.html
-  - static/js/app.js
-  - static/js/countdown.js
-  - static/js/handlebars.js
-  - static/js/handlebars.min.js
-  - static/js/jquery.js
-  - static/js/jquery.min.js
-
 extra-source-files:
-  - config.yaml
   - static/package.json
 
 dependencies:
