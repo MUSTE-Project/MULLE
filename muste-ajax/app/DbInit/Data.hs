@@ -24,9 +24,17 @@ import qualified Data.Aeson as Aeson
 import qualified Muste.Web.Database.Types as Database
 import qualified Muste.Web.Ajax as Ajax
 
--- | A combinator that defaults to 'mempty' is not value is present.
-(.:*) ∷ FromJSON a ⇒ Monoid a ⇒ Object → Text → Parser a
-o .:* a = o .:? a .!= mempty
+
+-- | A combinator that defaults to an empty object if no value is present.
+(.:*) ∷ FromJSON a => Object -> Text -> Parser a
+o .:* a = o .:? a .!= emptyObject
+  where emptyObject
+          = case Aeson.decode "{}" of
+              Just obj -> obj
+              Nothing  -> error "emptyObjectParser: error parsing empty object"
+
+
+-- Search options
 
 data SearchOptions = SearchOptions
   { searchDepthLimit ∷ Maybe Int
@@ -34,15 +42,6 @@ data SearchOptions = SearchOptions
   }
 
 deriving stock instance Show SearchOptions
-
-instance Semigroup SearchOptions where
-  SearchOptions a0 b0 <> SearchOptions a1 b1
-    = SearchOptions (s a0 a1) (s b0 b1)
-    where
-    s a b = (+) <$> a <*> b
-
-instance Monoid SearchOptions where
-  mempty = SearchOptions Nothing Nothing
 
 instance FromJSON SearchOptions where
   parseJSON = Aeson.withObject "search-options"
@@ -55,6 +54,9 @@ instance ToJSON SearchOptions where
     [ "depth" .= searchDepthLimit
     , "size"  .= searchSizeLimit
     ]
+
+
+-- Lesson settings
 
 data LessonSettings = LessonSettings
   { enabled          ∷ Bool
@@ -96,6 +98,9 @@ instance ToJSON LessonSettings where
     , "randomize-exercise-order" .= randomizeOrder
     ]
 
+
+-- Sentences (strings)
+
 newtype Sentence = Sentence Text
 
 deriving stock instance Show Sentence
@@ -103,6 +108,9 @@ deriving stock instance Show Sentence
 deriving newtype instance FromJSON Sentence
 
 deriving newtype instance ToJSON Sentence
+
+
+-- Languages (source, target)
 
 data Languages = Languages
   { source ∷ Text
@@ -123,6 +131,9 @@ instance ToJSON Languages where
     , "target" .= target
     ]
 
+
+-- Exercises (source, target sentence)
+
 data Exercise = Exercise
   { source ∷ Sentence
   , target ∷ Sentence
@@ -141,6 +152,9 @@ instance ToJSON Exercise where
     [ "source" .= source
     , "target" .= target
     ]
+
+
+-- Lessons
 
 data Lesson = Lesson
   { key            ∷ Database.Key Database.Lesson
@@ -161,7 +175,7 @@ instance FromJSON Lesson where
     <$> v .:  "key"
     <*> v .:  "name"
     <*> v .:  "description"
-    <*> v .:? "settings"       .!= (let Just x = Aeson.decode "{}" in x)
+    <*> v .:* "settings"
     <*> v .:* "search-options"
     <*> v .:  "grammar"
     <*> v .:  "languages"
