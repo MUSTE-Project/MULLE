@@ -19,67 +19,91 @@
 #-}
 
 module Muste.Web.Config
-  ( AppConfig
+  ( AppConfig(..)
   , appConfig
-  , db
-  , lessons
-  , accessLog
-  , errorLog
-  , port
-  , staticDir
-  , virtualRoot
-  , users
   , Types.User(..)
   ) where
 
-import System.FilePath ((</>), (<.>))
+import Prelude ()
+import Muste.Prelude
+import Muste.Prelude.Extra (decodeFileThrow)
 
-import           Muste.Web.Config.AppConfig (AppConfig(AppConfig))
-import qualified Muste.Web.Config.AppConfig as AppConfig
-import qualified Muste.Web.Config.TH    as Cfg
+import System.FilePath (takeDirectory, (</>), (<.>))
+import Data.Aeson (FromJSON(..), ToJSON(..), (.:?), (.!=), (.=))
+import qualified Data.Aeson as Aeson
+
 import qualified Muste.Web.Config.Types as Types
 
-cfg ∷ Cfg.Config
-cfg = $( Cfg.config )
+appConfig ∷ FilePath -> IO AppConfig
+appConfig cfgFile =
+  do cfg@AppConfig{..} <- decodeFileThrow cfgFile
+     return cfg { db = cfgDir </> db
+                , lessons = cfgDir </> lessons
+                , accessLog = cfgDir </> accessLog
+                , errorLog = cfgDir </> errorLog
+                , staticDir = cfgDir </> staticDir
+                }
+  where cfgDir = takeDirectory cfgFile
 
-appConfig ∷ AppConfig
-appConfig = fromConfig cfg
+defaultDB :: FilePath
+defaultDB = defaultDataDir </> "muste" <.> "sqlite3"
 
-fromConfig ∷ Cfg.Config → AppConfig
-fromConfig Cfg.Config{..} = AppConfig
-  { db          = dataDir </> "muste"     <.> "sqlite3"
-  , lessons     = dataDir </> "lessons"   <.> "yaml"
-  , accessLog   = logDir  </> "access"    <.> "log"
-  , errorLog    = logDir  </> "error"     <.> "log"
-  , port        = port
-  , staticDir   = staticDir
-  , virtualRoot = virtualRoot
-  , users       = users
+defaultLessons :: FilePath
+defaultLessons = "lessons" <.> "yaml"
+
+defaultAccessLog :: FilePath
+defaultAccessLog = defaultLogDir  </> "access" <.> "log"
+
+defaultErrorLog :: FilePath
+defaultErrorLog = defaultLogDir  </> "error" <.> "log"
+
+defaultPort ∷ Int
+defaultPort = 80
+
+defaultStaticDir ∷ FilePath
+defaultStaticDir = "static"
+
+defaultVirtualRoot ∷ FilePath
+defaultVirtualRoot = mempty
+
+defaultDataDir ∷ FilePath
+defaultDataDir = "data"
+
+defaultLogDir ∷ FilePath
+defaultLogDir = "log"
+
+
+data AppConfig = AppConfig
+  { db          ∷ FilePath
+  -- A path to the yaml file containing the lessons
+  , lessons     ∷ FilePath
+  , accessLog   ∷ FilePath
+  , errorLog    ∷ FilePath
+  , port        ∷ Int
+  , staticDir   ∷ FilePath
+  , virtualRoot ∷ FilePath
+  , users       ∷ [Types.User]
   }
-  where
-  logDir  = Cfg.logDir cfg
-  dataDir = Cfg.dataDir cfg
 
-staticDir     ∷ FilePath
-staticDir     = AppConfig.staticDir appConfig
+instance FromJSON AppConfig where
+  parseJSON = Aeson.withObject "app-config" $ \v → AppConfig
+    <$> v .:? "db"                    .!= defaultDB
+    <*> v .:? "lessons"               .!= defaultLessons
+    <*> v .:? "access-log"            .!= defaultAccessLog
+    <*> v .:? "error-log"             .!= defaultErrorLog
+    <*> v .:? "port"                  .!= defaultPort
+    <*> v .:? "static-dir"            .!= defaultStaticDir
+    <*> v .:? "virtual-root"          .!= defaultVirtualRoot
+    <*> v .:? "users"                 .!= mempty
 
-port          ∷ Int
-port          = AppConfig.port appConfig
-
-virtualRoot   ∷ FilePath
-virtualRoot   = AppConfig.virtualRoot appConfig
-
-db            ∷ FilePath
-db            = AppConfig.db appConfig
-
-lessons       ∷ FilePath
-lessons       = AppConfig.lessons appConfig
-
-accessLog     ∷ FilePath
-accessLog     = AppConfig.accessLog appConfig
-
-errorLog      ∷ FilePath
-errorLog      = AppConfig.errorLog appConfig
-
-users         ∷ [Types.User]
-users         = AppConfig.users appConfig
+instance ToJSON AppConfig where
+  toJSON AppConfig{..} = Aeson.object
+    [ "db"           .= db
+    , "lessons"      .= lessons
+    , "access-log"   .= accessLog
+    , "error-log"    .= errorLog
+    , "port"         .= port
+    , "static-dir"   .= staticDir
+    , "virtual-root" .= virtualRoot
+    , "users"        .= users
+    ]
