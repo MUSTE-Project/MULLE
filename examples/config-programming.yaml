@@ -1,0 +1,10 @@
+lessons: lessons-programming.yaml
+db: data/programming.sqlite3
+access-log: log/access-programming.log
+error-log: log/error-programming.log
+static-dir: ../muste-ajax/static
+port: 8080
+users:
+  - name: guest
+    password: guest
+    enabled: yes

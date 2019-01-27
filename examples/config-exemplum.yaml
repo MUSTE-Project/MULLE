@@ -1,0 +1,10 @@
+lessons: lessons-exemplum.yaml
+db: data/exemplum.sqlite3
+access-log: log/access-exemplum.log
+error-log: log/error-exemplum.log
+static-dir: ../muste-ajax/static
+port: 8080
+users:
+  - name: guest
+    password: guest
+    enabled: yes

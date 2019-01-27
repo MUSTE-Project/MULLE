@@ -1,0 +1,91 @@
+
+- name: "Eng->Swe (highlight on)"
+  key: 1
+  description: "English-Swedish (highlight on)"
+  search-options:
+    size: 7
+  settings:
+    highlight-matches: on
+  grammar: "grammars/exemplum/Exemplum.pgf"
+  languages:
+    source: "ExemplumEng"
+    target: "ExemplumSwe"
+  exercises:
+    - source: many kings love Paris
+      target: en god kung älskar Paris
+    - source: "good kings don't read books"
+      target: en god kung läser en bok
+    - source: the king reads a book in Paris
+      target: en kung läser en bok
+    - source: a king reads a good book
+      target: en kung i Paris läser en bok
+
+- name: "Eng->Spa (highlight off)"
+  key: 2
+  description: "English-Spanish (highlight off)"
+  search-options:
+    size: 7
+  settings:
+    highlight-matches: off
+  grammar: "grammars/exemplum/Exemplum.pgf"
+  languages:
+    source: "ExemplumEng"
+    target: "ExemplumSpa"
+  exercises:
+    - source: a good king loves books
+      target: un buen rey lee libros  # a good king reads books
+    - source: a good king loves books
+      target: un rey ama París  # a king loves Paris
+
+- name: "Eng->Chi (testing unicode script)"
+  key: 3
+  description: "English-Chinese"
+  search-options:
+    size: 7
+  grammar: "grammars/exemplum/Exemplum.pgf"
+  languages:
+    source: "ExemplumEng"
+    target: "ExemplumChi"
+  exercises:
+    - source: a good king loves books
+      target: " 一 个 好 国 王 读 些 书 "  # a good king reads books
+    - source: a good king loves books
+      target: " 一 个 国 王 爱 巴 黎 "  # a king loves Paris
+
+- name: "Eng->Ara (testing RTL unicode script)"
+  key: 4
+  description: "English-Arabic"
+  search-options:
+    size: 7
+  settings:
+    target-direction: rtl
+  grammar: "grammars/exemplum/Exemplum.pgf"
+  languages:
+    source: "ExemplumEng"
+    target: "ExemplumAra"
+  exercises:
+    - source: a good king loves books
+      target: " يَقْرَؤُ مَلِكٌ جَيِّدٌ كُتُباً "  # a good king reads books
+    - source: a good king loves books
+      target: " يَحِبُّ مَلِكٌ بارِيسَ "  # a king loves Paris
+
+- name: "So random"
+  key: 5
+  description: "Testing that randomized exercise order works correctly"
+  search-options:
+    size: 7
+  settings:
+    randomize-exercise-order: yes
+  grammar: "grammars/exemplum/Exemplum.pgf"
+  languages:
+    source: "ExemplumEng"
+    target: "ExemplumTest"
+  exercises:
+    - source: many kings love Paris
+      target: many kings read book
+    - source: many kings love Paris
+      target: many kings hit  the boy
+    - source: many kings love Paris
+      target: the  girl  love Paris
+    - source: many kings love Paris
+      target:      boys  love Paris
