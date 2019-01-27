@@ -13,7 +13,7 @@
 --
 --  * "Muste.Web.Protocol.Handlers"
 --
-{-# Language RecordWildCards, UndecidableInstances, DeriveAnyClass,
+{-# Language CPP, RecordWildCards, UndecidableInstances, DeriveAnyClass,
   OverloadedLists #-}
 {-# OPTIONS_GHC -Wall -Wcompat #-}
 module Muste.Web.Protocol
@@ -28,10 +28,13 @@ import           Muste.Prelude.SQL (Connection)
 
 import           Data.ByteString (ByteString)
 import qualified Data.Map                     as Map
-import qualified Data.Text.IO                 as Text
 import qualified Snap
 import           Snap (MonadSnap)
 import qualified Snap.Util.CORS               as Cors
+
+#ifdef DIAGNOSTICS
+import qualified Data.Text.IO                 as Text
+#endif
 
 import qualified Muste.Grammar                as Grammar
 import qualified Muste.Linearization          as Linearization
@@ -46,11 +49,10 @@ import qualified Muste.Web.Protocol.Handlers  as Handlers
 openConnection ∷ MonadIO io ⇒ String → io Connection
 openConnection p = do
   c ← liftIO $ SQL.open p
-  setTraceSql c
+#ifdef DIAGNOSTICS
+  liftIO $ SQL.setTrace c (Just Text.putStrLn)
+#endif
   pure c
-
-setTraceSql ∷ MonadIO io ⇒ Connection → io ()
-setTraceSql c = liftIO $ SQL.setTrace c (Just Text.putStrLn)
 
 initApp
   ∷ MonadIO io

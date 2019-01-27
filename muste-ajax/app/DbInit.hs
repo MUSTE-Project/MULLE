@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, UnicodeSyntax, TemplateHaskell,
+{-# LANGUAGE CPP, OverloadedStrings, UnicodeSyntax, TemplateHaskell,
   QuasiQuotes, TypeApplications, RecordWildCards, OverloadedLists #-}
 {-# OPTIONS_GHC -Wall #-}
 module DbInit (initDb) where
@@ -15,7 +15,10 @@ import qualified Database.SQLite3 as SQL
 import           System.Directory (createDirectoryIfMissing)
 import           System.FilePath (takeDirectory)
 import qualified Data.Yaml as Yaml
+
+#ifdef DIAGNOSTICS
 import qualified Data.Text.IO as Text
+#endif
 
 import           Muste.Sentence.Unannotated (Unannotated)
 import qualified Muste.Sentence.Unannotated as Unannotated
@@ -36,7 +39,9 @@ initDb = do
 withConnection ∷ FilePath → (Connection → IO ()) → IO ()
 withConnection db m =
   SQL.withConnection db $ \c → do
+#ifdef DIAGNOSTICS
     SQL.setTrace c (Just Text.putStrLn)
+#endif
     m c
 
 -- | @'mkParDir' p@ Ensure that the directory that @p@ is in is
