@@ -1,9 +1,10 @@
 concrete ExemplumRulesTest of ExemplumRules =
-  ExemplumCatTest, TenseX-[Pol,Ant,PPos,PNeg,ASimul,AAnter,Adv,Utt] **
+  ExemplumCatTest, TenseX-[Pol,Ant,TTAnt,PPos,PNeg,ASimul,AAnter,Adv,Utt] **
   open Prelude in {
 
 lincat
-  Pol, Ant = {s : Str};
+  Pol, Ant = {s : Str} ;
+  Utterance = {s : Str} ;
 
 lin
   useN n = n ;

@@ -2,9 +2,11 @@ concrete ExemplumLexTest of ExemplumLex = ExemplumCatTest ** {
 
 lin
 
+  default_NP = {s = "something"} ;
+  default_aSg_Det = {s = ""} ;
+
   theSg_Det = {s = "the"} ;
   thePl_Det = {s = "the"} ;
-  aSg_Det = {s = ""} ;
   aPl_Det = {s = ""} ;
   many_Det = {s = "many"} ;
   every_Det = {s = "every"} ;
