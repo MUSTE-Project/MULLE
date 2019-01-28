@@ -1,7 +1,16 @@
 Change log
 ==========
 
-HEAD
+0.3.0
+---
+
+The configuration files and grammar are now moved out of the MUSTE project. Some examples are in the `examples` directory, but note that they are not anymore automatically built by `stack` or `make`.
+
+The configuration files are not read during compilation, but instead when the `muste-ajax` app is started. This means that you can have several different config files and switch between them easily.
+
+All GIT submodules are deleted, so installation should be a bit easier.
+
+0.2.8.1b
 ---
 
 Ensure that only the best score is returned for each lesson when

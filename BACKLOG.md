@@ -72,9 +72,3 @@ We're relying on the sentence object given us the correct information
 about the language of that sentence, so we don't really need the
 source- and target- language rows in the DB anymore.
 
-Configuration options
----
-
-It would be nice to find a simpler way of managing configuration
-options/the environment.  See [the relevant section in the readme
-file](README.md#An abundance of configuration methods).
