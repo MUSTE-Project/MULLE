@@ -2,7 +2,7 @@ Change log
 ==========
 
 0.3.0
----
+----
 
 The configuration files and grammar are now moved out of the MUSTE project. Some examples are in the `examples` directory, but note that they are not anymore automatically built by `stack` or `make`.
 
@@ -11,18 +11,18 @@ The configuration files are not read during compilation, but instead when the `m
 All GIT submodules are deleted, so installation should be a bit easier.
 
 0.2.8.1b
----
+----
 
 Ensure that only the best score is returned for each lesson when
 fetching high scores.
 
 0.2.8.1
----
+----
 
 This version consists mainly of clean-up, simplification and removing of unused code.
 
 0.2.8.0
----
+----
 
 ### Interface changes
 
@@ -62,7 +62,7 @@ Make interfacing with the sqlite back end more robust:
   * More type-safe primary keys (using phantom types).
 
 0.2.7.0
----
+----
 
 ### UI changes
 
@@ -96,7 +96,7 @@ e.g. mconcat them together.
 Update to latest version of our fork of `sqlite-simple`.
 
 0.2.6.0
----
+----
 
 Persist app-state across requests.
 
@@ -131,7 +131,7 @@ Display an empty menu if we click an element with no menu suggestions.
 Old behaviour was to throw an error in the javascript console.
 
 0.2.5.2
----
+----
 
 Make `Category` a newtype wrapper around `Text` (rather than a type
 synonym for `String`)
@@ -139,7 +139,7 @@ synonym for `String`)
 Close issue #37: Store *un*annotated sentences in exercises
 
 0.2.5.1
----
+----
 
 The CLI executable is no longer called `muste-cli`, rather, it's called
 `muste` and it has two subcommands:
@@ -166,7 +166,7 @@ Other changes to CLI:
   * Language argument is mandatory
 
 0.2.5.0
----
+----
 
 Add benchmarking suite for generating menus.
 
@@ -179,12 +179,12 @@ Drop support for old menu.
 Performance improvements when generating trees.
 
 0.2.4.0
----
+----
 
 Issue #15: New algorithm for creating menus.
 
 0.2.3.1
----
+----
 
 A menu now maps from "selections".  Selections correspond to the set
 of `LinToken`s that correspond to the subtree (`CostTree`) that the
@@ -220,7 +220,7 @@ Add new function to `Muste.Grammar.Internal` for parsing sentences
 into `TTree`s.  Similarly in `Muste.Linearization.Internal`.
 
 0.2.3.0
----
+----
 
 Recreating the database is now a flag to the single executable that
 the package `muste-ajax` defines.
@@ -241,13 +241,13 @@ Add configuration options for
 Please see the readme.
 
 0.2.2.0
----
+----
 
 Implement `coverNodes` for determining which replacement trees are to
 be considered "insertions".
 
 0.2.1.0
----
+----
 
 Embed `.pfg`-files into compiled binary for package `muste`.  This
 means that `muste` knows at compile time which grammars it stores.
@@ -266,7 +266,7 @@ Fixes an error in a `Makefile` that generates `.pgf`s.
 Adds `Pretty` instances for `Menu` and `TTree`.
 
 0.2.0.5
----
+----
 
 Move stuff around in `Muste.Linearization`:
 
@@ -274,7 +274,7 @@ Move stuff around in `Muste.Linearization`:
 * `Linearization` disappears
 
 0.2.0.4
----
+----
 
 Make `Menu` a monomorphic container and make it map to `[CostTree]`
 rather than `[[CostTree]]`.
@@ -313,7 +313,7 @@ efficient data-structures, like maps rather than lists of tuples.
 Put (some) AJAX params in request path.
 
 0.2.0.1
--------
+----
 
 Use `snap`
 
@@ -331,7 +331,7 @@ We depend on our own version of some package because I had to patch
 them to work with the most recent stackage lts.
 
 0.2.0.0
--------
+----
 
 This version has a big diff from the previous one.  Most of the
 changes are non functional changes.  I.e. they should not alter the
@@ -357,10 +357,10 @@ Stackify the whole project.  Use more recent version of GHC.
 Use Haskell resource files to manage most hard coded file locations.
 
 0.1.0.0
--------
+----
 This is the last version before a major refactoring.
 
 0.0.3
----
+----
 
 Implemented pruning
