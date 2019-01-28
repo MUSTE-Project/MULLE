@@ -58,7 +58,7 @@ defaultErrorLog :: FilePath
 defaultErrorLog = defaultLogDir  </> "error" <.> "log"
 
 defaultPort ∷ Int
-defaultPort = 80
+defaultPort = 8080
 
 defaultStaticDir ∷ FilePath
 defaultStaticDir = "static"
