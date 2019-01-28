@@ -1,3 +1,6 @@
+# This is an example of multilingual lessons,
+# consisting of five lessons with 2-4 exercises in each.
+
 lessons: lessons-exemplum.yaml
 db: data/exemplum.sqlite3
 access-log: log/access-exemplum.log
