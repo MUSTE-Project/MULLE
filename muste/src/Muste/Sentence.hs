@@ -28,7 +28,7 @@ import qualified Muste.Grammar.Internal as Grammar
 import qualified Muste.Sentence.Class    as Sentence
 import qualified Muste.Sentence.Token    as Token
 
-parse ∷ Context → Text → [TTree]
+parse :: Context -> Text -> [TTree]
 parse OldLinearization.Context{..}
   = Grammar.parseSentence ctxtGrammar ctxtLang
 
@@ -36,11 +36,11 @@ parse OldLinearization.Context{..}
 -- context.  It's an invariant that the sentence is a valid sentence
 -- in the grammar /and/ language given by the 'Context'.
 disambiguate
-  ∷ Sentence.Sentence s
-  ⇒ Token.IsToken (Sentence.Token s)
-  ⇒ Context
-  → s
-  → [TTree]
+  :: Sentence.Sentence s
+  => Token.IsToken (Sentence.Token s)
+  => Context
+  -> s
+  -> [TTree]
 disambiguate c s
   = Sentence.linearization s
   & Sentence.stringRep

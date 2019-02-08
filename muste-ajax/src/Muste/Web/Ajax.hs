@@ -51,17 +51,17 @@ import qualified Muste.Web.Database.Types as Database
 import           Muste.Web.Types.Score (Score(..))
 
 data ClientTree = ClientTree
-  { sentence      ∷ Unannotated
+  { sentence      :: Unannotated
   -- Asking the client to supply these is a bit of a hack.  We just
   -- send it back unmodified!
-  , direction     ∷ Direction
+  , direction     :: Direction
   }
 
 deriving instance Show ClientTree
 
 instance FromJSON ClientTree where
   parseJSON = Aeson.withObject "tree"
-     $ \v → ClientTree
+     $ \v -> ClientTree
     <$> v .: "sentence"
     <*> v .: "direction"
 
@@ -72,14 +72,14 @@ instance ToJSON ClientTree where
     ]
 
 data LoginRequest = LoginRequest
-  { name     ∷ Text
-  , password ∷ Text
+  { name     :: Text
+  , password :: Text
   }
   
 
 instance FromJSON LoginRequest where
   parseJSON = Aeson.withObject "login-request"
-    $  \v → LoginRequest
+    $  \v -> LoginRequest
     <$> v .: "name"
     <*> v .: "password"
 
@@ -90,15 +90,15 @@ instance ToJSON LoginRequest where
     ]
 
 data MenuRequest = MenuRequest
-  { lesson   ∷ Lesson
+  { lesson   :: Lesson
   -- FIXME I feel like this should not be a part of the menu response.
   -- In stead we should store the score along with the users session,
   -- and only when the exercise is done respond with the final score.
-  , score    ∷ Score
-  , src      ∷ ClientTree
-  , trg      ∷ ClientTree
+  , score    :: Score
+  , src      :: ClientTree
+  , trg      :: ClientTree
   -- FIXME Ditto the comment about the field `score`.
-  , settings ∷ Maybe MenuSettings
+  , settings :: Maybe MenuSettings
   }
 
 instance ToJSON MenuRequest where
@@ -112,7 +112,7 @@ instance ToJSON MenuRequest where
 
 instance FromJSON MenuRequest where
   parseJSON = Aeson.withObject "menu-request"
-    $  \b → MenuRequest
+    $  \b -> MenuRequest
     <$> b .:  "lesson"
     <*> b .:  "score"
     <*> b .:  "src"
@@ -128,9 +128,9 @@ instance FromJSON Direction where
     =   VersoRecto `aka` ["left-to-right", "ltr", "verso-recto"]
     <|> RectoVerso `aka` ["right-to-left", "rtl", "recto-verso"]
     where
-    aka ∷ Direction
-      → [Text]
-      → Parser Direction
+    aka :: Direction
+      -> [Text]
+      -> Parser Direction
     aka d xs = oneOf $ step <$> xs
       where
       step kw = Aeson.withText "Direction" k val
@@ -139,10 +139,10 @@ instance FromJSON Direction where
 
 instance ToJSON Direction where
   toJSON = \case
-    VersoRecto → "ltr"
-    RectoVerso → "rtl"
+    VersoRecto -> "ltr"
+    RectoVerso -> "rtl"
 
-oneOf ∷ (Foldable t, Alternative f) => t (f a) → f a
+oneOf :: (Foldable t, Alternative f) => t (f a) -> f a
 oneOf = foldl (<|>) empty
 
 -- | 'ServerTree's represent the data needed to display a sentence in
@@ -155,13 +155,13 @@ oneOf = foldl (<|>) empty
 -- reason for it of course is that less information is needed by the
 -- server when receiving a request for e.g. @\/api\/menu@.
 data ServerTree = ServerTree
-  { sentence  ∷ Annotated
-  , menu      ∷ Menu
-  , direction ∷ Direction
+  { sentence  :: Annotated
+  , menu      :: Menu
+  , direction :: Direction
   } deriving (Show)
 
 instance FromJSON ServerTree where
-  parseJSON = Aeson.withObject "server-tree" $ \v → ServerTree
+  parseJSON = Aeson.withObject "server-tree" $ \v -> ServerTree
     <$> v .:  "sentence"
     <*> v .:  "menu"
     <*> v .:? "direction" .!= VersoRecto
@@ -177,7 +177,7 @@ newtype LoginSuccess = LoginSuccess Text
 
 instance FromJSON LoginSuccess where
   parseJSON = Aeson.withObject "login-success"
-    $ \ v →  LoginSuccess
+    $ \ v ->  LoginSuccess
     <$> v .: "token"
 
 instance ToJSON LoginSuccess where
@@ -189,7 +189,7 @@ newtype LessonList = LessonList [ActiveLesson]
 
 instance FromJSON LessonList where
   parseJSON = Aeson.withObject "lesson-list"
-    $ \ v →  LessonList
+    $ \ v ->  LessonList
     <$> v .: "lessons"
 
 instance ToJSON LessonList where
@@ -198,14 +198,14 @@ instance ToJSON LessonList where
     ]
 
 data MenuResponse = MenuResponse
-  { lesson           ∷ Lesson
+  { lesson           :: Lesson
   -- This is the score for the exercise.  Not the lesson!  I think we
   -- should just remove this.
-  , score            ∷ Score
-  , menu             ∷ MenuList
-  , lessonFinished   ∷ Bool
-  , exerciseFinished ∷ Bool
-  , settings         ∷ Maybe MenuSettings
+  , score            :: Score
+  , menu             :: MenuList
+  , lessonFinished   :: Bool
+  , exerciseFinished :: Bool
+  , settings         :: Maybe MenuSettings
   }
 
 instance ToJSON MenuResponse where
@@ -220,7 +220,7 @@ instance ToJSON MenuResponse where
       ]
 
 data MenuSettings = MenuSettings
-  { highlightMatches ∷ Bool
+  { highlightMatches :: Bool
   , showSourceSentence :: Bool
   }
 
@@ -234,19 +234,19 @@ instance ToJSON MenuSettings where
 
 instance FromJSON MenuSettings where
   parseJSON = Aeson.withObject "settings"
-     $ \v → MenuSettings
+     $ \v -> MenuSettings
     <$> v .: "highlight-matches"
     <*> v .: "show-source-sentence"
 
 -- Better name might be menus?
 data MenuList = MenuList
-  { src     ∷ ServerTree
-  , trg     ∷ ServerTree
+  { src     :: ServerTree
+  , trg     :: ServerTree
   }
 
 instance FromJSON MenuList where
   parseJSON = Aeson.withObject "menu"
-    $ \ o → MenuList
+    $ \ o -> MenuList
     <$> o .: "src"
     <*> o .: "trg"
 
@@ -257,15 +257,15 @@ instance ToJSON MenuList where
     ]
 
 data User = User
-  { key      ∷ Database.Key Database.User
-  , name     ∷ Text
+  { key      :: Database.Key Database.User
+  , name     :: Text
   }
 
 deriving stock instance Show User
 
 instance FromJSON User where
   parseJSON = Aeson.withObject "user"
-     $ \v → User
+     $ \v -> User
     <$> v .: "key"
     <*> v .: "name"
 
@@ -276,38 +276,38 @@ instance ToJSON User where
     ]
 
 data CreateUser = CreateUser
-  { name     ∷ Text
-  , password ∷ Text
+  { name     :: Text
+  , password :: Text
   }
 
 deriving stock instance Show CreateUser
 
 instance FromJSON CreateUser where
   parseJSON = Aeson.withObject "user"
-     $ \v → CreateUser
+     $ \v -> CreateUser
     <$> v .: "name"
     <*> v .: "password"
 
 -- FIXME Should use ID in stead of name here!
 -- | Like a 'CreateUser' but with an old and a new password.
 data ChangePassword = ChangePassword
-  { name        ∷ Text
-  , oldPassword ∷ Text
-  , newPassword ∷ Text
+  { name        :: Text
+  , oldPassword :: Text
+  , newPassword :: Text
   }
 
 deriving stock instance Show ChangePassword
 
 instance FromJSON ChangePassword where
   parseJSON = Aeson.withObject "user"
-     $ \v → ChangePassword
+     $ \v -> ChangePassword
     <$> v .: "name"
     <*> v .: "old-password"
     <*> v .: "new-password"
 
 data Lesson = Lesson
-  { key  ∷ Database.Key Database.Lesson
-  , name ∷ Text
+  { key  :: Database.Key Database.Lesson
+  , name :: Text
   }
 
 deriving stock instance Show Lesson
@@ -320,14 +320,14 @@ instance ToJSON Lesson where
 
 instance FromJSON Lesson where
   parseJSON = Aeson.withObject "user"
-     $ \v → Lesson
+     $ \v -> Lesson
     <$> v .: "key"
     <*> v .: "name"
 
 data HighScore = HighScore
-  { lesson     ∷ Lesson
-  , user       ∷ User
-  , score      ∷ Score
+  { lesson     :: Lesson
+  , user       :: User
+  , score      :: Score
   }
 
 deriving stock instance Show HighScore
@@ -340,14 +340,14 @@ instance ToJSON HighScore where
     ]
 
 data ActiveLesson = ActiveLesson
-  { lesson        ∷ Database.Key Database.Lesson
-  , name          ∷ Text
-  , description   ∷ Text
-  , exercisecount ∷ Database.Numeric
-  , passedcount   ∷ Database.Numeric
-  , score         ∷ Maybe Score
-  , finished      ∷ Bool
-  , enabled       ∷ Bool
+  { lesson        :: Database.Key Database.Lesson
+  , name          :: Text
+  , description   :: Text
+  , exercisecount :: Database.Numeric
+  , passedcount   :: Database.Numeric
+  , score         :: Maybe Score
+  , finished      :: Bool
+  , enabled       :: Bool
   }
 
 deriving stock    instance Show    ActiveLesson
@@ -379,7 +379,7 @@ instance ToJSON ActiveLesson where
 
 -- | Determines if we should restart a lesson if it is not already started.
 newtype StartLessonSettings = StartLessonSettings
-  { restart       ∷ Bool
+  { restart       :: Bool
   }
 
 deriving stock    instance Show    StartLessonSettings

@@ -34,8 +34,8 @@ import System.CPUTime (getCPUTime)
 -- * Creating adjunction trees.
 
 data BuilderInfo = BuilderInfo
-  { searchDepth ∷ Maybe Int
-  , searchSize  ∷ Maybe Int
+  { searchDepth :: Maybe Int
+  , searchSize  :: Maybe Int
   } deriving Show
 
 instance Semigroup BuilderInfo where
@@ -50,7 +50,7 @@ instance Monoid BuilderInfo where
 -- | Finds all 'AdjunctionTrees' from a specified 'Grammar'.  That is;
 -- a mapping from a 'Category' to all trees in the specified 'Grammar'
 -- that have this type.
-getAdjunctionTrees ∷ BuilderInfo → Grammar → AdjunctionTrees
+getAdjunctionTrees :: BuilderInfo -> Grammar -> AdjunctionTrees
 getAdjunctionTrees builderInfo@BuilderInfo{..} grammar
     = diagnose builderInfo $
       AdjunctionTrees $
@@ -58,32 +58,32 @@ getAdjunctionTrees builderInfo@BuilderInfo{..} grammar
       concatMap treesByCat $
       Map.keys allRules
   where
-  treesByCat ∷ Category → [(AdjKey, [TTree])]
+  treesByCat :: Category -> [(AdjKey, [TTree])]
   treesByCat = getAdjTrees bEnv 
-  catRule ∷ Rule → (Category, [Rule])
+  catRule :: Rule -> (Category, [Rule])
   catRule r@(Function _ (Fun c _)) = (c, pure r)
   catRule _ = error "Non-exhaustive pattern match"
-  allRules ∷ Map Category [Rule]
+  allRules :: Map Category [Rule]
   allRules = Map.fromListWith mappend $ catRule <$> Grammar.getAllRules grammar
-  ruleGen ∷ RuleGen
+  ruleGen :: RuleGen
   ruleGen cat = Map.findWithDefault mempty cat allRules
-  defaultTree ∷ Map Category TTree
+  defaultTree :: Map Category TTree
   defaultTree = Map.fromList [ (cat, TNode fun typ []) |
                                (cat, rules) <- Map.toList allRules,
                                rule@(Function fun typ) <- rules,
                                isDefaultRule rule ]
 
-  bEnv ∷ BuilderEnv
+  bEnv :: BuilderEnv
   bEnv = BuilderEnv { builderInfo , ruleGen , defaultTree }
 
-diagnose ∷ BuilderInfo → AdjunctionTrees → AdjunctionTrees
+diagnose :: BuilderInfo -> AdjunctionTrees -> AdjunctionTrees
 #ifdef DIAGNOSTICS
 diagnose builderInfo ats@(AdjunctionTrees adjTrees) = unsafePerformIO $ do
   printf ">> Building adjunction trees, %s\n" (show builderInfo)
   time0 <- getCPUTime
-  let trees  ∷ [TTree]     = Map.toList adjTrees >>= \(_, ts) → ts
-  let sizes  ∷ [(Int,Int)] = Map.toList $ Map.fromListWith (+) $ (\t0 → (Tree.countNodes t0, 1)) <$> trees
-  let depths ∷ [(Int,Int)] = Map.toList $ Map.fromListWith (+) $ (\t0 → (Tree.treeDepth  t0, 1)) <$> trees
+  let trees  :: [TTree]     = Map.toList adjTrees >>= \(_, ts) -> ts
+  let sizes  :: [(Int,Int)] = Map.toList $ Map.fromListWith (+) $ (\t0 -> (Tree.countNodes t0, 1)) <$> trees
+  let depths :: [(Int,Int)] = Map.toList $ Map.fromListWith (+) $ (\t0 -> (Tree.treeDepth  t0, 1)) <$> trees
   printf "   Sizes  [(size, nr.trees)]: %s\n" (show sizes)
   printf "   Depths [(depth,nr.trees)]: %s\n" (show depths)
   printf "   Total number of adj.trees: %d\n" (length trees)
@@ -96,18 +96,18 @@ diagnose _ = identity
 #endif
 
 data BuilderEnv = BuilderEnv
-  { builderInfo ∷ BuilderInfo
-  , ruleGen     ∷ RuleGen
-  , defaultTree ∷ Map Category TTree 
+  { builderInfo :: BuilderInfo
+  , ruleGen     :: RuleGen
+  , defaultTree :: Map Category TTree 
   }
 
-type RuleGen = Category → [Rule]
+type RuleGen = Category -> [Rule]
 
 
 -- | A default rule is hard-coded to be a grammar rule whose name starts with "default".
 -- The rule is not allowed to have any children.
 -- TODO: This is a bit hacky, hoping there is a better solution.
-isDefaultRule ∷ Rule → Bool
+isDefaultRule :: Rule -> Bool
 isDefaultRule (Function fun (Fun _cat childcats))
     | "default" `isPrefixOf` Tree.unCategory fun 
         = null childcats ||

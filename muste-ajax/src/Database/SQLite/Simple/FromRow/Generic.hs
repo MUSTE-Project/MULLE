@@ -20,45 +20,43 @@ import Database.SQLite.Simple.ToField
 import GHC.Generics
 
 class GFromRow f where
-  gfromRow ∷ RowParser (f a)
+  gfromRow :: RowParser (f a)
 
-instance GFromRow (U1 ∷ * → *) where
+instance GFromRow (U1 :: * -> *) where
   gfromRow = pure U1
 
-instance FromField a ⇒ GFromRow (K1 i a ∷ * → *) where
+instance FromField a => GFromRow (K1 i a :: * -> *) where
   gfromRow = K1 <$> field
 
-instance GFromRow a ⇒ GFromRow (M1 i c a ∷ * → *) where
+instance GFromRow a => GFromRow (M1 i c a :: * -> *) where
   gfromRow = M1 <$> gfromRow
 
-instance (GFromRow a, GFromRow b) ⇒ GFromRow (a :*: b ∷ * → *) where
+instance (GFromRow a, GFromRow b) => GFromRow (a :*: b :: * -> *) where
   gfromRow = (:*:) <$> gfromRow <*> gfromRow
 
 genericFromRow
-  ∷ ∀ g
-  . Generic g
-  ⇒ GFromRow (Rep g)
-  ⇒ RowParser g
+  :: forall g . Generic g
+  => GFromRow (Rep g)
+  => RowParser g
 genericFromRow = to <$> gfromRow
 
 class GToRow f where
-  gtoRow ∷ (f a) → [SQLData]
+  gtoRow :: (f a) -> [SQLData]
 
-instance GToRow (U1 ∷ * → *) where
+instance GToRow (U1 :: * -> *) where
   gtoRow U1 = toRow ()
 
-instance ToField a ⇒ GToRow (K1 i a ∷ * → *) where
+instance ToField a => GToRow (K1 i a :: * -> *) where
   gtoRow (K1 a) = pure $ toField a
 
-instance (GToRow a, GToRow b) ⇒ GToRow (a :*: b ∷ * → *) where
+instance (GToRow a, GToRow b) => GToRow (a :*: b :: * -> *) where
   gtoRow (a :*: b) = gtoRow a <> gtoRow b
 
-instance GToRow a ⇒ GToRow (M1 i c a ∷ * → *) where
+instance GToRow a => GToRow (M1 i c a :: * -> *) where
   gtoRow (M1 a) = gtoRow a
 
 genericToRow
-  ∷ ∀ g
-  . Generic g
-  ⇒ GToRow (Rep g)
-  ⇒ g → [SQLData]
+  :: forall g . Generic g
+  => GToRow (Rep g)
+  => g -> [SQLData]
 genericToRow g = gtoRow $ from g

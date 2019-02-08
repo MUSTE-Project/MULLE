@@ -12,6 +12,6 @@ import Muste.Sentence.Linearization
 
 class Sentence a where
   type Token a
-  language ∷ a → Language
-  linearization ∷ a → Linearization (Token a)
-  sentence ∷ Language → Linearization (Token a) → a
+  language :: a -> Language
+  linearization :: a -> Linearization (Token a)
+  sentence :: Language -> Linearization (Token a) -> a

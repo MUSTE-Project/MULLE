@@ -23,25 +23,25 @@ import Muste.Sentence.Token (IsToken)
 import qualified Muste.Sentence.Token as Token
 
 newtype Linearization a = Linearization
-  { unLinearization ∷ Vector a }
+  { unLinearization :: Vector a }
 
-deriving instance Show a ⇒ Show (Linearization a)
-deriving instance FromJSON a ⇒ FromJSON (Linearization a)
-deriving instance ToJSON a ⇒ ToJSON (Linearization a)
-deriving instance Eq a ⇒ Eq (Linearization a)
-deriving instance Ord a ⇒ Ord (Linearization a)
-deriving instance Generic a ⇒ Generic (Linearization a)
-instance (Generic a, NFData a) ⇒ NFData (Linearization a) where
+deriving instance Show a => Show (Linearization a)
+deriving instance FromJSON a => FromJSON (Linearization a)
+deriving instance ToJSON a => ToJSON (Linearization a)
+deriving instance Eq a => Eq (Linearization a)
+deriving instance Ord a => Ord (Linearization a)
+deriving instance Generic a => Generic (Linearization a)
+instance (Generic a, NFData a) => NFData (Linearization a) where
 
 -- There is no 'Binary' instance for 'Vector', so we go via '[]'.
-instance Binary a ⇒ Binary (Linearization a) where
+instance Binary a => Binary (Linearization a) where
   put = put @[a] . Vector.toList . unLinearization
   get = Linearization . Vector.fromList <$> get @[a]
 
-instance (Binary a, Typeable a) ⇒ ToField (Linearization a) where
+instance (Binary a, Typeable a) => ToField (Linearization a) where
   toField = SQL.toBlob
 
-instance (Binary a, Typeable a) ⇒ FromField (Linearization a) where
+instance (Binary a, Typeable a) => FromField (Linearization a) where
   fromField = SQL.fromBlob
 
 instance IsList (Linearization a) where
@@ -49,11 +49,11 @@ instance IsList (Linearization a) where
   fromList = Vector.fromList >>> Linearization
   toList = unLinearization >>> Vector.toList
 
-instance IsToken a ⇒ Pretty (Linearization a) where
+instance IsToken a => Pretty (Linearization a) where
   pretty = pretty . stringRep
 
 -- FIXME change name to @textRep@
-stringRep ∷ IsToken a ⇒ Linearization a → Text
+stringRep :: IsToken a => Linearization a -> Text
 stringRep
   =   toList
   >>> fmap Token.concrete

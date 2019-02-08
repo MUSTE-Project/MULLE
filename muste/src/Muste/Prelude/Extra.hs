@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# Language UnicodeSyntax, FlexibleContexts, OverloadedStrings, CPP #-}
+{-# Language FlexibleContexts, OverloadedStrings, CPP #-}
 module Muste.Prelude.Extra
   ( preAndSuffix
   , wildCard
@@ -74,11 +74,11 @@ preAndSuffix a b =
   in
     prefix a b
 
-wildCard :: IsString text ⇒ text
+wildCard :: IsString text => text
 wildCard = "*empty*"
 
-{-# Specialize wildCard ∷ Text #-}
-{-# Specialize wildCard ∷ String #-}
+{-# Specialize wildCard :: Text #-}
+{-# Specialize wildCard :: String #-}
 
 -- | True if the (ordered) list contains no duplicates (i.e., is a set)
 noDuplicates :: Eq a => [a] -> Bool
@@ -90,7 +90,7 @@ noDuplicates _ = True
 
 -- | True if the (ordered) list (without duplicated) are disjoint
 areDisjoint :: Ord a => [a] -> [a] -> Bool
-areDisjoint (Set.fromList → xs) (Set.fromList → ys)
+areDisjoint (Set.fromList -> xs) (Set.fromList -> ys)
   = Set.intersection xs ys
   & Set.null
 
@@ -125,115 +125,115 @@ editDistance a b = last (if lab == 0 then mainDiag
           lab = length a - length b
           min3 x y z = if x < y then x else min y z
 
-groupOn ∷ Eq b => (a -> b) -> [a] -> [NonEmpty a]
+groupOn :: Eq b => (a -> b) -> [a] -> [NonEmpty a]
 groupOn p = groupBy ((==) `on` p)
 
 -- | Like 'groupOn' but just with a single element from each group.
-groupOnSingle ∷ Eq b ⇒ (a → b) → [a] → [a]
+groupOnSingle :: Eq b => (a -> b) -> [a] -> [a]
 groupOnSingle p = map NonEmpty.head . groupOn p
 
 -- | @'isSublistOf' xs ys@ checks if @xs@ is a sub list (disregarding
 -- the order) of @ys@.
-isSubListOf ∷ Ord a ⇒ Eq a ⇒ [a] → [a] → Bool
+isSubListOf :: Ord a => Eq a => [a] -> [a] -> Bool
 isSubListOf = Set.isSubsetOf `on` Set.fromList
 
-readFail ∷ Read r ⇒ MonadFail m ⇒ String → m r
+readFail :: Read r => MonadFail m => String -> m r
 readFail = eitherFail . readEither
 
-eitherFail ∷ MonadFail m ⇒ Either String a → m a
+eitherFail :: MonadFail m => Either String a -> m a
 eitherFail = \case
-  Left s → fail s
-  Right a → pure a
+  Left s -> fail s
+  Right a -> pure a
 
-enumerate ∷ [a] → [(Int, a)]
+enumerate :: [a] -> [(Int, a)]
 enumerate = zip [0..]
 
-maybeFail ∷ MonadFail m ⇒ String → Maybe a → m a
+maybeFail :: MonadFail m => String -> Maybe a -> m a
 maybeFail err = \case
-  Nothing → fail err
-  Just a → pure a
+  Nothing -> fail err
+  Just a -> pure a
 
-maybeFailIO ∷ MonadIO m ⇒ Exception e ⇒ e → Maybe a → m a
+maybeFailIO :: MonadIO m => Exception e => e -> Maybe a -> m a
 maybeFailIO err = \case
-  Nothing → liftIO $ throwIO err
-  Just a → pure a
+  Nothing -> liftIO $ throwIO err
+  Just a -> pure a
 
-maybeThrow ∷ MonadThrow m ⇒ Exception e ⇒ e → Maybe a → m a
+maybeThrow :: MonadThrow m => Exception e => e -> Maybe a -> m a
 maybeThrow e = \case
-  Nothing → throwM e
-  Just a  → pure a
+  Nothing -> throwM e
+  Just a  -> pure a
 
-binaryToText :: Binary bin ⇒ ConvertibleStrings ByteString text ⇒ bin → text
+binaryToText :: Binary bin => ConvertibleStrings ByteString text => bin -> text
 binaryToText = convertString . Binary.encode
 
-binaryFromText :: Binary bin ⇒ ConvertibleStrings text ByteString ⇒ text → bin
+binaryFromText :: Binary bin => ConvertibleStrings text ByteString => text -> bin
 binaryFromText = Binary.decode . convertString
 
 
 -- * Debug aids
 
 {-# DEPRECATED trace "Development aid remain in your codeUnsafe.!!" #-}
-trace ∷ String → a → a
+trace :: String -> a -> a
 trace = Debug.Trace.trace
 
 {-# DEPRECATED traceShow "Development aid remain in your codeUnsafe.!!" #-}
-traceShow ∷ Show a ⇒ a → b → b
+traceShow :: Show a => a -> b -> b
 traceShow = Debug.Trace.traceShow
 
 {-# DEPRECATED traceShowId "Development aid remain in your codeUnsafe.!!" #-}
-traceShowId ∷ Show a ⇒ a → a
+traceShowId :: Show a => a -> a
 traceShowId = Debug.Trace.traceShowId
 
-prettyShow ∷ Pretty a => a → String
+prettyShow :: Pretty a => a -> String
 prettyShow = show . Doc.pretty
 
 {-# DEPRECATED prettyTrace "Development aid remain in your codeUnsafe.!!" #-}
-prettyTrace ∷ Pretty a ⇒ a → b → b
+prettyTrace :: Pretty a => a -> b -> b
 prettyTrace a = trace (prettyShow a)
 
 {-# DEPRECATED prettyTraceId "Development aid remain in your codeUnsafe.!!" #-}
-prettyTraceId ∷ Pretty a ⇒ a → a
+prettyTraceId :: Pretty a => a -> a
 prettyTraceId a = trace (prettyShow a) a
 
 lookupFail
-  ∷ MonadFail m
-  ⇒ IsMap map
-  ⇒ String
-  → Mono.ContainerKey map
-  → map
-  → m (Mono.MapValue map)
+  :: MonadFail m
+  => IsMap map
+  => String
+  -> Mono.ContainerKey map
+  -> map
+  -> m (Mono.MapValue map)
 lookupFail err k = maybeFail err . Mono.lookup k
 
 lookupFailIO
-  ∷ MonadIO m
-  ⇒ IsMap map
-  ⇒ Exception e
-  ⇒ e
-  → Mono.ContainerKey map
-  → map
-  → m (Mono.MapValue map)
+  :: MonadIO m
+  => IsMap map
+  => Exception e
+  => e
+  -> Mono.ContainerKey map
+  -> map
+  -> m (Mono.MapValue map)
 lookupFailIO err k = maybeFailIO err . Mono.lookup k
 
 lookupThrow
-  ∷ MonadThrow m
-  ⇒ IsMap map
-  ⇒ Exception e
-  ⇒ e
-  → Mono.ContainerKey map
-  → map
-  → m (Mono.MapValue map)
+  :: MonadThrow m
+  => IsMap map
+  => Exception e
+  => e
+  -> Mono.ContainerKey map
+  -> map
+  -> m (Mono.MapValue map)
 lookupThrow e k = maybeThrow e . Mono.lookup k
 
-renderDoc ∷ Doc a → String
+renderDoc :: Doc a -> String
 renderDoc = renderString . Doc.layoutPretty Doc.defaultLayoutOptions
 
-putDoc ∷ Doc a → IO ()
+putDoc :: Doc a -> IO ()
 putDoc = Doc.putDoc
 
-putDocLn ∷ Doc a → IO ()
+putDocLn :: Doc a -> IO ()
 putDocLn = putDoc . (<> Doc.line)
 
-decodeFileThrow ∷ MonadIO m ⇒ FromJSON a ⇒ FilePath → m a
+decodeFileThrow :: MonadIO m => FromJSON a => FilePath -> m a
 -- #if MIN_VERSION_yaml(0,8,31)
 decodeFileThrow = Yaml.decodeFileThrow
 -- #else

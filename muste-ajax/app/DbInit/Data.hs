@@ -26,7 +26,7 @@ import qualified Muste.Web.Ajax as Ajax
 
 
 -- | A combinator that defaults to an empty object if no value is present.
-(.:*) ∷ FromJSON a => Object -> Text -> Parser a
+(.:*) :: FromJSON a => Object -> Text -> Parser a
 o .:* a = o .:? a .!= emptyObject
   where emptyObject
           = case Aeson.decode "{}" of
@@ -37,15 +37,15 @@ o .:* a = o .:? a .!= emptyObject
 -- Search options
 
 data SearchOptions = SearchOptions
-  { searchDepthLimit ∷ Maybe Int
-  , searchSizeLimit  ∷ Maybe Int
+  { searchDepthLimit :: Maybe Int
+  , searchSizeLimit  :: Maybe Int
   }
 
 deriving stock instance Show SearchOptions
 
 instance FromJSON SearchOptions where
   parseJSON = Aeson.withObject "search-options"
-    $  \v → SearchOptions
+    $  \v -> SearchOptions
     <$> v .:? "depth"
     <*> v .:? "size"
 
@@ -59,24 +59,24 @@ instance ToJSON SearchOptions where
 -- Lesson settings
 
 data LessonSettings = LessonSettings
-  { enabled          ∷ Bool
-  , repeatable       ∷ Bool
-  , srcDir           ∷ Ajax.Direction
-  , trgDir           ∷ Ajax.Direction
-  , highlightMatches ∷ Bool
-  , showSourceSentence ∷ Bool
+  { enabled          :: Bool
+  , repeatable       :: Bool
+  , srcDir           :: Ajax.Direction
+  , trgDir           :: Ajax.Direction
+  , highlightMatches :: Bool
+  , showSourceSentence :: Bool
   -- How many exercises need to be solved for the lesson to be
   -- considered solved.
-  , exerciseCount    ∷ Maybe Int
+  , exerciseCount    :: Maybe Int
   -- Randomize the order of the exercises.
-  , randomizeOrder   ∷ Bool
+  , randomizeOrder   :: Bool
   }
 
 deriving stock instance Show LessonSettings
 
 instance FromJSON LessonSettings where
   parseJSON = Aeson.withObject "search-options"
-    $  \v → LessonSettings
+    $  \v -> LessonSettings
     <$> v .:? "enabled"                  .!= True
     <*> v .:? "repeatable"               .!= True
     <*> v .:? "source-direction"         .!= Ajax.VersoRecto
@@ -113,15 +113,15 @@ deriving newtype instance ToJSON Sentence
 -- Languages (source, target)
 
 data Languages = Languages
-  { source ∷ Text
-  , target ∷ Text
+  { source :: Text
+  , target :: Text
   }
 
 deriving stock instance Show Languages
 
 instance FromJSON Languages where
   parseJSON = Aeson.withObject "exercise"
-    $  \v → Languages
+    $  \v -> Languages
     <$> v .:  "source"
     <*> v .:  "target"
 
@@ -135,15 +135,15 @@ instance ToJSON Languages where
 -- Exercises (source, target sentence)
 
 data Exercise = Exercise
-  { source ∷ Sentence
-  , target ∷ Sentence
+  { source :: Sentence
+  , target :: Sentence
   }
 
 deriving stock instance Show Exercise
 
 instance FromJSON Exercise where
   parseJSON = Aeson.withObject "exercise"
-    $  \v → Exercise
+    $  \v -> Exercise
     <$> v .:  "source"
     <*> v .:  "target"
 
@@ -157,21 +157,21 @@ instance ToJSON Exercise where
 -- Lessons
 
 data Lesson = Lesson
-  { key            ∷ Database.Key Database.Lesson
-  , name           ∷ Text
-  , description    ∷ Text
-  , settings       ∷ LessonSettings
-  , searchOptions  ∷ SearchOptions
-  , grammar        ∷ Text
-  , languages      ∷ Languages
-  , exercises'     ∷ [Exercise]
+  { key            :: Database.Key Database.Lesson
+  , name           :: Text
+  , description    :: Text
+  , settings       :: LessonSettings
+  , searchOptions  :: SearchOptions
+  , grammar        :: Text
+  , languages      :: Languages
+  , exercises'     :: [Exercise]
   }
 
 deriving stock instance Show Lesson
 
 instance FromJSON Lesson where
   parseJSON = Aeson.withObject "lesson"
-    $  \v → Lesson
+    $  \v -> Lesson
     <$> v .:  "key"
     <*> v .:  "name"
     <*> v .:  "description"

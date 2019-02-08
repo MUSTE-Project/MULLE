@@ -19,25 +19,25 @@ import Muste.Linearization
 import Muste.Linearization.Internal (Language)
 import qualified Muste.Linearization.Internal as Linearization
 
-unsafeGetContext ∷ BuilderInfo → Grammar → Text → Context
+unsafeGetContext :: BuilderInfo -> Grammar -> Text -> Context
 unsafeGetContext nfo g lang = fromMaybe err $ getCtxt nfo g lang
   where
   err = error $ printf cantFindLang $ Text.unpack lang
 
-getCtxt ∷ MonadFail m ⇒ BuilderInfo → Grammar → Text → m Context
+getCtxt :: MonadFail m => BuilderInfo -> Grammar -> Text -> m Context
 getCtxt nfo g lang = lookupFail err lang $ Linearization.buildContexts nfo g
   where
   err = printf cantFindLang $ Text.unpack lang
 
-cantFindLang ∷ String
+cantFindLang :: String
 cantFindLang = "Cannot find language: \"%s\""
 
-getLang ∷ MonadFail m ⇒ Grammar → Text → m Language
+getLang :: MonadFail m => Grammar -> Text -> m Language
 getLang g lang = lookupFail err lang $ Linearization.languages g
   where
   err = printf cantFindLang $ Text.unpack lang
 
-unsafeGetLang ∷ Grammar → Text → Language
+unsafeGetLang :: Grammar -> Text -> Language
 unsafeGetLang g lang = fromMaybe err $ getLang g lang
   where
   err = error $ printf cantFindLang $ Text.unpack lang

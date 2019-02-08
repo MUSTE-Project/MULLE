@@ -32,8 +32,8 @@ import Muste.Sentence.Annotated (Annotated)
 import qualified Muste.Sentence.Annotated as Annotated
 
 data Unannotated = Unannotated
-  { language      ∷ Language
-  , linearization ∷ Linearization Token.Unannotated
+  { language      :: Language
+  , linearization :: Linearization Token.Unannotated
   }
 
 deriving instance Show Unannotated
@@ -48,7 +48,7 @@ instance ToJSON Unannotated where
 
 instance FromJSON Unannotated where
   parseJSON = Aeson.withObject "word"
-    $ \o → Unannotated
+    $ \o -> Unannotated
     <$> o .: "language"
     <*> o .: "linearization"
 
@@ -68,12 +68,12 @@ instance Sentence Unannotated where
   sentence = Unannotated
 
 annotate
-  ∷ MonadThrow m
-  ⇒ Exception e
-  ⇒ e
-  → Context
-  → Unannotated
-  → m Annotated
+  :: MonadThrow m
+  => Exception e
+  => e
+  -> Context
+  -> Unannotated
+  -> m Annotated
 annotate e c@Context{..} s
   = linearization s
   & Sentence.stringRep
@@ -81,10 +81,10 @@ annotate e c@Context{..} s
   & map unambigSimpl
   & Annotated.merge e
   where
-  unambigSimpl ∷ TTree → Annotated
+  unambigSimpl :: TTree -> Annotated
   unambigSimpl t
     = Annotated.annotated c l t
-  l ∷ Language
+  l :: Language
   l = Sentence.language s
 
 -- | @'mkLinearization' c t@ creates a 'Linearization' of @t@. The
@@ -97,7 +97,7 @@ annotate e c@Context{..} s
 -- create ambiguities in the individual words.  Eachs 'Token' will
 -- correspond exactly to an internal node in the 'TTree' (idenfitied
 -- by the "name" of that node).
-mkLinearization ∷ Context → TTree → Linearization Token.Unannotated
+mkLinearization :: Context -> TTree -> Linearization Token.Unannotated
 mkLinearization c t
   -- Reuse functionality from 'Muste.Linearization.Internal'
   = OldLinearization.linearizeTree c t
@@ -106,7 +106,7 @@ mkLinearization c t
   & fmap step
   & fromList
   where
-  step ∷ OldLinearization.LinToken → Token.Unannotated
+  step :: OldLinearization.LinToken -> Token.Unannotated
   step OldLinearization.LinToken{..} = Token.unannotated ltlin
 
 -- | @'unannotated' c t@ creates a 'Sentence' of @t@.  The 'Sentence' 
@@ -114,19 +114,19 @@ mkLinearization c t
 -- 'Context' @c@.
 --
 -- See also the documentation for 'linearization'.
-unannotated ∷ Context → Language → TTree → Unannotated
+unannotated :: Context -> Language -> TTree -> Unannotated
 unannotated c l t = Unannotated l $ mkLinearization c t
 
-stringRep ∷ Unannotated → Text
+stringRep :: Unannotated -> Text
 stringRep = linearization >>> Linearization.stringRep
 
 fromText
-  ∷ Text -- ^ An identifier for the grammar
-  → Text -- ^ The language
-  → Text -- ^ The sentence
-  → Unannotated
+  :: Text -- ^ An identifier for the grammar
+  -> Text -- ^ The language
+  -> Text -- ^ The sentence
+  -> Unannotated
 fromText g l xs
   = Unannotated (Language (Grammar g) l) (fromList (go <$> Text.words xs))
   where
-  go ∷ Text → Token.Unannotated
+  go :: Text -> Token.Unannotated
   go = Token.Unannotated

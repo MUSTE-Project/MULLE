@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, OverloadedStrings, UnicodeSyntax, TemplateHaskell,
+{-# LANGUAGE CPP, OverloadedStrings, TemplateHaskell,
   QuasiQuotes, TypeApplications, RecordWildCards, OverloadedLists #-}
 {-# OPTIONS_GHC -Wall #-}
 module DbInit (initDb) where
@@ -38,9 +38,9 @@ initDb cfg = do
   withConnection (Config.db cfg) (initDbAux cfg)
   putStrLn "[Initializing database... Done]"
 
-withConnection ∷ FilePath → (Connection → IO ()) → IO ()
+withConnection :: FilePath -> (Connection -> IO ()) -> IO ()
 withConnection db m =
-  SQL.withConnection db $ \c → do
+  SQL.withConnection db $ \c -> do
 #ifdef DIAGNOSTICS
     SQL.setTrace c (Just Text.putStrLn)
 #endif
@@ -48,24 +48,24 @@ withConnection db m =
 
 -- | @'mkParDir' p@ Ensure that the directory that @p@ is in is
 -- created like the linux command @mkdir -p@.
-mkParDir ∷ FilePath → IO ()
+mkParDir :: FilePath -> IO ()
 mkParDir = createDirectoryIfMissing True . takeDirectory
 
-initScript ∷ ByteString
+initScript :: ByteString
 initScript = $(makeRelativeToProject "data/sql/create.sql" >>= embedFile)
 
-seedScript ∷ ByteString
+seedScript :: ByteString
 seedScript = $(makeRelativeToProject "data/sql/seed.sql" >>= embedFile)
 
-execRaw ∷ Connection → Text → IO ()
+execRaw :: Connection -> Text -> IO ()
 execRaw (Connection db) qry = SQL.exec db qry
 
-initDbAux ∷ Config.AppConfig -> Connection → IO ()
+initDbAux :: Config.AppConfig -> Connection -> IO ()
 initDbAux cfg conn = do
   void $ traverse @[] go [ initScript, seedScript ]
   mapM_ (dropRecreateUser conn) (Config.users cfg)
   let lessonsFile = Config.lessons cfg
-  lessons' ← Yaml.decodeFileThrow lessonsFile
+  lessons' <- Yaml.decodeFileThrow lessonsFile
   let lessonsDir = takeDirectory lessonsFile
   let lessons = [ lesson { Data.grammar = pack (lessonsDir </> unpack grammar) }
                 | lesson@Data.Lesson{..} <- lessons'
@@ -74,7 +74,7 @@ initDbAux cfg conn = do
   insertLessons conn   $ toDatabaseLesson <$> lessons
   insertExercises conn $ lessons >>= toDatabaseExercise
   where
-  go ∷ ByteString → IO ()
+  go :: ByteString -> IO ()
   go = execRaw conn . decodeUtf8
 
 showLessons :: FilePath -> [Data.Lesson] -> IO ()
@@ -89,7 +89,7 @@ showLessons lessonsFile lessons =
 
 -- | Converts our nested structure from the config file to something
 -- suitable for a RDBMS.
-toDatabaseLesson ∷ Data.Lesson → Database.Lesson
+toDatabaseLesson :: Data.Lesson -> Database.Lesson
 toDatabaseLesson Data.Lesson{..}
   = Database.Lesson
   { key                 = key
@@ -113,12 +113,12 @@ toDatabaseLesson Data.Lesson{..}
   Data.LessonSettings{..} = settings
   Data.Languages sourceLanguage targetLanguage = languages
   Data.SearchOptions{..} = searchOptions
-  dir ∷ Data.Direction → Database.Direction
+  dir :: Data.Direction -> Database.Direction
   dir = \case
-    Data.VersoRecto → Database.VersoRecto
-    Data.RectoVerso → Database.RectoVerso
+    Data.VersoRecto -> Database.VersoRecto
+    Data.RectoVerso -> Database.RectoVerso
 
-toDatabaseExercise ∷ Data.Lesson → [Database.Exercise]
+toDatabaseExercise :: Data.Lesson -> [Database.Exercise]
 toDatabaseExercise Data.Lesson{..} = step <$> zip [0..] exercises'
   where
   step (n, Data.Exercise{..})
@@ -131,10 +131,10 @@ toDatabaseExercise Data.Lesson{..} = step <$> zip [0..] exercises'
     }
   Data.LessonSettings{..} = settings
   Data.Languages srcL trgL = languages
-  lin ∷ Text → Data.Sentence → Unannotated
+  lin :: Text -> Data.Sentence -> Unannotated
   lin l (Data.Sentence t) = Unannotated.fromText grammar l t
 
-dropRecreateUser ∷ Connection → Config.User → IO ()
+dropRecreateUser :: Connection -> Config.User -> IO ()
 dropRecreateUser c Config.User{..}
   = void
   $ flip Database.runDbT c
@@ -145,7 +145,7 @@ dropRecreateUser c Config.User{..}
     , enabled  = enabled
     }
 
-insertLessons ∷ Connection → [Database.Lesson] → IO ()
+insertLessons :: Connection -> [Database.Lesson] -> IO ()
 insertLessons c = SQL.executeMany c q
   where
 
@@ -172,7 +172,7 @@ INSERT INTO Lesson
 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 ;|]
 
-insertExercises ∷ Connection → [Database.Exercise] → IO ()
+insertExercises :: Connection -> [Database.Exercise] -> IO ()
 insertExercises c = SQL.executeMany c q
   where
 

@@ -61,12 +61,12 @@ import           Muste.Web.Protocol.Class
 import           Muste.Web.Types.Score (Score)
 import qualified Muste.Web.Types.Score       as Score
 
-liftEither ∷ MonadError ProtocolError m ⇒ SomeException ~ e ⇒ Either e a → m a
+liftEither :: MonadError ProtocolError m => SomeException ~ e => Either e a -> m a
 liftEither = either (throwError . SomeProtocolError) pure
 
-createUserHandler ∷ MonadProtocol m ⇒ m (Response ())
+createUserHandler :: MonadProtocol m => m (Response ())
 createUserHandler = do
-  Ajax.CreateUser{..} ← getMessage
+  Ajax.CreateUser{..} <- getMessage
   Database.addUser $ Database.CreateUser
     { name     = name
     , password = password
@@ -78,9 +78,9 @@ createUserHandler = do
 -- writing) does not need to be authenticated to change their
 -- password.  They must simply provide their old password which is
 -- then checked against the database.
-changePwdHandler ∷ MonadProtocol m ⇒ m (Response ())
+changePwdHandler :: MonadProtocol m => m (Response ())
 changePwdHandler = do
-  Ajax.ChangePassword{..} ← getMessage
+  Ajax.ChangePassword{..} <- getMessage
   Database.changePassword Database.ChangePassword
     { name = name
     , oldPassword = oldPassword
@@ -88,42 +88,42 @@ changePwdHandler = do
     }
   pure mempty
 
-throwApiError ∷ MonadProtocol m ⇒ ApiError → m a
+throwApiError :: MonadProtocol m => ApiError -> m a
 throwApiError = throwError . ProtocolApiError
 
 -- | Reads the data from the request and deserializes from JSON.
-getMessage ∷ ∀ json m . FromJSON json ⇒ MonadProtocol m ⇒ m json
+getMessage :: forall json m . FromJSON json => MonadProtocol m => m json
 getMessage = do
-  s ← Snap.runRequestBody Streams.read >>= \case
-    Nothing → throwApiError ErrReadBody
-    Just a → pure $ convertString a
+  s <- Snap.runRequestBody Streams.read >>= \case
+    Nothing -> throwApiError ErrReadBody
+    Just a -> pure $ convertString a
   case eitherDecode @json s of
-    Left e  → throwApiError $ DecodeError e
-    Right a → pure a
+    Left e  -> throwApiError $ DecodeError e
+    Right a -> pure a
 
 -- TODO Token should be set as an HTTP Unsafe.header.
 -- | Gets the current session token.
-getToken ∷ MonadProtocol m ⇒ m Database.Token
+getToken :: MonadProtocol m => m Database.Token
 getToken = do
-  m ← getTokenCookie
+  m <- getTokenCookie
   case m of
-    Just c → pure $ Database.Token $ convertString $ Snap.cookieValue c
-    Nothing → throwApiError NoAccessToken
+    Just c -> pure $ Database.Token $ convertString $ Snap.cookieValue c
+    Nothing -> throwApiError NoAccessToken
 
-getTokenCookie ∷ MonadProtocol m ⇒ m (Maybe Snap.Cookie)
+getTokenCookie :: MonadProtocol m => m (Maybe Snap.Cookie)
 getTokenCookie = Snap.getCookie "LOGIN_TOKEN"
 
-lessonsHandler ∷ MonadProtocol m ⇒ m (Response Ajax.LessonList)
+lessonsHandler :: MonadProtocol m => m (Response Ajax.LessonList)
 lessonsHandler = do
-  t ← getToken
-  lessons ← getActiveLessons t
+  t <- getToken
+  lessons <- getActiveLessons t
   pure <$> verifyMessage (Ajax.LessonList lessons)
 
-getActiveLessons ∷ MonadProtocol m ⇒ Database.Token → m [Ajax.ActiveLesson]
+getActiveLessons :: MonadProtocol m => Database.Token -> m [Ajax.ActiveLesson]
 getActiveLessons t =
   fmap step . groupOn ActiveLessonForUser.lesson <$> Database.getActiveLessons t
   where
-  step ∷ NonEmpty Database.ActiveLessonForUser → Ajax.ActiveLesson
+  step :: NonEmpty Database.ActiveLessonForUser -> Ajax.ActiveLesson
   step xs@(Database.ActiveLessonForUser{..} :| _) = Ajax.ActiveLesson
     { lesson        = lesson
     , name          = name
@@ -141,47 +141,47 @@ getActiveLessons t =
       = fromIntegral
       $ length
       $ NonEmpty.filter isFinished xs
-    isFinished ∷ Database.ActiveLessonForUser → Bool
+    isFinished :: Database.ActiveLessonForUser -> Bool
     isFinished = isJust . ActiveLessonForUser.score
-    scores ∷ NonEmpty (Maybe Score)
+    scores :: NonEmpty (Maybe Score)
     scores = ActiveLessonForUser.score <$> xs
     -- If just a single score is a Nothing we say that the score is a
     -- nothing.  Though they should all agree.
-    maybeScores ∷ Maybe (NonEmpty Score)
+    maybeScores :: Maybe (NonEmpty Score)
     maybeScores = traverse identity scores
 
-lessonHandler ∷ MonadProtocol m ⇒ m (Response Ajax.MenuResponse)
+lessonHandler :: MonadProtocol m => m (Response Ajax.MenuResponse)
 lessonHandler = Snap.method Snap.POST $ do
-  l ← Snap.pathArg (pure . Database.Key @Database.Lesson)
-  Ajax.StartLessonSettings restart ← getMessage @Ajax.StartLessonSettings
+  l <- Snap.pathArg (pure . Database.Key @Database.Lesson)
+  Ajax.StartLessonSettings restart <- getMessage @Ajax.StartLessonSettings
   when restart (resetLesson l)
   pure <$> handleLessonInit l
 
 -- | Removes all finished exercises for the given lesson.
 resetLesson
-  ∷ MonadProtocol m
-  ⇒ Database.Key Database.Lesson
-  → m ()
+  :: MonadProtocol m
+  => Database.Key Database.Lesson
+  -> m ()
 resetLesson l = do
-  t ← getToken
+  t <- getToken
   Database.resetLesson t l
 
-menuHandler ∷ MonadProtocol m ⇒ m (Response Ajax.MenuResponse)
+menuHandler :: MonadProtocol m => m (Response Ajax.MenuResponse)
 menuHandler = getMessage >>= fmap pure . handleMenuRequest
 
-loginHandler ∷ MonadProtocol m ⇒ m (Response Ajax.LoginSuccess)
+loginHandler :: MonadProtocol m => m (Response Ajax.LoginSuccess)
 loginHandler = Snap.method Snap.POST
   $ getMessage >>= fmap pure . handleLoginRequest
 
-logoutHandler ∷ MonadProtocol m ⇒ m (Response ())
+logoutHandler :: MonadProtocol m => m (Response ())
 logoutHandler
   = Snap.method Snap.POST
   $ getToken >>= handleLogoutRequest
 
 setLoginCookie
-  ∷ MonadProtocol m
-  ⇒ Text -- ^ The token
-  → m ()
+  :: MonadProtocol m
+  => Text -- ^ The token
+  -> m ()
 setLoginCookie tok
   = Snap.modifyResponse $ Snap.addResponseCookie c
   where
@@ -195,27 +195,26 @@ setLoginCookie tok
 -- Further thought: Well, we're just sending the authentication token
 -- in stead.  This one also cannot be spoofed.
 handleLoginRequest
-  ∷ MonadProtocol m
-  ⇒ Ajax.LoginRequest
-  → m Ajax.LoginSuccess
+  :: MonadProtocol m
+  => Ajax.LoginRequest
+  -> m Ajax.LoginSuccess
 handleLoginRequest Ajax.LoginRequest{..} = do
-  user ← Database.authUser name password
-  Database.Token token ← Database.startSession $ Database.User.key user
+  user <- Database.authUser name password
+  Database.Token token <- Database.startSession $ Database.User.key user
   setLoginCookie token
   pure $ Ajax.LoginSuccess token
 
-askContexts ∷ MonadProtocol m ⇒ m Contexts
+askContexts :: MonadProtocol m => m Contexts
 askContexts = asks contexts
 
 handleLessonInit
-  ∷ ∀ m
-  . MonadProtocol m
-  ⇒ Database.Key Database.Lesson
-  → m Ajax.MenuResponse
+  :: forall m . MonadProtocol m
+  => Database.Key Database.Lesson
+  -> m Ajax.MenuResponse
 handleLessonInit lesson = do
-  token ← getToken
-  Database.ExerciseLesson{..} ← Database.startLesson token lesson
-  menu ← assembleMenus $ AssembleMenu
+  token <- getToken
+  Database.ExerciseLesson{..} <- Database.startLesson token lesson
+  menu <- assembleMenus $ AssembleMenu
     { lesson = lessonName
     , source = Ajax.ClientTree
       { sentence = source
@@ -243,10 +242,10 @@ handleLessonInit lesson = do
       }
     }
 
-dir ∷ Database.Direction → Ajax.Direction
+dir :: Database.Direction -> Ajax.Direction
 dir = \case
-  Database.VersoRecto → Ajax.VersoRecto
-  Database.RectoVerso → Ajax.RectoVerso
+  Database.VersoRecto -> Ajax.VersoRecto
+  Database.RectoVerso -> Ajax.RectoVerso
 
 -- | This request is called after the user selects a new sentence from
 -- the drop-down menu.  A request consists of two 'Ajax.ClientTree's
@@ -259,26 +258,25 @@ dir = \case
 -- 'Ajax.ClientTree's. For more information about what these contain
 -- see the documentation there.
 handleMenuRequest
-  ∷ ∀ m
-  . MonadProtocol m
-  ⇒ Ajax.MenuRequest
-  → m Ajax.MenuResponse
+  :: forall m . MonadProtocol m
+  => Ajax.MenuRequest
+  -> m Ajax.MenuResponse
 handleMenuRequest Ajax.MenuRequest{..} = do
   let Ajax.Score{..}  = score
       Ajax.Lesson{..} = lesson
       lessonName = Lesson.name lesson
   verifySession
-  token ← getToken
+  token <- getToken
   let
     newScore
       = score
       & Score.addClick 1
       & Score.setTime time
-  exerciseFinished ← oneSimiliarTree lessonName src trg
-  lessonFinished   ← if exerciseFinished
+  exerciseFinished <- oneSimiliarTree lessonName src trg
+  lessonFinished   <- if exerciseFinished
     then Database.finishExercise token key newScore
     else pure False
-  menu ← assembleMenus $ AssembleMenu
+  menu <- assembleMenus $ AssembleMenu
     { lesson = lessonName
     , source = src
     , target = trg
@@ -293,125 +291,123 @@ handleMenuRequest Ajax.MenuRequest{..} = do
     }
 
 annotate
-  ∷ MonadProtocol m
-  ⇒ Text
-  → Unannotated
-  → m Annotated
+  :: MonadProtocol m
+  => Text
+  -> Unannotated
+  -> m Annotated
 annotate lesson s = do
-  cs ← askContexts
+  cs <- askContexts
   liftEither $ do
-    ctxt ← getContext cs lesson $ l
+    ctxt <- getContext cs lesson $ l
     Unannotated.annotate
       (ErrorCall $ "Unable to parse: " <> show s) ctxt s
     where
-    l ∷ Sentence.Language
+    l :: Sentence.Language
     l = Sentence.language s
 
 oneSimiliarTree
-  ∷ ∀ m
-  . MonadProtocol m
-  ⇒ Text
-  → Ajax.ClientTree
-  → Ajax.ClientTree
-  → m Bool
+  :: forall m . MonadProtocol m
+  => Text
+  -> Ajax.ClientTree
+  -> Ajax.ClientTree
+  -> m Bool
 oneSimiliarTree lesson src trg = do
-  srcS ← parse src
-  trgS ← parse trg
+  srcS <- parse src
+  trgS <- parse trg
   pure $ oneInCommon srcS trgS
   where
-  oneInCommon ∷ Ord a ⇒ Set a → Set a → Bool
+  oneInCommon :: Ord a => Set a -> Set a -> Bool
   oneInCommon a b = not $ Set.null $ Set.intersection a b
-  parse ∷ Ajax.ClientTree → m (Set TTree)
+  parse :: Ajax.ClientTree -> m (Set TTree)
   parse = fmap Set.fromList . disambiguate lesson
 
 disambiguate
-  ∷ ∀ m
-  . MonadProtocol m
-  ⇒ Text
-  → Ajax.ClientTree
-  → m [TTree]
+  :: forall m . MonadProtocol m
+  => Text
+  -> Ajax.ClientTree
+  -> m [TTree]
 disambiguate lesson Ajax.ClientTree{..} = do
-  cs ← askContexts
+  cs <- askContexts
   let
-    getC ∷ Unannotated → m Context
+    getC :: Unannotated -> m Context
     getC u = liftEither $ getContext cs lesson (Sentence.language u)
-  c ← getC sentence
+  c <- getC sentence
   pure $ Sentence.disambiguate c sentence
 
 handleLogoutRequest
-  ∷ MonadProtocol m
-  ⇒ Database.Token
-  → m (Response ())
+  :: MonadProtocol m
+  => Database.Token
+  -> m (Response ())
 handleLogoutRequest = fmap pure . Database.endSession
 
 -- | @'verifySession' tok@ verifies the user identified by @tok@.
 -- This method throws (using one of the error instances of
 -- 'MonadProtocol') if the user is not authenticated.
-verifySession ∷ MonadProtocol m ⇒ m ()
+verifySession :: MonadProtocol m => m ()
 verifySession = getToken >>= Database.verifySession
 
 -- | Returns the same message unmodified if the user is authenticated,
 -- otherwise return 'SMSessionInvalid'.
-verifyMessage ∷ MonadProtocol m ⇒ a → m a
+verifyMessage :: MonadProtocol m => a -> m a
 verifyMessage msg = msg <$ verifySession
 
 data AssembleMenu = AssembleMenu
-  { lesson ∷ Text
-  , source ∷ Ajax.ClientTree
-  , target ∷ Ajax.ClientTree
+  { lesson :: Text
+  , source :: Ajax.ClientTree
+  , target :: Ajax.ClientTree
   }
 
 -- | Gets the menus for a lesson.  This consists of a source tree and
 -- a target tree.
 assembleMenus
-  ∷ MonadProtocol m
-  ⇒ AssembleMenu
-  → m Ajax.MenuList
+  :: MonadProtocol m
+  => AssembleMenu
+  -> m Ajax.MenuList
 -- assembleMenus lesson sourceTree targetTree srcDir trgDir = do
 assembleMenus AssembleMenu{..} = do
-  c ← askContexts
+  c <- askContexts
   let mkTree = makeTree c lesson
   let ann = annotate lesson
-  src ← ann $ ClientTree.sentence source
-  trg ← ann $ ClientTree.sentence target
+  src <- ann $ ClientTree.sentence source
+  trg <- ann $ ClientTree.sentence target
   pure $ Ajax.MenuList
     { src = mkTree src $ ClientTree.direction source
     , trg = mkTree trg $ ClientTree.direction target
     }
 
 getContext
-  ∷ MonadThrow m
-  ⇒ Contexts
-  → Text              -- ^ Lesson
-  → Sentence.Language -- ^ Language
-  → m Context
+  :: MonadThrow m
+  => Contexts
+  -> Text              -- ^ Lesson
+  -> Sentence.Language -- ^ Language
+  -> m Context
 getContext ctxts lesson s
   =   pure ctxts
   >>= lookupM (LessonNotFound lesson) lesson
   >>= lookupM (LanguageNotFound s) s
 
 lookupM
-  ∷ MonadThrow m
-  ⇒ Exception e
-  ⇒ Ord k
-  ⇒ e → k → Map k a → m a
+  :: MonadThrow m
+  => Exception e
+  => Ord k
+  => e -> k -> Map k a -> m a
 lookupM err k = liftMaybe err . Map.lookup k
 
 -- | Lift a 'Maybe' to any 'MonadThrow'.
-liftMaybe ∷ MonadThrow m ⇒ Exception e ⇒ e → Maybe a → m a
+liftMaybe :: MonadThrow m => Exception e => e -> Maybe a -> m a
 liftMaybe e = \case
-  Nothing → throwM e
-  Just a  → pure a
+  Nothing -> throwM e
+  Just a  -> pure a
 
 -- | @'makeTree' ctxt lesson src trg tree@ Creates a 'ServerTree' from
 -- a source trees and a target tree.  The 'Menu' is provided given
 -- @tree@.
 makeTree
-  ∷ Contexts
-  → Text
-  → Annotated
-  → Ajax.Direction
-  → Ajax.ServerTree
+  :: Contexts
+  -> Text
+  -> Annotated
+  -> Ajax.Direction
+  -> Ajax.ServerTree
 makeTree c lesson s d
   = Ajax.ServerTree
   { sentence  = s
@@ -422,16 +418,16 @@ makeTree c lesson s d
   ctxt = throwLeft $ getContext c lesson language
   language = Sentence.language s
 
-highScoresHandler ∷ MonadProtocol m ⇒ m (Response [Ajax.HighScore])
+highScoresHandler :: MonadProtocol m => m (Response [Ajax.HighScore])
 highScoresHandler = pure . step <$> Database.getUserLessonScores
   where
   -- Group by lesson, then sort by the valuation of the score.
-  step ∷ [Database.UserLessonScore] → [Ajax.HighScore]
+  step :: [Database.UserLessonScore] -> [Ajax.HighScore]
   step = NonEmpty.groupBy theLesson >>> fmap byValuation
   byValuation  = NonEmpty.sortBy theValuation >>> NonEmpty.head >>> go
   theLesson    = ((==) `on` Database.UserLessonScore.lesson)
   theValuation = compare `on` Math.negate . Score.valuation . Database.UserLessonScore.score
-  go ∷ Database.UserLessonScore → Ajax.HighScore
+  go :: Database.UserLessonScore -> Ajax.HighScore
   go Database.UserLessonScore{..} = Ajax.HighScore
     { lesson = Ajax.Lesson
         { key  = lesson

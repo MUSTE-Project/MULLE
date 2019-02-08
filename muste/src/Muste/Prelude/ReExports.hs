@@ -74,5 +74,5 @@ import Prelude as Extraneous
   , (++)
   )
 
-identity ∷ a → a
+identity :: a -> a
 identity a = a

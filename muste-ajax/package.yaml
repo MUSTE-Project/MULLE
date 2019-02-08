@@ -34,7 +34,6 @@ default-extensions:
   - TypeApplications
   - TypeFamilies
   - TypeSynonymInstances
-  - UnicodeSyntax
   - ViewPatterns
   - DerivingStrategies
   - EmptyCase

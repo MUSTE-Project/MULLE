@@ -15,7 +15,7 @@ data Options = Options
   , initDb     :: Bool
   }
 
-optionsParser ∷ Parser Options
+optionsParser :: Parser Options
 optionsParser = Options
   <$> O.strOption
       (  O.short 'c'
@@ -29,25 +29,25 @@ optionsParser = Options
       <> O.help "Recreates the database. WARNING: This deletes any existing data in the database."
       )
 
-getOptions ∷ IO Options
+getOptions :: IO Options
 getOptions = execParser opts
 
-opts ∷ ParserInfo Options
+opts :: ParserInfo Options
 opts = O.info (optionsParser <**> O.helper <**> version)
   (  O.fullDesc
   <> O.progDesc descr
   <> O.header header
   )
 
-version ∷ Parser (a → a)
+version :: Parser (a -> a)
 version = O.infoOption Unsafe.gitDescription $ mconcat
   [ O.long "version"
   , O.help "Output version information and exit"
   , O.hidden
   ]
 
-header ∷ String
+header :: String
 header = "muste-ajax - REST API for the Multi Semantic Text Editor (MUSTE)"
 
-descr ∷ String
+descr :: String
 descr = "Runs a REST endpoint for the Multi Semantic Text Editor"

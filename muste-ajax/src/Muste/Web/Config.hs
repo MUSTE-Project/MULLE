@@ -10,13 +10,7 @@
 
 -- FIXME Name shadowing.
 {-# OPTIONS_GHC -Wall -Wcompat -Wno-name-shadowing #-}
-{-# LANGUAGE
-    UnicodeSyntax
-  , NamedWildCards
-  , TemplateHaskell
-  , RecordWildCards
-  , DuplicateRecordFields
-#-}
+{-# LANGUAGE NamedWildCards, TemplateHaskell, RecordWildCards, DuplicateRecordFields #-}
 
 module Muste.Web.Config
   ( AppConfig(..)
@@ -34,7 +28,7 @@ import qualified Data.Aeson as Aeson
 
 import qualified Muste.Web.Config.Types as Types
 
-appConfig ∷ FilePath -> IO AppConfig
+appConfig :: FilePath -> IO AppConfig
 appConfig cfgFile =
   do cfg@AppConfig{..} <- decodeFileThrow cfgFile
      return cfg { db = cfgDir </> db
@@ -57,36 +51,36 @@ defaultAccessLog = defaultLogDir  </> "access" <.> "log"
 defaultErrorLog :: FilePath
 defaultErrorLog = defaultLogDir  </> "error" <.> "log"
 
-defaultPort ∷ Int
+defaultPort :: Int
 defaultPort = 8080
 
-defaultStaticDir ∷ FilePath
+defaultStaticDir :: FilePath
 defaultStaticDir = "static"
 
-defaultVirtualRoot ∷ FilePath
+defaultVirtualRoot :: FilePath
 defaultVirtualRoot = mempty
 
-defaultDataDir ∷ FilePath
+defaultDataDir :: FilePath
 defaultDataDir = "data"
 
-defaultLogDir ∷ FilePath
+defaultLogDir :: FilePath
 defaultLogDir = "log"
 
 
 data AppConfig = AppConfig
-  { db          ∷ FilePath
+  { db          :: FilePath
   -- A path to the yaml file containing the lessons
-  , lessons     ∷ FilePath
-  , accessLog   ∷ FilePath
-  , errorLog    ∷ FilePath
-  , port        ∷ Int
-  , staticDir   ∷ FilePath
-  , virtualRoot ∷ FilePath
-  , users       ∷ [Types.User]
+  , lessons     :: FilePath
+  , accessLog   :: FilePath
+  , errorLog    :: FilePath
+  , port        :: Int
+  , staticDir   :: FilePath
+  , virtualRoot :: FilePath
+  , users       :: [Types.User]
   }
 
 instance FromJSON AppConfig where
-  parseJSON = Aeson.withObject "app-config" $ \v → AppConfig
+  parseJSON = Aeson.withObject "app-config" $ \v -> AppConfig
     <$> v .:? "db"                    .!= defaultDB
     <*> v .:? "lessons"               .!= defaultLessons
     <*> v .:? "access-log"            .!= defaultAccessLog

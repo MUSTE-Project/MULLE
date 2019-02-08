@@ -124,8 +124,8 @@ getToplevelCat _ = error "Muste.Prune.getToplevelCat: Non-exhaustive pattern mat
 
 
 data PruneOpts = PruneOpts
-  { searchDepth ∷ Maybe Int
-  , searchSize  ∷ Maybe Int
+  { searchDepth :: Maybe Int
+  , searchSize  :: Maybe Int
   } deriving Show
 
 emptyPruneOpts :: PruneOpts

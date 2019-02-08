@@ -18,21 +18,21 @@ import qualified Muste.Menu.Internal as Menu
 getGrammar :: IO LB.ByteString
 getGrammar = pure $ LB.fromStrict $ snd grammar'
   where
-  grammar' ∷ (String, ByteString)
+  grammar' :: (String, ByteString)
   grammar' = $(Embed.grammar "exemplum/Exemplum")
 
--- theCtxt ∷ IO Context
+-- theCtxt :: IO Context
 -- theCtxt = pure $ Util.unsafeGetContext grammar "ExemplumSwe"
 
-bench ∷ LB.ByteString → Benchmark
+bench :: LB.ByteString -> Benchmark
 bench bs
   =   Criterion.bgroup "Menu.getMenuItems"
   $   go <$> sentences
   where
   c = Util.unsafeGetContext (Grammar.parseGrammar bs) "ExemplumSwe"
-  go ∷ String → Benchmark
+  go :: String -> Benchmark
   go s = Criterion.bench s $ Criterion.nf (Menu.getMenuItems c) s
-  sentences ∷ [String]
+  sentences :: [String]
   sentences =
     [ "vinet är vist"
     , "ofta håller den stora kejsaren ett gott vin"
@@ -41,7 +41,7 @@ bench bs
     , "flickan i Paris slår på många datorer i dåliga böcker"
     ]
 
-main ∷ IO ()
+main :: IO ()
 -- main = putStrLn "Feeling very benchy!"
 main = Criterion.defaultMain [Criterion.env getGrammar bench]
 

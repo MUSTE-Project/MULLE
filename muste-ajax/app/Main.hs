@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wall -Wcompat #-}
-{-# language OverloadedStrings, UnicodeSyntax, TemplateHaskell #-}
+{-# language OverloadedStrings, TemplateHaskell #-}
 module Main (main) where
 
 import Prelude ()
@@ -27,22 +27,22 @@ import qualified DbInit
 import qualified Options
 
 data App = App
-  { _api    ∷ Snap.Snaplet Protocol.AppState
-  , _static ∷ Snap.Snaplet ()
+  { _api    :: Snap.Snaplet Protocol.AppState
+  , _static :: Snap.Snaplet ()
   }
 
 makeLenses ''App
 
 -- | Handler for api requests and serving file serving.
-appInit ∷ Config.AppConfig -> SnapletInit App App
+appInit :: Config.AppConfig -> SnapletInit App App
 appInit cfg = makeSnaplet "muste" "Multi Semantic Text Editor"
   Nothing
   $ do
-    api'    ← nestSnaplet (p "api")  api    (apiInit cfg)
-    static' ← nestSnaplet (p mempty) static (staticInit cfg)
+    api'    <- nestSnaplet (p "api")  api    (apiInit cfg)
+    static' <- nestSnaplet (p mempty) static (staticInit cfg)
     pure $ App api' static'
   where
-    p ∷ ByteString → ByteString
+    p :: ByteString -> ByteString
     p = (ByteString.pack (Config.virtualRoot cfg) </>)
 
 -- | Runs a static file server and the main api.  All requests to
@@ -62,7 +62,7 @@ main = do
     cleanup
     ioError err
 
-showConfig ∷ FilePath -> Config.AppConfig -> IO ()
+showConfig :: FilePath -> Config.AppConfig -> IO ()
 showConfig cfgFile cfg = do
   getCurrentDirectory >>= printf "[Current Directory: %s]\n" 
   printf "[Reading configuration file: %s]\n\n" cfgFile
@@ -71,7 +71,7 @@ showConfig cfgFile cfg = do
 
 -- | @'mkParDir' p@ Ensure that the directory that @p@ is in is
 -- created.
-mkParDir ∷ FilePath → IO ()
+mkParDir :: FilePath -> IO ()
 mkParDir = createDirectoryIfMissing True . takeDirectory
 
 -- | The main configuration.
@@ -87,8 +87,8 @@ staticInit :: Config.AppConfig -> SnapletInit a ()
 staticInit cfg = makeSnaplet "static" "Static file server" Nothing $ do
   void $ addRoutes [("", Snap.serveDirectory (Config.staticDir cfg))]
 
-apiInit ∷ Config.AppConfig -> SnapletInit a Protocol.AppState
+apiInit :: Config.AppConfig -> SnapletInit a Protocol.AppState
 apiInit cfg = Protocol.apiInit (Config.db cfg)
 
-(</>) ∷ IsString a ⇒ Semigroup a ⇒ a → a → a
+(</>) :: IsString a => Semigroup a => a -> a -> a
 a </> b = a <> "/" <> b

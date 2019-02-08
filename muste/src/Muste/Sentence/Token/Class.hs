@@ -5,4 +5,4 @@ import Prelude ()
 import Muste.Prelude
 
 class IsToken a where
-  concrete ∷ a → Text
+  concrete :: a -> Text

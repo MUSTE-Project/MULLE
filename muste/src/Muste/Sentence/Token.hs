@@ -30,8 +30,8 @@ import qualified Muste.Sentence.Token.Class as Token
 
 -- * Annotated words
 data Annotated = Annotated
-  { concrete ∷ Text
-  , classes  ∷ Set Text
+  { concrete :: Text
+  , classes  :: Set Text
   }
 
 deriving instance Show Annotated
@@ -50,20 +50,20 @@ instance ToJSON Annotated where
     ]
 instance FromJSON Annotated where
   parseJSON = Aeson.withObject "token"
-    $ \o → Annotated
+    $ \o -> Annotated
     <$> o .: "concrete"
     <*> o .: "classes"
 instance IsToken Annotated where
   concrete = concrete
 instance NFData Annotated where
 
-annotated ∷ Text → [Text] → Annotated
+annotated :: Text -> [Text] -> Annotated
 annotated c a = Annotated c (Set.fromList a)
 
 
 -- * Unannotated words
 
-newtype Unannotated = Unannotated { concrete ∷ Text }
+newtype Unannotated = Unannotated { concrete :: Text }
 
 deriving instance Show Unannotated
 deriving instance Eq Unannotated
@@ -80,7 +80,7 @@ instance ToJSON Unannotated where
     ]
 instance FromJSON Unannotated where
   parseJSON = Aeson.withObject "token"
-    $ \o → Unannotated
+    $ \o -> Unannotated
     <$> o .: "concrete"
 instance IsToken Unannotated where
   concrete = Muste.Sentence.Token.concrete
@@ -88,10 +88,10 @@ instance IsToken Unannotated where
 instance Pretty Unannotated where
   pretty (Unannotated s) = pretty s
 
-unannotated ∷ Text → Unannotated
+unannotated :: Text -> Unannotated
 unannotated = Unannotated
 
-mergeAnnotated ∷ Annotated → Annotated → Annotated
+mergeAnnotated :: Annotated -> Annotated -> Annotated
 mergeAnnotated (Annotated a0 a1) (Annotated _ b1) = Annotated
   { concrete = a0
   , classes  = Set.union a1 b1

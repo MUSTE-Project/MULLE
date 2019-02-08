@@ -63,7 +63,7 @@ import Muste.Web.Types.Score (Score)
 
 import Database.SQLite.Simple.FromRow.Generic
 
-newtype Blob = Blob { unBlob ∷ ByteString }
+newtype Blob = Blob { unBlob :: ByteString }
 
 deriving stock   instance Show      Blob
 deriving newtype instance Eq        Blob
@@ -75,7 +75,7 @@ deriving newtype instance FromField Blob
 --
 -- > INTEGER. The value is a signed integer, stored in 1, 2, 3, 4, 6,
 -- > or 8 bytes depending on the magnitude of the value.
-newtype Numeric = Numeric { unNumeric ∷ Int64 }
+newtype Numeric = Numeric { unNumeric :: Int64 }
 
 deriving stock   instance Show      Numeric
 deriving newtype instance Eq        Numeric
@@ -90,7 +90,7 @@ deriving newtype instance ToJSON    Numeric
 deriving newtype instance FromJSON  Numeric
 
 -- | Identified keys.
-data Key a = Key { unKey ∷ Int64 }
+data Key a = Key { unKey :: Int64 }
 
 deriving stock instance Show (Key a)
 deriving stock instance Eq (Key a)
@@ -104,11 +104,11 @@ instance FromJSON  (Key a) where
   parseJSON = fmap Key . parseJSON
 
 data User = User
-  { key                 ∷ Key User
-  , name                ∷ Text
-  , password            ∷ Blob
-  , salt                ∷ Blob
-  , enabled             ∷ Bool
+  { key                 :: Key User
+  , name                :: Text
+  , password            :: Blob
+  , salt                :: Blob
+  , enabled             :: Bool
   }
 
 deriving stock    instance Show    User
@@ -127,10 +127,10 @@ instance ToNamed User where
     ]
 
 data UserSansId = UserSansId
-  { name                ∷ Text
-  , password            ∷ Blob
-  , salt                ∷ Blob
-  , enabled             ∷ Bool
+  { name                :: Text
+  , password            :: Blob
+  , salt                :: Blob
+  , enabled             :: Bool
   }
 
 deriving stock    instance Show    UserSansId
@@ -148,9 +148,9 @@ instance ToNamed UserSansId where
     ]
 
 data CreateUser = CreateUser
-  { name     ∷ Text
-  , password ∷ Text
-  , enabled  ∷ Bool
+  { name     :: Text
+  , password :: Text
+  , enabled  :: Bool
   }
 
 deriving stock    instance Show    CreateUser
@@ -170,9 +170,9 @@ instance ToNamed CreateUser where
 -- change their password, then we ought to change to a user id here in
 -- stead of their name.
 data ChangePassword = ChangePassword
-  { name        ∷ Text
-  , oldPassword ∷ Text
-  , newPassword ∷ Text
+  { name        :: Text
+  , oldPassword :: Text
+  , newPassword :: Text
   }
 
 deriving stock    instance Show    ChangePassword
@@ -197,10 +197,10 @@ deriving newtype  instance FromField Token
 
 -- NB Missing the key to be exactly the same as the stuff in the db.
 data Session = Session
-  { user                ∷ Key User
-  , token               ∷ Token
-  , startTime           ∷ UTCTime
-  , lastActive          ∷ UTCTime
+  { user                :: Key User
+  , token               :: Token
+  , startTime           :: UTCTime
+  , lastActive          :: UTCTime
   }
 
 deriving stock    instance Show    Session
@@ -219,16 +219,16 @@ instance ToNamed Session where
 
 -- NB Doesn't quite correspond to the view.
 data ExerciseLesson = ExerciseLesson
-  { exercise         ∷ Key Exercise
-  , lessonKey        ∷ Key Lesson
-  , lessonName       ∷ Text
-  , source           ∷ Unannotated
-  , target           ∷ Unannotated
-  , srcDir           ∷ Direction
-  , trgDir           ∷ Direction
-  , highlightMatches ∷ Bool
-  , showSourceSentence ∷ Bool
-  , exerciseOrder    ∷ Numeric
+  { exercise         :: Key Exercise
+  , lessonKey        :: Key Lesson
+  , lessonName       :: Text
+  , source           :: Unannotated
+  , target           :: Unannotated
+  , srcDir           :: Direction
+  , trgDir           :: Direction
+  , highlightMatches :: Bool
+  , showSourceSentence :: Bool
+  , exerciseOrder    :: Numeric
   }
 
 deriving stock    instance Show    ExerciseLesson
@@ -253,11 +253,11 @@ instance ToNamed ExerciseLesson where
 
 -- NB Doesn't really correspond to the db.
 data Exercise = Exercise
-  { sourceLinearization ∷ Unannotated
-  , targetLinearization ∷ Unannotated
-  , lesson              ∷ Key Lesson
-  , timeout             ∷ Numeric
-  , exerciseOrder       ∷ Numeric
+  { sourceLinearization :: Unannotated
+  , targetLinearization :: Unannotated
+  , lesson              :: Key Lesson
+  , timeout             :: Numeric
+  , exerciseOrder       :: Numeric
   }
 
 deriving stock    instance Show    Exercise
@@ -282,35 +282,35 @@ deriving stock    instance Generic Direction
 instance ToField Direction where
   toField = toField @Bool . toBool
     where
-    toBool ∷ Direction → Bool
+    toBool :: Direction -> Bool
     toBool = \case
-      VersoRecto → False
-      RectoVerso → True
+      VersoRecto -> False
+      RectoVerso -> True
 instance FromField Direction where
   fromField = fmap fromBool <$> fromField @Bool
     where
-    fromBool ∷ Bool → Direction
+    fromBool :: Bool -> Direction
     fromBool = \case
-      False → VersoRecto
-      True → RectoVerso
+      False -> VersoRecto
+      True -> RectoVerso
 
 data Lesson = Lesson
-  { key                 ∷ Key Lesson
-  , name                ∷ Text
-  , description         ∷ Text
-  , grammar             ∷ Text
-  , sourceLanguage      ∷ Text
-  , targetLanguage      ∷ Text
-  , exerciseCount       ∷ Numeric
-  , enabled             ∷ Bool
-  , searchLimitDepth    ∷ Maybe Numeric
-  , searchLimitSize     ∷ Maybe Numeric
-  , repeatable          ∷ Bool
-  , sourceDirection     ∷ Direction
-  , targetDirection     ∷ Direction
-  , highlightMatches    ∷ Bool
-  , showSourceSentence  ∷ Bool
-  , randomizeOrder      ∷ Bool
+  { key                 :: Key Lesson
+  , name                :: Text
+  , description         :: Text
+  , grammar             :: Text
+  , sourceLanguage      :: Text
+  , targetLanguage      :: Text
+  , exerciseCount       :: Numeric
+  , enabled             :: Bool
+  , searchLimitDepth    :: Maybe Numeric
+  , searchLimitSize     :: Maybe Numeric
+  , repeatable          :: Bool
+  , sourceDirection     :: Direction
+  , targetDirection     :: Direction
+  , highlightMatches    :: Bool
+  , showSourceSentence  :: Bool
+  , randomizeOrder      :: Bool
   }
 
 deriving stock    instance Show    Lesson
@@ -340,9 +340,9 @@ instance ToNamed Lesson where
     ]
 
 data StartedLesson = StartedLesson
-  { lesson              ∷ Key Lesson
-  , user                ∷ Key User
-  , round               ∷ Numeric
+  { lesson              :: Key Lesson
+  , user                :: Key User
+  , round               :: Numeric
   }
 
 deriving stock    instance Show    StartedLesson
@@ -359,10 +359,10 @@ instance ToNamed StartedLesson where
     ]
 
 data FinishedLesson = FinishedLesson
-  { lesson              ∷ Key Lesson
-  , user                ∷ Key User
-  , score               ∷ Score
-  , round               ∷ Numeric
+  { lesson              :: Key Lesson
+  , user                :: Key User
+  , score               :: Score
+  , round               :: Numeric
   }
 
 deriving stock    instance Show    FinishedLesson
@@ -380,11 +380,11 @@ instance ToNamed FinishedLesson where
     ]
 
 data ExerciseList = ExerciseList
-  { user     ∷ Key User
-  , exercise ∷ Key Exercise
-  , round    ∷ Numeric
+  { user     :: Key User
+  , exercise :: Key Exercise
+  , round    :: Numeric
   -- A 'Just' value indicates that the exercise has been solved.
-  , score    ∷ Maybe Score
+  , score    :: Maybe Score
   }
 
 deriving stock    instance Show    ExerciseList
@@ -404,13 +404,13 @@ instance ToNamed ExerciseList where
 -- Like below but wuthout passedcount
 -- FIXME Better name
 data ActiveLessonForUser = ActiveLessonForUser
-  { lesson        ∷ Key Lesson
-  , name          ∷ Text
-  , description   ∷ Text
-  , exercisecount ∷ Numeric
-  , score         ∷ Maybe Score
-  , enabled       ∷ Bool
-  , user          ∷ Maybe (Key User)
+  { lesson        :: Key Lesson
+  , name          :: Text
+  , description   :: Text
+  , exercisecount :: Numeric
+  , score         :: Maybe Score
+  , enabled       :: Bool
+  , user          :: Maybe (Key User)
   }
 
 deriving stock    instance Show    ActiveLessonForUser
@@ -431,11 +431,11 @@ instance ToNamed ActiveLessonForUser where
     ]
 
 data UserLessonScore = UserLessonScore
-  { lesson     ∷ Key Lesson
-  , lessonName ∷ Text
-  , user       ∷ Key User
-  , userName   ∷ Text
-  , score      ∷ Score
+  { lesson     :: Key Lesson
+  , lessonName :: Text
+  , user       :: Key User
+  , userName   :: Text
+  , score      :: Score
   }
 
 deriving stock    instance Show    UserLessonScore

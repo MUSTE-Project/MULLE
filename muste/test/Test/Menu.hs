@@ -1,4 +1,4 @@
-{-# Language UnicodeSyntax, NamedWildCards, TemplateHaskell
+{-# Language NamedWildCards, TemplateHaskell
   , PartialTypeSignatures, OverloadedStrings, RecordWildCards #-}
 {-# OPTIONS_GHC -Wall -Wno-unused-top-binds #-}
 module Test.Menu (tests) where
@@ -31,30 +31,30 @@ import Test.Menu.TestCases (LinTestCase, linTestCases)
 grammar :: Grammar
 grammar = Test.grammar
 
-getMenu ∷ TTree → TTree → TTree → Menu
+getMenu :: TTree -> TTree -> TTree -> Menu
 getMenu src trg t
   = mkLin src trg t
   & Menu.getMenu theCtxt
 
-mkLin ∷ TTree → TTree → TTree → Linearization (Token Annotated)
+mkLin :: TTree -> TTree -> TTree -> Linearization (Token Annotated)
 mkLin src trg t
   = Sentence.annotated theCtxt (error "Don't need the language here") src trg t
   & Sentence.linearization @Annotated
 
-theCtxt ∷ Context
+theCtxt :: Context
 theCtxt = Util.unsafeGetContext grammar "ExemplumSwe"
 
-tests ∷ TestTree
+tests :: TestTree
 tests = testGroup "Menu" $
         map mkTestLinearizations linTestCases
 
 -- | Makes tests for menus based on 'Linearization's (as opposed to
 -- 'mkTest' that does it based on the internal syntax for sentences).
-mkTestLinearizations ∷ LinTestCase → TestTree
+mkTestLinearizations :: LinTestCase -> TestTree
 mkTestLinearizations (lang, src, theTests) = testGroup src $ map mkTestCase theTests
     where ctxt = Util.unsafeGetContext grammar lang
           allMenuItems = getAllSuggestions ctxt src
-          mkTestCase ∷ (Menu.Selection, String) → TestTree
+          mkTestCase :: (Menu.Selection, String) -> TestTree
           mkTestCase (sel, trg)
               = testCase name $
                 if null $ toList sel then
@@ -77,20 +77,20 @@ mkTestLinearizations (lang, src, theTests) = testGroup src $ map mkTestCase theT
                     testFailure explanation = failDoc $ vsep explanation
                     name = src ++ " " ++ prettyShow sel ++ " --> " ++ trg
 
-prettyShow ∷ Pretty a ⇒ a → String
+prettyShow :: Pretty a => a -> String
 prettyShow = show . pretty
 
-getAllSuggestions ∷ Context → String → [(Menu.Selection, String)]
+getAllSuggestions :: Context -> String -> [(Menu.Selection, String)]
 getAllSuggestions ctxt sent 
     = [ (sel, Sentence.stringRep lin) |
         (sel, items) <- Map.toList mmap,
         (_sel, lin) <- Set.toList items ]
     where mmap = Menu.unMenu $ Menu.getMenuItems ctxt sent
 
-prettyTruncate ∷ Pretty a ⇒ Int → Set a → Doc b
+prettyTruncate :: Pretty a => Int -> Set a -> Doc b
 prettyTruncate n s = vsep $ [pretty trnc] ++ truncationWarning
   where
   (trnc, rest) = splitAt n $ Set.toList s
   truncationWarning = case null rest of
-    False → [pretty @String "...RESULT TRUNCATED..."]
-    True  → []
+    False -> [pretty @String "...RESULT TRUNCATED..."]
+    True  -> []

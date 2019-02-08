@@ -15,7 +15,7 @@ import Data.Aeson (ToJSONKey, toJSONKey, ToJSONKeyFunction(ToJSONKeyValue), toJS
                    FromJSONKey, fromJSONKey, FromJSONKeyFunction(FromJSONKeyValue), parseJSON)
 
 
-newtype Interval = Interval { runInterval ∷ (Int, Int) }
+newtype Interval = Interval { runInterval :: (Int, Int) }
 
 deriving instance ToJSONKey Interval
 deriving instance FromJSONKey Interval
@@ -28,13 +28,13 @@ deriving instance Read Interval
 deriving instance Generic Interval
 instance NFData Interval where
 
-sizeInterval ∷ Interval → Int
+sizeInterval :: Interval -> Int
 sizeInterval (Interval (i, j)) = 100 * (j - i) + 1
 -- The added small constant is so that empty intervals are also counted.
 -- With this, the selection {2-3} will come before {2-2,2-3}.
 
 
-newtype Selection = Selection { runSelection ∷ Set Interval }
+newtype Selection = Selection { runSelection :: Set Interval }
 
 deriving instance Read Selection
 instance ToJSONKey Selection where
@@ -51,10 +51,10 @@ instance IsList Selection where
 deriving instance Eq Selection
 instance Ord Selection where
   a `compare` b = case size a `compare` size b of
-    EQ → runSelection a `compare` runSelection b
-    x  → x
+    EQ -> runSelection a `compare` runSelection b
+    x  -> x
     where
-    size ∷ Selection → Int
+    size :: Selection -> Int
     size = runSelection >>> Set.map sizeInterval >>> sum
 deriving instance Generic Selection
 instance NFData Selection where

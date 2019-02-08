@@ -2,7 +2,7 @@ module Bench (main) where
 
 import qualified Criterion
 
-main ∷ IO ()
+main :: IO ()
 main = putStrLn "Feeling very benchy!" -- Criterion.defaultMain _
 
 -- setupEnv = do

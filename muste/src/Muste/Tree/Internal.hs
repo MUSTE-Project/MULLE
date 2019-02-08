@@ -48,7 +48,7 @@ import Data.String.ToString
 -- challenge here is that we depend on the specific implementation of
 -- 'Read', 'Show' and possibly other things.
 -- | A semantic category
-newtype Category = Category { unCategory ∷ Text }
+newtype Category = Category { unCategory :: Text }
 
 deriving newtype instance Ord Category
 deriving newtype instance Show Category
@@ -89,14 +89,14 @@ instance Binary TTree
 instance Pretty TTree where
   pretty = pretty . prettyTree
 
-prettyTree ∷ TTree → String
+prettyTree :: TTree -> String
 prettyTree = PGF.showExpr mempty . toGfTree
 
 -- | Flattening a 'TTree' into a list of its function nodes.
 -- This is reversable, if the grammar is known.
 -- TODO: merge with 'Muste.Grammar.Internal.getFunction.getF'?
 -- TODO: this should use an accumulator, right?
-flatten ∷ TTree -> [Category]
+flatten :: TTree -> [Category]
 flatten (TMeta cat) = pure $ "?" <> cat
 flatten (TNode x _ ts) = x : concatMap flatten ts
 
@@ -107,12 +107,12 @@ treeDiff :: TTree -> TTree -> Int
 treeDiff t t' = flatten t `editDistance` flatten t'
 
 
--- parseTree ∷ MonadFail fail ⇒ String → fail TTree
+-- parseTree :: MonadFail fail => String -> fail TTree
 -- parseTree = do
---   gfTree ← liftFailMaybe _ . PGF.readExpr
+--   gfTree <- liftFailMaybe _ . PGF.readExpr
 --   _ gfTree
 
--- liftFailMaybe ∷ MonadFail m => String → Maybe a → m a
+-- liftFailMaybe :: MonadFail m => String -> Maybe a -> m a
 -- liftFailMaybe err = _
 
 -- TODO Make generalized container for @TTree@ (i.e. kind @* -> *@,
@@ -313,7 +313,7 @@ ttreeToLTree tree =
   in
     snd $ update 0 $ convert tree
 
-catToCid ∷ Category → PGF.CId
+catToCid :: Category -> PGF.CId
 catToCid = unCategory >>> convertString >>> PGF.utf8CId
 
 -- FIXME A 'PGF.CId' is just a newtype wrapper around a 'ByteString'.
@@ -321,7 +321,7 @@ catToCid = unCategory >>> convertString >>> PGF.utf8CId
 -- through we will be able to do this.
 --
 -- [PR#9]: https://github.com/GrammaticalFramework/gf-core/pull/9
-cIdToCat ∷ PGF.CId → Category
+cIdToCat :: PGF.CId -> Category
 cIdToCat = PGF.showCId >>> Text.pack >>> Category
 
 -- | Calculates the @Path@ to a node given an index. The index refers
@@ -454,10 +454,10 @@ toGfTree tree =
 -- | If 'TTree' was an instance of 'Foldable' then 'foldMap' would look
 -- something like this.
 foldMapTTree
-  ∷ Monoid w
-  ⇒ (Category → FunType → w)
-  → TTree
-  → w
+  :: Monoid w
+  => (Category -> FunType -> w)
+  -> TTree
+  -> w
 foldMapTTree f = \case
-  TMeta{} → mempty
-  TNode s t ts → f s t <> foldMap (foldMapTTree f) ts
+  TMeta{} -> mempty
+  TNode s t ts -> f s t <> foldMap (foldMapTTree f) ts

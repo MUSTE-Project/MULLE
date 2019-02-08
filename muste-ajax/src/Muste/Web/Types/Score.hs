@@ -29,8 +29,8 @@ import Data.Binary (Binary(..))
 data Score = Score
   -- Does not represent the clicks in the UI, but the time a menu has
   -- been requested corresponding to the times a menu has been chosen.
-  { clicks ∷ Int
-  , time   ∷ NominalDiffTime
+  { clicks :: Int
+  , time   :: NominalDiffTime
   }
 
 instance Binary Score where
@@ -39,10 +39,10 @@ instance Binary Score where
 
 deriving stock instance Show Score
 
-addClick ∷ Int → Score → Score
+addClick :: Int -> Score -> Score
 addClick n s@Score{..} = s { clicks = clicks + n }
 
-setTime ∷ NominalDiffTime → Score → Score
+setTime :: NominalDiffTime -> Score -> Score
 setTime t s@Score{..} = s { time = t }
 
 instance Semigroup Score where
@@ -64,7 +64,7 @@ instance ToJSON Score where
 
 instance FromJSON Score where
   parseJSON = Aeson.withObject "score"
-    $  \b → Score
+    $  \b -> Score
     <$> b .: "clicks"
     <*> b .: "time"
 
@@ -96,8 +96,8 @@ instance ToField Score where
 -- * A positive metric contributes a positive weight
 -- * Smaller values are better
 -- * Margins near the optimum (zero) are more significant.
-valuation ∷ Score → Double
+valuation :: Score -> Double
 valuation Score{..} = normalize clicks * normalize time
   where
-  normalize ∷ Real n ⇒ n → Double
-  normalize (realToFrac → x) = 1 / Math.log (x + 1)
+  normalize :: Real n => n -> Double
+  normalize (realToFrac -> x) = 1 / Math.log (x + 1)

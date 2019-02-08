@@ -47,9 +47,9 @@ import Muste.AdjunctionTrees
 
 data LinToken = LinToken
   -- The path refers to the path in the 'TTree'
-  { ltpath    ∷ Path
-  , ltlin     ∷ Text
-  , ltmatched ∷ Path
+  { ltpath    :: Path
+  , ltlin     :: Text
+  , ltmatched :: Path
   }
 
 deriving instance Show LinToken
@@ -71,7 +71,7 @@ newtype Linearization = Linearization { runLinearization :: [LinToken] }
   , FromJSON, ToJSON
   )
 
-stringRep ∷ Linearization → Text
+stringRep :: Linearization -> Text
 stringRep = otoList >>> fmap ltlin >>> Text.unwords
 
 deriving instance Show Linearization
@@ -142,7 +142,7 @@ instance SemiSequence Linearization where
 instance IsSequence Linearization where
 
 -- | Memoize all @AjdunctionTrees@ for a given grammar and language.
-buildContext :: BuilderInfo → Grammar -> PGF.Language -> Context
+buildContext :: BuilderInfo -> Grammar -> PGF.Language -> Context
 buildContext nfo g lang =
   Context g lang (getAdjunctionTrees nfo g)
 
@@ -168,25 +168,25 @@ linearizeTree (Context grammar language _) ttree =
 -- This method will throw a 'FileNotFoundException' if the grammar
 -- cannot be located.
 getLangAndContext
-  ∷ Grammar.MonadGrammar m
-  ⇒ BuilderInfo
-  → Text -- ^ An identitfier for a grammar.  E.g. @exemplum/Exemplum@.
-  → m (Map Text Context)
+  :: Grammar.MonadGrammar m
+  => BuilderInfo
+  -> Text -- ^ An identitfier for a grammar.  E.g. @exemplum/Exemplum@.
+  -> m (Map Text Context)
 getLangAndContext nfo idf = do
-  g ← Grammar.getGrammar idf
+  g <- Grammar.getGrammar idf
   pure $ buildContexts nfo g
 
 -- | Given a grammar creates a mapping from all the languages in that
 -- grammar to their respective 'Context's.
-buildContexts :: BuilderInfo → Grammar -> Map Text Context
+buildContexts :: BuilderInfo -> Grammar -> Map Text Context
 buildContexts nfo g = buildContext nfo g <$> languages g
 
 -- | Gets all the languages in the grammar.
-languages ∷ Grammar → Map Text PGF.Language
+languages :: Grammar -> Map Text PGF.Language
 languages g
   = Map.fromList $ mkCtxt <$> PGF.languages (Grammar.pgf g)
   where
-  mkCtxt ∷ PGF.Language → (Text, PGF.Language)
+  mkCtxt :: PGF.Language -> (Text, PGF.Language)
   mkCtxt lang = (Text.pack $ PGF.showCId lang, lang)
 
 
@@ -264,8 +264,8 @@ sameOrder' (x:xs) yss@(y:ys)
   | x == y    = sameOrder' xs ys
   | otherwise = sameOrder' xs yss
 
-disambiguate ∷ Context → Linearization → [TTree]
+disambiguate :: Context -> Linearization -> [TTree]
 disambiguate ctxt = stringRep >>> parse
   where
-  parse ∷ Text → [TTree]
+  parse :: Text -> [TTree]
   parse = Grammar.parseSentence (ctxtGrammar ctxt) (ctxtLang ctxt)

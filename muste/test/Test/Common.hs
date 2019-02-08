@@ -15,5 +15,5 @@ import Test.Tasty.HUnit (Assertion, assertFailure)
 
 import Muste (TTree)
 
-failDoc ∷ Doc a → Assertion
+failDoc :: Doc a -> Assertion
 failDoc = assertFailure . renderDoc

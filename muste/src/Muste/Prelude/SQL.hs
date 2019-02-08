@@ -47,34 +47,34 @@ import Data.Binary (Binary)
 import Data.Typeable (Typeable)
 import Data.ByteString (ByteString)
 
-fromBlob ∷ Typeable b ⇒ Binary b ⇒ SQL.Field → SQL.Ok b
+fromBlob :: Typeable b => Binary b => SQL.Field -> SQL.Ok b
 fromBlob fld = case SQL.fieldData fld of
   SQL.SQLBlob t -> pure $ binaryFromText t
   _ -> SQL.returnError SQL.ConversionFailed fld mempty
 
-toBlob ∷ ∀ b . Binary b ⇒ b → SQL.SQLData
+toBlob :: forall b . Binary b => b -> SQL.SQLData
 toBlob = SQL.SQLBlob . binaryToText @b @ByteString
 
 -- | Safe conversion of blob columns that may be null.
-fromNullableBlob ∷ Typeable b ⇒ Binary b ⇒ Monoid b ⇒ SQL.Field → SQL.Ok b
+fromNullableBlob :: Typeable b => Binary b => Monoid b => SQL.Field -> SQL.Ok b
 fromNullableBlob fld = case SQL.fieldData fld of
   SQL.SQLBlob t -> pure $ binaryFromText t
-  SQL.SQLNull → pure mempty
+  SQL.SQLNull -> pure mempty
   _ -> SQL.returnError SQL.ConversionFailed fld mempty
 
-newtype Nullable a = Nullable { runNullable ∷ a }
+newtype Nullable a = Nullable { runNullable :: a }
 
-deriving stock   instance Show a ⇒ Show (Nullable a)
-deriving newtype instance Binary a ⇒ Binary (Nullable a)
-instance (Monoid a, Binary a, Typeable a) ⇒ SQL.FromField (Nullable a) where
+deriving stock   instance Show a => Show (Nullable a)
+deriving newtype instance Binary a => Binary (Nullable a)
+instance (Monoid a, Binary a, Typeable a) => SQL.FromField (Nullable a) where
   fromField = fmap Nullable . fromNullableBlob
-instance Binary a ⇒ SQL.ToField (Nullable a) where
+instance Binary a => SQL.ToField (Nullable a) where
   toField = toBlob
 
 -- We could consider making 'ToRow' a super-class but it's not
 -- strictly necessary.
 class ToNamed a where
-  toNamed ∷ a → [SQL.NamedParam]
+  toNamed :: a -> [SQL.NamedParam]
 
 instance ToNamed [SQL.NamedParam] where
   toNamed = identity

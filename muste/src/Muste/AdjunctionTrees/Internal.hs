@@ -22,7 +22,7 @@ import qualified Data.Binary as Binary
 
 import Muste.Tree
 
-instance Binary a ⇒ Binary (MultiSet a) where
+instance Binary a => Binary (MultiSet a) where
   get = MultiSet.fromOccurMap <$> Binary.get
   put = Binary.put . MultiSet.toMap
 

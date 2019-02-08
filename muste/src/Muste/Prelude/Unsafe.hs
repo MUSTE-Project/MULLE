@@ -10,30 +10,30 @@ import qualified Data.Maybe as Unsafe
 import qualified Development.GitRev as GitRev
 
 -- Use pattern-matching, 'listToMaybe' or the version from 'NonEmpty'.
-head ∷ [a] → a
+head :: [a] -> a
 head = Unsafe.head
 
 -- Use 'readMaybe', 'readEither' os similiar.  And while youre at it,
 -- maybe you want to switch to 'Text'?
-read ∷ Read a ⇒ String → a
+read :: Read a => String -> a
 read = Unsafe.read
 
 -- You probably want a vector/array.
-(!!) ∷ [a] → Int → a
+(!!) :: [a] -> Int -> a
 (!!) = (Unsafe.!!)
 
 -- Use 'error'
-undefined ∷ a
+undefined :: a
 undefined = Unsafe.undefined
 
-foldl1 ∷ Foldable f ⇒ (a → a → a) → f a → a
+foldl1 :: Foldable f => (a -> a -> a) -> f a -> a
 foldl1 = Unsafe.foldl1
 
-tail ∷ [a] → [a]
+tail :: [a] -> [a]
 tail = Unsafe.tail
 
-fromJust ∷ Maybe a → a
+fromJust :: Maybe a -> a
 fromJust = Unsafe.fromJust
 
-gitDescription ∷ String
+gitDescription :: String
 gitDescription = $(GitRev.gitDescribe)

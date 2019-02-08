@@ -1,4 +1,4 @@
-{-# Language UnicodeSyntax, OverloadedStrings, OverloadedLists #-}
+{-# Language OverloadedStrings, OverloadedLists #-}
 module Test.Menu.TestCases (LinTestCase, linTestCases) where
 
 import Prelude ()
@@ -8,7 +8,7 @@ import Data.Text (Text)
 import Muste.Menu.Internal (Selection, Interval)
 import qualified Muste.Menu.Internal as Menu
 
-(><) ∷ Int -> Int -> Interval
+(><) :: Int -> Int -> Interval
 a >< b = Menu.Interval (a, b)
 
 -- | A test-case consists of the following (in order of appearance):

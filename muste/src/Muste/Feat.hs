@@ -62,7 +62,7 @@ mkFEAT gr =
            , let (nx,hx)   = catList [c] k
                  (nxs,hxs) = catList cs (s-k)
            ]
-   catList ∷ [Category] → Int → (Integer, Integer → [TTree])
+   catList :: [Category] -> Int -> (Integer, Integer -> [TTree])
    catList = memo catList'
      where
        cats :: [Category]

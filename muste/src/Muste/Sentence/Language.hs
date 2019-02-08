@@ -27,8 +27,8 @@ deriving newtype instance IsString  Grammar
 
 data Language = Language
   -- NB This field is not in use.
-  { grammar  ∷ Grammar
-  , lang     ∷ Text
+  { grammar  :: Grammar
+  , lang     :: Text
   }
                              
 deriving stock instance Show Language
@@ -56,7 +56,7 @@ instance ToJSON Language where
 
 instance FromJSON Language where
   parseJSON = Aeson.withObject "word"
-    $ \o → Language
+    $ \o -> Language
     <$> o .: "grammar"
     <*> o .: "language"
 

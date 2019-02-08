@@ -60,7 +60,7 @@ parseSentence ctxt sent
 linTree :: Context -> TTree -> ([Tokn], [Node])
 linTree ctxt tree = (toks, nods)
   where
-  toks ∷ [Tokn]
+  toks :: [Tokn]
   toks = Linearization.ltlin <$> lintokens
   nods = lookupNode tree . Linearization.ltpath <$> lintokens
   Linearization lintokens = Linearization.linearizeTree ctxt tree
@@ -69,16 +69,16 @@ lookupNode :: TTree -> Path -> Node
 lookupNode tree path
   = case Tree.selectNode tree path of
     Just (TNode node _ _) -> node
-    _ → error "Incomplete Pattern-Match"
+    _ -> error "Incomplete Pattern-Match"
 
-similarTrees ∷ Prune.PruneOpts → Context → [TTree] → [(TTree, TTree)]
+similarTrees :: Prune.PruneOpts -> Context -> [TTree] -> [(TTree, TTree)]
 similarTrees opts ctxt
   = Prune.replaceAllTrees opts (ctxtPrecomputed ctxt)
 
 -- * Exported stuff
 
 newtype Menu = Menu
-  { unMenu ∷ Map Selection
+  { unMenu :: Map Selection
     (Set (Selection, Sentence.Linearization Token.Annotated))
   }
 
@@ -133,16 +133,16 @@ instance Pretty Menu where
     >>> pretty
 
 getMenu
-  ∷ Sentence.IsToken a
-  ⇒ Prune.PruneOpts
-  → Context
-  → Sentence.Linearization a
-  → Menu
+  :: Sentence.IsToken a
+  => Prune.PruneOpts
+  -> Context
+  -> Sentence.Linearization a
+  -> Menu
 getMenu opts c l
   = Sentence.stringRep l
   & getMenuItems opts c
 
-getMenuItems ∷ Prune.PruneOpts → Context → Text → Menu
+getMenuItems :: Prune.PruneOpts -> Context -> Text -> Menu
 getMenuItems opts ctxt sentence
   = parseSentence ctxt sentence
   & diagnose "Context"        showctxt showopts (\x -> x)
@@ -155,10 +155,10 @@ getMenuItems opts ctxt sentence
         showctxt _ = "N:o adj.keys: " ++ showlen adjMap ++ ", n:o adj.trees: " ++ showlen adjTrees
         showopts _ = "Pruning: " ++ show opts
         adjMap     = Mono.mapToList (ctxtPrecomputed ctxt)
-        adjTrees   = adjMap >>= \(_, ts) → ts
+        adjTrees   = adjMap >>= \(_, ts) -> ts
 
 
-diagnose ∷ String → (a → String) → (b → String) → (a → b) → (a → b)
+diagnose :: String -> (a -> String) -> (b -> String) -> (a -> b) -> (a -> b)
 #ifdef DIAGNOSTICS
 diagnose title ashow bshow convert input = unsafePerformIO $ do
   printf ">> %s, input: %s\n" title (ashow input)
@@ -174,9 +174,9 @@ diagnose _ _ _ convert = convert
 #endif
 
 
-collectTreeSubstitutions ∷ Prune.PruneOpts → Context → [TTree] → Set (([Tokn], [Node]), ([Tokn], [Node]))
+collectTreeSubstitutions :: Prune.PruneOpts -> Context -> [TTree] -> Set (([Tokn], [Node]), ([Tokn], [Node]))
 collectTreeSubstitutions opts ctxt oldtrees 
-    = Set.fromList [ (linTree ctxt old, linTree ctxt new) | (old, new) ← similarTrees opts ctxt oldtrees ]
+    = Set.fromList [ (linTree ctxt old, linTree ctxt new) | (old, new) <- similarTrees opts ctxt oldtrees ]
 
 
 collectMenuItems :: Set (([Tokn], [Node]), ([Tokn], [Node])) -> Set (Selection, Selection, [Tokn])
@@ -191,7 +191,7 @@ collectMenuItems = Set.map align
                     (oldinsertions', oldreplacements') = growBinds oldwords oldinsertions oldreplacements
                     
 
-buildMenu ∷ Context -> Set (Selection, Selection, [Tokn]) → Menu
+buildMenu :: Context -> Set (Selection, Selection, [Tokn]) -> Menu
 buildMenu ctxt items
     = Menu $ Map.fromAscListWith Set.union $
       [ (oldselection, Set.singleton (newselection, newlin)) |

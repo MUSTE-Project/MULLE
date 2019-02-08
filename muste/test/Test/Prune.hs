@@ -38,7 +38,7 @@ type PruneTest = (String, String, String, String)
 --
 --     useCNdefsg (useN imperium_N)
 --
-tests ∷ TestTree
+tests :: TestTree
 tests = testGroup "Prune" $ mkTest <$>
   [ ("Africa -> imperium -> magnum imperium",
      "useS (useCl (simpleCl (usePN john_PN)                                          (transV love_V (usePN paris_PN))))",
@@ -49,10 +49,10 @@ tests = testGroup "Prune" $ mkTest <$>
   -- , isNotSuggested long
   -- ]
   where
-  mkTest ∷ PruneTest → TestTree
+  mkTest :: PruneTest -> TestTree
   mkTest (nm, src, ex, nEx) = testCase nm $ do
     let trees = replacements $ parse src
-        expect ∷ Bool → TTree → Assertion
+        expect :: Bool -> TTree -> Assertion
         expect b t = when (expecter $ t `elem` trees) $ failDoc $ vsep
           [ pretty @String "This tree:"
           , pretty t
@@ -64,13 +64,13 @@ tests = testGroup "Prune" $ mkTest <$>
     expect False $ parse nEx
 
 -- parseTTree :: Grammar -> String -> TTree
-parse ∷ String → TTree
+parse :: String -> TTree
 parse = Grammar.parseTTree grammar
 
 grammar :: Grammar
 grammar = Test.grammar
 
-replacements ∷ TTree → Set TTree
+replacements :: TTree -> Set TTree
 replacements source = fold ts
   where
   g     = Test.grammar

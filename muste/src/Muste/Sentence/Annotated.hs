@@ -32,8 +32,8 @@ import Muste.Linearization.Internal (Context)
 import qualified Muste.Linearization.Internal as OldLinearization
 
 data Annotated = Annotated
-  { language      ∷ Language
-  , linearization ∷ Linearization Token.Annotated
+  { language      :: Language
+  , linearization :: Linearization Token.Annotated
   }
 
 deriving instance Show Annotated
@@ -46,7 +46,7 @@ instance ToJSON Annotated where
 
 instance FromJSON Annotated where
   parseJSON = Aeson.withObject "word"
-    $ \o → Annotated
+    $ \o -> Annotated
     <$> o .: "language"
     <*> o .: "linearization"
 
@@ -78,7 +78,7 @@ instance Sentence Annotated where
 -- create ambiguities in the individual words.  Eachs 'Token' will
 -- correspond exactly to an internal node in the 'TTree' (idenfitied
 -- by the "name" of that node).
-mkLinearization ∷ Context → TTree → Linearization Token.Annotated
+mkLinearization :: Context -> TTree -> Linearization Token.Annotated
 mkLinearization c t
   -- Reuse functionality from 'Muste.OldLinearization.Internal'
   = OldLinearization.linearizeTree c t
@@ -87,46 +87,46 @@ mkLinearization c t
   & fmap step
   & fromList
   where
-  step ∷ OldLinearization.LinToken → Token.Annotated
+  step :: OldLinearization.LinToken -> Token.Annotated
   step (OldLinearization.LinToken { .. })
     = Token.annotated ltlin (fromList @[Text] $ names ltpath)
   -- Throws if the path is not found /and/ only finds a single
   -- function name!
-  names ∷ Tree.Path → [Text]
+  names :: Tree.Path -> [Text]
   names
     =   Tree.selectNode @TTree t
     >>> fromMaybe (error "Expected to find path here")
     >>> name
     >>> Tree.unCategory
     >>> pure @[]
-  name ∷ TTree → Category
+  name :: TTree -> Category
   name = \case
-    Tree.TNode n _ _ → n
-    Tree.TMeta{} → error "Expected saturated tree"
+    Tree.TNode n _ _ -> n
+    Tree.TMeta{} -> error "Expected saturated tree"
 
 -- | @'annotated' c t@ creates a 'Sentence' of @t@.  The 'Sentence' 
 -- will be a valid such in the grammar and languages specified by the
 -- 'Context' @c@.
 --
 -- See also the documentation for 'linearization'.
-annotated ∷ Context → Language → TTree → Annotated
+annotated :: Context -> Language -> TTree -> Annotated
 annotated c l t = Annotated l $ mkLinearization c t
 
 -- | Merge multiple
-merge ∷ MonadThrow m ⇒ Exception e ⇒ e → [Annotated] → m Annotated
+merge :: MonadThrow m => Exception e => e -> [Annotated] -> m Annotated
 merge e = \case
-  [] → throwM e
-  xs → pure $ Unsafe.foldl1 merge1 xs
+  [] -> throwM e
+  xs -> pure $ Unsafe.foldl1 merge1 xs
 -- Merge two sentences, assuming they have the same language.
-merge1 ∷ Annotated → Annotated → Annotated
+merge1 :: Annotated -> Annotated -> Annotated
 merge1 a b = Annotated lang ((mergeL `on` linearization) a b)
   where
   lang = language a
 
 mergeL
-  ∷ IsToken Token.Annotated
-  ⇒ Linearization Token.Annotated
-  → Linearization Token.Annotated
-  → Linearization Token.Annotated
+  :: IsToken Token.Annotated
+  => Linearization Token.Annotated
+  -> Linearization Token.Annotated
+  -> Linearization Token.Annotated
 mergeL (Sentence.Linearization a) (Sentence.Linearization b)
   = Sentence.Linearization (Vector.zipWith Token.mergeAnnotated a b)
