@@ -25,17 +25,13 @@
    </div>
    <div class="container">
     <form id="loginform" method="post">
-     <div>
-      <div><h3>Användare:</h3></div>
-      <div><input type="text" name="name"></div>
-     </div>
-     <div>
-      <div><h3>Lösenord:</h3></div>
-      <div><input type="password" name="pwd"></div>
-     </div>
-     <div class="spaced">
-      <button type="submit">Login</button>
-     </div>
+      <table><tr>
+          <th>Användare:</th><td><input type="text" name="name"></td>
+        </tr><tr>
+          <th>Lösenord:</th><td><input type="password" name="pwd"></td>
+        </tr><tr>
+          <th></th><td><button type="submit">Logga in</button></td>
+      </tr></table>
     </form>
     <hr />
     <button data-pager="#page-create-user">Skapa ny användare</button>
