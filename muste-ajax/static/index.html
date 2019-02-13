@@ -38,8 +38,8 @@
      </div>
     </form>
     <hr />
-    <button data-pager="#page-create-user">Create new user</button>
-    <button data-pager="#page-change-password">Change password</button>
+    <button data-pager="#page-create-user">Skapa ny användare</button>
+    <button data-pager="#page-change-password">Ändra lösenord</button>
    </div>
    <div></div>
   </div>
@@ -50,7 +50,7 @@
   <div class="page" id="page-lessons">
    <div>
     <span class="right">
-     <button data-pager="#page-high-scores" onclick="fetch_high_scores()">High scores</button>
+     <button data-pager="#page-high-scores" onclick="fetch_high_scores()">Poänglista</button>
      <button id="logoutbutton">Logga ut</button>
     </span>
     <div class="title">
@@ -73,7 +73,7 @@
 	       </p>
 	       {{#if score}} 
 	       <p> 
-		 Your score so far: <span>{{score.clicks}} klick i {{score.time}} sekunder</span> 
+		 Resultat hittills: <span>{{score.clicks}} klick i {{score.time}} sekunder</span> 
 		 <canvas class="score" data-lesson="{{lesson}}" data-score="{{json score}}"></canvas>
 	       </p> 
 	       {{/if}} 
@@ -82,8 +82,8 @@
 	       </p>
 	     </div>
 	     <div class="lesson-info-button"> 
-	       <button {{#if (or passed (not enabled))}}disabled{{/if}} onclick="start_lesson({{lesson}});">Solve</button> 
-	       {{#if passed}}<button onclick="restart_lesson({{lesson}});">Restart</button>{{/if}} 
+	       <button {{#if (or passed (not enabled))}}disabled{{/if}} onclick="start_lesson({{lesson}});">Lös</button> 
+	       {{#if passed}}<button onclick="restart_lesson({{lesson}});">Gör om</button>{{/if}} 
 	     </div> 
 	   </div>
 	 </div>
@@ -94,7 +94,7 @@
    </div>
    <div class="vertical-separator"></div>
    <div>
-    <a class="button left instructions button" href="instructions.html" target="_blank">Instructions</a>
+    <a class="button left instructions button" href="instructions.html" target="_blank">Instruktioner</a>
    </div>
   </div>
 
@@ -119,7 +119,7 @@
     <!-- <div id="score" class="left"> -->
     <!--  Score: Time: <span id="score-time"></span>. Clicks: <span id="score-clicks"></span> -->
     <!-- </div> -->
-    <span class="right">Elapsed time: <span id="timer"></span></span>
+    <span class="right">Tid: <span id="timer"></span></span>
     <div hidden class="popup menu prevent-body-click" id="menus"></div>
     <div hidden class="popup error"></div>
    </div>
@@ -130,7 +130,7 @@
 
   <div class="page" id="page-create-user">
    <div class="title">
-    <h1>Create user</h1>
+    <h1>Skapa användare</h1>
    </div>
    <div class="container">
     <form action="create-user" method="post">
@@ -143,16 +143,16 @@
       <div><input type="password" name="pwd" required></div>
      </div>
      <div>
-      <div><h3>Gentag lösenord:</h3></div>
+      <div><h3>Skriv lösenordet igen:</h3></div>
       <div><input type="password" name="confirm-pwd" required></div>
      </div>
 
      <div class="spaced">
-      <button type="submit">Create user</button>
+      <button type="submit">Skapa användare</button>
      </div>
     </form>
     <hr />
-    <button data-pager="#page-login">Log in with existing user</button>
+    <button data-pager="#page-login">Logga in som existerande användare</button>
    </div>
    <div></div>
   </div>
@@ -162,7 +162,7 @@
 
   <div class="page" id="page-change-password">
    <div class="title">
-    <h1>Skift lösenord</h1>
+    <h1>Byt lösenord</h1>
     <pre>TODO Maybe this should only be accessible when the user is logged in.  In that case we don't have to ask for the old password.</pre>
    </div>
    <div class="container">
@@ -176,20 +176,20 @@
       <div><input type="password" name="old-pwd" required></div>
      </div>
      <div>
-      <div><h3>Nya lösenord:</h3></div>
+      <div><h3>Nytt lösenord:</h3></div>
       <div><input type="password" name="pwd" required></div>
      </div>
      <div>
-      <div><h3>Gentag nya lösenord:</h3></div>
+      <div><h3>Skriv det nya lösenordet igen:</h3></div>
       <div><input type="password" name="confirm-pwd" required></div>
      </div>
 
      <div class="spaced">
-      <button type="submit">Skift lösenord</button>
+      <button type="submit">Byt lösenord</button>
      </div>
     </form>
     <hr />
-    <button data-pager="#page-login">Log in with existing user</button>
+    <button data-pager="#page-login">Logga in som existerande användare</button>
    </div>
    <div></div>
   </div>
@@ -200,20 +200,21 @@
   <div class="page" id="page-high-scores">
    <div>
     <div class="right">
-     <button data-pager="#page-lessons">Show lessons</button>
+     <button data-pager="#page-lessons">Visa lektioner</button>
     </div>
     <div class="title">
-      <h1>High scores</h1>
+      <h1>Poänglista</h1>
     </div>
    </div>
    <div class="container">
-    <table>
+
+     <table>
      <thead>
       <tr>
-       <td>Lesson</td>
-       <td>User</td>
-       <td>Score - clicks</td>
-       <td>Score - time</td>
+       <td>Lektion</td>
+       <td>Användare</td>
+       <td>Poäng - klick</td>
+       <td>Poäng - tid</td>
       </tr>
      </thead>
      <tbody id="high-scores-table">
