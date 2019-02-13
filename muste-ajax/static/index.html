@@ -54,6 +54,38 @@
    </div>
    <div>
     <div class="container" id="lessonslist"></div>
+
+     <!-- Handlebars templates should be put insive <script> tags -->
+     <script id="lesson-list-template" type="text/x-handlebars-template">
+       <div class="lessons">
+	 {{#each .}}
+	 <div class="{{#if (or passed (gte passed total))}}finished{{/if}} {{#if enabled}}{{else}}disabled{{/if}}">
+	   <div class="lesson-info">
+	     <div>
+	       <h3>{{name}}</h3>
+	       <p>
+		 {{passedcount}} avklarade av {{exercisecount}} övningar
+	       </p>
+	       {{#if score}} 
+	       <p> 
+		 Your score so far: <span>{{score.clicks}} klick i {{score.time}} sekunder</span> 
+		 <canvas class="score" data-lesson="{{lesson}}" data-score="{{json score}}"></canvas>
+	       </p> 
+	       {{/if}} 
+	       <p>
+		 {{description}}
+	       </p>
+	     </div>
+	     <div class="lesson-info-button"> 
+	       <button {{#if (or passed (not enabled))}}disabled{{/if}} onclick="start_lesson({{lesson}});">Solve</button> 
+	       {{#if passed}}<button onclick="restart_lesson({{lesson}});">Restart</button>{{/if}} 
+	     </div> 
+	   </div>
+	 </div>
+	 {{/each}}
+       </div>
+     </script>
+
    </div>
    <div class="vertical-separator"></div>
    <div>
@@ -174,6 +206,19 @@
      <tbody id="high-scores-table">
      </tbody>
     </table>
+
+     <!-- Handlebars templates should be put insive <script> tags -->
+     <script id="high-scores-template" type="text/x-handlebars-template">
+       {{#each .}}
+       <tr>
+	 <td>{{lesson.name}}</td>
+	 <td>{{user.name}}</td>
+	 <td>{{score.clicks}}</td>
+	 <td>{{score.time}}</td>
+       </tr>
+       {{/each}}
+     </script>
+
    </div>
    <div></div>
   </div>

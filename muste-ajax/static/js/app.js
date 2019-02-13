@@ -371,44 +371,13 @@ function retrieve_lessons(evt) {
   fetch_lessons().then(show_lessons);
 }
 
-var lesson_list_template = ' \
-<div class="lessons"> \
-{{#each .}} \
- <div class="{{#if (or passed (gte passed total))}}finished{{/if}} {{#if enabled}}{{else}}disabled{{/if}}"> \
-  <div class="lesson-info"> \
-   <div> \
-    <h3>{{name}}</h3> \
-    <p> \
-     {{passedcount}} avklarade av {{exercisecount}} övningar \
-    </p> \
-    {{#if score}} \
-    <p> \
-     Your score so far: <span>{{score.clicks}} klick i {{score.time}} sekunder</span> \
-     <canvas class="score" data-lesson="{{lesson}}" data-score="{{json score}}"></canvas></td> \
-    </p> \
-    {{/if}} \
-    <p> \
-     {{description}} \
-    </p> \
-   </div> \
-   <div class="lesson-info-button"> \
-    <button {{#if (or passed (not enabled))}}disabled{{/if}} onclick="start_lesson({{lesson}});">Solve</button> \
-    {{#if passed}}<button onclick="restart_lesson({{lesson}});">Restart</button>{{/if}} \
-   </div> \
-  </div> \
- </div> \
-{{/each}} \
-</div> \
-';
-
-var render_lesson_list = Handlebars.compile(lesson_list_template);
-
 function show_lessons(resp) {
   var lessons = resp.lessons;
   change_page('#page-lessons');
   var table = $('#lessonslist');
-  table.empty();
-  var e = render_lesson_list(lessons);
+  var lesson_list_template = $("#lesson-list-template").html();
+  var lesson_list_script = Handlebars.compile(lesson_list_template);
+  var e = lesson_list_script(lessons);
   table.html(e);
 }
 
@@ -1067,19 +1036,6 @@ function select_menuitem(item, lang) {
   $(document).trigger('overlay-out');
 }
 
-var high_scores_template = `
-{{#each .}}
-<tr>
- <td>{{lesson.name}}</td>
- <td>{{user.name}}</td>
- <td>{{score.clicks}}</td>
- <td>{{score.time}}</td>
-</tr>
-{{/each}}
-`;
-
-var render_high_scores = Handlebars.compile(high_scores_template);
-
 // Used by a button on the html page.
 window.fetch_high_scores = function() {
   muste_request({}, 'high-scores')
@@ -1106,10 +1062,10 @@ function set_global_highscore_mapping(scores) {
 }
 
 function display_high_scores(scores) {
-  var p = $('#high-scores-table');
-  p.empty();
+  var highscores_template = $("#lesson-list-template").html();
+  var highscores_script = Handlebars.compile(highscores_template);
   var e = render_high_scores(scores);
-  p.html(e);
+  $('#high-scores-table').html(e);
 }
 
 //////////////////////////////////////////////////////////////////////
