@@ -1,18 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
- <title>MULLE (MUSTE Language Learning Environment)</title>
- <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
- <meta name="viewport" content="width=device-width, initial-scale=1" />
- <link rel="stylesheet" href="/css/muste.css" />
- <script defer type="text/javascript" src="/js/jquery.min.js"></script>
- <script defer type="text/javascript" src="/js/handlebars.min.js"></script>
- <script defer type="text/javascript" src="/js/countdown.js"></script>
- <script defer type="text/javascript" src="/js/app.js"></script>
+  <title>MULLE (MUSTE Language Learning Environment)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/css/muste.css" />
+  <script defer type="text/javascript" src="/js/jquery.min.js"></script>
+  <script defer type="text/javascript" src="/js/handlebars.min.js"></script>
+  <script defer type="text/javascript" src="/js/countdown.js"></script>
+  <script defer type="text/javascript" src="/js/app.js"></script>
 </head>
 
 <body>
- <main>
   <span id="busy-indicator" class="idle">&#9679;</span>
   <div hidden class="overlay"></div>
 
@@ -20,219 +19,221 @@
   <!-- PAGE: LOGIN -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -->
 
   <div class="page" id="page-login">
-   <div class="title">
-     <h1>MULLE</h1><strong>(MUSTE Language Learning Environment)</strong>
-   </div>
-   <div class="container">
-    <form id="loginform" method="post">
-      <table><tr>
-          <th>Användare:</th><td><input type="text" name="name"></td>
-        </tr><tr>
-          <th>Lösenord:</th><td><input type="password" name="pwd"></td>
-        </tr><tr>
-          <th></th><td><button type="submit">Logga in</button></td>
-      </tr></table>
-    </form>
-    <hr />
-    <button data-pager="#page-create-user">Skapa ny användare</button>
-    <button data-pager="#page-change-password">Ändra lösenord</button>
-   </div>
-   <div></div>
+    <div class="title">
+      <h1>MULLE</h1><strong>(MUSTE Language Learning Environment)</strong>
+    </div>
+    <div class="container">
+      <form id="loginform" method="post">
+        <table><tr>
+            <th>Användare:</th><td><input type="text" name="name"></td>
+          </tr><tr>
+            <th>Lösenord:</th><td><input type="password" name="pwd"></td>
+          </tr><tr>
+            <th></th><td><button type="submit">Logga in</button></td>
+        </tr></table>
+      </form>
+      <hr />
+      <button data-pager="#page-create-user">Skapa ny användare</button>
+      <button data-pager="#page-change-password">Ändra lösenord</button>
+    </div>
+    <div></div>
   </div>
 
 
   <!-- PAGE: LESSONS -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -->
 
   <div class="page" id="page-lessons">
-   <div>
-    <span class="right">
-     <button data-pager="#page-high-scores" onclick="fetch_high_scores()">Poänglista</button>
-     <button id="logoutbutton">Logga ut</button>
-    </span>
-    <div class="title">
-      <h1>MULLE</h1><strong>(MUSTE Language Learning Environment)</strong>
+    <div>
+      <span class="right">
+        <button data-pager="#page-high-scores" onclick="fetch_high_scores()">Poänglista</button>
+        <button id="logoutbutton">Logga ut</button>
+      </span>
+      <div class="title">
+        <h1>MULLE</h1><strong>(MUSTE Language Learning Environment)</strong>
+      </div>
     </div>
-   </div>
-   <div>
-    <div class="container" id="lessonslist"></div>
+    <div>
+      <div class="container" id="lessonslist">
+        <!-- This will be populated with the Handlebars template below -->
+      </div>
 
-     <!-- Handlebars templates should be put insive <script> tags -->
-     <script id="lesson-list-template" type="text/x-handlebars-template">
-       <div class="lessons">
-	 {{#each .}}
-	 <div class="{{#if (or passed (gte passed total))}}finished{{/if}} {{#if enabled}}{{else}}disabled{{/if}}">
-	   <div class="lesson-info">
-	     <div>
-	       <h3>{{name}}</h3>
-	       <p>
-		 {{passedcount}} avklarade av {{exercisecount}} övningar
-	       </p>
-	       {{#if score}} 
-	       <p> 
-		 Resultat hittills: <span>{{score.clicks}} klick i {{score.time}} sekunder</span> 
-		 <canvas class="score" data-lesson="{{lesson}}" data-score="{{json score}}"></canvas>
-	       </p> 
-	       {{/if}} 
-	       <p>
-		 {{description}}
-	       </p>
-	     </div>
-	     <div class="lesson-info-button"> 
-	       <button {{#if (or passed (not enabled))}}disabled{{/if}} onclick="start_lesson({{lesson}});">Lös</button> 
-	       {{#if passed}}<button onclick="restart_lesson({{lesson}});">Gör om</button>{{/if}} 
-	     </div> 
-	   </div>
-	 </div>
-	 {{/each}}
-       </div>
-     </script>
+      <!-- Handlebars templates to be put inside <script> tags -->
+      <script id="lesson-list-template" type="text/x-handlebars-template">
+        <div class="lessons">
+          {{#each .}}
+          <div class="{{#if (or passed (gte passed total))}}finished{{/if}} {{#if enabled}}{{else}}disabled{{/if}}">
+            <div class="lesson-info">
+              <div>
+                <h3>{{name}}</h3>
+                <p>
+                  {{passedcount}} avklarade av {{exercisecount}} övningar
+                </p>
+                {{#if score}} 
+                <p> 
+                  Resultat hittills: <span>{{score.clicks}} klick i {{score.time}} sekunder</span> 
+                  <canvas class="score" data-lesson="{{lesson}}" data-score="{{json score}}"></canvas>
+                </p> 
+                {{/if}} 
+                <p>
+                  {{description}}
+                </p>
+              </div>
+              <div class="lesson-info-button"> 
+                <button {{#if (or passed (not enabled))}}disabled{{/if}} onclick="start_lesson({{lesson}});">Lös</button> 
+                {{#if passed}}<button onclick="restart_lesson({{lesson}});">Gör om</button>{{/if}} 
+              </div> 
+            </div>
+          </div>
+          {{/each}}
+        </div>
+      </script>
 
-   </div>
-   <div class="vertical-separator"></div>
-   <div>
-    <a class="button left instructions button" href="instructions.html" target="_blank">Instruktioner</a>
-   </div>
+    </div>
+    <div class="vertical-separator"></div>
+    <div>
+      <a class="button left instructions button" href="instructions.html" target="_blank">Instruktioner</a>
+    </div>
   </div>
 
 
   <!-- PAGE: EXERCISE -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -->
 
   <div class="page" id="page-exercise">
-   <div>
-    <span class="left" id="lessoncounter"></span>
-    <button class="right" id="abortlesson">Avbryt lektion</button>
-   </div>
-
-   <div class="container container-alt">
-    <div class="exercise">
-     <div id="src" class="sentence prevent-body-click"></div>
-     <div class="vertical-separator"></div>
-     <div id="trg" class="sentence prevent-body-click"></div>
+    <div>
+      <span class="left" id="lessoncounter"></span>
+      <button class="right" id="abortlesson">Avbryt lektion</button>
     </div>
-   </div>
 
-   <div>
-    <!-- <div id="score" class="left"> -->
-    <!--  Score: Time: <span id="score-time"></span>. Clicks: <span id="score-clicks"></span> -->
-    <!-- </div> -->
-    <span class="right">Tid: <span id="timer"></span></span>
-    <div hidden class="popup menu prevent-body-click" id="menus"></div>
-    <div hidden class="popup error"></div>
-   </div>
+    <div class="container container-alt">
+      <div class="exercise">
+        <div id="src" class="sentence prevent-body-click"></div>
+        <div class="vertical-separator"></div>
+        <div id="trg" class="sentence prevent-body-click"></div>
+      </div>
+    </div>
+
+    <div>
+      <!-- <div id="score" class="left"> -->
+      <!--  Score: Time: <span id="score-time"></span>. Clicks: <span id="score-clicks"></span> -->
+      <!-- </div> -->
+      <span class="right">Tid: <span id="timer"></span></span>
+      <div hidden class="popup menu prevent-body-click" id="menus"></div>
+      <div hidden class="popup error"></div>
+    </div>
   </div>
 
 
   <!-- PAGE: CREATE USER -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -->
 
   <div class="page" id="page-create-user">
-   <div class="title">
-    <h1>Skapa användare</h1>
-   </div>
-   <div class="container">
-    <form action="create-user" method="post">
-     <div>
-      <div><h3>Användare:</h3></div>
-      <div><input type="text" name="name" required></div>
-     </div>
-     <div>
-      <div><h3>Lösenord:</h3></div>
-      <div><input type="password" name="pwd" required></div>
-     </div>
-     <div>
-      <div><h3>Skriv lösenordet igen:</h3></div>
-      <div><input type="password" name="confirm-pwd" required></div>
-     </div>
+    <div class="title">
+      <h1>Skapa användare</h1>
+    </div>
+    <div class="container">
+      <form action="create-user" method="post">
+        <div>
+          <div><h3>Användare:</h3></div>
+          <div><input type="text" name="name" required></div>
+        </div>
+        <div>
+          <div><h3>Lösenord:</h3></div>
+          <div><input type="password" name="pwd" required></div>
+        </div>
+        <div>
+          <div><h3>Skriv lösenordet igen:</h3></div>
+          <div><input type="password" name="confirm-pwd" required></div>
+        </div>
 
-     <div class="spaced">
-      <button type="submit">Skapa användare</button>
-     </div>
-    </form>
-    <hr />
-    <button data-pager="#page-login">Logga in som existerande användare</button>
-   </div>
-   <div></div>
+        <div class="spaced">
+          <button type="submit">Skapa användare</button>
+        </div>
+      </form>
+      <hr />
+      <button data-pager="#page-login">Logga in som existerande användare</button>
+    </div>
+    <div></div>
   </div>
 
 
   <!-- PAGE: CHANGE PASSWORD -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -->
 
   <div class="page" id="page-change-password">
-   <div class="title">
-    <h1>Byt lösenord</h1>
-    <pre>TODO Maybe this should only be accessible when the user is logged in.  In that case we don't have to ask for the old password.</pre>
-   </div>
-   <div class="container">
-    <form action="change-pwd" method="post">
-     <div>
-      <div><h3>Användare:</h3></div>
-      <div><input type="text" name="name" required></div>
-     </div>
-     <div>
-      <div><h3>Gammalt lösenord:</h3></div>
-      <div><input type="password" name="old-pwd" required></div>
-     </div>
-     <div>
-      <div><h3>Nytt lösenord:</h3></div>
-      <div><input type="password" name="pwd" required></div>
-     </div>
-     <div>
-      <div><h3>Skriv det nya lösenordet igen:</h3></div>
-      <div><input type="password" name="confirm-pwd" required></div>
-     </div>
+    <div class="title">
+      <h1>Byt lösenord</h1>
+      <pre>TODO Maybe this should only be accessible when the user is logged in.  In that case we don't have to ask for the old password.</pre>
+    </div>
+    <div class="container">
+      <form action="change-pwd" method="post">
+        <div>
+          <div><h3>Användare:</h3></div>
+          <div><input type="text" name="name" required></div>
+        </div>
+        <div>
+          <div><h3>Gammalt lösenord:</h3></div>
+          <div><input type="password" name="old-pwd" required></div>
+        </div>
+        <div>
+          <div><h3>Nytt lösenord:</h3></div>
+          <div><input type="password" name="pwd" required></div>
+        </div>
+        <div>
+          <div><h3>Skriv det nya lösenordet igen:</h3></div>
+          <div><input type="password" name="confirm-pwd" required></div>
+        </div>
 
-     <div class="spaced">
-      <button type="submit">Byt lösenord</button>
-     </div>
-    </form>
-    <hr />
-    <button data-pager="#page-login">Logga in som existerande användare</button>
-   </div>
-   <div></div>
+        <div class="spaced">
+          <button type="submit">Byt lösenord</button>
+        </div>
+      </form>
+      <hr />
+      <button data-pager="#page-login">Logga in som existerande användare</button>
+    </div>
+    <div></div>
   </div>
 
 
   <!-- PAGE: HIGH SCORES -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -->
 
   <div class="page" id="page-high-scores">
-   <div>
-    <div class="right">
-     <button data-pager="#page-lessons">Visa lektioner</button>
+    <div>
+      <div class="right">
+        <button data-pager="#page-lessons">Visa lektioner</button>
+      </div>
+      <div class="title">
+        <h1>Poänglista</h1>
+      </div>
     </div>
-    <div class="title">
-      <h1>Poänglista</h1>
+    <div class="container">
+
+      <table>
+        <thead>
+          <tr>
+            <td>Lektion</td>
+            <td>Användare</td>
+            <td>Poäng - klick</td>
+            <td>Poäng - tid</td>
+          </tr>
+        </thead>
+        <tbody id="high-scores-table">
+          <!-- This will be populated with the Handlebars template below -->
+        </tbody>
+      </table>
+
+      <!-- Handlebars templates to be put inside <script> tags -->
+      <script id="high-scores-template" type="text/x-handlebars-template">
+        {{#each .}}
+        <tr>
+          <td>{{lesson.name}}</td>
+          <td>{{user.name}}</td>
+          <td>{{score.clicks}}</td>
+          <td>{{score.time}}</td>
+        </tr>
+        {{/each}}
+      </script>
+
     </div>
-   </div>
-   <div class="container">
-
-     <table>
-     <thead>
-      <tr>
-       <td>Lektion</td>
-       <td>Användare</td>
-       <td>Poäng - klick</td>
-       <td>Poäng - tid</td>
-      </tr>
-     </thead>
-     <tbody id="high-scores-table">
-     </tbody>
-    </table>
-
-     <!-- Handlebars templates should be put insive <script> tags -->
-     <script id="high-scores-template" type="text/x-handlebars-template">
-       {{#each .}}
-       <tr>
-	 <td>{{lesson.name}}</td>
-	 <td>{{user.name}}</td>
-	 <td>{{score.clicks}}</td>
-	 <td>{{score.time}}</td>
-       </tr>
-       {{/each}}
-     </script>
-
-   </div>
-   <div></div>
+    <div></div>
   </div>
 
- </main>
 </body>
 </html>
