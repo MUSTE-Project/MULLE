@@ -32,8 +32,6 @@ All Haskell dependencies are resolved automatically by `stack`.
 
 To be able to build the grammar files you will also need to install GF and its RGL. Please follow the guidelines here: <http://www.grammaticalframework.org>
 
-The front-end dependencies are managed with `npm`. This is also required to successfully run the web UI.
-
 ### Setup
 
 To setup one of the packages you need to select which GHC version you want to use. Currently it's only tested with 8.4.3. To use this version do
@@ -73,16 +71,6 @@ The example grammars have a `Makefile` in their respective directories, so you c
 Just run this:
 
     stack build
-
-The front end dependencies are managed with `npm`.  To fetch all dependencies navigate to
-
-    muste-ajax/static/
-
-and run
-
-    npm install
-
-to fetch all dependencies.This is also executed automatically by the setup-script when you do `stack build`.
 
 ### Installing
 
