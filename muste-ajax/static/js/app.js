@@ -1,4 +1,4 @@
-/*global $ Handlebars jQuery Set Map countdown Promise : true*/
+/*global $ jQuery Set Map : true*/
 
 // TODO: special tokens should be configurable
 var SPECIALS = {
@@ -35,9 +35,8 @@ var SPACETOKENS = new Set([
 ]);
 
 
-
 var DATA = null;
-var LOGIN_TOKEN = null;
+var LOGIN = {};
 
 var EXERCISES = [];
 var VIRTUAL_ROOT = '/';
@@ -49,109 +48,206 @@ jQuery().ready(init);
 
 function init() {
   init_environment();
-  register_handlebars_helper();
-  register_click_handlers();
-  register_busy_indicator(jQuery);
+  init_i18n();
+  $('body').show();
+  register_handlers();
   register_timer();
   register_overlay();
-  register_pagers();
-  register_create_user_handler();
-  register_change_pwd_handler();
-  register_popup_menu(jQuery);
-  register_page_handler(jQuery);
-  register_high_score_handler(jQuery);
-  register_lessons_listener(jQuery);
-  show_login_page();
+  window.onbeforeunload = function(e) {
+    e.preventDefault();
+    e.returnValue = "";
+  }
 }
 
 function init_environment() {
   window.muste = {};
 }
 
-function register_click_handlers() {
-  $('#loginform').submit(submit_login);
-  $('#abortlesson').click(retrieve_lessons);
-  $('#logoutbutton').click(restart_everything);
+
+function init_jconfirm() {
+  jconfirm.defaults = {
+    useBootstrap: false,
+    theme: 'modern',
+    boxWidth: '50%',
+  };
 }
 
-function show_login_page() {
-  var tok = window.sessionStorage.getItem('LOGIN_TOKEN');
-  // Show login page regardless.
-  change_page('#page-login');
-  if (tok == null) {
-    var loginform = document.getElementById('loginform');
-    loginform.name.focus();
-  } else {
-    LOGIN_TOKEN = tok;
-    retrieve_lessons();
+
+
+var DEFAULT_LANGUAGE = 'sv';
+
+// Using the i18next framework, with its jQuery plugin:
+// https://www.i18next.com/
+// https://github.com/i18next/jquery-i18next
+
+function set_language(evt) {
+  var lng = evt && evt.data && evt.data.language || DEFAULT_LANGUAGE;
+  i18next.changeLanguage(lng, function(err, t) {
+    console.log("Setting i18n language:", lng);
+    if (err) return console.error('ERROR setting language', lng, err);
+    // https://github.com/i18next/jquery-i18next#usage-of-selector-function
+    $('title').localize();
+    $('body').localize();
+    if (LOGIN.token) {
+      fetch_and_populate_lessons();
+      fetch_and_populate_high_scores();
+    }
+  });
+}
+
+
+function init_i18n() {
+  var langs = [];
+  for (var lng in I18N) {
+    langs.push(lng);
+    var iconurl = I18N[lng].flagicon;
+    $('<a>')
+      .append($('<img>').prop({src: iconurl}))
+      .click({language: lng}, set_language)
+      .appendTo($('.change-language'))
+  }
+  console.log("Initialising i18n languages:", langs.join(" "));
+
+  // https://www.i18next.com/overview/configuration-options
+  // evtl. load via xhr https://github.com/i18next/i18next-xhr-backend
+  i18next.init({
+    whitelist: langs,
+    resources: I18N,
+  },
+  function(err, t) {
+    // https://github.com/i18next/jquery-i18next#initialize-the-plugin
+    jqueryI18next.init(i18next, $);
+    set_language();
+  });
+}
+
+
+function register_handlers() {
+  $('form').submit(submit_form);
+  $('input[type=password]').change(check_matching_passwords);
+
+  $('[data-page]').click(show_page);
+
+  $('[data-popup]').click(function(evt) {
+    var popup = i18next.t($(this).data('popup'), {returnObjects: true});
+    swal({
+      title: popup.title,
+      text: popup.content,
+    });
+  });
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// PAGES
+
+var PAGES = {};
+
+function show_page(page) {
+  console.log("Showing page:", page);
+  if (page.currentTarget) page = $(page.currentTarget).data('page');
+  console.log("Showing page:", page);
+  if (typeof PAGES[page] === "function") {
+    PAGES[page] ();
+  }
+  $('main').hide();
+  $('#' + page).show();
+}
+
+PAGES.pageLogin = function() {
+  LOGIN = {};
+  muste_request({}, 'logout');
+}
+
+PAGES.pageLessons = function() {
+  $('#lessonslist').empty();
+  fetch_and_populate_lessons();
+  fetch_and_populate_high_scores();
+}
+
+PAGES.pageExercise = function() {
+  $('.sentence').empty();
+}
+
+PAGES.pageSettings = function() {
+  $('#change-pwd-name').val(LOGIN.name);
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// FORMS
+
+var FORMS = {};
+
+function submit_form(event) {
+  event.preventDefault();
+  var form = event.currentTarget;
+  if (form.form) form = form.form;
+  if (typeof FORMS[form.id] === "function") {
+    FORMS[form.id] (form);
   }
 }
 
-function register_popup_menu($) {
-  $.fn.popup = popup_menu;
-}
-
-function register_pagers() {
-  $('[data-pager]').click(function() {
-    var pg = $(this).data('pager');
-    change_page(pg);
-  });
-}
-
-function register_create_user_handler() {
-  var $form = $('form[action=create-user]');
-  password_matcher($form);
-  $form.on('submit', function (event) {
-    event.preventDefault();
-    var data = {
-      'password': $form.find('input[name=pwd]').val(),
-      'name': $form.find('input[name=name]').val()
-    };
-    muste_request(data, 'create-user').then(function() {
-      change_page('#page-login');
-    }).fail(function(err) {
-      var appErr = err.responseJSON.error;
-      switch(appErr.id) {
-      case 10:
-        alert('User name is already taken');
-        break;
-      default:
-        break;
-      }
+FORMS.formLogin = function(form) {
+  var data = {
+    name: form.name.value,
+    password: form.pwd.value
+  };
+  muste_request(data, 'login')
+    .done(function(response) {
+      LOGIN = {
+        name: form.name.value,
+        token: response['login-succes'],
+      };
+      // window.sessionStorage.setItem('LOGIN_TOKEN',LOGIN_TOKEN);
+      $('.username').text(form.name.value);
+      show_page('pageLessons');
     });
-  });
 }
 
-function password_matcher($form) {
-  $form.find('input').change(function() {
-    var pwd  = $form.find('input[name=pwd]').val();
-    var $pwdC = $form.find('input[name=confirm-pwd]');
-    var cpwd = $pwdC.val();
-    if(pwd !== cpwd) {
-      $pwdC.each(function () {
-        this.setCustomValidity('Password must match');
+FORMS.formCreateUser = function(form) {
+  var data = {
+    name: form.name.value,
+    password: form.pwd.value
+  };
+  muste_request(data, 'create-user')
+    .done(function() {
+      swal({
+        title: 'Success',
+        text: 'Your user name is created, now you can log in',
+        button: 'Go to login page',
+      }).then(function(reply) {
+        show_page('pageLogin');
       });
-      return;
-    }
-    // Input value is now valid.
-    this.setCustomValidity('');
-  });
+    });
 }
 
-function register_change_pwd_handler() {
-  var $form = $('form[action=change-pwd]');
-  password_matcher($form);
-  $form.on('submit', function (event) {
-    event.preventDefault();
-    var data = {
-      'new-password': $form.find('input[name=pwd]').val(),
-      'old-password': $form.find('input[name=old-pwd]').val(),
-      'name': $form.find('input[name=name]').val()
-    };
-    muste_request(data, 'change-pwd').then(function() {
-      change_page('#page-login');
+FORMS.formChangePwd = function(form) {
+  var data = {
+    name: form.name.value,
+    'new-password': form.pwd.value,
+    'old-password': form.oldPwd.value
+  };
+  muste_request(data, 'change-pwd')
+    .done(function() {
+      show_page('pageLessons');
     });
-  });
+}
+
+
+
+//////////////////////////////////////////////////////////////////////
+
+function check_matching_passwords(event) {
+  var form = event.currentTarget.form;
+  if (form.form) form = form.form;
+  if (form.pwd && form.confirmPwd) {
+    if (form.pwd.value === form.confirmPwd.value) {
+      form.confirmPwd.setCustomValidity('');
+    } else {
+      form.confirmPwd.setCustomValidity('Password must match');
+    }
+  }
 }
 
 function register_timer() {
@@ -166,32 +262,17 @@ function get_start_time() {
   return window.muste['lesson-start'];
 }
 
-// Returns a formatted string of the elapsed time. Note that currently
-// this is not locale sensitive.
+// Gets the elapsed time as a floating point representing the seconds passed by.
 function get_elapsed_time() {
-  var start = get_start_time();
-  var now   = new Date();
-  return countdown(start, now);
-}
-
-// Gets the elapsed time as a floating point representing the seconds
-// passed by.
-function get_elapsed_time_as_seconds() {
-  var e = get_elapsed_time();
-  var start = e.start;
-  var end = e.end;
-  // 'diff' is in ms.
-  var diff = end - start;
+  var diff = new Date() - get_start_time();
   return diff / 1000;
 }
 
-// TODO l10n
-function get_elapsed_time_formatted() {
-  return get_elapsed_time().toString();
-}
-
 function update_timer() {
-  $('#timer').text(get_elapsed_time_formatted());
+  var time = get_elapsed_time();
+  $('#timer').text(Math.round(time));
+  var score = Math.max(0, Math.min(100, 105 - time));
+  $('#score').text(Math.round(score));
 }
 
 // The overlay is shown when the menus pop up.  The click-event on the
@@ -202,84 +283,17 @@ function register_overlay() {
     $overlay.show();
   });
   $('.overlay').click(function() {
-    $(document).trigger('overlay-out');
-  });
-  $(document).on('overlay-out', function() {
-    $overlay.hide();
+    $(this).hide();
     reset_selection();
-    clear_errors();
   });
 }
 
-function clear_errors() {
-  $('.error').empty().hide();
-}
 
-function change_page(page, opts) {
-  var d = {
-    page: page,
-    'query-opts': opts
-  };
-  $(window).trigger('page-change', d);
-}
-
-function register_page_handler($) {
-  var $w = $(window);
-  $w.on('popstate', function() {
-    var href = window.location.href;
-    // FIXME Hack
-    var ref = href.substring(href.lastIndexOf('/') + 1);
-    var idx = ref.indexOf('?');
-    var id;
-    if(idx === -1) {
-      id = ref;
-    } else {
-      ref.substring(0, idx);
-    }
-    var loc = ref.substring(idx);
-    change_page(id, loc);
-  });
-  $w.on('page-change', function (_ev, d) {
-    var pg = d.page;
-    var q = d['query-opts'] || '';
-    var loc = pg + q;
-    show_page(pg);
-    history.pushState(null, null, loc);
-  });
-}
-
-function show_page(pg) {
-  $('.page').hide();
-  $(pg).show();
-}
-
-
-function restart_everything() {
-  muste_request({}, 'logout');
-  change_page('#page-login');
-}
-
-
-function submit_login(evt) {
-  if (evt && evt.preventDefault) {
-    evt.preventDefault();
-  }
-  var loginform = document.getElementById('loginform');
-  var req = {name: loginform.name.value, password: loginform.pwd.value};
-  muste_request(req, 'login')
-    .then(login_success)
-    .fail(function() {
-      alert('User name or password incorrect');
-    });
-}
-
-// Returns a promise with the request.  Reports errors according to
-// the protocol.  In contrast with `call_server_new` does not try to
-// guess how to interpret the response.
+// Returns a promise with the request. Reports errors.
 function muste_request(data, endpoint) {
-  var $w = $(window);
-  $w.trigger('api-load-start');
-  var req = {
+  busy_start();
+  console.log("AJAX request:", endpoint, data);
+  var request = {
     cache: false,
     url: SERVER + endpoint,
     dataType: 'json',
@@ -287,166 +301,115 @@ function muste_request(data, endpoint) {
     processData: false,
     data: JSON.stringify(data)
   };
-  return $.ajax(req).fail(handle_server_fail).always(function() {
-    $w.trigger('api-load-end');
-  });
+  return $.ajax(request)
+    .always(function(response){
+      console.log("AJAX reponse:", response);
+    })
+    .fail(function(response) {
+      var status = response.status;
+      var errid  = status;
+      var error  = response.responseJSON || response.responseText || response || "Unknown error";
+      if (error.error)   error = error.error;
+      if (error.id)      errid = error.id;
+      if (error.message) error = error.message;
+      console.error("AJAX ERROR:", status, errid, error);
+      swal({
+        icon: 'error',
+        title: 'Error: ' + errid,
+        text: error,
+        dangerMode: true,
+        button: "Cancel",
+        closeOnClickOutside: false,
+      });
+    })
+    .always(busy_end);
 }
 
-function handle_server_fail(resp) {
-  display_error(resp);
-  switch(resp.status) {
-  case 401:
-    muste_logout();
-    break;
-  case 400:
-  default:
-    break;
-  }
-  resp.fail();
-}
 
-function muste_logout() {
-  change_page('#page-login');
-  window.sessionStorage.removeItem('LOGIN_TOKEN');
-}
-
-function display_error(resp) {
-  if(resp.responseJSON === undefined) {
-    // We've received a response object that we didn't expect.
-    console.error(resp.responseText);
-    return;
-  }
-  var err = resp.responseJSON;
-  console.error(err.error.message);
-}
-
-function register_handlebars_helper() {
-  Handlebars.registerHelper({
-    not: function (v) {
-      return !v;
-    },
-    eq: function (v1, v2) {
-      return v1 === v2;
-    },
-    ne: function (v1, v2) {
-      return v1 !== v2;
-    },
-    lt: function (v1, v2) {
-      return v1 < v2;
-    },
-    gt: function (v1, v2) {
-      return v1 > v2;
-    },
-    lte: function (v1, v2) {
-      return v1 <= v2;
-    },
-    gte: function (v1, v2) {
-      return v1 >= v2;
-    },
-    and: function () {
-      return Array.prototype.slice.call(arguments).every(Boolean);
-    },
-    or: function () {
-      return Array.prototype.slice.call(arguments, 0, -1).some(Boolean);
-    },
-    json: function(context) {
-      return JSON.stringify(context);
-    }
-  });
-}
-
-// Fetches the lessons and triggers a custom event afterwards.
-function fetch_lessons() {
-  return muste_request({}, 'lessons').then(function(r) {
-    $(window).trigger('lessons-loaded', {lessons: r.lessons});
-    return r;
-  });
-}
-
-// Also shows the lessons afterwards.
-function retrieve_lessons(evt) {
-  if (evt && evt.preventDefault) {
-    evt.preventDefault();
-  }
-  fetch_lessons().then(show_lessons);
-}
-
-function show_lessons(resp) {
-  var lessons = resp.lessons;
-  change_page('#page-lessons');
-  var table = $('#lessonslist');
-  var lesson_list_template = $("#lesson-list-template").html();
-  var lesson_list_script = Handlebars.compile(lesson_list_template);
-  var e = lesson_list_script(lessons);
-  table.html(e);
-}
-
-function register_lessons_listener($) {
-  function update_exercises(_, x) {
-    x.lessons.forEach(function(x) {
-      var key = x.lesson;
-      EXERCISES[key] = {
-        passed: x.passedcount,
-        total: x.exercisecount
-      };
+function fetch_and_populate_lessons() {
+  muste_request({}, 'lessons')
+    .done(function(response) {
+      populate_lessons(response.lessons);
     });
+}
+
+function populate_lessons(lessons) {
+  console.log("Buidling boxes for", lessons.length, "lessons");
+  var table = $('#lessonslist').empty();
+  for (var l of lessons) {
+    console.log("L", l.lesson, l);
+    EXERCISES[l.lesson] = {
+      passedcount: l.passedcount,
+      totalcount:  l.exercisecount
+    };
+    $('<div>')
+      .append([
+        $('<h3>')
+          .text(i18next.t('backend.'+l.lesson+'.name', l.name)),
+        $('<button>')
+          .click({
+            lesson: l.lesson,
+            restart: l.passed,
+          }, start_exercise)
+          .text(i18next.t(l.passed          ? 'lesson.reSolve' 
+                          : l.passedcount>0 ? 'lesson.continue' 
+                          :                   'lesson.solve'
+                         )),
+        $('<p>')
+          .html(i18next.t('backend.'+l.lesson+'.description', l.description)),
+        $('<progress>')
+          .prop({value: l.passedcount, max: l.exercisecount}),
+        $('<p>')
+          .text(l.score ? i18next.t('lesson.result', {score: l.score}) 
+                :         i18next.t('lesson.noResult', "")
+               ),
+      ])
+      .toggleClass('finished', l.passed)
+      .toggleClass('disabled', !l.enabled)
+      .appendTo(table);
   }
-  $(window)
-    .on('lessons-loaded', update_exercises)
-    .on('lessons-loaded', window.fetch_high_scores);
 }
 
-// Warning defined but never used.  What gives?
-function select_lesson(evt) { // eslint-disable-line no-unused-vars
-  if (evt && evt.preventDefault) {
-    evt.preventDefault();
-  }
-  start_lesson($(this).data('lesson'));
-}
-
-
-function start_lesson(lesson) {
-  start_lesson_aux(lesson, {restart: false});
-}
-
-function restart_lesson(lesson) {
-  start_lesson_aux(lesson, {restart: true});
-}
-
-function start_lesson_aux(lesson, data) {
+function start_exercise(data) {
+  show_page('pageExercise');
+  if (data.data) data = data.data;
+  console.log(data);
   start_timer();
-  muste_request(data, 'lesson/' + lesson)
+  muste_request(data, 'lesson/' + data.lesson)
     .then(handle_menu_response);
 }
 
 function handle_menu_response(r) {
-  var key = r.lesson.key;
-  // FIXME Naughty string interpolation!
-  change_page('#page-exercise', '?key=' + key);
   DATA = r;
   show_exercise(r);
-  if(!r['exercise-over']) return;
-  if(r['lesson-over'] == true) {
-    show_exercise_complete(r);
-    return;
-  }
-  // NB This call blocks!
-  confirm_promisified_slow_and_racy('Exercise complete. Continue lesson?')
-    .then(function(c) {
-      if(!c) {
-        retrieve_lessons();
-        return;
-      }
-      continue_lesson(key);
+  if (r['lesson-over']) {
+    swal({
+      icon: "success",
+      title: "Lesson complete!",
+      text: "Bravo! You used " + r.score.clicks + " clicks in " + r.score.time + " seconds",
+      closeOnClickOutside: false,
+    }).then(function() {
+      show_page('pageLessons');
     });
-}
-
-function continue_lesson(key) {
-  // We need to sequence fetch_lessons and start_lesson due to the way
-  // updating the lesson counter is handled.
-  fetch_lessons().then(function () {
-    start_lesson(key);
-  });
+  }
+  else if (r['exercise-over']) {
+    swal({
+      icon: "success",
+      title: "Exercise complete!",
+      text: "Do you want to continue with the next exercise?",
+      buttons: true,
+      closeOnClickOutside: false,
+    }).then(function(reply) {
+      if (reply) {
+        start_exercise({
+          lesson: r.lesson.key,
+          restart: false,
+        });
+      } else {
+        show_page('pageLessons');
+      }
+    });
+  }
 }
 
 function show_exercise(resp) {
@@ -461,43 +424,12 @@ function show_exercise(resp) {
   // continuing a lesson will this be non-trivial.
   // display_score(resp.score);
   var e = EXERCISES[key];
-  display_lesson_counter({
-    lesson: lessonName,
-    passed: e.passed,
-    total: e.total
+  $('#exercisename')
+    .text(i18next.t('backend.'+key+'.name', lessonName)),
+  $('#lessoncounter').prop({
+    value: e.passedcount,
+    max:   e.totalcount
   });
-}
-
-// function display_score(score) {
-//   $('#score-clicks').text(score.clicks);
-//   $('#score-time').text(score.time);
-// }
-
-function display_lesson_counter(d) {
-  var s = d.lesson
-      + ': '
-      + d.passed
-      + ' avklarade av '
-      + d.total + ' övningar.';
-  $('#lessoncounter').text(s);
-}
-
-function show_exercise_complete(resp) {
-  var score = resp.score;
-  setTimeout(function(){
-    alert('BRAVO!' +
-      '    Klick: ' + score.clicks +
-      '    Tid: ' + score.time + ' sekunder');
-    // There used to be a way of figuring out if we should just start
-    // the next exercise.  This is no longer possible.
-    retrieve_lessons();
-  }, 500);
-}
-
-function login_success(resp) {
-  LOGIN_TOKEN = resp.token;
-  window.sessionStorage.setItem('LOGIN_TOKEN',LOGIN_TOKEN);
-  retrieve_lessons();
 }
 
 function clean_server_data(data) {
@@ -522,27 +454,6 @@ function all_classes(xs) {
   return new Set(flattened);
 }
 
-
-function hash_array_of_string(as) {
-  var hash = 0;
-  for(var i = 0 ; i < as.length ; i++) {
-    var a = as[i];
-    hash  = ((hash << 5) - hash) + hash_string(a);
-    hash |= 0;
-  }
-  return hash;
-}
-
-function hash_string(s) {
-  var hash = 0, i, chr;
-  if (s.length === 0) return hash;
-  for (i = 0; i < s.length; i++) {
-    chr  = s.charCodeAt(i);
-    hash  = ((hash << 5) - hash) + chr;
-    hash |= 0; // Convert to 32bit integer
-  }
-  return hash;
-}
 
 function matchy_magic(src, trg) {
   var cs = all_classes(src.sentence.linearization);
@@ -704,16 +615,6 @@ function mk_direction(direction) {
   }
 }
 
-function int_to_rgba(num) {
-  num >>>= 0;
-  var b = num & 0xFF,
-    g = (num & 0xFF00) >>> 8,
-    r = (num & 0xFF0000) >>> 16,
-    // a = ( (num & 0xFF000000) >>> 24 ) / 255 ;
-    a = 1;
-  return 'rgba(' + [r, g, b, a].join(',') + ')';
-}
-
 function update_menu(m, idx) {
   var prev = window.currentMenu;
   if(prev !== undefined && prev.idx != idx) {
@@ -761,7 +662,7 @@ function click_word(event) {
       return path;
     }
   }
-  var clicked = $(event.target).closest('.clickable');
+  var clicked = $(event.currentTarget).closest('.clickable');
   var lang = clicked.data().lang;
   var path = clicked.data().path;
   var validMenus = clicked.data('valid-menus');
@@ -907,13 +808,13 @@ function click_word(event) {
   }
 
   var menu = $('.menu').show();
-  clicked.popup(menu);
+  popup_menu(clicked, menu);
 }
 
-function popup_menu(menu) {
-  var offset = this.offset();
-  var bot = offset.top + this.outerHeight();
-  var diff = this.outerWidth() - menu.outerWidth();
+function popup_menu(clicked, menu) {
+  var offset = clicked.offset();
+  var bot = offset.top + clicked.outerHeight();
+  var diff = clicked.outerWidth() - menu.outerWidth();
   var mid = offset.left + diff / 2;
   var css = {
     'top': bot + 'px',
@@ -926,21 +827,6 @@ function popup_menu(menu) {
     .one('overlay-out', function() {
       menu.hide();
     });
-}
-
-// is_selected :: Menu.Selection -> Int -> Bool
-function is_selected(sel, idx) {
-  function within(intval, i) {
-    var a = intval[0];
-    var b = intval[1];
-    if(i < a) return false;
-    if(i >= b) return false;
-    return true;
-  }
-  for(var intval of sel) {
-    if(within(intval, idx)) return true;
-  }
-  return false;
 }
 
 function getValidMenus(idx, menu) {
@@ -976,39 +862,6 @@ function iterateMenu(idx, mp) {
   };
 }
 
-// Looks up a value in a set of keys. Returns the key and value where
-// the value is present in the key.
-
-// lookupKeySet :: Int -> Map [(Int, Int)] v -> [([(Int, Int)], v)]
-function lookupKeySetRange(idx, map) {
-  return lookupKeySetWith(idx, map, is_selected);
-}
-
-function is_selected_empty(sel, idx) {
-  function within(intval, i) {
-    var a = intval[0];
-    var b = intval[1];
-    if(a !== b) return false;
-    return i === a;
-  }
-  for(var intval of sel) {
-    if(within(intval, idx)) return true;
-  }
-  return false;
-}
-
-function lookupKeySetEmptyRange(idx, map) {
-  return lookupKeySetWith(idx, map, is_selected_empty);
-}
-function* lookupKeySetWith(idx, map, f) {
-  for(var item of map) {
-    var ks = item[0];
-    if(f(ks, idx)) {
-      yield item;
-    }
-  }
-}
-
 function to_client_tree(t) {
   return {
     'sentence': t.sentence,
@@ -1026,32 +879,86 @@ function select_menuitem(item, lang) {
     'lesson': data.lesson,
     'score': {
       'clicks': score.clicks,
-      'time': get_elapsed_time_as_seconds()
+      'time': get_elapsed_time()
+      // 'time': get_elapsed_time_as_seconds()
     },
     'src': to_client_tree(menu.src),
     'trg': to_client_tree(menu.trg),
     'settings': data.settings
   };
-  muste_request(menuRequest, 'menu').then(handle_menu_response);
+  muste_request(menuRequest, 'menu')
+    .then(handle_menu_response);
   $(document).trigger('overlay-out');
 }
 
-// Used by a button on the html page.
-window.fetch_high_scores = function() {
+
+//////////////////////////////////////////////////////////////////////
+// Selections
+
+// Looks up a value in a set of selections.
+// lookupKeySet :: Int -> Map [(Int, Int)] v -> [([(Int, Int)], v)]
+function lookupKeySetRange(idx, map) {
+  return lookupKeySetWith(idx, map, is_selected);
+}
+
+function lookupKeySetEmptyRange(idx, map) {
+  return lookupKeySetWith(idx, map, is_selected_empty);
+}
+
+// is_selected :: Menu.Selection -> Int -> Bool
+function is_selected(sel, idx) {
+  function within(intval, i) {
+    var a = intval[0];
+    var b = intval[1];
+    if(i < a) return false;
+    if(i >= b) return false;
+    return true;
+  }
+  for(var intval of sel) {
+    if(within(intval, idx)) return true;
+  }
+  return false;
+}
+
+function is_selected_empty(sel, idx) {
+  function within(intval, i) {
+    var a = intval[0];
+    var b = intval[1];
+    if(a !== b) return false;
+    return i === a;
+  }
+  for(var intval of sel) {
+    if(within(intval, idx)) return true;
+  }
+  return false;
+}
+
+function* lookupKeySetWith(idx, map, f) {
+  for(var item of map) {
+    var ks = item[0];
+    if(f(ks, idx)) {
+      yield item;
+    }
+  }
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// High scores
+
+function fetch_and_populate_high_scores() {
   muste_request({}, 'high-scores')
-    .then(function (xs) {
-      $(window).trigger('high-scores-loaded', {scores: xs});
+    .then(function (scores) {
+      // for testing purposes:
+      scores.push(
+        {lesson: {name:"Fake"}, user: {name:"Lisa"}, score: {clicks:3, time:6}},
+        {lesson: {name:"Faker"}, user: {name:"Pelle"}, score: {clicks:999, time:666}},
+      ); // end test
+      set_global_highscore_mapping(scores);
+      populate_high_scores(scores);
+      setup_score_bars(window.ScoreBar);
     });
 };
-
-function register_high_score_handler($) {
-  $(window).on('high-scores-loaded', function(_, e) {
-    var scores = e.scores;
-    set_global_highscore_mapping(scores);
-    display_high_scores(scores);
-    setup_score_bars(window.ScoreBar);
-  });
-}
 
 function set_global_highscore_mapping(scores) {
   var xs = scores.map(function(score) {
@@ -1061,31 +968,16 @@ function set_global_highscore_mapping(scores) {
   window['high-scores'] = m;
 }
 
-function display_high_scores(scores) {
-  var highscores_template = $("#lesson-list-template").html();
-  var highscores_script = Handlebars.compile(highscores_template);
-  var e = render_high_scores(scores);
-  $('#high-scores-table').html(e);
-}
-
-//////////////////////////////////////////////////////////////////////
-// Busy indicator
-
-function register_busy_indicator($) {
-  var $w = $(window);
-  var $busy = $('#busy-indicator');
-  var sem = 0;
-  $w.on('api-load-start', function () {
-    sem++;
-    $busy.removeClass('idle');
-    $('.overlay').show();
-  });
-  $w.on('api-load-end', function () {
-    sem--;
-    if(sem > 0) return;
-    $busy.addClass('idle');
-    $('.overlay').hide();
-  });
+function populate_high_scores(scores) {
+  var table = $('#high-scores-table').empty();
+  for (var row of scores) {
+    var columns = [row.lesson.name, row.user.name, row.score.clicks, row.score.time];
+    $('<tr>').append(
+      columns.map(function(cell) {
+        return $('<td>').text(cell);
+      })
+    ).appendTo(table);
+  }
 }
 
 window.ScoreBar = (function() {
@@ -1126,20 +1018,55 @@ function setup_score_bars(ScoreBar) {
   $('.score[data-score]').each(ScoreBar.setup);
 }
 
-// A promisified version of `window.confirm`. I had an issue that the
-// DOM was not updated prior to showing the dialog, hence this hack.
-// Issues:
-//
-// * `setTimeout` is not comme il faut.
-// * It may not accurately solve the problem it's trying to solve.
-//   How are we sure the DOM has been updated.  Perhaps use the new
-//   mutation observer api to reliably solve this?[1]
-//
-// [1]: https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver
-function confirm_promisified_slow_and_racy(msg) {
-  return new Promise(function (resolve) {
-    window.setTimeout(function() {
-      resolve(window.confirm(msg));
-    }, 100);
-  });
+
+//////////////////////////////////////////////////////////////////////
+// Busy indicator
+
+var BUSY_CALLS = 0;
+
+function busy_start() {
+  BUSY_CALLS++;
+  $('#busy-indicator').show();
+  $('.overlay').show();
+}
+
+function busy_end() {
+  BUSY_CALLS--;
+  if (BUSY_CALLS > 0) return;
+  $('#busy-indicator').hide();
+  $('.overlay').hide();
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// Converting class names to colour values
+
+function hash_array_of_string(as) {
+  var hash = 0;
+  for(var i = 0 ; i < as.length ; i++) {
+    var a = as[i];
+    hash  = ((hash << 5) - hash) + hash_string(a);
+    hash |= 0;
+  }
+  return hash;
+}
+
+function hash_string(s) {
+  var hash = 0;
+  for (var i = 0; i < s.length; i++) {
+    var chr  = s.charCodeAt(i);
+    hash  = ((hash << 5) - hash) + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+}
+
+function int_to_rgba(num) {
+  num >>>= 0;
+  var b = num & 0xFF,
+    g = (num & 0xFF00) >>> 8,
+    r = (num & 0xFF0000) >>> 16,
+    // a = ( (num & 0xFF000000) >>> 24 ) / 255 ;
+    a = 1;
+  return 'rgba(' + [r, g, b, a].join(',') + ')';
 }

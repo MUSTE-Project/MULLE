@@ -1,177 +1,138 @@
+
 html {
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-weight: 300;
-    font-size: medium;
+    font-weight: 200;
+    font-size: 14pt;
 }
 
-body {
-    background-color: hsl(0, 0%, 95%);
-    width: calc(100% - 1pt);
-    margin: 1pt;
-    padding: initial;
-}
-
-html, body, main, .page {
-    /* I feel like this ought to be min-height but that does not acheive
-    the same result for some reason. */
-    height: calc(100% - 2pt);
+html, body, main {
+    background-color: #fed;
+    margin: 0;
+    padding: 0;
 }
 
 body, button, input, table, tr, td {
     font-size: inherit;
+    font-weight: inherit;
 }
 
-button, input, table, tr, td {
-    border: 0;
+section {
+    max-width: 700px;
 }
 
-main {
-    max-width: 50em;
-    display: flex;
-    flex-direction: column;
-    margin: 0 auto;
-}
-
-#loginform td, input {
-    padding: 5px 10px;
-}
-
-strong {
-    font-weight: 700;
-}
-
-.page {
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-}
-
-.page .container {
-    display: inline-block;
-    text-align: initial;
-    margin-left: auto;
-    margin-right: auto;
-    /* On the login page we want the container to take up all
-       available space an sit at the start of the flex container */
-    flex: 1;
-}
-
-/* TODO Not so nice that we've implemented this as a special case. */
-.page .container.container-alt {
+main, main header {
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
 }
 
-.lesson-info {
+
+/* Headings */
+
+strong, h1, h2, h3, h4, th, thead td {
+    font-weight: bolder;
+}
+
+h1, h2, h3, h4, section header {
+    margin: 0.5em 0;
+}
+
+section header > * {
+    margin: 0;
+}
+
+
+/* Form inputs, buttons, links, etc. */
+
+input, button, .button, .sentence {
+    background-color: white;
+}
+
+input, button, .button {
+    margin: 0.3em;
+    padding: 0.3em 1em;
+    display: inline-block;
+    text-decoration: none;
+}
+
+input, button, .button, .sentence, .popup, .score,
+.swal-modal, .swal-button, #lessonslist > *
+{
+    border: 1px solid #aaa;
+}
+
+button, .button, .sentence, .popup, input,
+.clickable, .word, button, label, .highlighted,
+.swal-modal, .swal-button, #lessonslist > *
+{
+    border-radius: 10px;
+}
+
+a:hover {
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+.clickable:hover, button:hover, label:hover {
+    cursor: pointer;
+    background-color: #eee;
+    background-color: rgba(220,220,220,0.7);
+}
+
+
+/* Main headers and footers */
+
+main > header nav > * {
+    text-decoration: none;
+    white-space: nowrap;
+    margin-left: 0.5em;
+}
+
+main > header > *, main > header xxnav > * {
+    line-height: 2;
+}
+
+main > header, main > footer {
+    width: 100%;
     display: flex;
+    flex-direction: row;
     justify-content: space-between;
-    align-item: center;
 }
 
-.lesson-info-button {
-    margin-left: 2em;
+main > header {
+    margin-bottom: 2em;
 }
 
-.page .title {
+main > footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    align-items: bottom;
+}
+
+main > header .change-language a {
+    margin: 0 0.1em;
+}
+
+main > header > *, main > footer > * {
     text-align: center;
-    margin: 5%;
-    /* border: 1px green solid; */
+    margin: 0 0.5em;
 }
 
-h1 {
-    margin: 0px;
-}
-
-button, .button {
-    background-color: white;
-    margin: 0.3em;
-    padding: 0.3em 0.6em;
-    display: inline-block;
-    border-radius: 5px;
-    text-decoration: none;
-    border-width: 1px;
-    border-style: solid;
-    border-color: #acacac;
-}
-
-.greyed a {
-    background-color: #ddd;
-}
-
-.finished a {
-    color: green;
-}
-
-.lessons .disabled {
-    opacity: 0.5;
-}
-
-.disabled a {
-    color: red;
-    text-decoration: line-through;
-}
-
-button, .button {
-    background-color: white;
-    border-width: 1px;
-    border-color: #acacac;
-    border-style: solid;
-}
-
-a.button {
-    text-decoration: none;
-    color: initial;
-}
-
-.sentence {
-    background-color: white;
-    margin: 0.3em;
-    padding: 0.3em 0.6em;
-    display: inline-block;
-    border-radius: 5px;
-    border-width: 1px;
-    border-style: solid;
-    padding-top: 0.5em;
-    padding-bottom: 0.5em;
-    border-color: #acacac;
-    user-select: none;
+main > header > *:first-child, main > footer > *:first-child {
     text-align: left;
 }
-.clickable {
-    z-index: 15;
-    position: relative;
+
+main > header > *:last-child, main > footer > *:last-child {
+    text-align: right;
 }
 
-.vertical-separator {
-    min-height: 1.5em;
-}
+
+/* Hide checkboxes (currently not used) */
 
 input[type=radio], input[type=checkbox] {
     display: none;
-}
-
-#mainmenu li {
-    border-bottom: 1px solid;
-    border-left: 1px solid;
-    list-style: none;
-    padding: 0 0.2em 0.2em 0.2em;
-    background-color: white;
-}
-
-.debug {
-    display: none;
-    font-size: 50%;
-    color: grey;
-}
-
-#mainmenu label, #mainmenu button {
-    font-size: 12pt;
-    padding: 0 0.4em;
-    cursor: pointer;
 }
 
 input:checked + label {
@@ -180,45 +141,89 @@ input:checked + label {
 }
 
 
-button {
-    padding: 5px 20px;
+/* Tables */
+
+table {
+    margin-left: auto; 
+    margin-right: auto;
 }
 
-.left {
-    float: left;
+tr {
+    vertical-align: center;
 }
 
-.right {
-    float: right;
+td, th {
+    text-align: left;
 }
 
-#busy-indicator {
-    position: fixed;
-    left: 0;
-    top: 0;
-    color: red;
+form th {
+    text-align: right;
 }
 
-#busy-indicator.idle {
+
+/* Assorted elements */
+
+hr {
+    border: 1px solid black;
+    width: 100%;
+}
+
+progress {
+    width: 4em;
+}
+
+.vertical-separator {
+    min-height: 1.5em;
+}
+
+
+/* List of lessons */
+
+#lessonslist {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+#lessonslist > * {
+    flex: 0 20%;
+    min-width: 300px;
+    background: white;
+    margin: 2%;
+}
+
+#lessonslist .disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+#lessonslist .finished {
     color: green;
 }
 
-#mainmenu {
-    z-index: 5;
-    display: none;
+
+/* Exercise view */
+
+.sentence {
+    margin: 0.3em;
+    padding: 0.3em 0.6em;
+    display: inline-block;
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
+    user-select: none;
+    text-align: left;
 }
 
-#mainmenu-toggler, #busy-indicator {
+.clickable {
     z-index: 15;
-    padding: 0 0.2em;
-    font-size: 18pt;
+    position: relative;
 }
 
-#mainmenu-toggler, #mainmenu {
-    padding: 5px 20px;
-    position: fixed;
-    right: 0;
-    top: 0;
+.debug {
+    display: none;
+    font-size: 50%;
+    color: grey;
 }
 
 .popup {
@@ -227,9 +232,6 @@ button {
     max-height: 20ex;
     overflow: auto;
     background-color: hsl(0, 0%, 95%);
-    border: 1px solid;
-    border-radius: 5px;
-    border-color: #acacac;
 }
 
 .popup ul {
@@ -265,10 +267,6 @@ button {
     font-weight: bold;
 }
 
-.clickable, .word, button, label, .highlighted {
-    border-radius: 5px;
-}
-
 .space {
     /* This is to ensure that spaces are clickable and that pop-up menus
     gets placed correctly.  `2ex` is an approximation for the
@@ -302,13 +300,6 @@ button {
     /* font-size: 100%; */
 }
 
-.clickable:hover, button:hover, label:hover {
-    cursor: pointer;
-    background-color: #eee;
-    background-color: rgba(220,220,220,0.7);
-    border-radius: 5px;
-}
-
 .striked {
     text-decoration: line-through;
     font-weight: bolder;
@@ -332,7 +323,7 @@ img { border: 1px dotted blue }
 
 .overlay {
     opacity:    0.1;
-    background: #000;
+    background: black;
     width:      100%;
     height:     100%;
     z-index:    10;
@@ -341,23 +332,50 @@ img { border: 1px dotted blue }
     position:   fixed;
 }
 
-/* The spaced class is used to add the same spacing as on h3
-   elements. */
-.spaced, h3 {
-    margin-top: 1em;
-    margin-bottom: 1em;
+
+/* Busy indicator */
+/* CSS spinner, taken from: https://loading.io/css/ */
+
+#busy-indicator {
+    z-index: 15;
+    position: fixed;
+    left: 50%;
+    top: 25%;
+    margin-left: -32px;
+    margin-top: -32px;
 }
 
-.figure {
-    text-align: center;
-    margin-top: 1em;
-    margin-bot: 1em;
+.lds-dual-ring {
+    width: 64px; height: 64px;
+    display: inline-block;
 }
 
-.score {
-    height: 2ex;
-    width: 80px;
-    border-width: 1px;
-    border-style: solid;
-    border-color: #acacac;
+.lds-dual-ring:after {
+    width: 46px; height: 46px;
+    border: 5px solid red;
+    border-color: red transparent red transparent;
+    content: " ";
+    display: block;
+    margin: 1px;
+    border-radius: 50%;
+    animation: lds-dual-ring 1.2s linear infinite;
 }
+
+@keyframes lds-dual-ring {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+
+/* Apparently, elements with "hidden" attribute are not always hidden:
+   https://bugs.chromium.org/p/chromium/issues/detail?id=179220 
+*/
+
+[hidden] {
+    display: none
+}
+

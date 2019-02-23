@@ -1,239 +1,245 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>MULLE (MUSTE Language Learning Environment)</title>
+  <title data-i18n="app.longtitle">MULLE</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="/css/muste.css" />
-  <script defer type="text/javascript" src="/js/jquery.min.js"></script>
-  <script defer type="text/javascript" src="/js/handlebars.min.js"></script>
-  <script defer type="text/javascript" src="/js/countdown.js"></script>
-  <script defer type="text/javascript" src="/js/app.js"></script>
+
+  <!-- Fontawesome solid icons: https://fontawesome.com/ -->
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/solid.css"
+        integrity="sha384-r/k8YTFqmlOaqRkZuSiE9trsrDXkh07mRaoGBMoDcmA58OHILZPsk29i2BsFng1B" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/fontawesome.css"
+        integrity="sha384-4aon80D8rXCGx9ayDt85LbyUHeMWd3UiBaWliBlJ53yzm9hqN21A+o1pqoyK04h+" crossorigin="anonymous">
+
+  <!-- MULLE styling -->
+  <link rel="stylesheet" href="css/normalize.css" />
+  <link rel="stylesheet" href="css/muste.css" />
+
+  <!-- JQuery 3.3.1: https://jquery.com/ -->
+  <script defer src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"
+          integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+
+  <!-- SweetAlert modal windows: https://sweetalert.js.org/ -->
+  <script defer src="https://cdn.jsdelivr.net/npm/sweetalert@2.1.2/dist/sweetalert.min.js"
+          integrity="sha256-KsRuvuRtUVvobe66OFtOQfjP8WA2SzYsmm4VPfMnxms=" crossorigin="anonymous"></script>
+
+  <!-- i18next for internationalization: https://www.i18next.com/, https://github.com/i18next/jquery-i18next -->
+  <script defer src="https://cdn.jsdelivr.net/npm/i18next@15.0.4/i18next.min.js"
+          integrity="sha256-HgFGKNJEShH+WqX0YsL6oOJTKe/CcqENDdxxweoaN48=" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/jquery-i18next@1.2.1/jquery-i18next.min.js"
+          integrity="sha256-Vo1wrHjny4hQDPA9SwBUpG/EBawhvUusdqRHb3Ia7x8=" crossorigin="anonymous"></script>
+
+  <!-- MULLE scripts -->
+  <script defer src="js/app.js"></script>
+  <script defer src="i18n/i18n.en.js"></script>
+  <script defer src="i18n/i18n.sv.js"></script>
 </head>
 
-<body>
-  <span id="busy-indicator" class="idle">&#9679;</span>
+<body hidden>
+  <div hidden id="busy-indicator" class="lds-dual-ring"></div>
   <div hidden class="overlay"></div>
-
 
   <!-- PAGE: LOGIN -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -->
 
-  <div class="page" id="page-login">
-    <div class="title">
-      <h1>MULLE</h1><strong>(MUSTE Language Learning Environment)</strong>
-    </div>
-    <div class="container">
-      <form id="loginform" method="post">
+  <main id="pageLogin">
+    <header>
+      <div></div>
+      <nav>
+        <!-- will be filled by the available languages: -->
+        <span class="change-language"></span>
+      </nav>
+    </header>
+
+    <section>
+      <header>
+        <h1 data-i18n="app.title">MULLE</h1>
+        <p data-i18n="app.subtitle"></p>
+      </header>
+
+      <p data-i18n="app.explanation"></p>
+
+      <form id="formLogin" method="post">
         <table><tr>
-            <th>Användare:</th><td><input type="text" name="name"></td>
+            <th data-i18n="user.name">Username:</th><td><input type="text" name="name" required></td>
           </tr><tr>
-            <th>Lösenord:</th><td><input type="password" name="pwd"></td>
+            <th data-i18n="user.pwd">Password:</th><td><input type="password" name="pwd" required></td>
           </tr><tr>
-            <th></th><td><button type="submit">Logga in</button></td>
+            <th></th><td><button type="submit" data-i18n="user.login">Login</button></td>
         </tr></table>
       </form>
-      <hr />
-      <button data-pager="#page-create-user">Skapa ny användare</button>
-      <button data-pager="#page-change-password">Ändra lösenord</button>
-    </div>
-    <div></div>
-  </div>
+
+      <hr/>
+      <button data-page="pageCreateUser" data-i18n="nav.createUser">Create new user</a>
+    </section>
+  </main>
 
 
   <!-- PAGE: LESSONS -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -->
 
-  <div class="page" id="page-lessons">
-    <div>
-      <span class="right">
-        <button data-pager="#page-high-scores" onclick="fetch_high_scores()">Poänglista</button>
-        <button id="logoutbutton">Logga ut</button>
-      </span>
-      <div class="title">
-        <h1>MULLE</h1><strong>(MUSTE Language Learning Environment)</strong>
-      </div>
-    </div>
-    <div>
-      <div class="container" id="lessonslist">
-        <!-- This will be populated with the Handlebars template below -->
-      </div>
+  <main hidden id="pageLessons">
+    <header>
+      <strong><span data-i18n="app.title">MULLE</span> (<span class="username"></span>)</strong>
+      <nav>
+        <!-- will be filled by the available languages: -->
+        <span class="change-language"></span>
+        <a data-popup="lesson.help" data-i18n="[title]nav.help;[alt]nav.help">
+          <i class="fas fa-question fa-lg"></i></a>
+        <a data-page="pageHighScores" data-i18n="[title]nav.highscores;[alt]nav.highscores">
+          <i class="fas fa-trophy fa-lg"></i></a>
+        <a data-page="pageSettings" data-i18n="[title]nav.settings;[alt]nav.settings">
+          <i class="fas fa-cogs fa-lg"></i></a>
+        <a data-page="pageLogin" data-i18n="[title]nav.logout;[alt]nav.logout">
+          <i class="fas fa-sign-out-alt fa-lg"></i></a>
+      </nav>
+    </header>
 
-      <!-- Handlebars templates to be put inside <script> tags -->
-      <script id="lesson-list-template" type="text/x-handlebars-template">
-        <div class="lessons">
-          {{#each .}}
-          <div class="{{#if (or passed (gte passed total))}}finished{{/if}} {{#if enabled}}{{else}}disabled{{/if}}">
-            <div class="lesson-info">
-              <div>
-                <h3>{{name}}</h3>
-                <p>
-                  {{passedcount}} avklarade av {{exercisecount}} övningar
-                </p>
-                {{#if score}} 
-                <p> 
-                  Resultat hittills: <span>{{score.clicks}} klick i {{score.time}} sekunder</span> 
-                  <canvas class="score" data-lesson="{{lesson}}" data-score="{{json score}}"></canvas>
-                </p> 
-                {{/if}} 
-                <p>
-                  {{description}}
-                </p>
-              </div>
-              <div class="lesson-info-button"> 
-                <button {{#if (or passed (not enabled))}}disabled{{/if}} onclick="start_lesson({{lesson}});">Lös</button> 
-                {{#if passed}}<button onclick="restart_lesson({{lesson}});">Gör om</button>{{/if}} 
-              </div> 
-            </div>
-          </div>
-          {{/each}}
+    <section>
+      <header>
+        <h1 data-i18n="lesson.title">Lessons</h1>
+      </header>
+
+      <div>
+        <div id="lessonslist">
+          <!-- This will be populated with lessons by the function show_lessons() -->
         </div>
-      </script>
-
-    </div>
-    <div class="vertical-separator"></div>
-    <div>
-      <a class="button left instructions button" href="instructions.html" target="_blank">Instruktioner</a>
-    </div>
-  </div>
+      </div>
+    </section>
+  </main>
 
 
   <!-- PAGE: EXERCISE -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -->
 
-  <div class="page" id="page-exercise">
-    <div>
-      <span class="left" id="lessoncounter"></span>
-      <button class="right" id="abortlesson">Avbryt lektion</button>
-    </div>
+  <main hidden id="pageExercise">
+    <header>
+        <div><progress id="lessoncounter"/></div>
+        <div id="exercisename"></div>
+        <nav>
+        <a data-popup="exercise.help" data-i18n="[title]nav.help;[alt]nav.help">
+          <i class="fas fa-question fa-lg"></i></a>
+        <a data-page="pageLessons" data-i18n="[title]nav.abortExercise;[alt]nav.abortExercise">
+          <i class="fas fa-times fa-lg"></i></a>
+        </nav>
+    </header>
 
-    <div class="container container-alt">
-      <div class="exercise">
-        <div id="src" class="sentence prevent-body-click"></div>
-        <div class="vertical-separator"></div>
-        <div id="trg" class="sentence prevent-body-click"></div>
+    <div class="exercise">
+      <div id="src" class="sentence prevent-body-click"></div>
+      <div class="vertical-separator"></div>
+      <div id="trg" class="sentence prevent-body-click"></div>
+    </div>
+    <div hidden class="popup menu prevent-body-click" id="menus"></div>
+
+    <footer>
+      <div>
+        <span data-i18n="exercise.time">Time:</span> <span id="timer"></span> s
       </div>
-    </div>
-
-    <div>
-      <!-- <div id="score" class="left"> -->
-      <!--  Score: Time: <span id="score-time"></span>. Clicks: <span id="score-clicks"></span> -->
-      <!-- </div> -->
-      <span class="right">Tid: <span id="timer"></span></span>
-      <div hidden class="popup menu prevent-body-click" id="menus"></div>
-      <div hidden class="popup error"></div>
-    </div>
-  </div>
+      <div>
+        <span data-i18n="exercise.score">Score:</span> <span id="score"></span>
+      </div>
+    </footer>
+  </main>
 
 
   <!-- PAGE: CREATE USER -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -->
 
-  <div class="page" id="page-create-user">
-    <div class="title">
-      <h1>Skapa användare</h1>
-    </div>
-    <div class="container">
-      <form action="create-user" method="post">
-        <div>
-          <div><h3>Användare:</h3></div>
-          <div><input type="text" name="name" required></div>
-        </div>
-        <div>
-          <div><h3>Lösenord:</h3></div>
-          <div><input type="password" name="pwd" required></div>
-        </div>
-        <div>
-          <div><h3>Skriv lösenordet igen:</h3></div>
-          <div><input type="password" name="confirm-pwd" required></div>
-        </div>
+  <main hidden id="pageCreateUser">
+    <header>
+      <strong><a data-page="pageLogin" data-i18n="app.title">MULLE</a></strong>
+      <nav>
+        <a data-page="pageLogin" data-i18n="[title]nav.loginExisting;[alt]nav.loginExisting">
+          <i class="fas fa-times fa-lg"></i></a>
+      </nav>
+    </header>
 
-        <div class="spaced">
-          <button type="submit">Skapa användare</button>
-        </div>
+    <section>
+      <header>
+        <h1 data-i18n="createUser.title">Create new user</h1>
+      </header>
+
+      <form id="formCreateUser" method="post">
+        <table><tr>
+            <th data-i18n="user.name">Username:</th><td><input type="text" name="name" required></td>
+          </tr><tr>
+            <th data-i18n="user.pwd">Password:</th><td><input type="password" name="pwd" required></td>
+          </tr><tr>
+            <th data-i18n="user.pwdAgain">Write the password again:</th><td><input type="password" name="confirmPwd" required></td>
+          </tr><tr>
+            <th></th><td><button type="submit" data-i18n="user.createUser">Create user</button></td>
+        </tr></table>
       </form>
-      <hr />
-      <button data-pager="#page-login">Logga in som existerande användare</button>
-    </div>
-    <div></div>
-  </div>
+    </section>
+  </main>
 
 
-  <!-- PAGE: CHANGE PASSWORD -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -->
+  <!-- PAGE: SETTINGS (change password) -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -->
 
-  <div class="page" id="page-change-password">
-    <div class="title">
-      <h1>Byt lösenord</h1>
-      <pre>TODO Maybe this should only be accessible when the user is logged in.  In that case we don't have to ask for the old password.</pre>
-    </div>
-    <div class="container">
-      <form action="change-pwd" method="post">
-        <div>
-          <div><h3>Användare:</h3></div>
-          <div><input type="text" name="name" required></div>
-        </div>
-        <div>
-          <div><h3>Gammalt lösenord:</h3></div>
-          <div><input type="password" name="old-pwd" required></div>
-        </div>
-        <div>
-          <div><h3>Nytt lösenord:</h3></div>
-          <div><input type="password" name="pwd" required></div>
-        </div>
-        <div>
-          <div><h3>Skriv det nya lösenordet igen:</h3></div>
-          <div><input type="password" name="confirm-pwd" required></div>
-        </div>
+  <main hidden id="pageSettings">
+    <header>
+      <strong><a data-page="pageLessons" data-i18n="app.title">MULLE</a>
+        (<span class="username"></span>)</strong>
+      <nav>
+        <a data-page="pageLessons" data-i18n="[title]nav.showLessons;[alt]nav.showLessons">
+          <i class="fas fa-times fa-lg"></i></a>
+      </nav>
+    </header>
 
-        <div class="spaced">
-          <button type="submit">Byt lösenord</button>
-        </div>
-      </form>
-      <hr />
-      <button data-pager="#page-login">Logga in som existerande användare</button>
-    </div>
-    <div></div>
-  </div>
+    <section>
+      <header>
+        <h1 data-i18n="settings.title">Change password</h1>
+      </header>
+
+      <div>
+        <form id="formChangePwd" method="post">
+          <table><tr>
+              <th data-i18n="user.name">User name:</th><td><input id="change-pwd-name" type="text" name="name" disabled></td>
+            </tr><tr>
+              <th data-i18n="user.pwdOld">Old password:</th><td><input type="password" name="oldPwd" required></td>
+            </tr><tr>
+              <th data-i18n="user.pwdNew">New password:</th><td><input type="password" name="pwd" required></td>
+            </tr><tr>
+              <th data-i18n="user.pwdNewAgain">Write the new password again:</th><td><input type="password" name="confirmPwd" required></td>
+            </tr><tr>
+              <th></th><td><button type="submit" data-i18n="user.changePwd">Change password</button></td>
+          </tr></table>
+        </form>
+      </div>
+    </section>
+  </main>
 
 
   <!-- PAGE: HIGH SCORES -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -->
 
-  <div class="page" id="page-high-scores">
-    <div>
-      <div class="right">
-        <button data-pager="#page-lessons">Visa lektioner</button>
+  <main hidden id="pageHighScores">
+    <header>
+      <strong><a data-page="pageLessons" data-i18n="app.title">MULLE</a>
+        (<span class="username"></span>)</strong>
+      <nav>
+        <a data-page="pageLessons" data-i18n="[title]nav.showLessons;[alt]nav.showLessons">
+          <i class="fas fa-times fa-lg"></i></a>
+      </nav>
+    </header>
+    
+    <section>
+      <header>
+        <h1 data-i18n="highscores.title">High scores</h1>
+      </header>
+
+      <div>
+        <table>
+          <thead>
+            <tr>
+              <td data-i18n="highscores.lesson">Lesson</td>
+              <td data-i18n="highscores.user">User</td>
+              <td data-i18n="highscores.clicks">Score - clicks</td>
+              <td data-i18n="highscores.time">Score - time</td>
+            </tr>
+          </thead>
+          <tbody id="high-scores-table">
+            <!-- This will be populated with rows by the function display_high_scores() -->
+          </tbody>
+        </table>
       </div>
-      <div class="title">
-        <h1>Poänglista</h1>
-      </div>
-    </div>
-    <div class="container">
-
-      <table>
-        <thead>
-          <tr>
-            <td>Lektion</td>
-            <td>Användare</td>
-            <td>Poäng - klick</td>
-            <td>Poäng - tid</td>
-          </tr>
-        </thead>
-        <tbody id="high-scores-table">
-          <!-- This will be populated with the Handlebars template below -->
-        </tbody>
-      </table>
-
-      <!-- Handlebars templates to be put inside <script> tags -->
-      <script id="high-scores-template" type="text/x-handlebars-template">
-        {{#each .}}
-        <tr>
-          <td>{{lesson.name}}</td>
-          <td>{{user.name}}</td>
-          <td>{{score.clicks}}</td>
-          <td>{{score.time}}</td>
-        </tr>
-        {{/each}}
-      </script>
-
-    </div>
-    <div></div>
-  </div>
+    </section>
+  </main>
 
 </body>
 </html>
