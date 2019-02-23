@@ -16,11 +16,7 @@
     "url": "https://github.com/MUSTE-Project/MULLE/issues"
   },
   "homepage": "https://github.com/MUSTE-Project/MULLE#readme",
-  "dependencies": {
-    "countdown": "^2.6.0",
-    "handlebars": "^4.0.12",
-    "jquery": "^3.3.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "babel-eslint": "^10.0.1",
     "eslint": "^5.6.0"
