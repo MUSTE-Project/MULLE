@@ -1,7 +1,7 @@
 
-- name: "Eng->Swe (highlight on)"
+- name: "Swedish"
   key: 1
-  description: "English-Swedish (highlight on)"
+  description: "Swedish lessons, with highlighting"
   search-options:
     size: 7
   settings:
@@ -20,9 +20,9 @@
     - source: "a king reads a good book"
       target: "en kung i Paris läser en bok"
 
-- name: "Eng->Spa (highlight off)"
+- name: "Spanish"
   key: 2
-  description: "English-Spanish (highlight off)"
+  description: "Spanish lessons, without highlighting"
   search-options:
     size: 7
   settings:
@@ -37,9 +37,9 @@
     - source: "a good king loves books"
       target: "un rey ama París"  # a king loves Paris
 
-- name: "Eng->Chi (testing unicode script)"
+- name: "Chinese"
   key: 3
-  description: "English-Chinese"
+  description: "Chinese lessons, testing non-Latin script"
   search-options:
     size: 7
   grammar: "grammars/exemplum/Exemplum.pgf"
@@ -52,9 +52,9 @@
     - source: "a good king loves books"
       target: " 一 个 国 王 爱 巴 黎 "  # a king loves Paris
 
-- name: "Eng->Ara (testing RTL unicode script)"
+- name: "Arabic"
   key: 4
-  description: "English-Arabic"
+  description: "Arabic lessons, testing right-to-left non-Latin script"
   search-options:
     size: 7
   settings:
@@ -69,9 +69,9 @@
     - source: "a good king loves books"
       target: " يَحِبُّ مَلِكٌ بارِيسَ "  # a king loves Paris
 
-- name: "So random agglutination"
+- name: "Fake Pidgin"
   key: 5
-  description: "Testing randomized exercise order, and agglutination"
+  description: "Lessons for fake Pigdin English, testing agglutination and randomised exercise order"
   search-options:
     size: 7
   settings:
