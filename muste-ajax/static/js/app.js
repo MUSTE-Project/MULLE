@@ -130,7 +130,12 @@ function register_handlers() {
 
   $('[data-popup]').click(function(evt) {
     var popup = i18next.t($(this).data('popup'), {returnObjects: true});
-    swal(popup);
+    Swal.mixin({
+      showCloseButton: true,
+      confirmButtonText: i18next.t('modal.ok'),
+    }).fire(
+      popup
+    );
   });
 }
 
@@ -209,11 +214,14 @@ FORMS.formCreateUser = function(form) {
   };
   muste_request(data, 'create-user')
     .done(function() {
-      swal({
-        title: 'Success',
-        text: 'Your user name is created, now you can log in',
-        button: 'Go to login page',
-      }).then(function(reply) {
+      var popup = i18next.t('createUser.userCreated', {returnObjects: true, user: data.name});
+      Swal.mixin({
+        showCloseButton: true,
+        allowOutsideClick: false,
+        timer: 3000,
+      }).fire(
+        popup
+      ).then(function() {
         show_page('pageLogin');
       });
     });
@@ -227,7 +235,16 @@ FORMS.formChangePwd = function(form) {
   };
   muste_request(data, 'change-pwd')
     .done(function() {
-      show_page('pageLessons');
+      var popup = i18next.t('settings.pwdChanged', {returnObjects: true, user: data.name});
+      Swal.mixin({
+        showCloseButton: true,
+        allowOutsideClick: false,
+        timer: 3000,
+      }).fire(
+        popup
+      ).then(function() {
+        show_page('pageLessons');
+      });
     });
 }
 
@@ -303,20 +320,19 @@ function muste_request(data, endpoint) {
       console.log("AJAX reponse:", response);
     })
     .fail(function(response) {
-      var status = response.status;
-      var errid  = status;
-      var error  = response.responseJSON || response.responseText || response || "Unknown error";
-      if (error.error)   error = error.error;
-      if (error.id)      errid = error.id;
-      if (error.message) error = error.message;
-      console.error("AJAX ERROR:", status, errid, error);
-      swal({
-        icon: 'error',
-        title: 'Error: ' + errid,
-        text: error,
-        dangerMode: true,
-        button: "Cancel",
-        closeOnClickOutside: false,
+      var error = response.responseJSON || response.responseText || response || "Unknown error";
+      if (error.error) error = error.error;
+      var status = error.id || reponse.status;
+      var message = error.message || error;
+      var errorinfo = {status: status, message: message};
+      console.error("AJAX ERROR:", status, message);
+      Swal.fire({
+        type: 'error',
+        title: i18next.t('error.title', errorinfo),
+        html: i18next.t([`error.${status}`, 'error.unspecific'], errorinfo),
+        confirmButtonText: i18next.t('modal.close'),
+        confirmButtonColor: 'red',
+        allowOutsideClick: false,
       });
     })
     .always(busy_end);
@@ -378,26 +394,34 @@ function start_exercise(data) {
 
 function handle_menu_response(r) {
   DATA = r;
+  console.log("#", DATA);
   show_exercise(r);
   if (r['lesson-over']) {
-    swal({
-      icon: "success",
-      title: "Lesson complete!",
-      text: "Bravo! You used " + r.score.clicks + " clicks in " + r.score.time + " seconds",
-      closeOnClickOutside: false,
-    }).then(function() {
+    var popup = i18next.t('exercise.lessonComplete', {returnObjects: true, data: r});
+    Swal.mixin({
+      type: 'success',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      timer: 5000,
+    }).fire(
+      popup
+    ).then(function() {
       show_page('pageLessons');
     });
   }
   else if (r['exercise-over']) {
-    swal({
-      icon: "success",
-      title: "Exercise complete!",
-      text: "Do you want to continue with the next exercise?",
-      buttons: true,
-      closeOnClickOutside: false,
-    }).then(function(reply) {
-      if (reply) {
+    var popup = i18next.t('exercise.exerciseComplete', {returnObjects: true, data: r});
+    Swal.mixin({
+      type: 'success',
+      showCancelButton: true,
+      confirmButtonText: i18next.t('modal.yes'),
+      cancelButtonText: i18next.t('modal.no'),
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+    }).fire(
+      popup
+    ).then(function(reply) {
+      if (reply && !reply.dismiss) {
         start_exercise({
           lesson: r.lesson.key,
           restart: false,

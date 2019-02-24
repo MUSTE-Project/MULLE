@@ -45,36 +45,62 @@ sv.user = {
 sv.lesson = {
   title: "Lektioner",
   solve: "Starta",
-  'continue': "Fortsätt",
+  continue: "Fortsätt",
   reSolve: "Starta om",
   result: "Bästa hittills: {{score.clicks}} klick, {{score.time}} s",
-  help: {title: "Instruktioner",
-         text: `
-  Klicka på en lektion för att sätta igång en övning. 
-  När du har avslutat alla övningar inom en lektion så räknas lektionen som avslutad.
-  De flesta lektioner kan göras om så ofta som du vill, även de som är avslutade.
+  help: {
+    title: "Instruktioner",
+    html: `
+  <p>Klicka på en lektion för att sätta igång en övning.</p>
+  <p>När du har avslutat alla övningar inom en lektion så räknas lektionen som avslutad.
+     De flesta lektioner kan göras om så ofta som du vill, även de som är avslutade.</p>
 `}};
 
 sv.exercise = {
   time: "Tis:",
   score: "Poäng:",
-  help: {title: "Instruktioner",
-         text: `
-  Klicka på ett ord (eller mellan två ord) för att markera det ordet.
-  En meny dyker då upp som visar andra ord eller fraser som passar på samma ställe som det markerade.
-  Färgerna i meningarna ger ett tips om vilka delar av meningen som behöver ändras för att matcha med den andra meningen.
-  Om två ord är färgade i samma färg så har de redan en passande översättning. 
-  De delar där färgerna inte stämmer överens behöver ändras.
-  Ibland behöver du klicka flera gånger på samma ord för att få rätt översättning.
+  lessonComplete: {
+    title: "Lektion {{data.lesson.name}} klar!",
+    confirmButtonText: 'Visa lektionerna',
+    html: `
+  <p>Bravo! Du använde {{data.score.clicks}} klick under {{data.score.time}} sekunder.</p>
+  <p>Nu är du klar med alla övningar i denna lektion!</p>
+`},
+  exerciseComplete: {
+    title: "Övningen klar!",
+    html: `
+  <p>Bravo! Du använde {{data.score.clicks}} klick under {{data.score.time}} sekunder.</p>
+  <p>Vill du fortsätta med nästa övning?</p>
+`},
+  help: {
+    title: "Instruktioner",
+    html: `
+  <p>Klicka på ett ord (eller mellan två ord) för att markera det ordet.
+     En meny dyker då upp som visar andra ord eller fraser som passar 
+     på samma ställe som det markerade.</p>
+  <p>Färgerna i meningarna ger ett tips om vilka delar av meningen som 
+     behöver ändras för att matcha med den andra meningen.
+     Om två ord är färgade i samma färg så har de redan en passande översättning. 
+     De delar där färgerna inte stämmer överens behöver ändras.</p>
+  <p>Ibland behöver du klicka flera gånger på samma ord för att få rätt översättning.</p>
 `}};
 
 sv.createUser = {
   title: "Skapa ny användare",
-  success: "Din nya användare är skapad, nu kan du logga in",
+  userCreated: {
+    title: "Användare skapad",
+    text: "Användaren '{{user}}' är skapad, nu kan du logga in",
+    confirmButtonText: "Gå till inloggningen",
+  },
 };
 
 sv.settings = {
   title: "Byt lösenord",
+  pwdChanged: {
+    title: "Lösenordet uppdaterat",
+    text: "Lösenordet för '{{user}}' har uppdaterats",
+    confirmButtonText: "Gå tillbaka till lektionerna",
+  },
 };
 
 sv.highscores = {
@@ -101,4 +127,20 @@ sv.backend = {
   5: {name: "Fusk-pidgin",
       description: "Träna fusk-pidgin <br/> (testar agglutinering och slumpmässig ordning mellan övningar)",
      },
+};
+
+sv.modal = {
+  ok: "OK",
+  close: "Stäng",
+  cancel: "Avbryt",
+  yes: "Ja",
+  no: "Nej",
+};
+
+sv.error = {
+  title: "Fel {{status}}",
+  '2-0': "Det finns ingen sådan användare",
+  '2-8': "Fel lösenord",
+  '2-10': "Användarnamnet finns redan",
+  unspecific: "<p>Ett fel inträffade</p><p>{{message}}</p>",
 };

@@ -45,38 +45,62 @@ en.user = {
 en.lesson = {
   title: "Lessons",
   solve: "Solve",
-  'continue': "Continue",
+  continue: "Continue",
   reSolve: "Restart",
   result: "Best so far: {{score.clicks}} clicks, {{score.time}} secs",
-  help: {title: "Instructions",
-         text: `
-  Click on the lesson name to start an exercise of this lesson. 
-  When you finish all exercises within a lesson the lesson
-  counts as finished. Most exercises can be repeated as often as you
-  like. Every time you restart a lesson a new set of exercises will be
-  selected. Some specific exercises might be only available once.
+  help: {
+    title: "Instructions",
+    html: `
+  <p>Click on the lesson name to start an exercise of this lesson.</p>
+  <p>When you finish all exercises within a lesson the lesson counts 
+     as finished. Most exercises can be repeated as often as you like.</p>
 `}};
 
 en.exercise = {
   time: "Time:",
   score: "Score:",
-  help: {title: "Instructions",
-         text: `
-  You can click on a word (or between two words) and set it in focus. 
-  A menu will appear which show other words or phrases that fit into the same place as the ones in focus.
-  The colors in the sentences give you hints where you have to change parts to match them with the other sentence. 
-  If parts are already highlighted in the same color they are already matching translations. 
-  The parts where the colors don't match have to be changed. 
-  Sometimes you have to click several times onto a word to get the right translation. 
+  lessonComplete: {
+    title: "Lesson {{data.lesson.name}} complete!",
+    confirmButtonText: 'Show lessons',
+    html: `
+  <p>Bravo! You used {{data.score.clicks}} clicks in {{data.score.time}} seconds.
+  <p>Now you are finished with all exercises in this lesson!</p>
+`},
+  exerciseComplete: {
+    title: "Exercise complete!",
+    html: `
+  <p>Bravo! You used {{data.score.clicks}} clicks in {{data.score.time}} seconds.
+  <p>Do you want to continue with the next exercise?</p>
+`},
+  help: {
+    title: "Instructions",
+    html: `
+  <p>You can click on a word (or between two words) and set it in focus. 
+     A menu will appear which show other words or phrases that 
+     fit into the same place as the ones in focus.</p>
+  <p>The colors in the sentences give you hints where you have to change 
+     parts to match them with the other sentence. If parts are already 
+     highlighted in the same color they are already matching translations. 
+     The parts where the colors don't match have to be changed.</p>
+  <p>Sometimes you have to click several times onto a word to get the right translation.</p>
 `}};
 
 en.createUser = {
   title: "Create new user",
-  success: "Your user name is created, now you can log in",
+  userCreated: {
+    title: "User created",
+    text: "The user '{{user}}' is created, now you can log in",
+    confirmButtonText: "Go to login page",
+  },
 };
 
 en.settings = {
   title: "Change password",
+  pwdChanged: {
+    title: "Password updated",
+    text: "The password for '{{user}}' is updated",
+    confirmButtonText: "Go back to the lessons",
+  },
 };
 
 en.highscores = {
@@ -86,3 +110,20 @@ en.highscores = {
   clicks: "Score - clicks",
   time: "Score - time",
 };
+
+en.modal = {
+  ok: "OK",
+  close: "Close",
+  cancel: "Cancel",
+  yes: "Yes",
+  no: "No",
+};
+
+en.error = {
+  title: "Error {{status}}",
+  '2-0': "There is no such user",
+  '2-8': "Wrong password",
+  '2-10': "The user name already exists",
+  unspecific: "<p>An error occurred</p><p>{{message}}</p>",
+};
+
