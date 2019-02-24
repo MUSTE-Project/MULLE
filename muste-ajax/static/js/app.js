@@ -130,10 +130,7 @@ function register_handlers() {
 
   $('[data-popup]').click(function(evt) {
     var popup = i18next.t($(this).data('popup'), {returnObjects: true});
-    swal({
-      title: popup.title,
-      text: popup.content,
-    });
+    swal(popup);
   });
 }
 

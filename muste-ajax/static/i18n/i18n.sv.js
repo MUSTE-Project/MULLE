@@ -49,7 +49,7 @@ sv.lesson = {
   reSolve: "Starta om",
   result: "Bästa hittills: {{score.clicks}} klick, {{score.time}} s",
   help: {title: "Instruktioner",
-         content: `
+         text: `
   Klicka på en lektion för att sätta igång en övning. 
   När du har avslutat alla övningar inom en lektion så räknas lektionen som avslutad.
   De flesta lektioner kan göras om så ofta som du vill, även de som är avslutade.
@@ -59,7 +59,7 @@ sv.exercise = {
   time: "Tis:",
   score: "Poäng:",
   help: {title: "Instruktioner",
-         content: `
+         text: `
   Klicka på ett ord (eller mellan två ord) för att markera det ordet.
   En meny dyker då upp som visar andra ord eller fraser som passar på samma ställe som det markerade.
   Färgerna i meningarna ger ett tips om vilka delar av meningen som behöver ändras för att matcha med den andra meningen.

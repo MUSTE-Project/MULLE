@@ -49,7 +49,7 @@ en.lesson = {
   reSolve: "Restart",
   result: "Best so far: {{score.clicks}} clicks, {{score.time}} secs",
   help: {title: "Instructions",
-         content: `
+         text: `
   Click on the lesson name to start an exercise of this lesson. 
   When you finish all exercises within a lesson the lesson
   counts as finished. Most exercises can be repeated as often as you
@@ -61,7 +61,7 @@ en.exercise = {
   time: "Time:",
   score: "Score:",
   help: {title: "Instructions",
-         content: `
+         text: `
   You can click on a word (or between two words) and set it in focus. 
   A menu will appear which show other words or phrases that fit into the same place as the ones in focus.
   The colors in the sentences give you hints where you have to change parts to match them with the other sentence. 
