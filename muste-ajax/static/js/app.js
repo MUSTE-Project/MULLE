@@ -394,7 +394,6 @@ function start_exercise(data) {
 
 function handle_menu_response(r) {
   DATA = r;
-  console.log("#", DATA);
   show_exercise(r);
   if (r['lesson-over']) {
     var popup = i18next.t('exercise.lessonComplete', {returnObjects: true, data: r});
