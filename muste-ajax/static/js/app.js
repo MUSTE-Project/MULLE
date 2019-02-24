@@ -969,11 +969,6 @@ function* lookupKeySetWith(idx, map, f) {
 function fetch_and_populate_high_scores() {
   muste_request({}, 'high-scores')
     .then(function (scores) {
-      // for testing purposes:
-      scores.push(
-        {lesson: {name:"Fake"}, user: {name:"Lisa"}, score: {clicks:3, time:6}},
-        {lesson: {name:"Faker"}, user: {name:"Pelle"}, score: {clicks:999, time:666}},
-      ); // end test
       set_global_highscore_mapping(scores);
       populate_high_scores(scores);
       setup_score_bars(window.ScoreBar);
