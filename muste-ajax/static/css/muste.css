@@ -334,40 +334,30 @@ img { border: 1px dotted blue }
 
 
 /* Busy indicator */
-/* CSS spinner, taken from: https://loading.io/css/ */
+/* CSS spinner, idea taken from: https://loading.io/css/ */
 
 #busy-indicator {
     z-index: 15;
     position: fixed;
     left: 50%;
     top: 25%;
-    margin-left: -32px;
-    margin-top: -32px;
+    margin: -26px; /* half the width/height */
+    width: 52px; height: 52px; /* depends on the size of the circle below */
 }
 
-.lds-dual-ring {
-    width: 64px; height: 64px;
-    display: inline-block;
-}
-
-.lds-dual-ring:after {
-    width: 46px; height: 46px;
-    border: 5px solid red;
-    border-color: red transparent red transparent;
+#busy-indicator:after {
+    width: 32px; height: 32px;
+    border: 10px solid;
+    border-color: yellow blue red green;
     content: " ";
     display: block;
-    margin: 1px;
     border-radius: 50%;
-    animation: lds-dual-ring 1.2s linear infinite;
+    animation: busy-indicator 1.2s linear infinite;
 }
 
-@keyframes lds-dual-ring {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
+@keyframes busy-indicator {
+    0%   { transform: rotate(0deg);  }
+    100% { transform: rotate(360deg);}
 }
 
 
