@@ -428,9 +428,6 @@ function show_exercise(resp) {
   clean_server_data(menu.src);
   clean_server_data(menu.trg);
   show_sentences(menu, resp.settings);
-  // The score is the exercise score.  Only in the case when we are
-  // continuing a lesson will this be non-trivial.
-  // display_score(resp.score);
   var e = EXERCISES[key];
   $('#exercisename')
     .text(i18next.t(`backend.${key}.name`, lessonName));
@@ -955,23 +952,12 @@ function update_progressbar(passed, total) {
          };
 }
 
-
 function fetch_and_populate_high_scores() {
   muste_request({}, 'high-scores')
     .then(function (scores) {
-      set_global_highscore_mapping(scores);
       populate_high_scores(scores);
-      setup_score_bars(window.ScoreBar);
     });
 };
-
-function set_global_highscore_mapping(scores) {
-  var xs = scores.map(function(score) {
-    return [score.lesson.key, score.score];
-  });
-  var m = new Map(xs);
-  window['high-scores'] = m;
-}
 
 function populate_high_scores(scores) {
   var table = $('#high-scores-table').empty();
@@ -983,44 +969,6 @@ function populate_high_scores(scores) {
       })
     ).appendTo(table);
   }
-}
-
-window.ScoreBar = (function() {
-  function normalize(x) {
-    return 1 / Math.log(x + 1);
-  }
-  function valuation(score) {
-    return normalize(score.clicks) * normalize(score.time);
-  }
-  function getHighscore(lesson) {
-    var h = window['high-scores'];
-    return h.get(lesson);
-  }
-  function setup(_, canvas) {
-    var $canvas = $(canvas).show();
-    var data = $canvas.data();
-    var score = data['score'];
-    var lesson = data['lesson'];
-    var ctx = canvas.getContext('2d');
-    ctx.fillStyle = 'green';
-    var highscore = getHighscore(lesson);
-    // TODO What to do then?
-    if (highscore === undefined) {
-      $canvas.hide();
-      return;
-    }
-    var h = valuation(highscore);
-    var v = valuation(score);
-    var w = canvas.width * v / h;
-    ctx.fillRect(0, 0, w, canvas.height);
-  }
-  return {
-    'setup': setup
-  };
-})();
-
-function setup_score_bars(ScoreBar) {
-  $('.score[data-score]').each(ScoreBar.setup);
 }
 
 
