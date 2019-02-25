@@ -304,7 +304,7 @@ function register_overlay() {
 // Returns a promise with the request. Reports errors.
 function muste_request(data, endpoint) {
   busy_start();
-  console.log("AJAX request:", endpoint, data);
+  console.log(`AJAX request (${endpoint}):`, data);
   var request = {
     cache: false,
     url: SERVER + endpoint,
@@ -314,16 +314,14 @@ function muste_request(data, endpoint) {
     data: JSON.stringify(data)
   };
   return $.ajax(request)
-    .always(function(response){
-      console.log("AJAX reponse:", response);
-    })
-    .fail(function(response) {
-      var error = response.responseJSON || response.responseText || response || "Unknown error";
+    .fail(function(jqXHR, textStatus, errorThrown) {
+      var error = jqXHR.responseJSON || jqXHR.responseText || jqXHR || "Unknown error";
       if (error.error) error = error.error;
-      var status = error.id || reponse.status;
+      var status = error.id || jqXHR.status;
       var message = error.message || error;
       var errorinfo = {status: status, message: message};
-      console.error("AJAX ERROR:", status, message);
+      console.error(`AJAX ERROR (${endpoint}):`, errorThrown, status, `"${message}"`);
+      console.error(`AJAX HEADER (${endpoint}):`, jqXHR.getAllResponseHeaders(), jqXHR);
       Swal.fire({
         type: 'error',
         title: i18next.t('error.title', errorinfo),
@@ -332,6 +330,9 @@ function muste_request(data, endpoint) {
         confirmButtonColor: 'red',
         allowOutsideClick: false,
       });
+    })
+    .done(function(data, textStatus, jqXHR) {
+        console.log(`AJAX result (${endpoint}):`, data, jqXHR.getAllResponseHeaders(), jqXHR);
     })
     .always(busy_end);
 }
