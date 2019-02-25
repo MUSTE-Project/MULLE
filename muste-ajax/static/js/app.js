@@ -131,7 +131,6 @@ function register_handlers() {
 var PAGES = {};
 
 function show_page(page) {
-  console.log("Showing page:", page);
   if (page.currentTarget) page = $(page.currentTarget).data('page');
   console.log("Showing page:", page);
   if (typeof PAGES[page] === "function") {
@@ -291,7 +290,7 @@ function register_overlay() {
 // Returns a promise with the request. Reports errors.
 function muste_request(data, endpoint) {
   busy_start();
-  console.log(`AJAX request (${endpoint}):`, data);
+  if (DEBUG) console.log(`AJAX request (${endpoint}):`, data);
   var request = {
     cache: false,
     url: SERVER + endpoint,
@@ -308,7 +307,7 @@ function muste_request(data, endpoint) {
       var message = error.message || error;
       var errorinfo = {status: status, message: message};
       console.error(`AJAX ERROR (${endpoint}):`, errorThrown, status, `"${message}"`);
-      console.error(`AJAX HEADER (${endpoint}):`, jqXHR.getAllResponseHeaders(), jqXHR);
+      if (DEBUG) console.error(`AJAX HEADER (${endpoint}):`, jqXHR.getAllResponseHeaders(), jqXHR);
       Swal.fire({
         type: 'error',
         title: i18next.t('error.title', errorinfo),
@@ -319,9 +318,7 @@ function muste_request(data, endpoint) {
       });
     })
     .done(function(data, textStatus, jqXHR) {
-      if (DEBUG) {
-        console.log(`AJAX result (${endpoint}):`, data, jqXHR.getAllResponseHeaders(), jqXHR);
-      }
+      if (DEBUG) console.log(`AJAX result (${endpoint}):`, data, jqXHR.getAllResponseHeaders(), jqXHR);
     })
     .always(busy_end);
 }
@@ -338,7 +335,6 @@ function populate_lessons(lessons) {
   console.log("Buidling boxes for", lessons.length, "lessons");
   var table = $('#lessonslist').empty();
   for (var l of lessons) {
-    console.log("L", l.lesson, l);
     EXERCISES[l.lesson] = {
       passedcount: l.passedcount,
       totalcount:  l.exercisecount
@@ -374,7 +370,6 @@ function populate_lessons(lessons) {
 function start_exercise(data) {
   show_page('pageExercise');
   if (data.data) data = data.data;
-  console.log(data);
   start_timer();
   muste_request(data, 'lesson/' + data.lesson)
     .then(handle_menu_response);
@@ -448,7 +443,6 @@ function show_sentences(data, settings) {
   var trg = data.trg;
   matchy_magic(src, trg);
   matchy_magic(trg, src);
-  console.log('show-source-sentence', settings['show-source-sentence']);
   $('#src').toggle(settings['show-source-sentence']);
   show_lin('src', src, settings);
   show_lin('trg', trg, settings);
