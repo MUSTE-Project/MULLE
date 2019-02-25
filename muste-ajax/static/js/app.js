@@ -369,7 +369,7 @@ function populate_lessons(lessons) {
     $('<div>')
       .append([
         $('<h3>')
-          .text(i18next.t('backend.'+l.lesson+'.name', l.name)),
+          .text(i18next.t(`backend.${l.lesson}.name`, l.name)),
         $('<button>')
           .click({
             lesson: l.lesson,
@@ -380,7 +380,7 @@ function populate_lessons(lessons) {
                           :                   'lesson.solve'
                          )),
         $('<p>')
-          .html(i18next.t('backend.'+l.lesson+'.description', l.description)),
+          .html(i18next.t(`backend.${l.lesson}.description`, l.description)),
         $('<meter>')
           .prop(update_progressbar(l.passedcount, l.exercisecount)),
         $('<p>')
@@ -456,7 +456,7 @@ function show_exercise(resp) {
   // display_score(resp.score);
   var e = EXERCISES[key];
   $('#exercisename')
-    .text(i18next.t('backend.'+key+'.name', lessonName)),
+    .text(i18next.t(`backend.${key}.name`, lessonName));
   $('#lessoncounter')
     .prop(update_progressbar(e.passedcount, e.totalcount));
 }
