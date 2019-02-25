@@ -369,8 +369,8 @@ function populate_lessons(lessons) {
                          )),
         $('<p>')
           .html(i18next.t('backend.'+l.lesson+'.description', l.description)),
-        $('<progress>')
-          .prop({value: l.passedcount, max: l.exercisecount}),
+        $('<meter>')
+          .prop(update_progressbar(l.passedcount, l.exercisecount)),
         $('<p>')
           .text(l.score ? i18next.t('lesson.result', {score: l.score}) 
                 :         i18next.t('lesson.noResult', "")
@@ -445,10 +445,8 @@ function show_exercise(resp) {
   var e = EXERCISES[key];
   $('#exercisename')
     .text(i18next.t('backend.'+key+'.name', lessonName)),
-  $('#lessoncounter').prop({
-    value: e.passedcount,
-    max:   e.totalcount
-  });
+  $('#lessoncounter')
+    .prop(update_progressbar(e.passedcount, e.totalcount));
 }
 
 function clean_server_data(data) {
@@ -963,7 +961,17 @@ function* lookupKeySetWith(idx, map, f) {
 
 
 //////////////////////////////////////////////////////////////////////
-// High scores
+// Scores
+
+function update_progressbar(passed, total) {
+  return {low:     1.5,
+          high:    total-0.5,
+          max:     total,
+          optimum: total,
+          value:   passed,
+         };
+}
+
 
 function fetch_and_populate_high_scores() {
   muste_request({}, 'high-scores')
