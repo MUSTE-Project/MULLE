@@ -37,7 +37,6 @@ function init_environment() {
   window.muste = {};
 }
 
-
 function init_jconfirm() {
   jconfirm.defaults = {
     useBootstrap: false,
@@ -45,7 +44,6 @@ function init_jconfirm() {
     boxWidth: '50%',
   };
 }
-
 
 function handle_url_search_params() {
   let searchParams = new URLSearchParams(window.location.search);
@@ -55,6 +53,35 @@ function handle_url_search_params() {
   }
 }
 
+function register_handlers() {
+  $('form').submit(submit_form);
+  $('input[type=password]').change(check_matching_passwords);
+
+  $('[data-page]').click(show_page);
+
+  $('[data-popup]').click(function(evt) {
+    var popup = i18next.t($(this).data('popup'), {returnObjects: true});
+    Swal.mixin({
+      showCloseButton: true,
+      confirmButtonText: i18next.t('modal.ok'),
+    }).fire(
+      popup
+    );
+  });
+}
+
+// The overlay is shown when the menus pop up.  The click-event on the
+// overlay resets the selection - which hides the menu again.
+function register_overlay() {
+  var $overlay = $('.overlay');
+  $(document).on('overlay', function() {
+    $overlay.show();
+  });
+  $('.overlay').click(function() {
+    $(this).hide();
+    reset_selection();
+  });
+}
 
 
 //////////////////////////////////////////////////////////////////////
@@ -103,24 +130,6 @@ function init_i18n() {
     // https://github.com/i18next/jquery-i18next#initialize-the-plugin
     jqueryI18next.init(i18next, $);
     set_language();
-  });
-}
-
-
-function register_handlers() {
-  $('form').submit(submit_form);
-  $('input[type=password]').change(check_matching_passwords);
-
-  $('[data-page]').click(show_page);
-
-  $('[data-popup]').click(function(evt) {
-    var popup = i18next.t($(this).data('popup'), {returnObjects: true});
-    Swal.mixin({
-      showCloseButton: true,
-      confirmButtonText: i18next.t('modal.ok'),
-    }).fire(
-      popup
-    );
   });
 }
 
@@ -232,10 +241,6 @@ FORMS.formChangePwd = function(form) {
     });
 }
 
-
-
-//////////////////////////////////////////////////////////////////////
-
 function check_matching_passwords(event) {
   var form = event.currentTarget.form;
   if (form.form) form = form.form;
@@ -247,6 +252,10 @@ function check_matching_passwords(event) {
     }
   }
 }
+
+
+//////////////////////////////////////////////////////////////////////
+// Timers
 
 function register_timer() {
   window.setInterval(update_timer, 500);
@@ -273,19 +282,8 @@ function update_timer() {
   $('#score').text(Math.round(score));
 }
 
-// The overlay is shown when the menus pop up.  The click-event on the
-// overlay resets the selection - which hides the menu again.
-function register_overlay() {
-  var $overlay = $('.overlay');
-  $(document).on('overlay', function() {
-    $overlay.show();
-  });
-  $('.overlay').click(function() {
-    $(this).hide();
-    reset_selection();
-  });
-}
-
+//////////////////////////////////////////////////////////////////////
+// Ajax requests
 
 // Returns a promise with the request. Reports errors.
 function muste_request(data, endpoint) {
@@ -323,6 +321,9 @@ function muste_request(data, endpoint) {
     .always(busy_end);
 }
 
+
+//////////////////////////////////////////////////////////////////////
+// The lessons view
 
 function fetch_and_populate_lessons() {
   muste_request({}, 'lessons')
@@ -366,6 +367,10 @@ function populate_lessons(lessons) {
       .appendTo(table);
   }
 }
+
+
+//////////////////////////////////////////////////////////////////////
+// The exercise view
 
 function start_exercise(data) {
   show_page('pageExercise');
