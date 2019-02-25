@@ -37,6 +37,7 @@ var SPACETOKENS = new Set([
 
 var DATA = null;
 var LOGIN = {};
+var DEBUG = null;
 
 var EXERCISES = [];
 var VIRTUAL_ROOT = '/';
@@ -47,6 +48,7 @@ jQuery().ready(init);
 function init() {
   init_environment();
   init_i18n();
+  handle_url_search_params();
   $('body').show();
   register_handlers();
   register_timer();
@@ -70,6 +72,14 @@ function init_jconfirm() {
   };
 }
 
+
+function handle_url_search_params() {
+  let searchParams = new URLSearchParams(window.location.search);
+  if (searchParams.has('debug')) {
+    console.log("DEBUG MODE");
+    DEBUG = true;
+  }
+}
 
 
 var DEFAULT_LANGUAGE = 'sv';
@@ -332,7 +342,9 @@ function muste_request(data, endpoint) {
       });
     })
     .done(function(data, textStatus, jqXHR) {
+      if (DEBUG) {
         console.log(`AJAX result (${endpoint}):`, data, jqXHR.getAllResponseHeaders(), jqXHR);
+      }
     })
     .always(busy_end);
 }
@@ -612,29 +624,32 @@ function show_lin(lang, src, settings) {
         }
       }
 
-      $('<sub class="debug">')
-        .text((isMatch ? '=' : '') + JSON.stringify(classes))
-        .appendTo(wordSpan);
+      if (DEBUG) {
+        $('<sub class="debug">')
+          .text((isMatch ? '=' : '') + JSON.stringify(classes))
+          .appendTo(wordSpan);
+      }
     }
   }
 }
 
 function mk_direction(direction) {
-  switch(direction) {
-  case 'left-to-right':
-  case 'ltr':
-  case 'verso-recto':
-    return 'ltr';
+  switch (direction) {
   case 'right-to-left':
   case 'rtl':
   case 'recto-verso':
     return 'rtl';
+  case 'left-to-right':
+  case 'ltr':
+  case 'verso-recto':
+  default:
+    return 'ltr';
   }
 }
 
 function update_menu(m, idx) {
   var prev = window.currentMenu;
-  if(prev !== undefined && prev.idx != idx) {
+  if (prev !== undefined && prev.idx != idx) {
     reset_selection();
   } else {
     remove_selection_highlighting();

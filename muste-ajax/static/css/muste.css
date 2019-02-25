@@ -220,12 +220,6 @@ progress {
     position: relative;
 }
 
-.debug {
-    display: none;
-    font-size: 50%;
-    color: grey;
-}
-
 .popup {
     z-index: 20;
     position: absolute;
@@ -313,14 +307,6 @@ img {
 .symbol { position: relative; display: inline-block }
 .indicator { position: absolute; left: 0; top: 0 }
 
-/* used for debugging images (such as Blissymbolics):
-.indicator { background-color:rgba(255,255,0,0.4) }
-.symbol { background-color:rgba(255,0,255,0.2) }
-.leftspace { background-color: #fff }
-.rightspace { background-color: #ddd }
-img { border: 1px dotted blue }
-*/
-
 .overlay {
     opacity:    0.1;
     background: black;
@@ -331,6 +317,22 @@ img { border: 1px dotted blue }
     left:       0;
     position:   fixed;
 }
+
+
+/* Debugging */
+
+sub.debug {
+    font-size: 60%;
+    color: grey;
+}
+
+/* used for debugging images (such as Blissymbolics):
+.indicator { background-color:rgba(255,255,0,0.4) }
+.symbol { background-color:rgba(255,0,255,0.2) }
+.leftspace { background-color: #fff }
+.rightspace { background-color: #ddd }
+img { border: 1px dotted blue }
+*/
 
 
 /* Busy indicator */
@@ -366,6 +368,6 @@ img { border: 1px dotted blue }
 */
 
 [hidden] {
-    display: none
+    display: none;
 }
 
