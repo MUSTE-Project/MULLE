@@ -1,32 +1,5 @@
 /*global $ jQuery Set Map : true*/
 
-// TODO: special tokens should be configurable
-var SPECIALS = {
-  'spacetokens': {
-    'bind'   : new Set(['&+']),
-    'newline': new Set(['&/']),
-    'indent' : new Set(['&_']),
-  },
-  'invisible': {
-    'pre' : new Set(['¿', '¡', '(']),
-    'post': new Set([',', ';', '.', '?', '!']),
-  },
-  'indentation': {
-    'linebreak': {
-      'pre' : new Set([';', '{', '}']),
-      'post': new Set(),
-    },
-    'indent': {
-      'pre' : new Set(['{']),
-      'post': new Set(),
-    },
-    'dedent': {
-      'pre' : new Set(),
-      'post': new Set(['}']),
-    },
-  },
-};
-
 var SPACETOKENS = new Set([
   null,
   ...SPECIALS.spacetokens.bind,
@@ -38,10 +11,11 @@ var SPACETOKENS = new Set([
 var DATA = null;
 var LOGIN = {};
 var DEBUG = null;
-
 var EXERCISES = [];
-var VIRTUAL_ROOT = '/';
-var SERVER = VIRTUAL_ROOT + 'api/';
+
+
+//////////////////////////////////////////////////////////////////////
+// Initialisation
 
 jQuery().ready(init);
 
@@ -82,11 +56,13 @@ function handle_url_search_params() {
 }
 
 
-var DEFAULT_LANGUAGE = 'sv';
 
+//////////////////////////////////////////////////////////////////////
 // Using the i18next framework, with its jQuery plugin:
 // https://www.i18next.com/
 // https://github.com/i18next/jquery-i18next
+
+var DEFAULT_LANGUAGE;
 
 function set_language(evt) {
   var lng = evt && evt.data && evt.data.language || DEFAULT_LANGUAGE;
@@ -107,6 +83,7 @@ function set_language(evt) {
 function init_i18n() {
   var langs = [];
   for (var lng in I18N) {
+    if (!DEFAULT_LANGUAGE) DEFAULT_LANGUAGE = lng;
     langs.push(lng);
     var iconurl = I18N[lng].flagicon;
     $('<a>')
