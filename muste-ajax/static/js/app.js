@@ -663,7 +663,7 @@ function remove_selection_highlighting() {
 
 function reset_selection() {
   remove_selection_highlighting();
-  if(window.currentMenu != null) {
+  if (window.currentMenu != null) {
     window.currentMenu.menu.reset();
   }
 }
@@ -701,15 +701,15 @@ function click_word(event) {
   var threshold = 1;
   function mark_relevant(toks, sel) {
     var t = 0;
-    for(var i = 0 ; i < toks.length + threshold ; i++) {
+    for (var i = 0 ; i < toks.length + threshold ; i++) {
       var tok = toks[i];
-      if(tok !== undefined) {
+      if (tok !== undefined) {
         var s = is_selected(sel, i);
         tok['selected'] = s;
-        if(s) t = threshold * 2 + 1;
+        if (s) t = threshold * 2 + 1;
       }
       var x = toks[i - threshold];
-      if(x === undefined) continue;
+      if (x === undefined) continue;
       x['relevant'] = t > 0;
       t--;
     }
@@ -734,23 +734,23 @@ function click_word(event) {
     mark_relevant(lin, sel);
     var $initial = menuitem;
     var $prevEllipsis;
-    for(var i = 0 ; i < lin.length ; i++) {
+    for (var i = 0 ; i < lin.length ; i++) {
       var tok = lin[i];
       var pword = tok.concrete;
       var marked = tok['selected'];
       var css = {};
-      if(is_space_token(pword)) {
+      if (is_space_token(pword)) {
         css['display'] = 'none';
       }
       var $container;
-      if(tok.relevant) {
+      if (tok.relevant) {
         $container = $initial;
       } else {
         css['opacity'] = '0.5';
         var prevTok = lin[i-1];
         // If there was not previous token, or if the previous token
         // was relevant, then we must must create a new ellipsis.
-        if(prevTok === undefined || prevTok.relevant) {
+        if (prevTok === undefined || prevTok.relevant) {
           var e = mk_ellipsis();
           $container = e.words;
           e.parent.appendTo($initial);
@@ -767,10 +767,10 @@ function click_word(event) {
       $('<span>').text(' ').appendTo($container);
     }
   }
-  if(validMenus === 'nothing') {
+  if (validMenus === 'nothing') {
     throw 'This should not happen';
   }
-  if(validMenus === undefined) {
+  if (validMenus === undefined) {
     throw 'No menu found';
   }
 
@@ -784,7 +784,7 @@ function click_word(event) {
     // These are the valid menus.  Now we must toggle between them
     // somehow.
     var nextElem = validMenus.next();
-    if(nextElem === 'reset') {
+    if (nextElem === 'reset') {
       $(document).trigger('overlay-out');
       return;
     }
@@ -869,11 +869,11 @@ function iterateMenu(idx, mp) {
   // when we call next we start by incrementing the counter.
   var initial = -1;
   var i = initial;
-  if(a.length === 0) return 'nothing';
+  if (a.length === 0) return 'nothing';
   return {
     next: function() {
       i++;
-      if(i === a.length) {
+      if (i === a.length) {
         // TODO Return 'reset' now.
         i = initial;
         return 'reset';
@@ -934,12 +934,12 @@ function is_selected(sel, idx) {
   function within(intval, i) {
     var a = intval[0];
     var b = intval[1];
-    if(i < a) return false;
-    if(i >= b) return false;
+    if (i < a) return false;
+    if (i >= b) return false;
     return true;
   }
-  for(var intval of sel) {
-    if(within(intval, idx)) return true;
+  for (var intval of sel) {
+    if (within(intval, idx)) return true;
   }
   return false;
 }
@@ -948,19 +948,19 @@ function is_selected_empty(sel, idx) {
   function within(intval, i) {
     var a = intval[0];
     var b = intval[1];
-    if(a !== b) return false;
+    if (a !== b) return false;
     return i === a;
   }
-  for(var intval of sel) {
-    if(within(intval, idx)) return true;
+  for (var intval of sel) {
+    if (within(intval, idx)) return true;
   }
   return false;
 }
 
 function* lookupKeySetWith(idx, map, f) {
-  for(var item of map) {
+  for (var item of map) {
     var ks = item[0];
-    if(f(ks, idx)) {
+    if (f(ks, idx)) {
       yield item;
     }
   }
@@ -1029,7 +1029,7 @@ window.ScoreBar = (function() {
     ctx.fillStyle = 'green';
     var highscore = getHighscore(lesson);
     // TODO What to do then?
-    if(highscore === undefined) {
+    if (highscore === undefined) {
       $canvas.hide();
       return;
     }
@@ -1072,7 +1072,7 @@ function busy_end() {
 
 function hash_array_of_string(as) {
   var hash = 0;
-  for(var i = 0 ; i < as.length ; i++) {
+  for (var i = 0 ; i < as.length ; i++) {
     var a = as[i];
     hash  = ((hash << 5) - hash) + hash_string(a);
     hash |= 0;
