@@ -505,13 +505,9 @@ function is_space_token(space) {
 
 function show_lin(lang, src, settings) {
   var lin = src.sentence.linearization;
-  var css = {
-    'direction': mk_direction(src.direction),
-    'unicode-bidi': 'bidi-override'
-  };
   var sentence = $('#' + lang)
-    .empty()
-    .css(css);
+      .empty()
+      .prop({dir: mk_direction(src.direction)});
 
   var indentation = 0;
   for (var i=0; i <= lin.length; i++) {
@@ -809,10 +805,6 @@ function click_word(event) {
 
     var $menus = $('#menus');
     $menus.data('selection', selection);
-    var css = {
-      'direction': direction,
-      'unicode-bidi': 'bidi-override'
-    };
     var ul = $('<ul>')
       .appendTo($menus);
     for (var i = 0; i < menus.length; i++) {
@@ -832,7 +824,7 @@ function click_word(event) {
         mark_selected_words(lin, pr[0]);
       }
       $('<li>')
-        .css(css)
+        .prop({dir: direction})
         .append(menuitem)
         .appendTo(ul);
 
