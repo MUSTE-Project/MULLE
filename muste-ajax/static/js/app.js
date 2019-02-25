@@ -41,9 +41,7 @@ var LOGIN = {};
 var EXERCISES = [];
 var VIRTUAL_ROOT = '/';
 var SERVER = VIRTUAL_ROOT + 'api/';
-var MUSTE_ERRORS = {
-  'no-unsolved-lessons': '2-11'
-}
+
 jQuery().ready(init);
 
 function init() {
