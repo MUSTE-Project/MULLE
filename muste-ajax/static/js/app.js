@@ -868,20 +868,16 @@ function to_client_tree(t) {
 
 function select_menuitem(item, lang) {
   DATA.menu[lang].sentence.linearization = item;
-  var data = DATA;
-  var menu = data.menu;
-  var score = data.score;
   var menuRequest = {
-    'key': data.key,
-    'lesson': data.lesson,
+    'key': DATA.key,
+    'lesson': DATA.lesson,
     'score': {
-      'clicks': score.clicks,
+      'clicks': DATA.score.clicks,
       'time': get_elapsed_time()
-      // 'time': get_elapsed_time_as_seconds()
     },
-    'src': to_client_tree(menu.src),
-    'trg': to_client_tree(menu.trg),
-    'settings': data.settings
+    'src': to_client_tree(DATA.menu.src),
+    'trg': to_client_tree(DATA.menu.trg),
+    'settings': DATA.settings
   };
   muste_request(menuRequest, 'menu')
     .then(handle_menu_response);
