@@ -470,11 +470,6 @@ function intersection(m, n) {
   return new Set([...m].filter(function(x) {return n.has(x);}));
 }
 
-// special spacing tokens all start with "&"
-function is_space_token(space) {
-  return typeof space == 'string' && space[0] == '&';
-}
-
 
 function show_lin(lang, src, settings) {
   var lin = src.sentence.linearization;
@@ -712,7 +707,7 @@ function click_word(event) {
       var pword = tok.concrete;
       var marked = tok['selected'];
       var css = {};
-      if (is_space_token(pword)) {
+      if (SPACETOKENS.has(pword)) {
         css['display'] = 'none';
       }
       var $container;
