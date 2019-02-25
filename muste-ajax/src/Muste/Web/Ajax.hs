@@ -182,7 +182,7 @@ instance FromJSON LoginSuccess where
 
 instance ToJSON LoginSuccess where
   toJSON (LoginSuccess token) = Aeson.object
-    [ "login-succes" .= token
+    [ "login-success" .= token
     ]
 
 newtype LessonList = LessonList [ActiveLesson]

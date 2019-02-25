@@ -199,7 +199,7 @@ FORMS.formLogin = function(form) {
     .done(function(response) {
       LOGIN = {
         name: form.name.value,
-        token: response['login-succes'],
+        token: response['login-success'],
       };
       // window.sessionStorage.setItem('LOGIN_TOKEN',LOGIN_TOKEN);
       $('.username').text(form.name.value);
