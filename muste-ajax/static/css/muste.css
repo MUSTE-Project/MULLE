@@ -371,11 +371,9 @@ progress {
 
 /* Highlighting */
 
-.match {
-    padding: 0 5px;
-    border-bottom-width: 2px;
-    border-bottom-style: solid;
-}
+.match { padding: 0 5px }
+#src .match { border-bottom: 2px solid }
+#trg .match { border-top:    2px solid }
 
 .greyed {
     color: grey;
