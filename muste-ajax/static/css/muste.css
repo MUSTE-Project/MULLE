@@ -65,7 +65,7 @@ input, button, .button, .sentence, .popup, .score,
 }
 
 button, .button, .sentence, .popup, input,
-.clickable, button, label, .highlighted, .word, .space,
+.clickable, button, label, .word, .space,
 .swal-modal, .swal-button, #lessonslist > *
 {
     border-radius: 10px;
@@ -371,17 +371,10 @@ progress {
 
 /* Highlighting */
 
-.correct { background-color: #cfc }
-
-.correct, .match {
+.match {
     padding: 0 5px;
     border-bottom-width: 2px;
     border-bottom-style: solid;
-}
-
-.highlighted {
-    background-color: #eee;
-    background-color: rgba(220,220,220,0.3);
 }
 
 .greyed {
@@ -399,8 +392,10 @@ progress {
     color: red;
 }
 
+/* currently unused, but supposed to be used for Blissymbolics in the future
 .symbol { position: relative; display: inline-block }
 .indicator { position: absolute; left: 0; top: 0 }
+*/
 
 .overlay {
     opacity:    0.1;
