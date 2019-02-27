@@ -186,7 +186,16 @@ progress {
     min-height: 1.5em;
 }
 
+/* Apparently, elements with "hidden" attribute are not always hidden:
+   https://bugs.chromium.org/p/chromium/issues/detail?id=179220 
+*/
 
+[hidden] {
+    display: none;
+}
+
+
+/**********************************************************************/
 /* List of lessons */
 
 #lessonslist {
@@ -450,12 +459,4 @@ img { border: 1px dotted blue }
     100% { transform: rotate(360deg);}
 }
 
-
-/* Apparently, elements with "hidden" attribute are not always hidden:
-   https://bugs.chromium.org/p/chromium/issues/detail?id=179220 
-*/
-
-[hidden] {
-    display: none;
-}
 
