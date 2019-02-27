@@ -28,6 +28,7 @@ main, main header {
 }
 
 
+/**********************************************************************/
 /* Headings */
 
 strong, h1, h2, h3, h4, th, thead td {
@@ -43,6 +44,7 @@ section header > * {
 }
 
 
+/**********************************************************************/
 /* Form inputs, buttons, links, etc. */
 
 input, button, .button, .sentence {
@@ -81,6 +83,7 @@ a:hover {
 }
 
 
+/**********************************************************************/
 /* Main headers and footers */
 
 main > header nav > * {
@@ -129,6 +132,7 @@ main > header > *:last-child, main > footer > *:last-child {
 }
 
 
+/**********************************************************************/
 /* Hide checkboxes (currently not used) */
 
 input[type=radio], input[type=checkbox] {
@@ -141,6 +145,7 @@ input:checked + label {
 }
 
 
+/**********************************************************************/
 /* Tables */
 
 table {
@@ -161,6 +166,7 @@ form th {
 }
 
 
+/**********************************************************************/
 /* Assorted elements */
 
 img {
@@ -207,6 +213,7 @@ progress {
 }
 
 
+/**********************************************************************/
 /* Exercise view */
 
 .sentence, #menus li {
@@ -398,6 +405,7 @@ progress {
 }
 
 
+/**********************************************************************/
 /* Debugging */
 
 sub.debug {
@@ -414,6 +422,7 @@ img { border: 1px dotted blue }
 */
 
 
+/**********************************************************************/
 /* Busy indicator */
 /* CSS spinner, idea taken from: https://loading.io/css/ */
 
