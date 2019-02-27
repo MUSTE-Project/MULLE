@@ -63,7 +63,7 @@ input, button, .button, .sentence, .popup, .score,
 }
 
 button, .button, .sentence, .popup, input,
-.clickable, .word, button, label, .highlighted,
+.clickable, button, label, .highlighted, .word, .space,
 .swal-modal, .swal-button, #lessonslist > *
 {
     border-radius: 10px;
@@ -163,6 +163,10 @@ form th {
 
 /* Assorted elements */
 
+img {
+    vertical-align: middle;
+}
+
 hr {
     border: 1px solid black;
     width: 100%;
@@ -219,13 +223,11 @@ progress {
     text-align: left;
 }
 
-.clickable {
-    z-index: 15;
-    position: relative;
-}
+
+/* The menu popup */
 
 .popup {
-    z-index: 20;
+    z-index: 50;
     position: absolute;
     max-height: 20ex;
     overflow: auto;
@@ -242,6 +244,116 @@ progress {
     text-align: center;
     padding: .1em .4em;
 }
+
+
+/* Styling words and spaces */
+
+.sentence { line-height: 1.5 }
+
+/* the internal <span> in a whitespace is there to be able to break lines */
+.space     span { display: none }
+.invisible span { display: none }
+.linebreak span { display: block }
+
+/* clickables are above the overlay, and invisibles even higher up */
+/* position must be relative (or absolute or fixed) for z-index to work */
+.sentence span { z-index: 20; position: relative }
+.invisible { z-index: 25 }
+
+/* whitespace is shown using the pseudo-elements ::before and ::after */
+/* position is relative to allow for moving symbols up/down */
+/* we set display to inline-block to be able to specify the width */
+.space::before, .invisible::before, .space::after, .invisible::after {
+    display: inline-block;
+    position: relative;
+    text-align: center;
+}
+
+/* don't show indentation at the end of a sentence */
+.indent:last-child::after { display: none }
+
+/* neighbours to invisible tokens are not shown at all, except if clickable */
+.invisible-neighbour { display: none }
+.invisible-neighbour.clickable { display: unset } 
+
+/* the widths of spaces, invisibles, linebreaks and indents */
+.space::after, .invisible::after { width: 0 }
+.space::before { width: 0.5em }
+.invisible::before { width: 0.2em }
+.invisible.clickable:hover::before, .invisible.striked::before { width: 0.5em }
+.linebreak::before { width: 1.0em }
+
+.indent0::after { width: 0.5em }
+.indent1::after { width: 1.5em }
+.indent2::after { width: 2.5em }
+.indent3::after { width: 3.5em }
+.indent4::after { width: 4.5em }
+.indent5::after { width: 5.5em }
+
+/* ordinary spaces and invisibles are shown using MIDDLE DOT */
+.space::before { content: "·" } 
+.invisible::before { content: "·" }
+
+/* linebreaks are shown using a small LEFTWARDS ARROW WITH HOOK (slightly moved downwards) */
+.space.linebreak::before { content: "↩"; font-size: 70%; bottom: -0.4ex }
+
+/* indentation is shown using RIGHTWARDS ARROW FROM BAR */
+/* except if there is no indentation, when we use MIDDLE DOT */
+.space.indent::after { content: "↦" }
+.space.indent.indent0::after { content: "·" }
+
+/* replace the content with a small PLUS when hovering over it */
+/* the same for selected elements */
+.space.clickable:hover::before,     .space.striked::before, 
+.invisible.clickable:hover::before, .invisible.striked::before,
+.indent.clickable:hover::after,     .indent.striked::before {
+    content: "+"; font-size: 70%; bottom: 0.4ex;
+}
+
+/* normal space is invisible */
+/* clickable space is shown just a little */
+/* and shown even more when hovered over (and selected) */
+.space, .invisible { opacity: 0 }
+.space.clickable, .invisible.clickable { opacity: 0.1 }
+.space.clickable:hover, .space.striked  { opacity: 0.5 }
+.invisible.clickable:hover, .invisible.striked { opacity: 0.5 }
+
+/* grow clickables (and selected) when hovering over them */
+/* also use smooth animation */
+.clickable:hover, .striked { padding: 0 0.5em }
+.word, .space { transition: padding 0.3s, width 0.3s }
+
+/* todo for later */
+.clickable.pad { padding: 0 0.2em; background-color: #efd }
+#wide-spaces:checked ~ .space { padding: 0 1em }
+
+
+/* Possible symbols to use for spaces:
+\2190  ←  U+2190 "LEFTWARDS ARROW"
+\2191  ↑  U+2191 "UPWARDS ARROW"
+\2192  →  U+2192 "RIGHTWARDS ARROW"
+\2193  ↓  U+2193 "DOWNWARDS ARROW"
+\2194  ↔  U+2194 "LEFT RIGHT ARROW"
+\21A4  ↤  U+21A4 "LEFTWARDS ARROW FROM BAR"
+\21A6  ↦  U+21A6 "RIGHTWARDS ARROW FROM BAR"
+\21A9  ↩  U+21A9 "LEFTWARDS ARROW WITH HOOK"
+\21AA  ↪  U+21AA "RIGHTWARDS ARROW WITH HOOK"
+\23ce  ⏎  U+23CE "RETURN SYMBOL"
+\2185  ↵  U+21B5 "DOWNWARDS ARROW WITH CORNER LEFTWARDS"
+\2048  ⁋  U+204B "REVERSED PILCROW SIG"
+\2022  •  U+2022 "BULLET"
+\00B7  ·  U+00B7 "MIDDLE DOT"
+\22C5  ⋅  U+22C5 "DOT OPERATOR"
+\FE62  ﹢  U+FE62 "SMALL PLUS SIGN"
+\2295  ⊕  U+2295 "CIRCLED PLUS"
+\2297  ⊗  U+2297 "CIRCLED TIMES"
+\2299  ⊙  U+2299 "CIRCLED DOT OPERATOR"
+\2026  …  U+2026 "HORIZONTAL ELLIPSIS"
+\00A0     U+00A0 "NO-BREAK SPACE"
+\2020  †  U+2020 "DAGGER"
+*/
+
+/* Highlighting */
 
 .correct { background-color: #cfc }
 
@@ -265,47 +377,10 @@ progress {
     font-weight: bold;
 }
 
-.space {
-    /* This is to ensure that spaces are clickable and that pop-up menus
-    gets placed correctly.  `2ex` is an approximation for the
-    line-height.  Ideally we'd use `lh` here, but it's experimental
-    and has little support. */
-    height: 2ex;
-    min-width: 1em;
-}
-
-.linebreak::after {
-    content: "";
-    display: block;
-}
-
-.bind {}
-
-.indent,
-.indent1 { margin-left: 1em }
-.indent2 { margin-left: 2em }
-.indent3 { margin-left: 3em }
-.indent4 { margin-left: 4em }
-.indent5 { margin-left: 5em }
-
-.spaceword {
-    opacity: 0;
-    /* font-size: 75%; */
-}
-
-.spaceword:hover {
-    opacity: 0.3;
-    /* font-size: 100%; */
-}
-
 .striked {
     text-decoration: line-through;
     font-weight: bolder;
     color: red;
-}
-
-img {
-    vertical-align: middle;
 }
 
 .symbol { position: relative; display: inline-block }
@@ -343,7 +418,7 @@ img { border: 1px dotted blue }
 /* CSS spinner, idea taken from: https://loading.io/css/ */
 
 #busy-indicator {
-    z-index: 15;
+    z-index: 100;
     position: fixed;
     left: 50%;
     top: 25%;

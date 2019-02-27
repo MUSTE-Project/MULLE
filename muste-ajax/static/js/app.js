@@ -1,12 +1,5 @@
 /*global $ jQuery Set Map : true*/
 
-var SPACETOKENS = new Set([
-  null,
-  ...SPECIALS.spacetokens.bind,
-  ...SPECIALS.spacetokens.newline,
-  ...SPECIALS.spacetokens.indent
-]);
-
 
 var DATA = null;
 var LOGIN = {};
@@ -483,24 +476,17 @@ function show_lin(lang, src, settings) {
     var current = i < lin.length ? lin[i].concrete : null;
 
     // generate the space between tokens
-    var validMenusSpace = getValidMenusSpace(i, src.menu);
+    var validMenusSpace  = getValidMenusSpace(i, src.menu);
     var isClickableSpace = validMenusSpace !== 'nothing';
-    var isInvisibleSpace =
-        SPECIALS.invisible.pre.has(previous) || SPACETOKENS.has(previous) || 
-        SPECIALS.invisible.post.has(current) || SPACETOKENS.has(current);
-    var isLinebreakSpace =
-        SPECIALS.indentation.linebreak.pre.has(previous) ||
-        SPECIALS.indentation.linebreak.post.has(current);
-    var isIndent =
-        SPECIALS.indentation.indent.pre.has(previous) ||
-        SPECIALS.indentation.indent.post.has(current);
-    var isDedent =
-        SPECIALS.indentation.dedent.pre.has(previous) ||
-        SPECIALS.indentation.dedent.post.has(current);
+    var isInvisNeighbour = SPECIALS.invisible.token.has(previous) || SPECIALS.invisible.token.has(current);
+    var isInvisibleSpace = SPECIALS.invisible.pre  .has(previous) || SPECIALS.invisible.post .has(current);
+    var isLinebreakSpace = SPECIALS.linebreak.pre  .has(previous) || SPECIALS.linebreak.post .has(current);
+    var isIndentSpace    = SPECIALS.indent   .pre  .has(previous) || SPECIALS.indent   .post .has(current);
+    var isDedentSpace    = SPECIALS.dedent   .pre  .has(previous) || SPECIALS.dedent   .post .has(current);
 
     var spaceSpan = $('<span>')
+        .append($('<span>'))
         .addClass('space')
-        .html(isInvisibleSpace ? ' ' : '&nbsp;')
         .appendTo(sentence)
         .data({
           'nr': i,
@@ -509,34 +495,25 @@ function show_lin(lang, src, settings) {
           'direction': src.direction
         });
 
-    if (isClickableSpace) {
-      spaceSpan
-        .addClass('clickable')
-        .click(click_word);
-
-      // make clickable spaces visible (greyed out)
-      // TODO: this should be configurable
-      // &oplus; ⊕ (U+2295 "CIRCLED PLUS")
-      // &#xFE62; ﹢ (U+FE62 "SMALL PLUS SIGN")
-      spaceSpan.html(isInvisibleSpace ? '+' : ' + ')
-        .addClass('spaceword');
-    }
-
-    if (isLinebreakSpace) {
-      spaceSpan.addClass('linebreak');
-    }
+    if (isIndentSpace)    indentation++;
+    if (isDedentSpace)    indentation--;
+    if (isLinebreakSpace) spaceSpan.addClass('linebreak indent indent' + indentation);
+    if (isInvisNeighbour) spaceSpan.addClass('invisible-neighbour');
+    if (isInvisibleSpace) spaceSpan.addClass('invisible');
+    if (isClickableSpace) spaceSpan.addClass('clickable').click(click_word);
 
     // generate the token following the space
     if (i < lin.length) {
-      var validMenusWord = getValidMenus(i, src.menu);
+      var validMenusWord  = getValidMenus(i, src.menu);
       var isClickableWord = validMenusWord !== 'nothing';
+      var isInvisibleWord = SPECIALS.invisible.token.has(current);
       var classes = lin[i]['classes'];
       var matchingClasses = lin[i]['matching-classes'];
       var isMatch = matchingClasses.size > 0;
 
       var wordSpan = $('<span>')
+          .append($('<span>').html(current))
           .addClass('word')
-          .html(current)
           .appendTo(sentence)
           .data({
             'nr': i,
@@ -546,46 +523,14 @@ function show_lin(lang, src, settings) {
             'direction': src.direction
           });
 
-      if (isLinebreakSpace) {
-        if (isIndent) indentation++;
-        if (isDedent) indentation--;
-        wordSpan.addClass('indent' + indentation);
-      }
-
-      if (isClickableWord) {
-        wordSpan
-          .addClass('clickable')
-          .click(click_word);
-      }
+      if (isInvisibleWord) wordSpan.addClass('invisible');
+      if (isClickableWord) wordSpan.addClass('clickable').click(click_word);
 
       if (isMatch && settings['highlight-matches']) {
         wordSpan.addClass('match');
         var h = hash_array_of_string(Array.from(matchingClasses));
         var c = int_to_rgba(h);
         wordSpan.css('border-color', c);
-      }
-
-      if (SPACETOKENS.has(current)) {
-        // the special space tokens are shown using special greyed-out symbols
-        // TODO: this should be configurable
-        if (SPECIALS.spacetokens.newline.has(current)) {
-          // &#x23ce; ⏎ (U+23CE "RETURN SYMBOL")
-          // &crarr; ↵ (U+21B5 "DOWNWARDS ARROW WITH CORNER LEFTWARDS")
-          wordSpan.html(isClickableWord ? '⏎' : '')
-            .addClass('spaceword linebreak');
-        }
-        if (SPECIALS.spacetokens.bind.has(current)) {
-          // &bull; • (U+2022 "BULLET")
-          // &middot; · (U+00B7 "MIDDLE DOT")
-          wordSpan.html(isClickableWord ? ' ' : '')
-            .addClass('spaceword bind');
-        }
-        if (SPECIALS.spacetokens.indent.has(current)) {
-          // &hellip; … (U+2026 "HORIZONTAL ELLIPSIS")
-          // &nbsp; (U+00A0 "NO-BREAK SPACE")
-          wordSpan.html(isClickableWord ? '&hellip;' : '&nbsp;&nbsp;')
-            .addClass('spaceword indent');
-        }
       }
 
       if (DEBUG) {
@@ -707,7 +652,7 @@ function click_word(event) {
       var pword = tok.concrete;
       var marked = tok['selected'];
       var css = {};
-      if (SPACETOKENS.has(pword)) {
+      if (SPECIALS.invisible.token.has(pword)) {
         css['display'] = 'none';
       }
       var $container;
@@ -795,7 +740,6 @@ function click_word(event) {
         .prop({dir: direction})
         .append(menuitem)
         .appendTo(ul);
-
     }
   }
 
