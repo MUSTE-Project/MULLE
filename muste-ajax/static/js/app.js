@@ -665,10 +665,6 @@ function click_word(event) {
     throw 'No menu found';
   }
 
-  if ($clicked.hasClass('striked') && $('#menus ul').length > 1) {
-    $('#menus ul').first().remove();
-  }
-  else {
     update_menu(validMenus, idx);
 
     // These are the valid menus.  Now we must toggle between them
@@ -717,7 +713,6 @@ function click_word(event) {
         .prop({dir: direction})
         .append($menuitem)
         .appendTo($ul);
-    }
   }
 
   var $menu = $('.menu').show();
