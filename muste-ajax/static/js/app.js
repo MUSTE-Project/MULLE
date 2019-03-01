@@ -418,8 +418,8 @@ function show_exercise(resp) {
   var key = lesson.key;
   var lessonName = lesson.name;
   var menu = resp.menu;
-  clean_server_data(menu.src);
-  clean_server_data(menu.trg);
+  menu.src.menu = new Map(menu.src.menu);
+  menu.trg.menu = new Map(menu.trg.menu);
   show_sentences(menu, resp.settings);
   var e = EXERCISES[key];
   $('#exercisename')
@@ -427,11 +427,6 @@ function show_exercise(resp) {
   $('#lessoncounter')
     .prop(update_progressbar(e.passedcount, e.totalcount));
 }
-
-function clean_server_data(data) {
-  data.menu = new Map(data.menu);
-}
-
 
 function show_sentences(data, settings) {
   var src = data.src;
