@@ -576,18 +576,10 @@ function reset_selection() {
   }
 }
 
-function click_word(event) {
-  var $clicked = $(event.currentTarget).closest('.clickable');
-  var lang = $clicked.data().lang;
-  var path = $clicked.data().path;
-  var validMenus = $clicked.data('valid-menus');
-  var idx = $clicked.data('nr');
-  var direction = mk_direction($clicked.data('direction'));
-
   // Marks some tokens to not be displayed.  Doesn't remove any
   // tokens, only marks them.
-  var threshold = 1;
   function mark_relevant(toks, sel) {
+    var threshold = 1;
     var t = 0;
     for (var i = 0 ; i < toks.length + threshold ; i++) {
       var tok = toks[i];
@@ -657,6 +649,13 @@ function click_word(event) {
       $('<span>').text(' ').appendTo($container);
     }
   }
+
+function click_word(event) {
+  var $clicked = $(event.currentTarget).closest('.clickable');
+  var lang = $clicked.data().lang;
+  var validMenus = $clicked.data('valid-menus');
+  var idx = $clicked.data('nr');
+  var direction = mk_direction($clicked.data('direction'));
 
   if (validMenus === 'nothing') {
     throw 'This should not happen';
