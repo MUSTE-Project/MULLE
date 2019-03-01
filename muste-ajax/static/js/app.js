@@ -582,27 +582,6 @@ function reset_selection() {
 }
 
 function click_word(event) {
-  function next_selection(sel) {
-    return sel ? sel.slice(0, sel.length-1) : null;
-  }
-  function getSelection($clicked) {
-    if ($clicked.hasClass('striked')) {
-      return next_selection($('#menus').data('selection'));
-    }
-    else if ($clicked.hasClass('word')) {
-      return path;
-    }
-    else if ($clicked.hasClass('space')) {
-      // Alternate between clicking `clicked`'s neighbors.
-      // TODO Unipmlemented.
-      return path;
-    }
-    else {
-      // Fallback.  Just try to return `path`, maybe it'll
-      // work.
-      return path;
-    }
-  }
   var $clicked = $(event.currentTarget).closest('.clickable');
   var lang = $clicked.data().lang;
   var path = $clicked.data().path;
@@ -695,7 +674,6 @@ function click_word(event) {
     $('#menus ul').first().remove();
   }
   else {
-    var selection = getSelection($clicked);
     update_menu(validMenus, idx);
 
     // These are the valid menus.  Now we must toggle between them
@@ -708,8 +686,8 @@ function click_word(event) {
     var selsnmen = nextElem.value;
     // Again we changed the selection, we can try mapping the snd
     // component.
-    selection  = selsnmen[0];
-    var menus  = selsnmen[1];
+    var selection = selsnmen[0];
+    var menus     = selsnmen[1];
     if (menus === null) throw 'No menu found';
 
     $clicked.addClass('striked');
