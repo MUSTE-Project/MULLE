@@ -59,6 +59,7 @@ en.lesson = {
 en.exercise = {
   time: "Time:",
   score: "Score:",
+  wide: "Grow/shink whitespaces",
   lessonComplete: {
     title: "Lesson {{data.lesson.name}} complete!",
     confirmButtonText: 'Show lessons',

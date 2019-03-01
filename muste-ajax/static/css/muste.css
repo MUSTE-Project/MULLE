@@ -71,12 +71,12 @@ button, .button, .sentence, .popup, input,
     border-radius: 10px;
 }
 
-a:hover {
+a:hover, label[for]:hover {
     cursor: pointer;
-    opacity: 0.7;
+    opacity: 0.5;
 }
 
-.clickable:hover, button:hover, label:hover {
+.clickable:hover, button:hover {
     cursor: pointer;
     background-color: #eee;
     background-color: rgba(220,220,220,0.7);
@@ -133,16 +133,38 @@ main > header > *:last-child, main > footer > *:last-child {
 
 
 /**********************************************************************/
-/* Hide checkboxes (currently not used) */
+/* Navigation icons: Currently using font-awesome, but easy to replace */
+/* https://fontawesome.com/icons */
 
-input[type=radio], input[type=checkbox] {
-    display: none;
+nav { font-family:"Font Awesome 5 Free" }
+nav [data-popup="lesson.help"  ]::before { content: "\f128" } /* fa-question */
+nav [data-popup="exercise.help"]::before { content: "\f128" } /* fa-question */
+nav [data-page="pageHighScores"]::before { content: "\f091" } /* fa-trophy */
+nav [data-page="pageSettings"  ]::before { content: "\f085" } /* fa-cogs */
+nav [data-page="pageLogin"     ]::before { content: "\f2f5" } /* fa-sign-out-alt */
+nav [data-page="pageLessons"   ]::before { content: "\f00d" } /* fa-times */
+
+/* checkbox for making the spaces between words larger */
+/* the checkbox itself is hidden, but its label is changed when the box is checked */
+/* this requires that the checkbox is put before both the label and the sentences in the html hierarchy */
+#wide-spaces { display: none }
+#wide-spaces:checked ~ .exercise .space,
+#wide-spaces:checked ~ .exercise .invisible { padding: 0 0.5em }
+#wide-spaces:checked ~ header label[for="wide-spaces"]::before {
+    content: "\f061\f060"; /* fa-arrow-right + fa-arrow-left */
+    color: #00a;
+}
+label[for="wide-spaces"]::before {
+    content: "\f060\f061"; /* fa-arrow-left + fa-arrow-right */
 }
 
-input:checked + label {
-    color: black;
-    font-weight: bolder;
-}
+/* Unicode/HTML alternatives:
+   pageHighScores: U+2655 WHITE CHESS QUEEN
+   pageSettings:   U+2699 GEAR
+   pageLogin:      &times;
+   pageLessons:    &times;
+   wide-spaces:    U+21E4 + U+21E5 Leftwards Arrow to Bar + Rightwards Arrow to Bar
+*/
 
 
 /**********************************************************************/
@@ -341,10 +363,9 @@ progress {
 
 /* todo for later */
 .clickable.pad { padding: 0 0.2em; background-color: #efd }
-#wide-spaces:checked ~ .space { padding: 0 1em }
 
 
-/* Possible symbols to use for spaces:
+/* Possible symbols to use:
 \2190  ←  U+2190 "LEFTWARDS ARROW"
 \2191  ↑  U+2191 "UPWARDS ARROW"
 \2192  →  U+2192 "RIGHTWARDS ARROW"
@@ -352,6 +373,8 @@ progress {
 \2194  ↔  U+2194 "LEFT RIGHT ARROW"
 \21A4  ↤  U+21A4 "LEFTWARDS ARROW FROM BAR"
 \21A6  ↦  U+21A6 "RIGHTWARDS ARROW FROM BAR"
+\21E4  ↤  U+21E4 "LEFTWARDS ARROW TO BAR"
+\21E5  ↦  U+21E5 "RIGHTWARDS ARROW TO BAR"
 \21A9  ↩  U+21A9 "LEFTWARDS ARROW WITH HOOK"
 \21AA  ↪  U+21AA "RIGHTWARDS ARROW WITH HOOK"
 \23ce  ⏎  U+23CE "RETURN SYMBOL"
@@ -368,6 +391,7 @@ progress {
 \00A0     U+00A0 "NO-BREAK SPACE"
 \2020  †  U+2020 "DAGGER"
 */
+
 
 /* Highlighting */
 

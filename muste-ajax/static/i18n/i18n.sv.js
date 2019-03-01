@@ -59,6 +59,7 @@ sv.lesson = {
 sv.exercise = {
   time: "Tis:",
   score: "Poäng:",
+  wide: "Utöka/krymp mellanrummen",
   lessonComplete: {
     title: "Lektion {{data.lesson.name}} klar!",
     confirmButtonText: 'Visa lektionerna',

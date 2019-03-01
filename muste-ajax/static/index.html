@@ -85,14 +85,10 @@
       <nav>
         <!-- will be filled by the available languages: -->
         <span class="change-language"></span>
-        <a data-popup="lesson.help" data-i18n="[title]nav.help;[alt]nav.help">
-          <i class="fas fa-question fa-lg"></i></a>
-        <a data-page="pageHighScores" data-i18n="[title]nav.highscores;[alt]nav.highscores">
-          <i class="fas fa-trophy fa-lg"></i></a>
-        <a data-page="pageSettings" data-i18n="[title]nav.settings;[alt]nav.settings">
-          <i class="fas fa-cogs fa-lg"></i></a>
-        <a data-page="pageLogin" data-i18n="[title]nav.logout;[alt]nav.logout">
-          <i class="fas fa-sign-out-alt fa-lg"></i></a>
+        <a data-popup="lesson.help" data-i18n="[title]nav.help"></a>
+        <a data-page="pageHighScores" data-i18n="[title]nav.highscores"></a>
+        <a data-page="pageSettings" data-i18n="[title]nav.settings"></a>
+        <a data-page="pageLogin" data-i18n="[title]nav.logout"></a>
       </nav>
     </header>
 
@@ -113,15 +109,15 @@
   <!-- PAGE: EXERCISE -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -->
 
   <main hidden id="pageExercise">
+    <input type="checkbox" id="wide-spaces">
     <header>
-        <div><meter id="lessoncounter"></meter></div>
-        <div id="exercisename"></div>
-        <nav>
-        <a data-popup="exercise.help" data-i18n="[title]nav.help;[alt]nav.help">
-          <i class="fas fa-question fa-lg"></i></a>
-        <a data-page="pageLessons" data-i18n="[title]nav.abortExercise;[alt]nav.abortExercise">
-          <i class="fas fa-times fa-lg"></i></a>
-        </nav>
+      <div><meter id="lessoncounter"></meter></div>
+      <div id="exercisename"></div>
+      <nav>
+        <label for="wide-spaces" data-i18n="[title]exercise.wide"></label>
+        <a data-popup="exercise.help" data-i18n="[title]nav.help"></a>
+        <a data-page="pageLessons" data-i18n="[title]nav.abortExercise"></a>
+      </nav>
     </header>
 
     <div class="exercise">
@@ -148,8 +144,7 @@
     <header>
       <strong><a data-page="pageLogin" data-i18n="app.title">MULLE</a></strong>
       <nav>
-        <a data-page="pageLogin" data-i18n="[title]nav.loginExisting;[alt]nav.loginExisting">
-          <i class="fas fa-times fa-lg"></i></a>
+        <a data-page="pageLogin" data-i18n="[title]nav.loginExisting"></a>
       </nav>
     </header>
 
@@ -180,8 +175,7 @@
       <strong><a data-page="pageLessons" data-i18n="app.title">MULLE</a>
         (<span class="username"></span>)</strong>
       <nav>
-        <a data-page="pageLessons" data-i18n="[title]nav.showLessons;[alt]nav.showLessons">
-          <i class="fas fa-times fa-lg"></i></a>
+        <a data-page="pageLessons" data-i18n="[title]nav.showLessons"></a>
       </nav>
     </header>
 
@@ -216,8 +210,7 @@
       <strong><a data-page="pageLessons" data-i18n="app.title">MULLE</a>
         (<span class="username"></span>)</strong>
       <nav>
-        <a data-page="pageLessons" data-i18n="[title]nav.showLessons;[alt]nav.showLessons">
-          <i class="fas fa-times fa-lg"></i></a>
+        <a data-page="pageLessons" data-i18n="[title]nav.showLessons"></a>
       </nav>
     </header>
     
