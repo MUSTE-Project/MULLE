@@ -566,7 +566,7 @@ function update_menu(m, idx) {
 
 function remove_selection_highlighting() {
   $('.striked').removeClass('striked');
-  $('#menus').empty();
+  $('#menu').empty();
 }
 
 function reset_selection() {
@@ -677,8 +677,8 @@ function click_word(event) {
     // Again we changed the selection, we can try mapping the snd
     // component.
     var selection = selsnmen[0];
-    var menus     = selsnmen[1];
-    if (menus === null) throw 'No menu found';
+    var menu      = selsnmen[1];
+    if (menu === null) throw 'No menu found';
 
     $clicked.addClass('striked');
     $('#' + lang).find('.word')
@@ -688,12 +688,10 @@ function click_word(event) {
       })
       .addClass('striked');
 
-    var $menus = $('#menus');
-    $menus.data('selection', selection);
-    var $ul = $('<ul>')
-      .appendTo($menus);
-    for (var i = 0; i < menus.length; i++) {
-      var pr = menus[i];
+    var $menu = $('#menu');
+    $menu.data('selection', selection);
+    for (var i = 0; i < menu.length; i++) {
+      var pr = menu[i];
       var item = pr[1]; // snd
       var $menuitem = $('<span class="clickable">')
         .data('item', item)
@@ -711,10 +709,10 @@ function click_word(event) {
       $('<li>')
         .prop({dir: direction})
         .append($menuitem)
-        .appendTo($ul);
+        .appendTo($menu);
   }
 
-  var $menu = $('.menu').show();
+  var $menu = $('#menu').show();
   popup_menu($clicked, $menu);
 }
 

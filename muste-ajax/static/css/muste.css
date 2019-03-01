@@ -58,13 +58,13 @@ input, button, .button {
     text-decoration: none;
 }
 
-input, button, .button, .sentence, .popup, .score,
+input, button, .button, .sentence, #menu, .score,
 .swal-modal, .swal-button, #lessonslist > *
 {
     border: 1px solid #aaa;
 }
 
-button, .button, .sentence, .popup, input,
+button, .button, .sentence, #menu, input,
 .clickable, button, label, .word, .space,
 .swal-modal, .swal-button, #lessonslist > *
 {
@@ -247,7 +247,7 @@ progress {
 /**********************************************************************/
 /* Exercise view */
 
-.sentence, #menus li {
+.sentence, #menu li {
     unicode-bidi: bidi-override;
 }
 
@@ -264,21 +264,17 @@ progress {
 
 /* The menu popup */
 
-.popup {
+#menu {
     z-index: 50;
     position: absolute;
-    max-height: 20ex;
     overflow: auto;
     background-color: hsl(0, 0%, 95%);
-}
-
-.popup ul {
     list-style: none;
     padding: 0;
     margin: 0;
 }
 
-.popup ul li {
+#menu li {
     text-align: center;
     padding: .1em .4em;
 }
