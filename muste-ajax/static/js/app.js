@@ -327,7 +327,7 @@ function fetch_and_populate_lessons() {
 
 function populate_lessons(lessons) {
   console.log("Buidling boxes for", lessons.length, "lessons");
-  var table = $('#lessonslist').empty();
+  var $table = $('#lessonslist').empty();
   for (var l of lessons) {
     EXERCISES[l.lesson] = {
       passedcount: l.passedcount,
@@ -357,7 +357,7 @@ function populate_lessons(lessons) {
       ])
       .toggleClass('finished', l.passed)
       .toggleClass('disabled', !l.enabled)
-      .appendTo(table);
+      .appendTo($table);
   }
 }
 
@@ -466,7 +466,7 @@ function intersection(m, n) {
 
 function show_lin(lang, src, settings) {
   var lin = src.sentence.linearization;
-  var sentence = $('#' + lang)
+  var $sentence = $('#' + lang)
       .empty()
       .prop({dir: mk_direction(src.direction)});
 
@@ -484,10 +484,10 @@ function show_lin(lang, src, settings) {
     var isIndentSpace    = SPECIALS.indent   .pre  .has(previous) || SPECIALS.indent   .post .has(current);
     var isDedentSpace    = SPECIALS.dedent   .pre  .has(previous) || SPECIALS.dedent   .post .has(current);
 
-    var spaceSpan = $('<span>')
+    var $spaceSpan = $('<span>')
         .append($('<span>'))
         .addClass('space')
-        .appendTo(sentence)
+        .appendTo($sentence)
         .data({
           'nr': i,
           'lang': lang,
@@ -497,10 +497,10 @@ function show_lin(lang, src, settings) {
 
     if (isIndentSpace)    indentation++;
     if (isDedentSpace)    indentation--;
-    if (isLinebreakSpace) spaceSpan.addClass('linebreak indent indent' + indentation);
-    if (isInvisNeighbour) spaceSpan.addClass('invisible-neighbour');
-    if (isInvisibleSpace) spaceSpan.addClass('invisible');
-    if (isClickableSpace) spaceSpan.addClass('clickable').click(click_word);
+    if (isLinebreakSpace) $spaceSpan.addClass('linebreak indent indent' + indentation);
+    if (isInvisNeighbour) $spaceSpan.addClass('invisible-neighbour');
+    if (isInvisibleSpace) $spaceSpan.addClass('invisible');
+    if (isClickableSpace) $spaceSpan.addClass('clickable').click(click_word);
 
     // generate the token following the space
     if (i < lin.length) {
@@ -511,10 +511,10 @@ function show_lin(lang, src, settings) {
       var matchingClasses = lin[i]['matching-classes'];
       var isMatch = matchingClasses.size > 0;
 
-      var wordSpan = $('<span>')
+      var $wordSpan = $('<span>')
           .append($('<span>').html(current))
           .addClass('word')
-          .appendTo(sentence)
+          .appendTo($sentence)
           .data({
             'nr': i,
             'lang': lang,
@@ -523,20 +523,20 @@ function show_lin(lang, src, settings) {
             'direction': src.direction
           });
 
-      if (isInvisibleWord) wordSpan.addClass('invisible');
-      if (isClickableWord) wordSpan.addClass('clickable').click(click_word);
+      if (isInvisibleWord) $wordSpan.addClass('invisible');
+      if (isClickableWord) $wordSpan.addClass('clickable').click(click_word);
 
       if (isMatch && settings['highlight-matches']) {
-        wordSpan.addClass('match');
+        $wordSpan.addClass('match');
         var h = hash_array_of_string(Array.from(matchingClasses));
         var c = int_to_rgba(h);
-        wordSpan.css('border-color', c);
+        $wordSpan.css('border-color', c);
       }
 
       if (DEBUG) {
         $('<sub class="debug">')
           .text((isMatch ? '=' : '') + JSON.stringify(classes))
-          .appendTo(wordSpan);
+          .appendTo($wordSpan);
       }
     }
   }
@@ -585,14 +585,14 @@ function click_word(event) {
   function next_selection(sel) {
     return sel ? sel.slice(0, sel.length-1) : null;
   }
-  function getSelection() {
-    if (clicked.hasClass('striked')) {
+  function getSelection($clicked) {
+    if ($clicked.hasClass('striked')) {
       return next_selection($('#menus').data('selection'));
     }
-    else if (clicked.hasClass('word')) {
+    else if ($clicked.hasClass('word')) {
       return path;
     }
-    else if (clicked.hasClass('space')) {
+    else if ($clicked.hasClass('space')) {
       // Alternate between clicking `clicked`'s neighbors.
       // TODO Unipmlemented.
       return path;
@@ -603,12 +603,13 @@ function click_word(event) {
       return path;
     }
   }
-  var clicked = $(event.currentTarget).closest('.clickable');
-  var lang = clicked.data().lang;
-  var path = clicked.data().path;
-  var validMenus = clicked.data('valid-menus');
-  var idx = clicked.data('nr');
-  var direction = mk_direction(clicked.data('direction'));
+  var $clicked = $(event.currentTarget).closest('.clickable');
+  var lang = $clicked.data().lang;
+  var path = $clicked.data().path;
+  var validMenus = $clicked.data('valid-menus');
+  var idx = $clicked.data('nr');
+  var direction = mk_direction($clicked.data('direction'));
+
   // Marks some tokens to not be displayed.  Doesn't remove any
   // tokens, only marks them.
   var threshold = 1;
@@ -629,23 +630,25 @@ function click_word(event) {
     // TODO: How to elegantly ensure checking relevancy of the last
     // `threshold` elements?
   }
+
   function mk_ellipsis() {
-    var p = $('<span class="ellipsis">');
-    var e = $('<span class="words">')
+    var $p = $('<span class="ellipsis">');
+    var $e = $('<span class="words">')
       .hide()
       .click(function() {
         $(this).show();
       });
-    p.append(e)
+    $p.append($e)
       .append($('<span>...</span>'));
     return {
-      parent: p,
-      words: e
+      $parent: $p,
+      $words: $e
     };
   }
-  function mark_selected_words(lin, sel) {
+
+  function mark_selected_words(lin, sel, $menuitem) {
     mark_relevant(lin, sel);
-    var $initial = menuitem;
+    var $initial = $menuitem;
     var $prevEllipsis;
     for (var i = 0 ; i < lin.length ; i++) {
       var tok = lin[i];
@@ -665,8 +668,8 @@ function click_word(event) {
         // was relevant, then we must must create a new ellipsis.
         if (prevTok === undefined || prevTok.relevant) {
           var e = mk_ellipsis();
-          $container = e.words;
-          e.parent.appendTo($initial);
+          $container = e.$words;
+          e.$parent.appendTo($initial);
           $prevEllipsis = $container;
         } else {
           // It's an invariant that `$prevEllipsis` should be set now.
@@ -680,6 +683,7 @@ function click_word(event) {
       $('<span>').text(' ').appendTo($container);
     }
   }
+
   if (validMenus === 'nothing') {
     throw 'This should not happen';
   }
@@ -687,11 +691,11 @@ function click_word(event) {
     throw 'No menu found';
   }
 
-  if (clicked.hasClass('striked') && $('#menus ul').length > 1) {
+  if ($clicked.hasClass('striked') && $('#menus ul').length > 1) {
     $('#menus ul').first().remove();
   }
   else {
-    var selection = getSelection();
+    var selection = getSelection($clicked);
     update_menu(validMenus, idx);
 
     // These are the valid menus.  Now we must toggle between them
@@ -708,7 +712,7 @@ function click_word(event) {
     var menus  = selsnmen[1];
     if (menus === null) throw 'No menu found';
 
-    clicked.addClass('striked');
+    $clicked.addClass('striked');
     $('#' + lang).find('.word')
       .filter(function(){
         var idx = $(this).data('nr');
@@ -718,12 +722,12 @@ function click_word(event) {
 
     var $menus = $('#menus');
     $menus.data('selection', selection);
-    var ul = $('<ul>')
+    var $ul = $('<ul>')
       .appendTo($menus);
     for (var i = 0; i < menus.length; i++) {
       var pr = menus[i];
       var item = pr[1]; // snd
-      var menuitem = $('<span class="clickable">')
+      var $menuitem = $('<span class="clickable">')
         .data('item', item)
         .data('lang', lang)
         .click(function() {
@@ -732,36 +736,36 @@ function click_word(event) {
         });
       var lin = item;
       if (lin.length == 0) {
-        $('<span>').html('&empty;').appendTo(menuitem);
+        $('<span>').html('&empty;').appendTo($menuitem);
       } else {
-        mark_selected_words(lin, pr[0]);
+        mark_selected_words(lin, pr[0], $menuitem);
       }
       $('<li>')
         .prop({dir: direction})
-        .append(menuitem)
-        .appendTo(ul);
+        .append($menuitem)
+        .appendTo($ul);
     }
   }
 
-  var menu = $('.menu').show();
-  popup_menu(clicked, menu);
+  var $menu = $('.menu').show();
+  popup_menu($clicked, $menu);
 }
 
-function popup_menu(clicked, menu) {
-  var offset = clicked.offset();
-  var bot = offset.top + clicked.outerHeight();
-  var diff = clicked.outerWidth() - menu.outerWidth();
+function popup_menu($clicked, $menu) {
+  var offset = $clicked.offset();
+  var bot = offset.top + $clicked.outerHeight();
+  var diff = $clicked.outerWidth() - $menu.outerWidth();
   var mid = offset.left + diff / 2;
   var css = {
     'top': bot + 'px',
     'left': mid + 'px',
     'max-height': (window.innerHeight - bot - 6) + 'px'
   };
-  menu.css(css).show();
+  $menu.css(css).show();
   $(document)
     .trigger('overlay')
     .one('overlay-out', function() {
-      menu.hide();
+      $menu.hide();
     });
 }
 
@@ -895,14 +899,14 @@ function fetch_and_populate_high_scores() {
 };
 
 function populate_high_scores(scores) {
-  var table = $('#high-scores-table').empty();
+  var $table = $('#high-scores-table').empty();
   for (var row of scores) {
     var columns = [row.lesson.name, row.user.name, row.score.clicks, row.score.time];
     $('<tr>').append(
       columns.map(function(cell) {
         return $('<td>').text(cell);
       })
-    ).appendTo(table);
+    ).appendTo($table);
   }
 }
 
