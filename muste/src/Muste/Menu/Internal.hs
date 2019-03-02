@@ -200,14 +200,12 @@ alignTreeSubstitution ((oldwords, oldnodes), (newwords, newnodes))
 
 
 -- the binding token "&+" is treated specially:
--- insertions before &+, and insertions after &+, and replacements involving only &+
--- are all replaced by the same insertion (before &+)
+-- insertions before or after &+ are converted to a replacement of the &+ token
 modifyInterval :: [Int] -> Interval -> Interval
 modifyInterval oldbindings int@(Interval (i,j))
-  | i   `elem` oldbindings && j == i+1 = Interval (i,i)
-  | i-1 `elem` oldbindings && j == i   = Interval (i-1,i-1)
-  -- alternatively, if we replace by (after &+):
-  -- | i `elem` oldbindings && j <= i+1 = Interval (i+1,i+1)
+  | i  <  j   = int
+  | i   `elem` oldbindings = Interval (i,i+1)
+  | i-1 `elem` oldbindings = Interval (i-1,i)
   | otherwise = int
 
 bindingToken :: Tokn
