@@ -67,9 +67,6 @@ function register_handlers() {
 // overlay resets the selection - which hides the menu again.
 function register_overlay() {
   var $overlay = $('.overlay');
-  $(document).on('overlay', function() {
-    $overlay.show();
-  });
   $('.overlay').click(function() {
     $(this).hide();
     reset_selection();
@@ -326,7 +323,8 @@ function fetch_and_populate_lessons() {
 }
 
 function populate_lessons(lessons) {
-  console.log("Buidling boxes for", lessons.length, "lessons");
+  console.log("Building info boxes for", lessons.length, "lessons:",
+              lessons.map((l) => l.name).join(", "));
   var $table = $('#lessonslist').empty();
   for (var l of lessons) {
     EXERCISES[l.lesson] = {
@@ -373,11 +371,11 @@ function start_exercise(data) {
     .then(handle_menu_response);
 }
 
-function handle_menu_response(r) {
-  DATA = r;
-  show_exercise(r);
-  if (r['lesson-over']) {
-    var popup = i18next.t('exercise.lessonComplete', {returnObjects: true, data: r});
+function handle_menu_response(data) {
+  DATA = data;
+  show_exercise(data);
+  if (data['lesson-over']) {
+    var popup = i18next.t('exercise.lessonComplete', {returnObjects: true, data: data});
     Swal.mixin({
       type: 'success',
       allowOutsideClick: false,
@@ -389,8 +387,8 @@ function handle_menu_response(r) {
       show_page('pageLessons');
     });
   }
-  else if (r['exercise-over']) {
-    var popup = i18next.t('exercise.exerciseComplete', {returnObjects: true, data: r});
+  else if (data['exercise-over']) {
+    var popup = i18next.t('exercise.exerciseComplete', {returnObjects: true, data: data});
     Swal.mixin({
       type: 'success',
       showCancelButton: true,
@@ -403,7 +401,7 @@ function handle_menu_response(r) {
     ).then(function(reply) {
       if (reply && !reply.dismiss) {
         start_exercise({
-          lesson: r.lesson.key,
+          lesson: data.lesson.key,
           restart: false,
         });
       } else {
@@ -413,57 +411,54 @@ function handle_menu_response(r) {
   }
 }
 
-function show_exercise(resp) {
-  var lesson = resp.lesson;
-  var key = lesson.key;
-  var lessonName = lesson.name;
-  var menu = resp.menu;
-  menu.src.menu = new Map(menu.src.menu);
-  menu.trg.menu = new Map(menu.trg.menu);
-  show_sentences(menu, resp.settings);
-  var e = EXERCISES[key];
+function show_exercise(data) {
+  for (var lang of ['src', 'trg']) {
+    console.log(`MENU selections for "${lang}":`,
+                data.menu[lang].menu.map((e)=>str_selection(e[0])).join(", ")); 
+  }
+  show_sentences(data);
+  var e = EXERCISES[data.lesson.key];
   $('#exercisename')
-    .text(i18next.t(`backend.${key}.name`, lessonName));
+    .text(i18next.t(`backend.${data.lesson.key}.name`, data.lesson.name));
   $('#lessoncounter')
     .prop(update_progressbar(e.passedcount, e.totalcount));
 }
 
 function show_sentences(data, settings) {
-  var src = data.src;
-  var trg = data.trg;
-  matchy_magic(src, trg);
-  matchy_magic(trg, src);
-  $('#src').toggle(settings['show-source-sentence']);
-  show_lin('src', src, settings);
-  show_lin('trg', trg, settings);
+  $('#src').toggle(data.settings['show-source-sentence']);
+  matchy_magic(data.menu.src, data.menu.trg);
+  matchy_magic(data.menu.trg, data.menu.src);
+  show_lin('src', 'trg', data);
+  show_lin('trg', 'src', data);
 }
 
-function all_classes(xs) {
-  var xss = xs.map(function(x) { return x['classes'];});
-  var flattened = [].concat.apply([], xss);
-  return new Set(flattened);
-}
 
 
 function matchy_magic(src, trg) {
-  var cs = all_classes(src.sentence.linearization);
-  trg.sentence.linearization.forEach(function(x) {
-    var s = intersection(cs, new Set(x['classes']));
-    x['matching-classes'] = s;
-  });
+  var all_src_classes = {};
+  for (var tok of src.sentence.linearization) {
+    for (var cls of tok.classes) {
+      all_src_classes[cls] = true;
+    }
+  }
+  for (var tok of trg.sentence.linearization) {
+    var matching = {};
+    for (var cls of tok.classes) {
+      if (all_src_classes[cls]) matching[cls] = true;
+    }
+    tok.matchingClasses = Object.keys(matching);
+  }
 }
 
-// intersection :: Set a -> Set a -> Set a
-function intersection(m, n) {
-  return new Set([...m].filter(function(x) {return n.has(x);}));
-}
 
-
-function show_lin(lang, src, settings) {
-  var lin = src.sentence.linearization;
+function show_lin(lang, other, data) {
+  var menu = data.menu[lang].menu;
+  var lin  = data.menu[lang].sentence.linearization;
+  var dir  = data.menu[lang].direction;
+  dir = mk_direction(dir);
   var $sentence = $('#' + lang)
       .empty()
-      .prop({dir: mk_direction(src.direction)});
+      .prop({dir: dir});
 
   var indentation = 0;
   for (var i=0; i <= lin.length; i++) {
@@ -471,13 +466,14 @@ function show_lin(lang, src, settings) {
     var current = i < lin.length ? lin[i].concrete : null;
 
     // generate the space between tokens
-    var validMenusSpace  = getValidMenusSpace(i, src.menu);
-    var isClickableSpace = validMenusSpace !== 'nothing';
     var isInvisNeighbour = SPECIALS.invisible.token.has(previous) || SPECIALS.invisible.token.has(current);
     var isInvisibleSpace = SPECIALS.invisible.pre  .has(previous) || SPECIALS.invisible.post .has(current);
     var isLinebreakSpace = SPECIALS.linebreak.pre  .has(previous) || SPECIALS.linebreak.post .has(current);
     var isIndentSpace    = SPECIALS.indent   .pre  .has(previous) || SPECIALS.indent   .post .has(current);
     var isDedentSpace    = SPECIALS.dedent   .pre  .has(previous) || SPECIALS.dedent   .post .has(current);
+    var isClickableSpace =
+        isInvisNeighbour ? menu.some((e) => e[0].some((ii) => equal(ii, [i,i])))
+        : next_menu(menu, null, i, true);
 
     var $spaceSpan = $('<span>')
         .append($('<span>'))
@@ -486,8 +482,7 @@ function show_lin(lang, src, settings) {
         .data({
           'nr': i,
           'lang': lang,
-          'valid-menus': validMenusSpace,
-          'direction': src.direction
+          'direction': dir
         });
 
     if (isIndentSpace)    indentation++;
@@ -499,12 +494,9 @@ function show_lin(lang, src, settings) {
 
     // generate the token following the space
     if (i < lin.length) {
-      var validMenusWord  = getValidMenus(i, src.menu);
-      var isClickableWord = validMenusWord !== 'nothing';
+      var isClickableWord = next_menu(menu, null, i, false);
       var isInvisibleWord = SPECIALS.invisible.token.has(current);
-      var classes = lin[i]['classes'];
-      var matchingClasses = lin[i]['matching-classes'];
-      var isMatch = matchingClasses.size > 0;
+      var classes = lin[i].classes;
 
       var $wordSpan = $('<span>')
           .append($('<span>').html(current))
@@ -514,16 +506,17 @@ function show_lin(lang, src, settings) {
             'nr': i,
             'lang': lang,
             'classes': classes,
-            'valid-menus': validMenusWord,
-            'direction': src.direction
+            'direction': dir
           });
 
       if (isInvisibleWord) $wordSpan.addClass('invisible');
       if (isClickableWord) $wordSpan.addClass('clickable').click(click_word);
 
-      if (isMatch && settings['highlight-matches']) {
+      var matchingClasses = lin[i].matchingClasses;
+      var isMatch = matchingClasses.length > 0;
+      if (isMatch && data.settings['highlight-matches']) {
         $wordSpan.addClass('match');
-        var h = hash_array_of_string(Array.from(matchingClasses));
+        var h = hash_array_of_string(matchingClasses);
         var c = int_to_rgba(h);
         $wordSpan.css('border-color', c);
       }
@@ -551,29 +544,12 @@ function mk_direction(direction) {
   }
 }
 
-function update_menu(m, idx) {
-  var prev = window.currentMenu;
-  if (prev !== undefined && prev.idx != idx) {
-    reset_selection();
-  } else {
-    remove_selection_highlighting();
-  }
-  window.currentMenu = {
-    menu: m,
-    idx: idx
-  };
-}
-
-function remove_selection_highlighting() {
-  $('.striked').removeClass('striked');
-  $('#menu').empty();
-}
-
 function reset_selection() {
-  remove_selection_highlighting();
-  if (window.currentMenu != null) {
-    window.currentMenu.menu.reset();
-  }
+  $('.striked').removeClass('striked');
+  $('#menu')
+    .hide()
+    .empty()
+    .data('selection', null);
 }
 
   // Marks some tokens to not be displayed.  Doesn't remove any
@@ -650,66 +626,68 @@ function reset_selection() {
     }
   }
 
+function next_menu(menu, sel, j, is_insertion) {
+  var entries = menu[Symbol.iterator]();
+  if (is_selected(sel, j, is_insertion)) {
+    // fast forward to the current selection:
+    for (var entry of entries) {
+      if (equal(entry[0], sel)) break;
+    }
+    if (!entry) return null;
+  }
+  for (var entry of entries) {
+    if (is_selected(entry[0], j, is_insertion)) return entry;
+  }
+  return null;
+}
+
 function click_word(event) {
   var $clicked = $(event.currentTarget).closest('.clickable');
   var lang = $clicked.data().lang;
-  var validMenus = $clicked.data('valid-menus');
   var idx = $clicked.data('nr');
   var direction = mk_direction($clicked.data('direction'));
 
-  if (validMenus === 'nothing') {
-    throw 'This should not happen';
+  var all_menus = DATA.menu[lang].menu;
+  var $menu = $('#menu');
+  var is_insertion = $clicked.hasClass('space');
+  var current_selection = $menu.data('selection');
+  reset_selection();
+  var entry = next_menu(all_menus, current_selection, idx, is_insertion);
+  if (!entry) {
+    $('.overlay').hide();
+    return
   }
-  if (validMenus === undefined) {
-    throw 'No menu found';
-  }
+  var [selection, menu] = entry;
+  $menu.data('selection', selection);
+  console.log("SELECTION", str_selection(selection), ":", menu.length, "menu items");
 
-    update_menu(validMenus, idx);
+  $clicked.addClass('striked');
+  $('#' + lang).find('.word')
+    .filter(function(){
+      var idx = $(this).data('nr');
+      return is_selected(selection, idx);
+    })
+    .addClass('striked');
 
-    // These are the valid menus.  Now we must toggle between them
-    // somehow.
-    var nextElem = validMenus.next();
-    if (nextElem === 'reset') {
-      $(document).trigger('overlay-out');
-      return;
-    }
-    var selsnmen = nextElem.value;
-    // Again we changed the selection, we can try mapping the snd
-    // component.
-    var selection = selsnmen[0];
-    var menu      = selsnmen[1];
-    if (menu === null) throw 'No menu found';
-
-    $clicked.addClass('striked');
-    $('#' + lang).find('.word')
-      .filter(function(){
-        var idx = $(this).data('nr');
-        return is_selected(selection, idx);
-      })
-      .addClass('striked');
-
-    var $menu = $('#menu');
-    $menu.data('selection', selection);
-    for (var i = 0; i < menu.length; i++) {
-      var pr = menu[i];
-      var item = pr[1]; // snd
-      var $menuitem = $('<span class="clickable">')
-        .data('item', item)
+  for (var i = 0; i < menu.length; i++) {
+    var sel = menu[i][0];
+    var lin = menu[i][1];
+    var $menuitem = $('<span class="clickable">')
+        .data('item', lin)
         .data('lang', lang)
         .click(function() {
           var d = $(this).data();
           select_menuitem(d.item, d.lang);
         });
-      var lin = item;
-      if (lin.length == 0) {
-        $('<span>').html('&empty;').appendTo($menuitem);
-      } else {
-        mark_selected_words(lin, pr[0], $menuitem);
-      }
-      $('<li>')
-        .prop({dir: direction})
-        .append($menuitem)
-        .appendTo($menu);
+    if (lin.length == 0) {
+      $('<span>').html('&empty;').appendTo($menuitem);
+    } else {
+      mark_selected_words(lin, sel, $menuitem);
+    }
+    $('<li>')
+      .prop({dir: direction})
+      .append($menuitem)
+      .appendTo($menu);
   }
 
   var $menu = $('#menu').show();
@@ -727,44 +705,7 @@ function popup_menu($clicked, $menu) {
     'max-height': (window.innerHeight - bot - 6) + 'px'
   };
   $menu.css(css).show();
-  $(document)
-    .trigger('overlay')
-    .one('overlay-out', function() {
-      $menu.hide();
-    });
-}
-
-function getValidMenus(idx, menu) {
-  var mp = lookupKeySetRange(idx, menu);
-  return iterateMenu(idx, mp);
-}
-
-function getValidMenusSpace(idx, menu) {
-  var mp = lookupKeySetEmptyRange(idx, menu);
-  return iterateMenu(idx, mp);
-}
-
-function iterateMenu(idx, mp) {
-  var a = Array.from(mp);
-  // This is a bit counter-intuitive perhaps, but this is because
-  // when we call next we start by incrementing the counter.
-  var initial = -1;
-  var i = initial;
-  if (a.length === 0) return 'nothing';
-  return {
-    next: function() {
-      i++;
-      if (i === a.length) {
-        // TODO Return 'reset' now.
-        i = initial;
-        return 'reset';
-      }
-      return {'value': a[i]};
-    },
-    reset: function() {
-      i = initial;
-    }
-  };
+  $('.overlay').show();
 }
 
 function to_client_tree(t) {
@@ -789,58 +730,7 @@ function select_menuitem(item, lang) {
   };
   muste_request(menuRequest, 'menu')
     .then(handle_menu_response);
-  $(document).trigger('overlay-out');
-}
-
-
-//////////////////////////////////////////////////////////////////////
-// Selections
-
-// Looks up a value in a set of selections.
-// lookupKeySet :: Int -> Map [(Int, Int)] v -> [([(Int, Int)], v)]
-function lookupKeySetRange(idx, map) {
-  return lookupKeySetWith(idx, map, is_selected);
-}
-
-function lookupKeySetEmptyRange(idx, map) {
-  return lookupKeySetWith(idx, map, is_selected_empty);
-}
-
-// is_selected :: Menu.Selection -> Int -> Bool
-function is_selected(sel, idx) {
-  function within(intval, i) {
-    var a = intval[0];
-    var b = intval[1];
-    if (i < a) return false;
-    if (i >= b) return false;
-    return true;
-  }
-  for (var intval of sel) {
-    if (within(intval, idx)) return true;
-  }
-  return false;
-}
-
-function is_selected_empty(sel, idx) {
-  function within(intval, i) {
-    var a = intval[0];
-    var b = intval[1];
-    if (a !== b) return false;
-    return i === a;
-  }
-  for (var intval of sel) {
-    if (within(intval, idx)) return true;
-  }
-  return false;
-}
-
-function* lookupKeySetWith(idx, map, f) {
-  for (var item of map) {
-    var ks = item[0];
-    if (f(ks, idx)) {
-      yield item;
-    }
-  }
+  reset_selection();
 }
 
 
@@ -926,4 +816,30 @@ function int_to_rgba(num) {
     // a = ( (num & 0xFF000000) >>> 24 ) / 255 ;
     a = 1;
   return 'rgba(' + [r, g, b, a].join(',') + ')';
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// Utilities
+
+function equal(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function is_selected(sel, j, is_insertion) {
+  if (!sel) return false;
+  for (var [i, k] of sel) {
+    if (is_insertion) {
+      if (i == j && j == k) return true;
+      if (i < j && j < k) return true;
+    } else {
+      if (i <= j && j < k) return true;
+    }
+  }
+  return false;
+}
+
+function str_selection(sel) {
+  if (!sel || !sel.length) return "[?]";
+  return "[" + sel.map((intval) => intval.join("-")).join(";") + "]";
 }
