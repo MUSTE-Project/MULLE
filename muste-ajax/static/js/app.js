@@ -184,7 +184,7 @@ FORMS.formLogin = function(form) {
         name: form.name.value,
         token: response['login-success'],
       };
-      // window.sessionStorage.setItem('LOGIN_TOKEN',LOGIN_TOKEN);
+      // window.sessionStorage.setItem('LOGIN_TOKEN',LOGIN.token);
       $('.username').text(form.name.value);
       show_page('pageLessons');
     });
@@ -699,10 +699,11 @@ function popup_menu($clicked, $menu) {
   var bot = offset.top + $clicked.outerHeight();
   var diff = $clicked.outerWidth() - $menu.outerWidth();
   var mid = offset.left + diff / 2;
+  var bottom_margin = 10; // pixels
   var css = {
     'top': bot + 'px',
     'left': mid + 'px',
-    'max-height': (window.innerHeight - bot - 6) + 'px'
+    'max-height': (window.innerHeight - bot - bottom_margin) + 'px'
   };
   $menu.css(css).show();
   $('.overlay').show();

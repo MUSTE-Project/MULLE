@@ -336,12 +336,12 @@ progress {
 .space.indent::after { content: "↦" }
 .space.indent.indent0::after { content: "·" }
 
-/* replace the content with a small PLUS when hovering over it */
+/* replace the content with a PLUS when hovering over it */
 /* the same for selected elements */
 .space.clickable:hover::before,     .space.striked::before, 
 .invisible.clickable:hover::before, .invisible.striked::before,
 .indent.clickable:hover::after,     .indent.striked::before {
-    content: "+"; font-size: 70%; bottom: 0.4ex;
+    content: "+"; font-size: 85%; bottom: 0.2ex;
 }
 
 /* normal space is invisible */
