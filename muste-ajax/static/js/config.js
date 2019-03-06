@@ -10,21 +10,24 @@ var SERVER = '/api/';
 // Special tokens - different kinds of whitespace
 
 var SPECIALS = {
-  invisible: {
-    token: new Set(['&+']),
-    pre  : new Set(['&+', '¿', '¡', '(']),
-    post : new Set(['&+', ',', ';', '.', '?', '!']),
-  },
-  linebreak: {
-    pre  : new Set([';', '{', '}']),
-    post : new Set(),
-  },
-  indent: {
-    pre  : new Set(['{']),
-    post : new Set(),
-  },
-  dedent: {
-    pre  : new Set(),
-    post : new Set(['}']),
-  },
+  token:  {'&+': "invisible",
+           '&/': "linebreak",
+          },
+  before: {'.': "invisible",
+           ',': "invisible",
+           ';': "invisible",
+           '!': "invisible",
+           '?': "invisible",
+           ')': "invisible",
+           ']': "invisible",
+           '}': "linebreak dedent",
+          },
+  after:  {'¡': "invisible",
+           '¿': "invisible",
+           '(': "invisible",
+           '[': "invisible",
+           '{': "linebreak indent",
+           '}': "linebreak",
+           ';': "linebreak",
+          },
 };

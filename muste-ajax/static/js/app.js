@@ -52,7 +52,7 @@ function register_handlers() {
 
   $('[data-page]').click(show_page);
 
-  $('[data-popup]').click(function(evt) {
+  $('[data-popup]').click(function() {
     var popup = i18next.t($(this).data('popup'), {returnObjects: true});
     Swal.mixin({
       showCloseButton: true,
@@ -84,7 +84,7 @@ var DEFAULT_LANGUAGE;
 function set_language(evt) {
   var lng = evt && evt.data && evt.data.language || DEFAULT_LANGUAGE;
   i18next.changeLanguage(lng, function(err, t) {
-    console.log("Setting i18n language:", lng);
+    console.log(`Setting i18n language: ${lng}`);
     if (err) return console.error('ERROR setting language', lng, err);
     // https://github.com/i18next/jquery-i18next#usage-of-selector-function
     $('title').localize();
@@ -108,7 +108,7 @@ function init_i18n() {
       .click({language: lng}, set_language)
       .appendTo($('.change-language'))
   }
-  console.log("Initialising i18n languages:", langs.join(" "));
+  console.log(`Initialising i18n languages: ${langs.join(" ")}`);
 
   // https://www.i18next.com/overview/configuration-options
   // evtl. load via xhr https://github.com/i18next/i18next-xhr-backend
@@ -131,7 +131,7 @@ var PAGES = {};
 
 function show_page(page) {
   if (page.currentTarget) page = $(page.currentTarget).data('page');
-  console.log("Showing page:", page);
+  console.log(`Displaying page: ${page}`);
   if (typeof PAGES[page] === "function") {
     PAGES[page] ();
   }
@@ -272,6 +272,7 @@ function update_timer() {
   $('#score').text(Math.round(score));
 }
 
+
 //////////////////////////////////////////////////////////////////////
 // Ajax requests
 
@@ -323,7 +324,7 @@ function fetch_and_populate_lessons() {
 }
 
 function populate_lessons(lessons) {
-  console.log("Building info boxes for", lessons.length, "lessons:",
+  console.log(`Building info boxes for ${lessons.length} lessons:`,
               lessons.map((l) => l.name).join(", "));
   var $table = $('#lessonslist').empty();
   for (var l of lessons) {
@@ -336,10 +337,7 @@ function populate_lessons(lessons) {
         $('<h3>')
           .text(i18next.t(`backend.${l.lesson}.name`, l.name)),
         $('<button>')
-          .click({
-            lesson: l.lesson,
-            restart: l.passed,
-          }, start_exercise)
+          .click({lesson: l.lesson, restart: l.passed}, start_exercise)
           .text(i18next.t(l.passed          ? 'lesson.reSolve' 
                           : l.passedcount>0 ? 'lesson.continue' 
                           :                   'lesson.solve'
@@ -371,6 +369,8 @@ function start_exercise(data) {
     .then(handle_menu_response);
 }
 
+// handles the response from the MUSTE server
+// containing the new sentences and menus
 function handle_menu_response(data) {
   DATA = data;
   show_exercise(data);
@@ -411,12 +411,20 @@ function handle_menu_response(data) {
   }
 }
 
+
+//////////////////////////////////////////////////////////////////////
+// Show the exercise to the user
+
+// clean and annotate the linearisations and menus,
+// then show the sentences
 function show_exercise(data) {
-  for (var lang of ['src', 'trg']) {
-    console.log(`MENU selections for "${lang}":`,
-                data.menu[lang].menu.map((e)=>str_selection(e[0])).join(", ")); 
-  }
-  show_sentences(data);
+  clean_lin_and_menu(data.menu.src);
+  clean_lin_and_menu(data.menu.trg);
+  matchy_magic(data.menu.src, data.menu.trg);
+  matchy_magic(data.menu.trg, data.menu.src);
+  show_sentence($('#src'), data.menu.src, data.settings);
+  show_sentence($('#trg'), data.menu.trg, data.settings);
+  $('#src').toggle(data.settings['show-source-sentence']);
   var e = EXERCISES[data.lesson.key];
   $('#exercisename')
     .text(i18next.t(`backend.${data.lesson.key}.name`, data.lesson.name));
@@ -424,16 +432,60 @@ function show_exercise(data) {
     .prop(update_progressbar(e.passedcount, e.totalcount));
 }
 
-function show_sentences(data, settings) {
-  $('#src').toggle(data.settings['show-source-sentence']);
-  matchy_magic(data.menu.src, data.menu.trg);
-  matchy_magic(data.menu.trg, data.menu.src);
-  show_lin('src', 'trg', data);
-  show_lin('trg', 'src', data);
+
+// clean the linearisation and the menu for a language
+// i.e., remove all special tokens from the linearisation
+// (which means that we have to change the selections too)
+function clean_lin_and_menu(data) {
+  var lin = data.sentence.linearization;
+  var original = annotate_and_remove_specials(lin);
+  data.sentence.original = original;
+  if (DEBUG) console.log(`Original:   ${strlin(original)}`);
+  if (DEBUG) console.log(`Convereted: ${strlin(lin)}`);
+  for (var menu of data.menu) {
+    var sel = convert_specials_selection(menu[0], original);
+    menu[0] = sel;
+    for (var menuitem of menu[1]) {
+      var origitem = annotate_and_remove_specials(menuitem[1]);
+      menuitem.push(origitem);
+    }
+  }
+  data.menu.sort((a,b) => size_selection(a[0]) - size_selection(b[0]));
+  if (DEBUG) console.log("Menu selections:", data.menu.map((e)=>strsel(e[0])).join(", ")); 
 }
 
+// convert indexes that refer to the space before a special token, to the space after
+// i.e., [2-3], [3-3], [3-4], [3-5] --> [2-4], [4-4], [4-4], [4-5]
+// if the 3rd token is a special (invisible, linebreak, etc.)
+function convert_specials_selection(sel, lin) {
+  var is_special = (j) => j >= 0 && j < lin.length && SPECIALS.token[lin[j].concrete];
+  return sel.map(
+    (interval) => interval.map((j) => is_special(j) ? j+1 : j)
+  );
+}
 
+// removes special tokens, and annotates the whitespaces (invisible, linebreak, etc)
+// NOTE: this function modifies the lin in place!
+// so we return a deep copy of the original 
+function annotate_and_remove_specials(lin) {
+  var original = JSON.parse(JSON.stringify(lin));
+  // loop downwards so that deletions don't mess with the order
+  for (var i = lin.length-1; i >= 0; i--) {
+    lin[i].nr = i;
+    var classes = SPECIALS.token[lin[i].concrete] || "";
+    if (classes) {
+      lin.splice(i, 1);
+    }
+    classes += " " + (SPECIALS.before[lin[i].concrete] || "");
+    if (i > 0) {
+      classes += " " + (SPECIALS.after[lin[i-1].concrete] || "");
+    }
+    lin[i].space = classes.trim();
+  }
+  return original;
+}
 
+// calculate which words are matched with another with in the other sentence
 function matchy_magic(src, trg) {
   var all_src_classes = {};
   for (var tok of src.sentence.linearization) {
@@ -450,250 +502,201 @@ function matchy_magic(src, trg) {
   }
 }
 
+// build the sentence from the linearisation, and show it
+function show_sentence($sentence, data, settings) {
+  $sentence.empty().prop({dir: data.direction});
+  build_lin($sentence, data.sentence.linearization);
 
-function show_lin(lang, other, data) {
-  var menu = data.menu[lang].menu;
-  var lin  = data.menu[lang].sentence.linearization;
-  var dir  = data.menu[lang].direction;
-  dir = mk_direction(dir);
-  var $sentence = $('#' + lang)
-      .empty()
-      .prop({dir: dir});
+  $sentence.children().each(function() {
+    var position = $(this).data('nr');
+    var isSpace = $(this).hasClass('space');
+    if (has_menu(data.menu, position, isSpace)) {
+      $(this)
+        .addClass('clickable')
+        .click(click_word);
+    }
+  });
 
+  if (settings['highlight-matches']) {
+    $sentence.children('.word').each(function() {
+      var matchingClasses = $(this).data('matchingClasses');
+      if (matchingClasses && matchingClasses.length > 0) {
+        var colour = int_to_rgba(hash_array_of_string(matchingClasses));
+        $(this)
+          .addClass('match')
+          .css('border-color', colour);
+      }
+    });
+  }                                   
+}
+
+// true if the given word/space has a menu that can be shown
+// (i.e., if there is a selection that covers the given position)
+function has_menu(menus, position, is_insertion) {
+  for (var entry of menus) {
+    if (is_selected(entry[0], position, is_insertion)) return true;
+  }
+  return false;
+}
+
+// create the HTML sentece from the given linearisation
+// and annotate the spaces with CSS classes (invisible, linebreak, etc)
+function build_lin($sentence, lin) {
   var indentation = 0;
-  for (var i=0; i <= lin.length; i++) {
-    var previous = i > 0 ? lin[i-1].concrete : null;
-    var current = i < lin.length ? lin[i].concrete : null;
-
+  for (var tok of lin) {
     // generate the space between tokens
-    var isInvisNeighbour = SPECIALS.invisible.token.has(previous) || SPECIALS.invisible.token.has(current);
-    var isInvisibleSpace = SPECIALS.invisible.pre  .has(previous) || SPECIALS.invisible.post .has(current);
-    var isLinebreakSpace = SPECIALS.linebreak.pre  .has(previous) || SPECIALS.linebreak.post .has(current);
-    var isIndentSpace    = SPECIALS.indent   .pre  .has(previous) || SPECIALS.indent   .post .has(current);
-    var isDedentSpace    = SPECIALS.dedent   .pre  .has(previous) || SPECIALS.dedent   .post .has(current);
-    var isClickableSpace =
-        isInvisNeighbour ? menu.some((e) => e[0].some((ii) => equal(ii, [i,i])))
-        : next_menu(menu, null, i, true);
-
-    var $spaceSpan = $('<span>')
+    var $space = $('<span>')
         .append($('<span>'))
         .addClass('space')
-        .appendTo($sentence)
-        .data({
-          'nr': i,
-          'lang': lang,
-          'direction': dir
-        });
+        .addClass(tok.space)
+        .data(tok)
+        .appendTo($sentence);
 
-    if (isIndentSpace)    indentation++;
-    if (isDedentSpace)    indentation--;
-    if (isLinebreakSpace) $spaceSpan.addClass('linebreak indent indent' + indentation);
-    if (isInvisNeighbour) $spaceSpan.addClass('invisible-neighbour');
-    if (isInvisibleSpace) $spaceSpan.addClass('invisible');
-    if (isClickableSpace) $spaceSpan.addClass('clickable').click(click_word);
+    if ($space.hasClass('indent')) indentation++;
+    if ($space.hasClass('dedent')) indentation--;
+    if ($space.hasClass('linebreak')) $space.addClass('indentation i' + indentation);
 
     // generate the token following the space
-    if (i < lin.length) {
-      var isClickableWord = next_menu(menu, null, i, false);
-      var isInvisibleWord = SPECIALS.invisible.token.has(current);
-      var classes = lin[i].classes;
+    var $word = $('<span>')
+        .append($('<span>').html(tok.concrete))
+        .addClass('word')
+        .data(tok)
+        .appendTo($sentence);
 
-      var $wordSpan = $('<span>')
-          .append($('<span>').html(current))
-          .addClass('word')
-          .appendTo($sentence)
-          .data({
-            'nr': i,
-            'lang': lang,
-            'classes': classes,
-            'direction': dir
-          });
+    var nr = tok.nr; // this is only to get the position for the final space below
 
-      if (isInvisibleWord) $wordSpan.addClass('invisible');
-      if (isClickableWord) $wordSpan.addClass('clickable').click(click_word);
-
-      var matchingClasses = lin[i].matchingClasses;
-      var isMatch = matchingClasses.length > 0;
-      if (isMatch && data.settings['highlight-matches']) {
-        $wordSpan.addClass('match');
-        var h = hash_array_of_string(matchingClasses);
-        var c = int_to_rgba(h);
-        $wordSpan.css('border-color', c);
-      }
-
-      if (DEBUG) {
-        $('<sub class="debug">')
-          .text((isMatch ? '=' : '') + JSON.stringify(classes))
-          .appendTo($wordSpan);
-      }
-    }
-  }
-}
-
-function mk_direction(direction) {
-  switch (direction) {
-  case 'right-to-left':
-  case 'rtl':
-  case 'recto-verso':
-    return 'rtl';
-  case 'left-to-right':
-  case 'ltr':
-  case 'verso-recto':
-  default:
-    return 'ltr';
-  }
-}
-
-function reset_selection() {
-  $('.striked').removeClass('striked');
-  $('#menu')
-    .hide()
-    .empty()
-    .data('selection', null);
-}
-
-  // Marks some tokens to not be displayed.  Doesn't remove any
-  // tokens, only marks them.
-  function mark_relevant(toks, sel) {
-    var threshold = 1;
-    var t = 0;
-    for (var i = 0 ; i < toks.length + threshold ; i++) {
-      var tok = toks[i];
-      if (tok !== undefined) {
-        var s = is_selected(sel, i);
-        tok['selected'] = s;
-        if (s) t = threshold * 2 + 1;
-      }
-      var x = toks[i - threshold];
-      if (x === undefined) continue;
-      x['relevant'] = t > 0;
-      t--;
-    }
-    // TODO: How to elegantly ensure checking relevancy of the last
-    // `threshold` elements?
-  }
-
-  function mk_ellipsis() {
-    var $p = $('<span class="ellipsis">');
-    var $e = $('<span class="words">')
-      .hide()
-      .click(function() {
-        $(this).show();
-      });
-    $p.append($e)
-      .append($('<span>...</span>'));
-    return {
-      $parent: $p,
-      $words: $e
-    };
-  }
-
-  function mark_selected_words(lin, sel, $menuitem) {
-    mark_relevant(lin, sel);
-    var $initial = $menuitem;
-    var $prevEllipsis;
-    for (var i = 0 ; i < lin.length ; i++) {
-      var tok = lin[i];
-      var pword = tok.concrete;
-      var marked = tok['selected'];
-      var css = {};
-      if (SPECIALS.invisible.token.has(pword)) {
-        css['display'] = 'none';
-      }
-      var $container;
-      if (tok.relevant) {
-        $container = $initial;
-      } else {
-        css['opacity'] = '0.5';
-        var prevTok = lin[i-1];
-        // If there was not previous token, or if the previous token
-        // was relevant, then we must must create a new ellipsis.
-        if (prevTok === undefined || prevTok.relevant) {
-          var e = mk_ellipsis();
-          $container = e.$words;
-          e.$parent.appendTo($initial);
-          $prevEllipsis = $container;
-        } else {
-          // It's an invariant that `$prevEllipsis` should be set now.
-          $container = $prevEllipsis;
-        }
-      }
-      $('<span>').text(pword)
-        .addClass(marked ? 'marked' : 'greyed')
-        .appendTo($container)
-        .css(css);
-      $('<span>').text(' ').appendTo($container);
+    // show the semantics as subscript to the word
+    if (DEBUG) {
+      $('<sub class="debug">')
+        .text(tok.classes.join(" "))
+        .appendTo($word);
     }
   }
 
-function next_menu(menu, sel, j, is_insertion) {
-  var entries = menu[Symbol.iterator]();
-  if (is_selected(sel, j, is_insertion)) {
-    // fast forward to the current selection:
-    for (var entry of entries) {
-      if (equal(entry[0], sel)) break;
-    }
-    if (!entry) return null;
-  }
-  for (var entry of entries) {
-    if (is_selected(entry[0], j, is_insertion)) return entry;
-  }
-  return null;
+  // add the final space
+  $('<span>')
+    .append($('<span>'))
+    .addClass('space')
+    .data({nr: nr+1})
+    .appendTo($sentence);
 }
 
+
+//////////////////////////////////////////////////////////////////////
+// When the user clicks words/spaces and selects menu items
+
+// when the user clicks a word/space, the system shows a new menu
+// if the clicked token is already selected, the next menu in turn is shown,
+// otherwise the first menu for that token
 function click_word(event) {
-  var $clicked = $(event.currentTarget).closest('.clickable');
-  var lang = $clicked.data().lang;
-  var idx = $clicked.data('nr');
-  var direction = mk_direction($clicked.data('direction'));
+  var $clicked  = $(this); 
+  var $sentence = $clicked.closest('.sentence');
+  var idx       = $clicked.data('nr');
+  var lang      = $sentence.prop('id');
+  var direction = $sentence.prop('dir');
 
   var all_menus = DATA.menu[lang].menu;
-  var $menu = $('#menu');
   var is_insertion = $clicked.hasClass('space');
-  var current_selection = $menu.data('selection');
-  reset_selection();
-  var entry = next_menu(all_menus, current_selection, idx, is_insertion);
+  var entry = next_menu(all_menus, idx, is_insertion);
   if (!entry) {
     $('.overlay').hide();
     return
   }
   var [selection, menu] = entry;
-  $menu.data('selection', selection);
-  console.log("SELECTION", str_selection(selection), ":", menu.length, "menu items");
+  console.log(`Selection ${strsel(selection)}: ${menu.length} menu items`);
 
-  $clicked.addClass('striked');
-  $('#' + lang).find('.word')
-    .filter(function(){
-      var idx = $(this).data('nr');
-      return is_selected(selection, idx);
-    })
-    .addClass('striked');
+  $clicked.addClass('selected');
+  mark_selected_words($sentence, selection);
 
+  var $popup = $('#menu');
   for (var i = 0; i < menu.length; i++) {
-    var sel = menu[i][0];
-    var lin = menu[i][1];
-    var $menuitem = $('<span class="clickable">')
-        .data('item', lin)
-        .data('lang', lang)
-        .click(function() {
-          var d = $(this).data();
-          select_menuitem(d.item, d.lang);
-        });
-    if (lin.length == 0) {
-      $('<span>').html('&empty;').appendTo($menuitem);
-    } else {
-      mark_selected_words(lin, sel, $menuitem);
-    }
-    $('<li>')
-      .prop({dir: direction})
-      .append($menuitem)
-      .appendTo($menu);
-  }
+    var [sel, lin, original] = menu[i];
+    var $menuitem = $('<li>')
+        .prop({dir: direction})
+        .addClass('menuitem clickable')
+        .click({lin:original, lang:lang}, select_menuitem)
+        .appendTo($popup);
+    build_lin($menuitem, lin);
+    var newsel = remove_insertions_from_selection(sel);
+    mark_selected_words($menuitem, newsel);
 
-  var $menu = $('#menu').show();
-  popup_menu($clicked, $menu);
+    // TODO: the threshold should be configurable
+    var threshold = 2;
+    $menuitem.children().addClass('irrelevant');
+    $menuitem.children('.selected').each(function() {
+      $(this).removeClass('irrelevant');
+      $(this)
+        .prevAll()
+        .slice(0, threshold)
+        .removeClass('irrelevant');
+      $(this)
+        .nextAll()
+        .slice(0, threshold)
+        .removeClass('irrelevant');
+    });
+  }
+  popup_menu($clicked, $popup);
 }
 
+// global variable used by reset_selection and next_menu below
+var CURRENT_SELECTION;
+
+// removes the current selection, and hides the popup menu
+function reset_selection() {
+  $('.selected').removeClass('selected');
+  $('#menu').hide().empty();
+  CURRENT_SELECTION = null;
+}
+
+// returns the next menu, if the position is already selected
+// otherwise the first menu for the given position
+function next_menu(menus, position, is_insertion) {
+  var current = CURRENT_SELECTION;
+  if (typeof current === 'number' && current >= 0 &&
+      is_selected(menus[current][0], position, is_insertion)) {
+    current++;
+  } else {
+    current = 0;
+  }
+  reset_selection();
+  for (; current < menus.length; current++) {
+    if (is_selected(menus[current][0], position, is_insertion)) {
+      CURRENT_SELECTION = current;
+      return menus[current];
+    }
+  }
+  return null;
+}
+
+// adds the CSS class 'selected' to all words/spaces
+// that are in the given selection
+function mark_selected_words($sentence, selection) {
+  $sentence.children()
+    .filter(function(){
+      var idx = $(this).data('nr');
+      if ($(this).hasClass('space')) {
+        return selection.some(
+          ([i,j]) => idx == i && idx == j
+        ) && !selection.some(
+          ([i,j]) => i < idx && idx <= j || i <= idx && idx < j
+        );
+      } else {
+        return is_selected(selection, idx);
+      }
+    })
+    .addClass('selected');
+}
+
+// remove all insertions that adjacent to a replacement
+// i.e., keep 4-4 in [2-3;4-4;5-6], but remove from [2-3;4-4;4-6] and [2-4;4-4;5-6]
+function remove_insertions_from_selection(selection) {
+  return selection.filter(([i,j]) => {
+    if (i < j) return true;
+    return ! selection.some(([n,m]) => n < m && (i == n || i == m));
+  });
+}
+
+// shows the popup menu just below the selected word
 function popup_menu($clicked, $menu) {
   var offset = $clicked.offset();
   var bot = offset.top + $clicked.outerHeight();
@@ -709,26 +712,25 @@ function popup_menu($clicked, $menu) {
   $('.overlay').show();
 }
 
-function to_client_tree(t) {
-  return {
-    'sentence': t.sentence,
-    'direction': t.direction
-  };
-}
-
-function select_menuitem(item, lang) {
-  DATA.menu[lang].sentence.linearization = item;
+// when the user selects a menu item, the current state is sent to the server
+function select_menuitem(event) {
+  function mklang(lang) {
+    return {direction: DATA.menu.src.direction,
+            sentence: {language: lang.sentence.language,
+                       linearization: lang.sentence.original},
+           };
+  }
   var menuRequest = {
-    'key': DATA.key,
-    'lesson': DATA.lesson,
-    'score': {
-      'clicks': DATA.score.clicks,
-      'time': get_elapsed_time()
-    },
-    'src': to_client_tree(DATA.menu.src),
-    'trg': to_client_tree(DATA.menu.trg),
-    'settings': DATA.settings
+    key     : DATA.key,
+    lesson  : DATA.lesson,
+    score   : {clicks   : DATA.score.clicks,
+               time     : get_elapsed_time()},
+    src     : mklang(DATA.menu.src),
+    trg     : mklang(DATA.menu.trg),
+    settings: DATA.settings,
   };
+  // use the selected menu item as the new linearisation
+  menuRequest[event.data.lang].sentence.linearization = event.data.lin;
   muste_request(menuRequest, 'menu')
     .then(handle_menu_response);
   reset_selection();
@@ -750,6 +752,11 @@ function update_progressbar(passed, total) {
 function fetch_and_populate_high_scores() {
   muste_request({}, 'high-scores')
     .then(function (scores) {
+      // for testing purposes:
+      scores.push(
+        {lesson: {name:"Fake"}, user: {name:"Lisa"}, score: {clicks:3, time:6}},
+        {lesson: {name:"Faker"}, user: {name:"Pelle"}, score: {clicks:999, time:666}},
+      ); // end test
       populate_high_scores(scores);
     });
 };
@@ -823,10 +830,12 @@ function int_to_rgba(num) {
 //////////////////////////////////////////////////////////////////////
 // Utilities
 
+// deep equality between objects
 function equal(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
+// return if a position is inside the selection
 function is_selected(sel, j, is_insertion) {
   if (!sel) return false;
   for (var [i, k] of sel) {
@@ -840,7 +849,42 @@ function is_selected(sel, j, is_insertion) {
   return false;
 }
 
-function str_selection(sel) {
+// the size of a selection, used when sorting them
+function size_selection(selection) {
+  var size = 0;
+  for (var [i,j] of selection) {
+    // The added small constant is so that empty intervals are also counted.
+    // With this, the selection {2-3} will come before {2-2,2-3}.
+    // And we add i so that {1-2} will come before {2-3}.
+    size += 100 * (j-i) + 1 + i;
+  }
+  return size;
+}
+
+// some synonyms for 'rtl' and 'ltr' directions
+function mk_direction(direction) {
+  switch (direction) {
+  case 'right-to-left':
+  case 'rtl':
+  case 'recto-verso':
+    return 'rtl';
+  case 'left-to-right':
+  case 'ltr':
+  case 'verso-recto':
+  default:
+    return 'ltr';
+  }
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// For debugging purposes
+
+function strsel(sel) {
   if (!sel || !sel.length) return "[?]";
-  return "[" + sel.map((intval) => intval.join("-")).join(";") + "]";
+  return "[" + sel.map((interval) => interval.join("-")).join(";") + "]";
+}
+
+function strlin(lin) {
+  return lin.map((t) => `[${t.space||''}]${t.nr||''} ${t.concrete}`).join(" ");
 }

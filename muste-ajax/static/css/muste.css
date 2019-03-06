@@ -245,9 +245,9 @@ progress {
 
 
 /**********************************************************************/
-/* Exercise view */
+/* The exercise view */
 
-.sentence, #menu li {
+.sentence, .menuitem {
     unicode-bidi: bidi-override;
 }
 
@@ -259,6 +259,110 @@ progress {
     padding-bottom: 0.5em;
     user-select: none;
     text-align: left;
+    line-height: 1.5;
+}
+
+/* use smooth animation when chaning padding and size */
+.word, .space { transition: padding 0.3s, width 0.3s }
+
+/* whitespace is shown using the pseudo-elements ::before and ::after */
+/* position is relative to allow for moving symbols up/down */
+/* we set display to inline-block to be able to specify the width */
+.space::before, .space::after,
+.irrelevant::before {
+    display: inline-block;
+    position: relative;
+    text-align: center;
+}
+
+
+/* The main sentences (#src, #trg) */
+
+/* the internal <span> in a whitespace is there to be able to break lines */
+.sentence > .space     span { display: none }
+.sentence > .invisible span { display: none }
+.sentence > .linebreak span { display: block }
+
+/* the sentence is above the overlay, and invisibles even higher up */
+/* position must be relative (or absolute or fixed) for z-index to work */
+.sentence > span { z-index: 20; position: relative }
+.sentence > .invisible { z-index: 25 }
+
+/* don't show indentation at the end of a sentence */
+/* .indentation:last-child::after { display: none } */
+
+/* only show the first invisible in a sequence */
+/* NOTE: this means that only the first invisible can be clicked */
+/* (this is ensured by convert_selections() in app.js) */
+/* .invisible + .invisible { display: none } */
+
+/* the widths of spaces, invisibles, linebreaks and indents */
+.sentence > .space::after { width: 0 }
+.sentence > .space::before { width: 0.5em }
+.sentence > .invisible::before { width: 0.2em }
+.sentence > .invisible.clickable:hover::before { width: 0.5em }
+.sentence > .linebreak::before { width: 1.0em }
+
+/* .invisible.selected::before { width: 0.5em } */
+
+.sentence > .indentation.i0::after { width: 0.5em }
+.sentence > .indentation.i1::after { width: 1.5em }
+.sentence > .indentation.i2::after { width: 2.5em }
+.sentence > .indentation.i3::after { width: 3.5em }
+.sentence > .indentation.i4::after { width: 4.5em }
+.sentence > .indentation.i5::after { width: 5.5em }
+
+/* ordinary spaces are shown using MIDDLE DOT */
+.sentence > .space::before { content: "·" } 
+
+/* linebreaks are shown using a small LEFTWARDS ARROW WITH HOOK (slightly moved downwards) */
+.sentence > .linebreak::before { content: "↩"; font-size: 70%; bottom: -0.4ex }
+
+/* indentation is shown using RIGHTWARDS ARROW FROM BAR */
+/* except if there is no indentation, when we use MIDDLE DOT */
+.sentence > .indentation::after { content: "↦" }
+.sentence > .indentation.i0::after { content: "·" }
+
+/* replace the content with a small PLUS when hovering over it */
+/* the same for selected elements */
+.sentence > .space.clickable:hover::before,
+.sentence > .indentation.clickable:hover::after {
+    content: "+"; font-size: 85%; bottom: 0.2ex;
+}
+
+/* replace the content with a small PLUS for selected elements */
+.sentence > .space.selected::before {
+    content: "+"; font-size: 85%; bottom: 0.2ex;
+}
+
+/* normal space is invisible */
+/* clickable space is shown just a little */
+/* and shown even more when hovered over (and selected) */
+.sentence > .space { opacity: 0 }
+.sentence > .space.clickable { opacity: 0.1 }
+.sentence > .space.clickable:hover  { opacity: 0.5 }
+.sentence > .space.selected { opacity: 0.5 }
+
+/* grow clickables and selected when hovering over them */
+.sentence > .clickable:hover { padding: 0 0.5em }
+.sentence > .selected { padding: 0 0.5em }
+.sentence > .clickable:hover + span { padding: 0 0.5em }
+
+
+/* todo for later */
+.sentence > .clickable.pad { padding: 0 0.2em; background-color: #efd }
+
+
+/* Highlighting */
+
+.sentence > .match { padding: 0 4px; margin: 0 -2px }
+#src > .match { border-bottom: 2px solid }
+#trg > .match { border-top:    2px solid }
+
+.sentence > .selected {
+    font-weight: bolder;
+    text-decoration: line-through;
+    color: red;
 }
 
 
@@ -274,91 +378,56 @@ progress {
     margin: 0;
 }
 
-#menu li {
+#menu .menuitem {
     text-align: center;
     padding: .1em .4em;
 }
 
-
-/* Styling words and spaces */
-
-.sentence { line-height: 1.5 }
-
-/* the internal <span> in a whitespace is there to be able to break lines */
-.space     span { display: none }
-.invisible span { display: none }
-.linebreak span { display: block }
-
-/* clickables are above the overlay, and invisibles even higher up */
-/* position must be relative (or absolute or fixed) for z-index to work */
-.sentence span { z-index: 20; position: relative }
-.invisible { z-index: 25 }
-
-/* whitespace is shown using the pseudo-elements ::before and ::after */
-/* position is relative to allow for moving symbols up/down */
-/* we set display to inline-block to be able to specify the width */
-.space::before, .invisible::before, .space::after, .invisible::after {
-    display: inline-block;
-    position: relative;
-    text-align: center;
+.overlay {
+    opacity:    0.1;
+    background: black;
+    width:      100%;
+    height:     100%;
+    z-index:    10;
+    top:        0;
+    left:       0;
+    position:   fixed;
 }
 
-/* don't show indentation at the end of a sentence */
-.indent:last-child::after { display: none }
 
-/* neighbours to invisible tokens are not shown at all, except if clickable */
-.invisible-neighbour { display: none }
-.invisible-neighbour.clickable { display: unset } 
+/* Menu items */
 
-/* the widths of spaces, invisibles, linebreaks and indents */
-.space::after, .invisible::after { width: 0 }
-.space::before { width: 0.5em }
-.invisible::before { width: 0.2em }
-.invisible.clickable:hover::before, .invisible.striked::before { width: 0.5em }
-.linebreak::before { width: 1.0em }
+.menuitem > .space::before {
+    content: " ";
+    width: 0.3em;
+} 
 
-.indent0::after { width: 0.5em }
-.indent1::after { width: 1.5em }
-.indent2::after { width: 2.5em }
-.indent3::after { width: 3.5em }
-.indent4::after { width: 4.5em }
-.indent5::after { width: 5.5em }
+.menuitem > .selected { font-weight: bolder }
 
-/* ordinary spaces and invisibles are shown using MIDDLE DOT */
-.space::before { content: "·" } 
-.invisible::before { content: "·" }
-
-/* linebreaks are shown using a small LEFTWARDS ARROW WITH HOOK (slightly moved downwards) */
-.space.linebreak::before { content: "↩"; font-size: 70%; bottom: -0.4ex }
-
-/* indentation is shown using RIGHTWARDS ARROW FROM BAR */
-/* except if there is no indentation, when we use MIDDLE DOT */
-.space.indent::after { content: "↦" }
-.space.indent.indent0::after { content: "·" }
-
-/* replace the content with a PLUS when hovering over it */
-/* the same for selected elements */
-.space.clickable:hover::before,     .space.striked::before, 
-.invisible.clickable:hover::before, .invisible.striked::before,
-.indent.clickable:hover::after,     .indent.striked::before {
-    content: "+"; font-size: 85%; bottom: 0.2ex;
+.menuitem > .space.selected { opacity: 1 }
+.menuitem > .space.selected::before {
+    /* \2205 U+02205 &empty; EMPTY SET */
+    content: "\2205";
+    color: red; 
+    width: 1.5em;
+    font-weight: bolder;
 }
 
-/* normal space is invisible */
-/* clickable space is shown just a little */
-/* and shown even more when hovered over (and selected) */
-.space, .invisible { opacity: 0 }
-.space.clickable, .invisible.clickable { opacity: 0.1 }
-.space.clickable:hover, .space.striked  { opacity: 0.5 }
-.invisible.clickable:hover, .invisible.striked { opacity: 0.5 }
+.menuitem > .invisible { display: none }
 
-/* grow clickables (and selected) when hovering over them */
-/* also use smooth animation */
-.clickable:hover, .striked { padding: 0 0.5em }
-.word, .space { transition: padding 0.3s, width 0.3s }
+.menuitem > .space.irrelevant { display: none }
+.menuitem > .word.irrelevant + .space { display: none }
+.menuitem > .word.irrelevant + .space + .word.irrelevant { display: none }
 
-/* todo for later */
-.clickable.pad { padding: 0 0.2em; background-color: #efd }
+.menuitem > .word.irrelevant span { display: none }
+.menuitem > .word.irrelevant::before {
+    /* \22EF U+022EF &ctdot; MIDLINE HORIZONTAL ELLIPSIS */
+    /* \2026 U+02026 &hellip; HORIZONTAL ELLIPSIS */
+    content: "\22EF"; 
+    width: 1.5em;
+    bottom: -0.2ex;
+}
+
 
 
 /* Possible symbols to use:
@@ -389,42 +458,10 @@ progress {
 */
 
 
-/* Highlighting */
-
-.match { padding: 0 5px }
-#src .match { border-bottom: 2px solid }
-#trg .match { border-top:    2px solid }
-
-.greyed {
-    color: grey;
-}
-
-.marked {
-    /* color: red; */
-    font-weight: bold;
-}
-
-.striked {
-    text-decoration: line-through;
-    font-weight: bolder;
-    color: red;
-}
-
 /* currently unused, but supposed to be used for Blissymbolics in the future
 .symbol { position: relative; display: inline-block }
 .indicator { position: absolute; left: 0; top: 0 }
 */
-
-.overlay {
-    opacity:    0.1;
-    background: black;
-    width:      100%;
-    height:     100%;
-    z-index:    10;
-    top:        0;
-    left:       0;
-    position:   fixed;
-}
 
 
 /**********************************************************************/
