@@ -21,7 +21,6 @@ optionsParser = Options
       (  O.short 'c'
       <> O.long "config"
       <> O.help "The path to the main config Yaml file"
-      <> O.value "config.yaml"
       <> O.metavar "PATH"
       )
   <*> O.switch
