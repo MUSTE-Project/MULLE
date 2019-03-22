@@ -1,12 +1,34 @@
 
+
+/**********************************************************************/
+/* Variables and other settings, change these as you please */
+/* there are more variables and settings in the section "The exercise view" */
+
+:root {
+    /* color variables */
+    --main-bg-color: rgb(100%, 90%, 80%);
+    --light-bg-color: rgb(100%, 96%, 88%);
+
+    /* margins etc for various elements */
+    --header-vertical-margin: 0.5em;
+}
+
 html {
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-weight: 200;
     font-size: 14pt;
 }
 
+
+/**********************************************************************/
+/* Top-level elements and general settings */
+
+section {
+    max-width: 1100px;
+}
+
 html, body, main {
-    background-color: #fed;
+    background-color: var(--main-bg-color);
     margin: 0;
     padding: 0;
 }
@@ -14,10 +36,6 @@ html, body, main {
 body, button, input, table, tr, td {
     font-size: inherit;
     font-weight: inherit;
-}
-
-section {
-    max-width: 1100px;
 }
 
 main, main header {
@@ -36,7 +54,7 @@ strong, h1, h2, h3, h4, th, thead td {
 }
 
 h1, h2, h3, h4, section header {
-    margin: 0.5em 0;
+    margin: var(--header-vertical-margin) 0;
 }
 
 section header > * {
@@ -47,11 +65,15 @@ section header > * {
 /**********************************************************************/
 /* Form inputs, buttons, links, etc. */
 
-input, button, .button, .sentence {
+input, button, .sentence {
     background-color: white;
 }
 
-input, button, .button {
+button:hover {
+    background-color: var(--light-bg-color);
+}
+
+input, button {
     margin: 0.3em;
     padding: 0.3em 1em;
     display: inline-block;
@@ -78,10 +100,13 @@ a:hover, label[for]:hover {
 
 .clickable:hover, button:hover {
     cursor: pointer;
-    background-color: #eee;
-    background-color: rgba(220,220,220,0.7);
 }
 
+/* Change Autocomplete styles in WebKit browsers (Chrome, Safari) */
+/* Courtesy of https://css-tricks.com/snippets/css/change-autocomplete-styles-webkit-browsers */
+input:-webkit-autofill, textarea:-webkit-autofill, select:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0px 1000px var(--light-bg-color) inset;
+}
 
 /**********************************************************************/
 /* Main headers and footers */
@@ -246,6 +271,14 @@ progress {
 
 /**********************************************************************/
 /* The exercise view */
+/* variables used in the exercise view - change as you see fit */
+
+:root {
+    --space-normal: 0.5em;
+    --space-small: 0.2em;
+    --space-large: 1.0em;
+}
+
 
 .sentence, .menuitem {
     unicode-bidi: bidi-override;
@@ -253,17 +286,15 @@ progress {
 
 .sentence {
     margin: 0.3em;
-    padding: 0.3em 0.6em;
+    padding: 0.5em;
     display: inline-block;
-    padding-top: 0.5em;
-    padding-bottom: 0.5em;
     user-select: none;
     text-align: left;
     line-height: 1.5;
 }
 
-/* use smooth animation when chaning padding and size */
-.word, .space { transition: padding 0.3s, width 0.3s }
+/* use smooth animation when changing padding and size */
+.word, .space { transition: padding 0.2s, width 0.2s }
 
 /* whitespace is shown using the pseudo-elements ::before and ::after */
 /* position is relative to allow for moving symbols up/down */
@@ -298,19 +329,16 @@ progress {
 
 /* the widths of spaces, invisibles, linebreaks and indents */
 .sentence > .space::after { width: 0 }
-.sentence > .space::before { width: 0.5em }
-.sentence > .invisible::before { width: 0.2em }
-.sentence > .invisible.clickable:hover::before { width: 0.5em }
-.sentence > .linebreak::before { width: 1.0em }
+.sentence > .space::before { width: var(--space-normal) }
+.sentence > .invisible::before { width: var(--space-small) }
+.sentence > .linebreak::before { width: var(--space-large) }
 
-/* .invisible.selected::before { width: 0.5em } */
-
-.sentence > .indentation.i0::after { width: 0.5em }
-.sentence > .indentation.i1::after { width: 1.5em }
-.sentence > .indentation.i2::after { width: 2.5em }
-.sentence > .indentation.i3::after { width: 3.5em }
-.sentence > .indentation.i4::after { width: 4.5em }
-.sentence > .indentation.i5::after { width: 5.5em }
+.sentence > .indentation.i0::after { width: calc(0 * var(--space-large) + var(--space-normal)) }
+.sentence > .indentation.i1::after { width: calc(1 * var(--space-large) + var(--space-normal)) }
+.sentence > .indentation.i2::after { width: calc(2 * var(--space-large) + var(--space-normal)) }
+.sentence > .indentation.i3::after { width: calc(3 * var(--space-large) + var(--space-normal)) }
+.sentence > .indentation.i4::after { width: calc(4 * var(--space-large) + var(--space-normal)) }
+.sentence > .indentation.i5::after { width: calc(5 * var(--space-large) + var(--space-normal)) }
 
 /* ordinary spaces are shown using MIDDLE DOT */
 .sentence > .space::before { content: "·" } 
@@ -325,14 +353,12 @@ progress {
 
 /* replace the content with a small PLUS when hovering over it */
 /* the same for selected elements */
+.sentence > .space.selected::before,
 .sentence > .space.clickable:hover::before,
+.sentence > .indentation.selected::after,
 .sentence > .indentation.clickable:hover::after {
     content: "+"; font-size: 85%; bottom: 0.2ex;
-}
-
-/* replace the content with a small PLUS for selected elements */
-.sentence > .space.selected::before {
-    content: "+"; font-size: 85%; bottom: 0.2ex;
+    width: var(--space-normal); /* make space for the "+" */
 }
 
 /* normal space is invisible */
@@ -343,14 +369,15 @@ progress {
 .sentence > .space.clickable:hover  { opacity: 0.5 }
 .sentence > .space.selected { opacity: 0.5 }
 
-/* grow clickables and selected when hovering over them */
-.sentence > .clickable:hover { padding: 0 0.5em }
-.sentence > .selected { padding: 0 0.5em }
-.sentence > .clickable:hover + span { padding: 0 0.5em }
+/* change bg color when hovering over clickables */
+/* we have to make spaces darker to even out their low opacity */
+.word.clickable:hover { background-color: var(--light-bg-color) }
+.space.clickable:hover { background-color: var(--main-bg-color) }
 
-
-/* todo for later */
-.sentence > .clickable.pad { padding: 0 0.2em; background-color: #efd }
+/* grow clickables when hovering over them, and selected items, and neighbors */
+.sentence > .clickable:hover { padding: 0 var(--space-normal) }
+.sentence > .selected { padding: 0 var(--space-small) }
+.clickable.hovered-neighbour { padding: 0 var(--space-small) }
 
 
 /* Highlighting */
@@ -372,7 +399,7 @@ progress {
     z-index: 50;
     position: absolute;
     overflow: auto;
-    background-color: hsl(0, 0%, 95%);
+    background-color: white;
     list-style: none;
     padding: 0;
     margin: 0;
