@@ -424,12 +424,23 @@ function show_exercise(data) {
   matchy_magic(data.menu.trg, data.menu.src);
   show_sentence($('#src'), data.menu.src, data.settings);
   show_sentence($('#trg'), data.menu.trg, data.settings);
+  register_sentence_hover();
   $('#src').toggle(data.settings['show-source-sentence']);
   var e = EXERCISES[data.lesson.key];
   $('#exercisename')
     .text(i18next.t(`backend.${data.lesson.key}.name`, data.lesson.name));
   $('#lessoncounter')
     .prop(update_progressbar(e.passedcount, e.totalcount));
+}
+
+function register_sentence_hover() {
+  $(".sentence > span").hover(function() {
+    $(this).next().addClass("hovered-neighbour");
+    $(this).prev().addClass("hovered-neighbour");
+  }, function() {
+    $(this).next().removeClass("hovered-neighbour");
+    $(this).prev().removeClass("hovered-neighbour");
+  });
 }
 
 
