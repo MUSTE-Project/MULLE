@@ -342,7 +342,6 @@ instance ToJSON HighScore where
 data ActiveLesson = ActiveLesson
   { lesson        :: Database.Key Database.Lesson
   , name          :: Text
-  , description   :: Text
   , exercisecount :: Database.Numeric
   , passedcount   :: Database.Numeric
   , score         :: Maybe Score
@@ -358,7 +357,6 @@ instance FromJSON ActiveLesson where
     $ \v -> ActiveLesson
     <$> v .: "lesson"
     <*> v .: "name"
-    <*> v .: "description"
     <*> v .: "exercisecount"
     <*> v .: "passedcount"
     <*> v .: "score"
@@ -369,7 +367,6 @@ instance ToJSON ActiveLesson where
   toJSON ActiveLesson{..} = Aeson.object
     [ "lesson"        .= lesson
     , "name"          .= name
-    , "description"   .= description
     , "exercisecount" .= exercisecount
     , "passedcount"   .= passedcount
     , "score"         .= score

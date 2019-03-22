@@ -94,7 +94,6 @@ toDatabaseLesson Data.Lesson{..}
   = Database.Lesson
   { key                 = key
   , name                = name
-  , description         = description
   , grammar             = grammar
   , sourceLanguage      = sourceLanguage
   , targetLanguage      = targetLanguage
@@ -154,7 +153,6 @@ insertLessons c = SQL.executeMany c q
 INSERT INTO Lesson
 ( Id
 , Name
-, Description
 , Grammar
 , SourceLanguage
 , TargetLanguage
@@ -169,7 +167,7 @@ INSERT INTO Lesson
 , ShowSourceSentence
 , RandomizeOrder
 )
-VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 ;|]
 
 insertExercises :: Connection -> [Database.Exercise] -> IO ()

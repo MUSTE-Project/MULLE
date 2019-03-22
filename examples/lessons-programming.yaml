@@ -1,7 +1,6 @@
 
 - name: "Programming"
   key: 1
-  description: "An imperative programming language"
   search-options:
     size: 7
   settings:
@@ -13,4 +12,4 @@
     target: "ImperativeCnc"
   exercises:
     - source: " program f ; function f &+ ( ) { } "
-      target: " program main ; function main &+ ( ) { x += 3 × 4 ; } "
+      target: " program main ; function main &+ ( ) { x += 2 &+ 3 × 4 ; } "

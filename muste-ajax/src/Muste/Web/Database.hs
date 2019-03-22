@@ -111,7 +111,6 @@ getLessons = query_ q
 SELECT
     Id
   , Name
-  , Description
   , Grammar
   , SourceLanguage
   , TargetLanguage
@@ -140,7 +139,6 @@ getLesson l = Unsafe.head <$> queryNamed q [":Lesson" := l]
 SELECT
     Id
   , Name
-  , Description
   , Grammar
   , SourceLanguage
   , TargetLanguage
@@ -419,7 +417,7 @@ FROM Session
 WHERE Token = :Token;
 |]
 
--- | List all the lessons i.e. lesson name, description and exercise
+-- | List all the lessons i.e. lesson name and exercise
 -- count
 getActiveLessons
   :: forall r db . MonadDB r db
@@ -441,7 +439,6 @@ getActiveLessonsForUser user = queryNamed q [":User" := user]
 SELECT
   Lesson.Id AS Lesson,
   Lesson.Name,
-  Lesson.Description,
   COALESCE(ExerciseCount,0) AS ExerciseCount,
   Score,
   Lesson.Enabled,

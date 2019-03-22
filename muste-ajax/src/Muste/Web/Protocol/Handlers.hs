@@ -127,7 +127,6 @@ getActiveLessons t =
   step xs@(Database.ActiveLessonForUser{..} :| _) = Ajax.ActiveLesson
     { lesson        = lesson
     , name          = name
-    , description   = description
     , exercisecount = exercisecount
     , score         = sconcat <$> maybeScores
     -- This shuold be the same as asking whether 'score' is a 'Just'

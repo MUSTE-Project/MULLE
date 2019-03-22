@@ -45,7 +45,6 @@ CREATE TABLE Exercise (
 CREATE TABLE Lesson (
   Id                INTEGER PRIMARY KEY,
   Name              TEXT,
-  Description       TEXT NOT NULL,
   Grammar           TEXT NOT NULL,
   SourceLanguage    TEXT NOT NULL,
   TargetLanguage    TEXT NOT NULL,

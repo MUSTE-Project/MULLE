@@ -7,9 +7,9 @@ I18N.sv = {
 
 var sv = I18N.sv.translation = {};
 sv.app = {
-  title: "SKOGSMULLE",
+  title: "MULLE",
   subtitle: "(språkträningsspelet)",
-  longtitle: "Skogsmulle (språkträningsspelet)",
+  longtitle: "Mulle (språkträningsspelet)",
   explanation: `
 Detta är ett spel för att träna olika grammatiska aspekter av ett språk som du vill lära dig.
 Varje lektion är uppdelat i ett antal översättningsövningar, 
@@ -112,24 +112,6 @@ sv.highscores = {
   time: "Poäng - tid",
 };
 
-sv.backend = {
-  1: {name: "Svenska",
-      description: "Träna svenska <br/> (med markeringshjälp)",
-     },
-  2: {name: "Spanska",
-      description: "Träna spanska <br/> (utan markeringshjälp)",
-     },
-  3: {name: "Kinesiska",
-      description: "Träna kinesiska <br/> (testar icke-latinsk skrift)",
-     },
-  4: {name: "Arabiska",
-      description: "Träna arabiska <br/> (testar höger-till-vänster och icke-latinsk skrift)",
-     },
-  5: {name: "Fusk-pidgin",
-      description: "Träna fusk-pidgin <br/> (testar agglutinering och slumpmässig ordning mellan övningar)",
-     },
-};
-
 sv.modal = {
   ok: "OK",
   close: "Stäng",
@@ -144,4 +126,27 @@ sv.error = {
   '2-8': "Fel lösenord",
   '2-10': "Användarnamnet finns redan",
   unspecific: "<p>Ett fel inträffade</p><p>{{message}}</p>",
+};
+
+
+sv.backend = {
+  'Swedish': {name: "Svenska",
+              description: "Träna svenska <br/> (visar matchande ord)",
+             },
+  'Spanish': {name: "Spanska",
+              description: "Träna spanska <br/> (visar inte matchande ord)",
+             },
+  'Chinese': {name: "Kinesiska",
+              description: "Träna kinesiska <br/> (icke-latinsk skrift)",
+             },
+  'Arabic': {name: "Arabiska",
+             description: "Träna arabiska <br/> (höger-till-vänster och icke-latinsk skrift)",
+            },
+  'FakePidgin': {name: "Fusk-pidgin",
+                 description: "Träna fusk-pidgin <br/> (agglutinering och slumpmässig ordning mellan övningar)" +
+                 "<br/> Obs: detta är inte ett existerande språk!",
+                },
+  'Programming': {name: "Programmering",
+                  description: "Lek med ett imperativt programmeringsspråk",
+                 },
 };

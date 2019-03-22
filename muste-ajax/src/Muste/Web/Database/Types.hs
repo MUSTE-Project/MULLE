@@ -297,7 +297,6 @@ instance FromField Direction where
 data Lesson = Lesson
   { key                 :: Key Lesson
   , name                :: Text
-  , description         :: Text
   , grammar             :: Text
   , sourceLanguage      :: Text
   , targetLanguage      :: Text
@@ -323,7 +322,6 @@ instance ToNamed Lesson where
   toNamed Lesson{..} =
     [ ":Id"                := key
     , ":Name"              := name
-    , ":Description"       := description
     , ":Grammar"           := grammar
     , ":SourceLanguage"    := sourceLanguage
     , ":TargetLanguage"    := targetLanguage
@@ -406,7 +404,6 @@ instance ToNamed ExerciseList where
 data ActiveLessonForUser = ActiveLessonForUser
   { lesson        :: Key Lesson
   , name          :: Text
-  , description   :: Text
   , exercisecount :: Numeric
   , score         :: Maybe Score
   , enabled       :: Bool
@@ -423,7 +420,6 @@ instance ToNamed ActiveLessonForUser where
   toNamed ActiveLessonForUser{..} =
     [ ":Lesson"        := lesson
     , ":Name"          := name
-    , ":Description"   := description
     , ":Exercisecount" := exercisecount
     , ":Score"         := score
     , ":Enabled"       := enabled

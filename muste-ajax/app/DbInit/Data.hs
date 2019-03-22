@@ -159,7 +159,6 @@ instance ToJSON Exercise where
 data Lesson = Lesson
   { key            :: Database.Key Database.Lesson
   , name           :: Text
-  , description    :: Text
   , settings       :: LessonSettings
   , searchOptions  :: SearchOptions
   , grammar        :: Text
@@ -174,7 +173,6 @@ instance FromJSON Lesson where
     $  \v -> Lesson
     <$> v .:  "key"
     <*> v .:  "name"
-    <*> v .:  "description"
     <*> v .:* "settings"
     <*> v .:* "search-options"
     <*> v .:  "grammar"
@@ -185,7 +183,6 @@ instance ToJSON Lesson where
   toJSON Lesson{..} = Aeson.object
     [ "key"            .= key
     , "name"           .= name
-    , "description"    .= description
     , "settings"       .= settings
     , "search-options" .= searchOptions
     , "grammar"        .= grammar

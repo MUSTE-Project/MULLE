@@ -1,7 +1,6 @@
 
 - name: "Swedish"
   key: 1
-  description: "Swedish lessons, with highlighting"
   search-options:
     size: 7
   settings:
@@ -22,7 +21,6 @@
 
 - name: "Spanish"
   key: 2
-  description: "Spanish lessons, without highlighting"
   search-options:
     size: 7
   settings:
@@ -39,7 +37,6 @@
 
 - name: "Chinese"
   key: 3
-  description: "Chinese lessons, testing non-Latin script"
   search-options:
     size: 7
   grammar: "grammars/exemplum/Exemplum.pgf"
@@ -54,7 +51,6 @@
 
 - name: "Arabic"
   key: 4
-  description: "Arabic lessons, testing right-to-left non-Latin script"
   search-options:
     size: 7
   settings:
@@ -69,9 +65,8 @@
     - source: "a good king loves books"
       target: " يَحِبُّ مَلِكٌ بارِيسَ "  # a king loves Paris
 
-- name: "Fake Pidgin"
+- name: "FakePidgin"
   key: 5
-  description: "Lessons for fake Pigdin English, testing agglutination and randomised exercise order"
   search-options:
     size: 7
   settings:
