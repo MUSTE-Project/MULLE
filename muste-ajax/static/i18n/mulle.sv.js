@@ -127,26 +127,3 @@ sv.error = {
   '2-10': "Användarnamnet finns redan",
   unspecific: "<p>Ett fel inträffade</p><p>{{message}}</p>",
 };
-
-
-sv.backend = {
-  'Swedish': {name: "Svenska",
-              description: "Träna svenska <br/> (visar matchande ord)",
-             },
-  'Spanish': {name: "Spanska",
-              description: "Träna spanska <br/> (visar inte matchande ord)",
-             },
-  'Chinese': {name: "Kinesiska",
-              description: "Träna kinesiska <br/> (icke-latinsk skrift)",
-             },
-  'Arabic': {name: "Arabiska",
-             description: "Träna arabiska <br/> (höger-till-vänster och icke-latinsk skrift)",
-            },
-  'FakePidgin': {name: "Fusk-pidgin",
-                 description: "Träna fusk-pidgin <br/> (agglutinering och slumpmässig ordning mellan övningar)" +
-                 "<br/> Obs: detta är inte ett existerande språk!",
-                },
-  'Programming': {name: "Programmering",
-                  description: "Lek med ett imperativt programmeringsspråk",
-                 },
-};
