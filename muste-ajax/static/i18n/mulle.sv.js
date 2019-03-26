@@ -57,7 +57,7 @@ sv.lesson = {
 `}};
 
 sv.exercise = {
-  time: "Tis:",
+  time: "Tid:",
   score: "Poäng:",
   wide: "Utöka/krymp mellanrummen",
   lessonComplete: {
