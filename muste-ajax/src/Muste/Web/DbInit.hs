@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP, OverloadedStrings, TemplateHaskell,
   QuasiQuotes, TypeApplications, RecordWildCards, OverloadedLists #-}
 {-# OPTIONS_GHC -Wall #-}
-module DbInit (initDb) where
+module Muste.Web.DbInit (initDb) where
 
 import           Prelude ()
 import           Muste.Prelude
@@ -30,8 +30,7 @@ import qualified Muste.Sentence.Unannotated as Unannotated
 import qualified Muste.Web.Config         as Config
 import qualified Muste.Web.Database       as Database
 import qualified Muste.Web.Database.Types as Database
-
-import qualified DbInit.Data as Data
+import qualified Muste.Web.DbInit.Data    as Data
 
 initDb :: Config.AppConfig -> IO ()
 initDb cfg = do

@@ -99,6 +99,8 @@ library:
     - Muste.Web.Database
     - Muste.Web.Database.Class
     - Muste.Web.Database.Types
+    - Muste.Web.DbInit
+    - Muste.Web.DbInit.Data
     - Muste.Web.Types.Score
     - Muste.Web.Config
     - Muste.Web.Config.Types

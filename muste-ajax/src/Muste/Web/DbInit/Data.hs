@@ -3,7 +3,7 @@
 {-# Language OverloadedStrings, OverloadedLists, DuplicateRecordFields, RecordWildCards #-}
 {-# OPTIONS_GHC -Wall #-}
 
-module DbInit.Data
+module Muste.Web.DbInit.Data
   ( SearchOptions(..)
   , LessonSettings(..)
   , Sentence(..)

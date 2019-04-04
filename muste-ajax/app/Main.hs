@@ -22,8 +22,7 @@ import Control.Lens (makeLenses)
 
 import qualified Muste.Web.Protocol as Protocol
 import qualified Muste.Web.Config   as Config
-
-import qualified DbInit
+import qualified Muste.Web.DbInit   as DbInit
 import qualified Options
 
 data App = App
