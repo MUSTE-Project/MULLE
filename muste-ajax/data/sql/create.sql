@@ -123,25 +123,6 @@ CREATE VIEW ExerciseLesson AS
   FROM Lesson
   JOIN Exercise ON Lesson = Lesson.Id;
 
-DROP VIEW IF EXISTS FinishedExerciseLesson;
-CREATE VIEW FinishedExerciseLesson AS
-  SELECT *
-  FROM ExerciseList
-  JOIN Exercise ON ExerciseList.Exercise     = Exercise.Id
-  JOIN Lesson   ON Exercise.Lesson           = Lesson.Id
-  JOIN User     ON ExerciseList.User         = User.Id
-  WHERE Score NOT NULL;
-
-
--- The passed exercises by user and lesson
-DROP VIEW IF EXISTS PassedLesson;
-CREATE VIEW PassedLesson AS
-  SELECT
-    FinishedLesson.*,
-    MIN(IFNULL(COUNT(*),0),1) AS Passed
-  FROM FinishedLesson
-  GROUP BY Lesson, User;
-
 DROP VIEW IF EXISTS FinishedExercise;
 CREATE VIEW FinishedExercise AS
 SELECT *
