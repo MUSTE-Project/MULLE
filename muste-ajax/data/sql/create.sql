@@ -16,9 +16,8 @@ CREATE TABLE User (
 
 CREATE TABLE Session (
   Id          INTEGER PRIMARY KEY,
-  User        TEXT NOT NULL,
-  -- Should this be blob?
-  Token       TEXT UNIQUE,
+  User        TEXT NOT NULL UNIQUE,
+  Token       TEXT NOT NULL UNIQUE,
   Starttime   NUMERIC NOT NULL DEFAULT CURRENT_TIMESTAMP,
   LastActive  NUMERIC NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -31,19 +30,17 @@ CREATE TABLE Exercise (
   SourceTree    BLOB,
   -- FIXME Rename to TargetLinearization
   TargetTree    BLOB,
-  Lesson        INTEGER,
+  Lesson        INTEGER NOT NULL,
   Timeout       NUMERIC NOT NULL DEFAULT 0,
   -- The order in which exercises appear in a lesson.
   ExerciseOrder NUMERIC NOT NULL,
 
-  FOREIGN KEY(Lesson) REFERENCES Lesson(Id)
+  FOREIGN KEY (Lesson) REFERENCES Lesson(Id)
 );
 
--- FIXME We should change lesson to have a two foregin keys 'src' and
--- 'trg' to another table that describes a sentence.
 CREATE TABLE Lesson (
   Id                INTEGER PRIMARY KEY,
-  Name              TEXT,
+  Name              TEXT NOT NULL UNIQUE,
   Grammar           TEXT NOT NULL,
   SourceLanguage    TEXT NOT NULL,
   TargetLanguage    TEXT NOT NULL,
@@ -72,8 +69,8 @@ CREATE TABLE Lesson (
 -- a currently running lesson, we can have at most two
 -- lesson,user,round combinations now.
 CREATE TABLE StartedLesson (
-  Lesson   INTEGER,
-  User     TEXT,
+  Lesson   INTEGER NOT NULL,
+  User     TEXT NOT NULL,
   -- FIXME Could be implemented as a view?
   Round    NUMERIC NOT NULL DEFAULT 1,
   Score    BLOB,
@@ -95,8 +92,8 @@ FROM StartedLesson
 WHERE Score IS NULL;
 
 CREATE TABLE ExerciseList (
-  User      TEXT,
-  Exercise  INTEGER,
+  User      TEXT NOT NULL,
+  Exercise  INTEGER NOT NULL,
   Round     NUMERIC NOT NULL DEFAULT 1,
   Score     BLOB, -- nullable!
 
@@ -105,7 +102,6 @@ CREATE TABLE ExerciseList (
   FOREIGN KEY (Exercise) REFERENCES Exercise (Id)
 );
 
--- The most natural thing...
 DROP VIEW IF EXISTS ExerciseLesson;
 CREATE VIEW ExerciseLesson AS
   SELECT
