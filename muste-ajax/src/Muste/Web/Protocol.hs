@@ -54,17 +54,14 @@ openConnection p = do
 #endif
   pure c
 
-initApp
-  :: MonadIO io
-  => String
-  -> io AppState
-initApp db = do
+initApp :: MonadIO io => FilePath -> FilePath -> io AppState
+initApp db lessons = do
   liftIO  $ putStrLn "[Initializing app...]"
   conn    <- openConnection db
   ctxts   <- initContexts conn
   knownGs <- Grammar.noGrammars
   liftIO  $ putStrLn "[Initializing app... Done]"
-  pure    $ AppState conn ctxts knownGs
+  pure    $ AppState conn ctxts knownGs lessons
 
 initContexts :: MonadIO io => SQL.Connection -> io Contexts
 initContexts conn = Grammar.runGrammarT $ do
@@ -99,18 +96,16 @@ mkContext Database.Lesson{..} = do
     }
 
 -- | The main api.  For the protocol see @Protocol.apiRoutes@.
-apiInit :: String -> Snap.SnapletInit a AppState
-apiInit db = Snap.makeSnaplet "api" "MUSTE API" Nothing $ do
+apiInit :: FilePath -> FilePath -> Snap.SnapletInit a AppState
+apiInit db lessons = Snap.makeSnaplet "api" "MUSTE API" Nothing $ do
   Snap.wrapSite (Cors.applyCORS Cors.defaultOptions)
-  registerRoutes db
+  registerRoutes db lessons
 
--- I just realize that we're initializing the whole environment on
--- each connection, this is not necessary, we shuold be able to for
--- instance keep the database connection alive at all times.
-registerRoutes :: String -> Snap.Initializer v AppState AppState
-registerRoutes db = do
+
+registerRoutes :: FilePath -> FilePath -> Snap.Initializer v AppState AppState
+registerRoutes db lessons = do
   Snap.addRoutes apiRoutes
-  initApp db
+  initApp db lessons
 
 -- | Map requests to various handlers.
 apiRoutes :: forall v . [(ByteString, Snap.Handler v AppState ())]

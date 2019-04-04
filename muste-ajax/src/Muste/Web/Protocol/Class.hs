@@ -59,6 +59,7 @@ data AppState = AppState
   { connection    :: Connection
   , contexts      :: Contexts
   , knownGrammars :: Grammar.KnownGrammars
+  , lessonsCfg    :: FilePath
   }
 
 instance Grammar.HasKnownGrammars AppState where

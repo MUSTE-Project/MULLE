@@ -87,7 +87,7 @@ staticInit cfg = makeSnaplet "static" "Static file server" Nothing $ do
   void $ addRoutes [("", Snap.serveDirectory (Config.staticDir cfg))]
 
 apiInit :: Config.AppConfig -> SnapletInit a Protocol.AppState
-apiInit cfg = Protocol.apiInit (Config.db cfg)
+apiInit cfg = Protocol.apiInit (Config.db cfg) (Config.lessons cfg)
 
 (</>) :: IsString a => Semigroup a => a -> a -> a
 a </> b = a <> "/" <> b
