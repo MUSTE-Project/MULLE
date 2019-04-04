@@ -164,11 +164,11 @@ WHERE Id = :Lesson;
 createUser
   :: MonadDB r db
   => Types.CreateUser
-  -> db Types.UserSansId
+  -> db Types.User
 createUser Types.CreateUser{..} = do
   -- Create a salted password
   salt <- createSalt
-  pure $ Types.UserSansId
+  pure $ Types.User
     { name     = name
     , password = hashPassword password salt
     , salt     = Types.Blob salt
@@ -181,7 +181,7 @@ addUser
   => Types.CreateUser
   -> db ()
 addUser usr = do
-  Types.UserSansId{..} <- createUser usr
+  Types.User{..} <- createUser usr
   let u = [ ":Username"  := name
           , ":Password"  := password
           , ":Salt"      := salt
@@ -206,7 +206,7 @@ VALUES (:Username, :Password, :Salt, :Enabled);
 -- | Removes an existing user from the database.
 rmUser
   :: MonadDB r db
-  => Types.Key Types.User
+  => Text
   -> db ()
 rmUser u = void $ executeNamed q [ ":User" := u ]
   where
@@ -215,14 +215,14 @@ rmUser u = void $ executeNamed q [ ":User" := u ]
 -- rmUser
 DELETE
 FROM User
-WHERE Id = :User;
+WHERE Username = :User;
 |]
 
 authUser
   :: MonadDB r db
   => Text -- ^ Username
   -> Text -- ^ Password
-  -> db Types.User
+  -> db ()
 authUser user pass = do
   -- Get password and salt from database
   userList <- queryNamed q [":Username" := user]
@@ -231,16 +231,14 @@ authUser user pass = do
     h (Types.Blob s) = hashPassword pass s
     p Types.User{..} = enabled && h salt == password
   case userList of
-    [usr] -> if
-      | p usr     -> pure usr
-      | otherwise -> throwDbError NotAuthenticated
-    _             -> throwDbError NoUserFound
+    [usr] -> if p usr then return ()
+             else throwDbError NotAuthenticated
+    _     -> throwDbError NoUserFound
   where
 
   q = [sql|
 -- authUser
 SELECT
-  Id,
   Username,
   Password,
   Salt,
@@ -254,8 +252,8 @@ changePassword
   => Types.ChangePassword
   -> db ()
 changePassword Types.ChangePassword{..} = do
-  usr <- authUser name oldPassword
-  rmUser $ User.key usr
+  authUser name oldPassword
+  rmUser name
   addUser $ Types.CreateUser
     { name     = name
     , password = newPassword
@@ -264,7 +262,7 @@ changePassword Types.ChangePassword{..} = do
 
 createSession
   :: MonadDB r db
-  => Types.Key Types.User
+  => Text
   -> db Types.Session
 createSession user = do
   -- Remove any existing session.
@@ -282,7 +280,7 @@ createSession user = do
 
 getSession
   :: MonadDB r db
-  => Types.Key Types.User
+  => Text
   -> db (Maybe Types.Token)
 getSession user = fmap fromOnly . listToMaybe <$> queryNamed q [":User" := user]
   where
@@ -322,7 +320,7 @@ genToken timeStamp
 -- moment overly simplified.
 startSession
   :: MonadDB r db
-  => Types.Key Types.User
+  => Text
   -> db Types.Token
 startSession usr = do
   Types.Session user token startTime lastActive <- createSession usr
@@ -434,7 +432,7 @@ getActiveLessons token = do
 
 getActiveLessonsForUser
   :: forall r db . MonadDB r db
-  => Types.Key Types.User
+  => Text
   -> db [Types.ActiveLessonForUser]
 getActiveLessonsForUser user = queryNamed q [":User" := user]
   where
@@ -471,7 +469,7 @@ startLesson token lesson = do
 
 checkStarted
   :: MonadDB r db
-  => Types.Key Types.User
+  => Text
   -> Types.Key Types.Lesson
   -> db Bool
 checkStarted user lesson
@@ -490,7 +488,7 @@ WHERE User = :User
 getUser
   :: MonadDB r db
   => Types.Token
-  -> db (Types.Key Types.User)
+  -> db Text
 getUser token = do
   xs <- queryNamed q [":Token" := token]
   case xs of
@@ -534,7 +532,7 @@ WHERE Lesson = :Lesson;
 
 newLesson
   :: MonadDB r db
-  => Types.Key Types.User
+  => Text
   -> Types.Key Types.Lesson
   -> db Types.ExerciseLesson
 newLesson user lesson = do
@@ -604,7 +602,7 @@ insertExercises exercises =
 -- something.  Should be more robust...
 getLessonRound
   :: MonadDB r db
-  => Types.Key Types.User
+  => Text
   -> Types.Key Types.Lesson
   -> db Types.Numeric
 getLessonRound user lesson =
@@ -626,7 +624,7 @@ WHERE
 
 continueLesson
   :: MonadDB r db
-  => Types.Key Types.User
+  => Text
   -> Types.Key Types.Lesson
   -> db Types.ExerciseLesson
 continueLesson user lesson = do
@@ -658,7 +656,7 @@ finishExercise token lesson score = do
 
 checkFinished
   :: MonadDB r db
-  => Types.Key Types.User
+  => Text
   -> Types.Key Types.Lesson
   -> db Bool
 checkFinished user lesson = do
@@ -670,7 +668,7 @@ checkFinished user lesson = do
 -- ensure that there is only one entry per user/lesson combination.
 finishLesson
   :: MonadDB r db
-  => Types.Key Types.User
+  => Text
   -> Types.Key Types.Lesson
   -> Types.Numeric -- ^ Round
   -> db ()
@@ -688,7 +686,7 @@ finishLesson user lesson round = do
 
 deleteStartedLessons
   :: MonadDB r db
-  => Types.Key Types.User
+  => Text
   -> Types.Key Types.Lesson
   -> db ()
 deleteStartedLessons u l = executeNamed q [":User" := u, ":Lesson" := l]
@@ -705,7 +703,7 @@ WHERE User   = :User
 getExercise
   :: MonadDB r db
   => Types.Key Types.Lesson
-  -> Types.Key Types.User
+  -> Text
   -> Types.Numeric -- ^ Round
   -> db Types.ExerciseLesson
 getExercise lesson user round
@@ -753,7 +751,7 @@ finishExerciseAux (Types.ExerciseList user exercise round score) =
 
 getFinishedExercises
   :: MonadDB r db
-  => Types.Key Types.User
+  => Text
   -> Types.Key Types.Lesson
   -> db Types.Numeric
 getFinishedExercises user lesson
@@ -790,7 +788,7 @@ WHERE Id = :Lesson;
 -- | Get the score for the user and lesson.
 getScore
   :: MonadDB r db
-  => Types.Key Types.User
+  => Text
   -> Types.Key Types.Lesson
   -> db Score
 getScore user lesson
@@ -826,12 +824,11 @@ getUserLessonScores = query_ q
 SELECT
   Lesson.Id,
   Lesson.Name,
-  User.Id,
   User.Username,
   FinishedLesson.Score
 FROM FinishedLesson
 JOIN User
-  ON User = User.Id
+  ON User = User.Username
 LEFT
   JOIN Lesson
   ON Lesson = Lesson.Id;
@@ -849,7 +846,7 @@ resetLesson t l = do
 -- | Deletes the exercise for a given user/lesson.
 deleteExerciseList
   :: MonadDB r db
-  => Types.Key Types.User
+  => Text
   -> Types.Key Types.Lesson
   -> db ()
 deleteExerciseList u l = executeNamed q [":User" := u, ":Lesson" := l]

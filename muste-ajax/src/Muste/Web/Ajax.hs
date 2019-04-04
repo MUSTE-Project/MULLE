@@ -257,8 +257,7 @@ instance ToJSON MenuList where
     ]
 
 data User = User
-  { key      :: Database.Key Database.User
-  , name     :: Text
+  { name     :: Text
   }
 
 deriving stock instance Show User
@@ -266,13 +265,11 @@ deriving stock instance Show User
 instance FromJSON User where
   parseJSON = Aeson.withObject "user"
      $ \v -> User
-    <$> v .: "key"
-    <*> v .: "name"
+    <$> v .: "name"
 
 instance ToJSON User where
   toJSON User{..} = Aeson.object
-    [ "key"        .= key
-    , "name"       .= name
+    [ "name"       .= name
     ]
 
 data CreateUser = CreateUser

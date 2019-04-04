@@ -52,7 +52,6 @@ import qualified Muste.Web.Ajax              as Lesson ( Lesson(..) )
 import qualified Muste.Web.Ajax              as ClientTree ( ClientTree(..) )
 import qualified Muste.Web.Database          as Database
 import qualified Muste.Web.Database.Types    as Database
-import qualified Muste.Web.Database.Types    as Database.User ( User(..) )
 import qualified Muste.Web.Database.Types
   as Database.UserLessonScore ( UserLessonScore(..) )
 import qualified Muste.Web.Database.Types    as ActiveLessonForUser
@@ -198,8 +197,8 @@ handleLoginRequest
   => Ajax.LoginRequest
   -> m Ajax.LoginSuccess
 handleLoginRequest Ajax.LoginRequest{..} = do
-  user <- Database.authUser name password
-  Database.Token token <- Database.startSession $ Database.User.key user
+  Database.authUser name password
+  Database.Token token <- Database.startSession name
   setLoginCookie token
   pure $ Ajax.LoginSuccess token
 
@@ -433,8 +432,7 @@ highScoresHandler = pure . step <$> Database.getUserLessonScores
         , name = lessonName
         }
     , user = Ajax.User
-        { key  = user
-        , name = userName
+        { name = user
         }
     , score = score
     }

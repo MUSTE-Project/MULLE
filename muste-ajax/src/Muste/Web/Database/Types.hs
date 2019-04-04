@@ -19,7 +19,6 @@
 
 module Muste.Web.Database.Types
   ( User(..)
-  , UserSansId(..)
   , CreateUser(..)
   , ChangePassword(..)
   , Session(..)
@@ -100,8 +99,7 @@ instance FromJSON  (Key a) where
   parseJSON = fmap Key . parseJSON
 
 data User = User
-  { key                 :: Key User
-  , name                :: Text
+  { name                :: Text
   , password            :: Blob
   , salt                :: Blob
   , enabled             :: Bool
@@ -112,20 +110,6 @@ deriving stock    instance Generic User
 instance ToRow User where
    toRow = genericToRow
 instance FromRow User where
-   fromRow = genericFromRow
-
-data UserSansId = UserSansId
-  { name                :: Text
-  , password            :: Blob
-  , salt                :: Blob
-  , enabled             :: Bool
-  }
-
-deriving stock    instance Show    UserSansId
-deriving stock    instance Generic UserSansId
-instance ToRow UserSansId where
-   toRow = genericToRow
-instance FromRow UserSansId where
    fromRow = genericFromRow
 
 data CreateUser = CreateUser
@@ -166,7 +150,7 @@ deriving newtype  instance FromField Token
 
 -- NB Missing the key to be exactly the same as the stuff in the db.
 data Session = Session
-  { user                :: Key User
+  { user                :: Text
   , token               :: Token
   , startTime           :: UTCTime
   , lastActive          :: UTCTime
@@ -263,7 +247,7 @@ instance FromRow Lesson where
 
 data StartedLesson = StartedLesson
   { lesson              :: Key Lesson
-  , user                :: Key User
+  , user                :: Text
   , round               :: Numeric
   }
 
@@ -276,7 +260,7 @@ instance FromRow StartedLesson where
 
 data FinishedLesson = FinishedLesson
   { lesson              :: Key Lesson
-  , user                :: Key User
+  , user                :: Text
   , score               :: Score
   , round               :: Numeric
   }
@@ -289,7 +273,7 @@ instance FromRow FinishedLesson where
    fromRow = genericFromRow
 
 data ExerciseList = ExerciseList
-  { user     :: Key User
+  { user     :: Text
   , exercise :: Key Exercise
   , round    :: Numeric
   -- A 'Just' value indicates that the exercise has been solved.
@@ -311,7 +295,7 @@ data ActiveLessonForUser = ActiveLessonForUser
   , exercisecount :: Numeric
   , score         :: Maybe Score
   , enabled       :: Bool
-  , user          :: Maybe (Key User)
+  , user          :: Maybe Text
   }
 
 deriving stock    instance Show    ActiveLessonForUser
@@ -324,8 +308,7 @@ instance FromRow ActiveLessonForUser where
 data UserLessonScore = UserLessonScore
   { lesson     :: Key Lesson
   , lessonName :: Text
-  , user       :: Key User
-  , userName   :: Text
+  , user       :: Text
   , score      :: Score
   }
 

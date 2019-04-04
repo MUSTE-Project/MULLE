@@ -8,8 +8,7 @@ DROP TABLE IF EXISTS StartedLesson;
 DROP TABLE IF EXISTS ExerciseList;
 
 CREATE TABLE User (
-  Id        INTEGER PRIMARY KEY,
-  Username  TEXT NOT NULL UNIQUE,
+  Username  TEXT NOT NULL PRIMARY KEY,
   Password  BLOB NOT NULL,
   Salt      BLOB NOT NULL,
   Enabled   BOOL NOT NULL DEFAULT 0
@@ -17,13 +16,13 @@ CREATE TABLE User (
 
 CREATE TABLE Session (
   Id          INTEGER PRIMARY KEY,
-  User        INTEGER NOT NULL,
+  User        TEXT NOT NULL,
   -- Should this be blob?
   Token       TEXT UNIQUE,
   Starttime   NUMERIC NOT NULL DEFAULT CURRENT_TIMESTAMP,
   LastActive  NUMERIC NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-  FOREIGN KEY (User) REFERENCES User(Id)
+  FOREIGN KEY (User) REFERENCES User(Username)
 );
 
 CREATE TABLE Exercise (
@@ -74,17 +73,13 @@ CREATE TABLE Lesson (
 -- lesson,user,round combinations now.
 CREATE TABLE StartedLesson (
   Lesson   INTEGER,
-  User     INTEGER,
+  User     TEXT,
   -- FIXME Could be implemented as a view?
   Round    NUMERIC NOT NULL DEFAULT 1,
   Score    BLOB,
 
-  FOREIGN
-    KEY              (Lesson)
-    REFERENCES Lesson(Id),
-  FOREIGN
-    KEY            (User)
-    REFERENCES User(Id)
+  FOREIGN KEY (Lesson) REFERENCES Lesson(Id),
+  FOREIGN KEY (User)   REFERENCES User(Username)
 );
 
 DROP VIEW IF EXISTS FinishedLesson;
@@ -100,18 +95,14 @@ FROM StartedLesson
 WHERE Score IS NULL;
 
 CREATE TABLE ExerciseList (
-  User      INTEGER,
+  User      TEXT,
   Exercise  INTEGER,
   Round     NUMERIC NOT NULL DEFAULT 1,
   Score     BLOB, -- nullable!
 
   PRIMARY KEY (User, Exercise, Round),
-  FOREIGN
-    KEY            (User)
-    REFERENCES User(Id),
-  FOREIGN
-    KEY                 (Exercise)
-    REFERENCES Exercise (Id)
+  FOREIGN KEY (User)     REFERENCES User(Username),
+  FOREIGN KEY (Exercise) REFERENCES Exercise (Id)
 );
 
 -- The most natural thing...
