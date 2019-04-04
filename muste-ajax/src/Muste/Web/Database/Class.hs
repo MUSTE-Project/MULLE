@@ -26,11 +26,9 @@ module Muste.Web.Database.Class
 
 import           Prelude ()
 import           Muste.Prelude
-import           Muste.Prelude.SQL
-  ( Query, Connection
-  , FromRow, ToNamed
-  )
-import qualified Muste.Prelude.SQL         as SQL
+
+import           Database.SQLite.Simple (Query, Connection, FromRow, NamedParam)
+import qualified Database.SQLite.Simple as SQL
 
 import           Control.Monad.Reader
 
@@ -126,44 +124,39 @@ runDbT :: DbT m a -> Connection -> m (Either Error a)
 runDbT (DbT db) c = runExceptT $ runReaderT db c
 
 query_
-  :: forall res r db . MonadDB r db
+  :: MonadDB r db
   => FromRow res
   => Query -> db [res]
 query_ qry = wrappedWithCon $ \c ->
   SQL.query_ c qry
 
 queryNamed
-  :: forall res q r db
-  . MonadDB r db
-  => ToNamed q
+  :: MonadDB r db
   => FromRow res
   => Query
-  -> q
+  -> [NamedParam]
   -> db [res]
 queryNamed q a = wrappedWithCon $ \c ->
-  SQL.queryNamed c q (SQL.toNamed a)
+  SQL.queryNamed c q a
 
 executeNamed
-  :: forall q db r
-  . MonadDB r db
-  => ToNamed q
+  :: MonadDB r db
   => Query
-  -> q
+  -> [NamedParam]
   -> db ()
 executeNamed q a = wrappedWithCon $ \c ->
-  SQL.executeNamed c q (SQL.toNamed a)
+  SQL.executeNamed c q a
 
 -- This /may/ not be as efficient as using 'SQL.executeMany', but
 -- unfortunately they do not exposed a version of that wih named
 -- params.
 executeManyNamed
   :: MonadDB r db
-  => ToNamed x
   => Query
-  -> [x]
+  -> [[NamedParam]]
   -> db ()
 executeManyNamed q xs = wrappedWithCon $ \c ->
-  void $ traverse (SQL.executeNamed c q . SQL.toNamed) xs
+  void $ traverse (SQL.executeNamed c q) xs
 
 wrappedWithCon :: MonadDB r db => (Connection -> IO a) -> db a
 wrappedWithCon act = do

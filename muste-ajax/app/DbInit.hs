@@ -5,8 +5,10 @@ module DbInit (initDb) where
 
 import           Prelude ()
 import           Muste.Prelude
-import           Muste.Prelude.SQL (Connection(Connection), sql)
-import qualified Muste.Prelude.SQL as SQL
+
+import           Database.SQLite.Simple (Connection(Connection))
+import           Database.SQLite.Simple.QQ (sql)
+import qualified Database.SQLite.Simple as SQL
 
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as ByteString

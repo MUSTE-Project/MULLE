@@ -31,8 +31,10 @@ import Prelude ()
 import Muste.Prelude
 import Muste.Prelude.Extra
 import qualified Muste.Prelude.Unsafe as Unsafe
-import Muste.Prelude.SQL (FromField, ToField)
-import qualified Muste.Prelude.SQL as SQL
+
+import Muste.Prelude.SQL (toBlob, fromBlob)
+import Database.SQLite.Simple.ToField (ToField(..))
+import Database.SQLite.Simple.FromField (FromField(..))
 
 -- TODO Do not depend on PGF
 import qualified PGF
@@ -157,10 +159,10 @@ instance ToJSON TTree where
   toJSON = String . fromString . show
 
 instance FromField TTree where
-  fromField = SQL.fromBlob
+  fromField = fromBlob
 
 instance ToField TTree where
-  toField = SQL.toBlob
+  toField = toBlob
 
 -- | The basic type of sentences and sentence formers.
 data FunType

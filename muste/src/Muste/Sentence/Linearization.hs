@@ -4,8 +4,10 @@ module Muste.Sentence.Linearization where
 
 import Prelude ()
 import Muste.Prelude
-import Muste.Prelude.SQL (FromField, ToField)
-import qualified Muste.Prelude.SQL as SQL
+
+import Muste.Prelude.SQL (toBlob, fromBlob)
+import Database.SQLite.Simple.ToField (ToField(..))
+import Database.SQLite.Simple.FromField (FromField(..))
 
 import Data.Aeson (ToJSON(..), FromJSON(..))
 import Data.Vector (Vector)
@@ -39,10 +41,10 @@ instance Binary a => Binary (Linearization a) where
   get = Linearization . Vector.fromList <$> get @[a]
 
 instance (Binary a, Typeable a) => ToField (Linearization a) where
-  toField = SQL.toBlob
+  toField = toBlob
 
 instance (Binary a, Typeable a) => FromField (Linearization a) where
-  fromField = SQL.fromBlob
+  fromField = fromBlob
 
 instance IsList (Linearization a) where
   type Item (Linearization a) = a

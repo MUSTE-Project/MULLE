@@ -37,9 +37,10 @@ module Muste.Web.Database
 import           Prelude ()
 import           Muste.Prelude
 import qualified Muste.Prelude.Unsafe      as Unsafe
-import           Muste.Prelude.SQL
-  ( Only(..), sql, NamedParam(..)  )
-import qualified Muste.Prelude.SQL         as SQL
+
+import           Database.SQLite.Simple (Only(..), NamedParam(..))
+import           Database.SQLite.Simple.QQ (sql)
+import qualified Database.SQLite.Simple as SQL
 
 import qualified Crypto.Random             as Crypto
 import qualified Crypto.KDF.PBKDF2         as Crypto
@@ -179,13 +180,17 @@ addUser
   :: MonadDB r db
   => Types.CreateUser
   -> db ()
-addUser usr@Types.CreateUser{..} = do
-  u <- createUser usr
-  executeNamed @Types.UserSansId q u `catchDbError` h
+addUser usr = do
+  Types.UserSansId{..} <- createUser usr
+  let u = [ ":Username"  := name
+          , ":Password"  := password
+          , ":Salt"      := salt
+          , ":Enabled"   := enabled
+          ]
+  executeNamed q u `catchDbError` h
   where
   h e = case e of
-    -- DriverError e -> case fromException @SQL.ResultError $ toException e of
-    DriverError de -> case fromException @SQL.SQLError de of
+    DriverError de -> case fromException de of
       Just (SQL.SQLError SQL.ErrorConstraint{} _ _)
         -- This error is likely due to the fact that the user already
         -- exists.
@@ -220,7 +225,7 @@ authUser
   -> db Types.User
 authUser user pass = do
   -- Get password and salt from database
-  userList <- queryNamed @Types.User q [":Username" := user]
+  userList <- queryNamed q [":Username" := user]
   -- Generate new password hash and compare to the stored one
   let
     h (Types.Blob s) = hashPassword pass s
@@ -319,17 +324,17 @@ startSession
   :: MonadDB r db
   => Types.Key Types.User
   -> db Types.Token
-startSession user = do
-  session@(Types.Session _ token _ _) <- createSession user
-  executeNamed q session
-  pure token
-  where
-
-  q = [sql|
--- startSession
-INSERT INTO Session (User, Token, Starttime, LastActive)
-VALUES (:User, :Token, :Starttime, :LastActive);
-|]
+startSession usr = do
+  Types.Session user token startTime lastActive <- createSession usr
+  let n = [ ":User"        := user
+          , ":Token"       := token
+          , ":Starttime"   := startTime
+          , ":LastActive"  := lastActive
+          ]
+  executeNamed q n
+  return token
+  where q = " INSERT INTO Session (User, Token, Starttime, LastActive) \
+            \ VALUES (:User, :Token, :Starttime, :LastActive) "
 
 formatTime :: UTCTime -> String
 formatTime = Time.formatTime Time.defaultTimeLocale "%s"
@@ -470,8 +475,8 @@ checkStarted
   -> Types.Key Types.Lesson
   -> db Bool
 checkStarted user lesson
-  =   (0 /=) . fromOnly . Unsafe.head
-  <$> queryNamed @(Only Int) q [":User" := user, ":Lesson" := lesson]
+  =   ((0 :: Int) /=) . fromOnly . Unsafe.head
+  <$> queryNamed q [":User" := user, ":Lesson" := lesson]
   where
 
   q = [sql|
@@ -572,24 +577,27 @@ pickExercises lesson = do
   else pure $ sortOn ExerciseLesson.exerciseOrder es
 
 startLessonAux :: MonadDB r db => Types.StartedLesson -> db ()
-startLessonAux = executeNamed q
-  where
-
-  q = [sql|
--- startLessonAux
-INSERT INTO StartedLesson (Lesson, User, Round)
-VALUES (:Lesson, :User, :Round);
-|]
+startLessonAux (Types.StartedLesson lesson user round) =
+  executeNamed
+  " INSERT INTO StartedLesson (Lesson, User, Round) \
+  \ VALUES (:Lesson, :User, :Round) "
+  [ ":Lesson"   := lesson
+  , ":User"     := user
+  , ":Round"    := round
+  ]
 
 insertExercises :: MonadDB r db => [Types.ExerciseList] -> db ()
-insertExercises = executeManyNamed q
-  where
+insertExercises exercises =
+  executeManyNamed q
+  [ [ ":User"     := user
+    , ":Exercise" := exercise
+    , ":Round"    := round
+    , ":Score"    := score
+    ]
+  | Types.ExerciseList user exercise round score <- exercises ]
 
-  q = [sql|
--- insertExercises
-INSERT INTO ExerciseList (User, Exercise, Round, Score)
-VALUES (:User, :Exercise, :Round, :Score);
-|]
+  where q = " INSERT INTO ExerciseList (User, Exercise, Round, Score) \
+            \ VALUES (:User, :Exercise, :Round, :Score) "
 
 -- FIXME It makes more sense to query @StartedLesson@ to figure out
 -- how far along the lesson is or perhaps implement this as a view or
@@ -669,19 +677,14 @@ finishLesson
 finishLesson user lesson round = do
   score <- getScore user lesson
   deleteStartedLessons user lesson
-  executeNamed q $ Types.FinishedLesson
-    { user   = user
-    , lesson = lesson
-    , score  = score
-    , round  = succ round
-    }
-  where
-
-  q = [sql|
--- finishLesson
-INSERT INTO StartedLesson (Lesson, User, Round, Score)
-VALUES  (:Lesson, :User, :Round, :Score);
-|]
+  executeNamed
+    " INSERT INTO StartedLesson (Lesson, User, Round, Score) \
+    \ VALUES  (:Lesson, :User, :Round, :Score) "
+    [ ":Lesson" := lesson
+    , ":User"   := user
+    , ":Score"  := score
+    , ":Round"  := succ round
+    ]
 
 deleteStartedLessons
   :: MonadDB r db
@@ -738,17 +741,15 @@ finishExerciseAux
   :: MonadDB r db
   => Types.ExerciseList
   -> db ()
-finishExerciseAux = executeNamed q
-  where
-
-  q = [sql|
--- finishExerciseAux
-UPDATE ExerciseList
-SET Score      = :Score
-WHERE User     = :User
-AND   Exercise = :Exercise
-AND   Round    = :Round;
-|]
+finishExerciseAux (Types.ExerciseList user exercise round score) =
+  executeNamed
+  " UPDATE ExerciseList SET Score = :Score \
+  \ WHERE User = :User AND Exercise = :Exercise AND Round = :Round "
+  [ ":User"      := user
+  , ":Exercise"  := exercise
+  , ":Round"     := round
+  , ":Score"     := score
+  ]
 
 getFinishedExercises
   :: MonadDB r db
@@ -794,7 +795,7 @@ getScore
   -> db Score
 getScore user lesson
   =   mconcat . fmap fromOnly
-  <$> queryNamed @(Only Score) q
+  <$> queryNamed q
   [ ":User"   := user
   , ":Lesson" := lesson
   ]

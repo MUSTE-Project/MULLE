@@ -7,7 +7,9 @@ module Muste.Sentence.Language
 import Prelude ()
 import Muste.Prelude
 import qualified Muste.Prelude.Unsafe as Unsafe
-import Muste.Prelude.SQL (FromField, ToField)
+
+import Database.SQLite.Simple.ToField (ToField)
+import Database.SQLite.Simple.FromField (FromField)
 
 import Data.Aeson ((.=), (.:))
 import qualified Data.Aeson as Aeson

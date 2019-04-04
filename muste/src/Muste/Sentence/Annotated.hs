@@ -7,8 +7,10 @@ module Muste.Sentence.Annotated
 import Prelude ()
 import Muste.Prelude
 import qualified Muste.Prelude.Unsafe as Unsafe
-import Muste.Prelude.SQL (FromField, ToField)
-import qualified Muste.Prelude.SQL as SQL
+
+import Muste.Prelude.SQL (toBlob, fromBlob)
+import Database.SQLite.Simple.ToField (ToField(..))
+import Database.SQLite.Simple.FromField (FromField(..))
 
 import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:))
 import qualified Data.Aeson as Aeson
@@ -54,10 +56,10 @@ deriving instance Generic Annotated
 instance Binary Annotated where
 
 instance ToField Annotated where
-  toField = SQL.toBlob
+  toField = toBlob
 
 instance FromField Annotated where
-  fromField = SQL.fromBlob
+  fromField = fromBlob
 
 instance Sentence Annotated where
   -- This is not a loop.  The 'sentence' on the RHS is defined in this

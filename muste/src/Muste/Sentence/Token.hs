@@ -13,8 +13,10 @@ module Muste.Sentence.Token
 
 import Prelude ()
 import Muste.Prelude
-import Muste.Prelude.SQL (FromField, ToField)
-import qualified Muste.Prelude.SQL as SQL
+
+import Muste.Prelude.SQL (toBlob, fromBlob)
+import Database.SQLite.Simple.ToField (ToField(..))
+import Database.SQLite.Simple.FromField (FromField(..))
 
 import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:))
 import qualified Data.Aeson as Aeson
@@ -40,9 +42,9 @@ deriving instance Eq Annotated
 deriving instance Ord Annotated
 instance Binary Annotated where
 instance ToField Annotated where
-  toField = SQL.toBlob
+  toField = toBlob
 instance FromField Annotated where
-  fromField = SQL.fromBlob
+  fromField = fromBlob
 instance ToJSON Annotated where
   toJSON Annotated{..} = Aeson.object
     [ "concrete" .= concrete
@@ -71,9 +73,9 @@ deriving instance Ord Unannotated
 deriving instance Generic Unannotated
 instance Binary Unannotated where
 instance ToField Unannotated where
-  toField = SQL.toBlob
+  toField = toBlob
 instance FromField Unannotated where
-  fromField = SQL.fromBlob
+  fromField = fromBlob
 instance ToJSON Unannotated where
   toJSON (Unannotated c) = Aeson.object
     [ "concrete" .= c

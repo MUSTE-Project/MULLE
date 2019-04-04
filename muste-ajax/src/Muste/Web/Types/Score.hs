@@ -17,8 +17,11 @@ module Muste.Web.Types.Score
 
 import Prelude ()
 import Muste.Prelude
-import Muste.Prelude.SQL (FromField, ToField)
-import qualified Muste.Prelude.SQL as SQL
+
+import Muste.Prelude.SQL (toBlob, fromNullableBlob)
+import Database.SQLite.Simple.ToField (ToField(..))
+import Database.SQLite.Simple.FromField (FromField(..))
+
 import qualified GHC.Float as Math
 import           GHC.Real ((/))
 
@@ -72,10 +75,10 @@ instance FromJSON Score where
 -- @(Int, Int)@ using the 'Enum' instance for 'NominalDiffTime' in the
 -- process.
 instance FromField Score where
-  fromField = SQL.fromNullableBlob
+  fromField = fromNullableBlob
 
 instance ToField Score where
-  toField = SQL.toBlob
+  toField = toBlob
 
 
 -- This also has an implementation in js:

@@ -30,7 +30,8 @@ module Muste.Web.Protocol.Class
 
 import           Prelude ()
 import           Muste.Prelude
-import           Muste.Prelude.SQL (Connection)
+
+import           Database.SQLite.Simple (Connection)
 
 import           Control.Monad.Base (MonadBase)
 import           Control.Monad.Trans.Control (MonadBaseControl)

@@ -21,8 +21,10 @@ module Muste.Linearization.Internal
 import Prelude ()
 import Muste.Prelude
 import qualified Muste.Prelude.Unsafe as Unsafe
-import Muste.Prelude.SQL (FromField, ToField)
-import qualified Muste.Prelude.SQL as SQL
+
+import Muste.Prelude.SQL (toBlob, fromBlob)
+import Database.SQLite.Simple.ToField (ToField(..))
+import Database.SQLite.Simple.FromField (FromField(..))
 
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -84,10 +86,10 @@ instance Pretty Linearization where
 --   show = show . stringRep
 
 instance ToField Linearization where
-  toField = SQL.toBlob
+  toField = toBlob
 
 instance FromField Linearization where
-  fromField = SQL.fromBlob
+  fromField = fromBlob
 
 -- | Remember all 'AdjunctionTrees' in a certain 'PGF.Language' for a
 -- certain 'Grammar'.

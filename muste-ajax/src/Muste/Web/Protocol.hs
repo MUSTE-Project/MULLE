@@ -23,8 +23,8 @@ module Muste.Web.Protocol
 
 import           Prelude ()
 import           Muste.Prelude
-import qualified Muste.Prelude.SQL            as SQL
-import           Muste.Prelude.SQL (Connection)
+
+import qualified Database.SQLite.Simple as SQL
 
 import           Data.ByteString (ByteString)
 import qualified Data.Map                     as Map
@@ -46,7 +46,7 @@ import qualified Muste.Web.Database.Types     as Database
 import           Muste.Web.Protocol.Class
 import qualified Muste.Web.Protocol.Handlers  as Handlers
 
-openConnection :: MonadIO io => String -> io Connection
+openConnection :: MonadIO io => String -> io SQL.Connection
 openConnection p = do
   c <- liftIO $ SQL.open p
 #ifdef DIAGNOSTICS
@@ -66,7 +66,7 @@ initApp db = do
   liftIO  $ putStrLn "[Initializing app... Done]"
   pure    $ AppState conn ctxts knownGs
 
-initContexts :: MonadIO io => Connection -> io Contexts
+initContexts :: MonadIO io => SQL.Connection -> io Contexts
 initContexts conn = Grammar.runGrammarT $ do
   c <- flip Database.runDbT conn $ do
     lessons <- Database.getLessons

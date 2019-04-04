@@ -42,16 +42,12 @@ module Muste.Web.Database.Types
 
 import Prelude ()
 import Muste.Prelude
-import Muste.Prelude.SQL
-  ( FromRow(..)
-  , ToRow(..)
-  , ToField(..)
-  , FromField(..)
-  , ToNamed(..)
-  , NamedParam(..)
-  )
-import Data.Int (Int64)
 
+import Database.SQLite.Simple (FromRow(..), ToRow(..))
+import Database.SQLite.Simple.ToField (ToField(..))
+import Database.SQLite.Simple.FromField (FromField(..))
+
+import Data.Int (Int64)
 import Data.ByteString (ByteString)
 import Data.Aeson (FromJSON(..), ToJSON(..))
 
@@ -117,14 +113,6 @@ instance ToRow User where
    toRow = genericToRow
 instance FromRow User where
    fromRow = genericFromRow
-instance ToNamed User where
-  toNamed User{..} =
-    [ ":Id"        := key
-    , ":Username"  := name
-    , ":Password"  := password
-    , ":Salt"      := salt
-    , ":Enabled"   := enabled
-    ]
 
 data UserSansId = UserSansId
   { name                :: Text
@@ -139,13 +127,6 @@ instance ToRow UserSansId where
    toRow = genericToRow
 instance FromRow UserSansId where
    fromRow = genericFromRow
-instance ToNamed UserSansId where
-  toNamed UserSansId{..} =
-    [ ":Username"  := name
-    , ":Password"  := password
-    , ":Salt"      := salt
-    , ":Enabled"   := enabled
-    ]
 
 data CreateUser = CreateUser
   { name     :: Text
@@ -159,12 +140,6 @@ instance ToRow CreateUser where
    toRow = genericToRow
 instance FromRow CreateUser where
    fromRow = genericFromRow
-instance ToNamed CreateUser where
-  toNamed CreateUser{..} =
-    [ ":Username"  := name
-    , ":Password"  := password
-    , ":Enabled"   := enabled
-    ]
 
 -- If we made it so that only /already/ authenticated users could
 -- change their password, then we ought to change to a user id here in
@@ -181,12 +156,6 @@ instance ToRow ChangePassword where
    toRow = genericToRow
 instance FromRow ChangePassword where
    fromRow = genericFromRow
-instance ToNamed ChangePassword where
-  toNamed ChangePassword{..} =
-    [ ":Username"    := name
-    , ":OldPassword" := oldPassword
-    , ":NewPassword" := newPassword
-    ]
 
 newtype Token = Token Text
 
@@ -209,13 +178,7 @@ instance ToRow Session where
    toRow = genericToRow
 instance FromRow Session where
    fromRow = genericFromRow
-instance ToNamed Session where
-  toNamed Session{..} =
-    [ ":User"        := user
-    , ":Token"       := token
-    , ":Starttime"   := startTime
-    , ":LastActive"  := lastActive
-    ]
+
 
 -- NB Doesn't quite correspond to the view.
 data ExerciseLesson = ExerciseLesson
@@ -237,19 +200,6 @@ instance ToRow ExerciseLesson where
    toRow = genericToRow
 instance FromRow ExerciseLesson where
    fromRow = genericFromRow
-instance ToNamed ExerciseLesson where
-  toNamed ExerciseLesson{..} =
-    [ ":Exercise"         := exercise
-    , ":LessonKey"        := lessonKey
-    , ":LessonName"       := lessonName
-    , ":Source"           := source
-    , ":Target"           := target
-    , ":SrcDir"           := srcDir
-    , ":TrgDir"           := trgDir
-    , ":HighlightMatches" := highlightMatches
-    , ":ShowSourceSentence" := showSourceSentence
-    , ":ExerciseOrder"    := exerciseOrder
-    ]
 
 -- NB Doesn't really correspond to the db.
 data Exercise = Exercise
@@ -266,14 +216,6 @@ instance ToRow Exercise where
    toRow = genericToRow
 instance FromRow Exercise where
    fromRow = genericFromRow
-instance ToNamed Exercise where
-  toNamed Exercise{..} =
-    [ ":SourceLinearization" := sourceLinearization
-    , ":TargetLinearization" := targetLinearization
-    , ":Lesson"              := lesson
-    , ":Timeout"             := timeout
-    , ":ExerciseOrder"       := exerciseOrder
-    ]
 
 data Direction = VersoRecto | RectoVerso
 
@@ -318,24 +260,6 @@ instance ToRow Lesson where
    toRow = genericToRow
 instance FromRow Lesson where
    fromRow = genericFromRow
-instance ToNamed Lesson where
-  toNamed Lesson{..} =
-    [ ":Id"                := key
-    , ":Name"              := name
-    , ":Grammar"           := grammar
-    , ":SourceLanguage"    := sourceLanguage
-    , ":TargetLanguage"    := targetLanguage
-    , ":ExerciseCount"     := exerciseCount
-    , ":Enabled"           := enabled
-    , ":SearchLimitDepth"  := searchLimitDepth
-    , ":SearchLimitSize"   := searchLimitSize
-    , ":Repeatable"        := repeatable
-    , ":SourceDirection"   := sourceDirection
-    , ":TargetDirection"   := targetDirection
-    , ":HighlightMatches"  := highlightMatches
-    , ":ShowSourceSentence" := showSourceSentence
-    , ":RandomizeOrder"    := randomizeOrder
-    ]
 
 data StartedLesson = StartedLesson
   { lesson              :: Key Lesson
@@ -349,12 +273,6 @@ instance ToRow StartedLesson where
    toRow = genericToRow
 instance FromRow StartedLesson where
    fromRow = genericFromRow
-instance ToNamed StartedLesson where
-  toNamed StartedLesson{..} =
-    [ ":Lesson"   := lesson
-    , ":User"     := user
-    , ":Round"    := round
-    ]
 
 data FinishedLesson = FinishedLesson
   { lesson              :: Key Lesson
@@ -369,13 +287,6 @@ instance ToRow FinishedLesson where
    toRow = genericToRow
 instance FromRow FinishedLesson where
    fromRow = genericFromRow
-instance ToNamed FinishedLesson where
-  toNamed FinishedLesson{..} =
-    [ ":Lesson" := lesson
-    , ":User"   := user
-    , ":Score"  := score
-    , ":Round"  := score
-    ]
 
 data ExerciseList = ExerciseList
   { user     :: Key User
@@ -391,13 +302,6 @@ instance ToRow ExerciseList where
    toRow = genericToRow
 instance FromRow ExerciseList where
    fromRow = genericFromRow
-instance ToNamed ExerciseList where
-  toNamed ExerciseList{..} =
-    [ ":User"      := user
-    , ":Exercise"  := exercise
-    , ":Round"     := round
-    , ":Score"     := score
-    ]
 
 -- Like below but wuthout passedcount
 -- FIXME Better name
@@ -416,15 +320,6 @@ instance ToRow ActiveLessonForUser where
    toRow = genericToRow
 instance FromRow ActiveLessonForUser where
    fromRow = genericFromRow
-instance ToNamed ActiveLessonForUser where
-  toNamed ActiveLessonForUser{..} =
-    [ ":Lesson"        := lesson
-    , ":Name"          := name
-    , ":Exercisecount" := exercisecount
-    , ":Score"         := score
-    , ":Enabled"       := enabled
-    , ":User"          := user
-    ]
 
 data UserLessonScore = UserLessonScore
   { lesson     :: Key Lesson
@@ -440,11 +335,4 @@ instance ToRow UserLessonScore where
    toRow = genericToRow
 instance FromRow UserLessonScore where
    fromRow = genericFromRow
-instance ToNamed UserLessonScore where
-  toNamed UserLessonScore{..} =
-    [ ":Lesson"     := lesson
-    , ":LessonName" := lessonName
-    , ":User"       := user
-    , ":UserName"   := userName
-    , ":Score"      := score
-    ]
+

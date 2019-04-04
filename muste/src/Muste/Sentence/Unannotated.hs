@@ -4,8 +4,10 @@ module Muste.Sentence.Unannotated where
 
 import Prelude ()
 import Muste.Prelude
-import Muste.Prelude.SQL (FromField, ToField)
-import qualified Muste.Prelude.SQL as SQL
+
+import Muste.Prelude.SQL (toBlob, fromBlob)
+import Database.SQLite.Simple.ToField (ToField(..))
+import Database.SQLite.Simple.FromField (FromField(..))
 
 import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:))
 import qualified Data.Aeson as Aeson
@@ -56,10 +58,10 @@ deriving instance Generic Unannotated
 instance Binary Unannotated where
 
 instance ToField Unannotated where
-  toField = SQL.toBlob
+  toField = toBlob
 
 instance FromField Unannotated where
-  fromField = SQL.fromBlob
+  fromField = fromBlob
 
 instance Sentence Unannotated where
   language = Muste.Sentence.Unannotated.language
