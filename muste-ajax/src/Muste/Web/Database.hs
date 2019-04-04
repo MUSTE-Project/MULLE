@@ -266,9 +266,7 @@ createSession
   -> db Types.Session
 createSession user = do
   -- Remove any existing session.
-  getSession user >>= \case
-    Nothing -> pure ()
-    Just token -> endSession token
+  executeNamed q [":User" := user]
   -- Create new session.
   timeStamp <- getCurrentTime
   pure $ Types.Session
@@ -277,17 +275,10 @@ createSession user = do
     , startTime  = timeStamp
     , lastActive = timeStamp
     }
-
-getSession
-  :: MonadDB r db
-  => Text
-  -> db (Maybe Types.Token)
-getSession user = fmap fromOnly . listToMaybe <$> queryNamed q [":User" := user]
   where
 
   q = [sql|
--- getSession
-SELECT Token
+DELETE
 FROM Session
 WHERE User = :User;
 |]
