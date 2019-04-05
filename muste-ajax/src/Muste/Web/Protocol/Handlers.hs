@@ -14,14 +14,14 @@
 {-# OPTIONS_GHC -Wall -Wcompat #-}
 
 module Muste.Web.Protocol.Handlers
-  ( loginHandler
-  , logoutHandler
-  , lessonsHandler
-  , lessonHandler
-  , menuHandler
-  , createUserHandler
-  , changePwdHandler
-  , highScoresHandler
+  ( handleLoginRequest
+  , handleLogoutRequest
+  , handleLessons
+  , handleLessonInit
+  , handleMenuRequest
+  , handleCreateUser
+  , handleChangePwd
+  , handleHighScores
   ) where
 
 import           Prelude ()
@@ -29,13 +29,10 @@ import           Muste.Prelude
 import           Muste.Prelude.Extra
 
 import           Control.Monad.Reader
-import           Data.Aeson
 import           Data.Map (Map)
 import qualified Data.Map.Lazy               as Map
 import qualified Data.Set                    as Set
 import           Data.Set (Set)
-import qualified Snap
-import qualified System.IO.Streams           as Streams
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified GHC.Num as Math
 
@@ -63,9 +60,6 @@ import qualified Muste.Web.Types.Score       as Score
 liftEither :: MonadError ProtocolError m => SomeException ~ e => Either e a -> m a
 liftEither = either (throwError . SomeProtocolError) pure
 
-createUserHandler :: MonadProtocol m => m (Response ())
-createUserHandler = getMessage >>= fmap pure . handleCreateUser
-
 handleCreateUser :: MonadProtocol m => Ajax.CreateUser -> m ()
 handleCreateUser Ajax.CreateUser{..} = 
   Database.addUser $ Database.CreateUser
@@ -78,9 +72,6 @@ handleCreateUser Ajax.CreateUser{..} =
 -- writing) does not need to be authenticated to change their
 -- password.  They must simply provide their old password which is
 -- then checked against the database.
-changePwdHandler :: MonadProtocol m => m (Response ())
-changePwdHandler = getMessage >>= fmap pure . handleChangePwd
-
 handleChangePwd :: MonadProtocol m => Ajax.ChangePassword -> m ()
 handleChangePwd Ajax.ChangePassword{..} =
   Database.changePassword Database.ChangePassword
@@ -89,22 +80,6 @@ handleChangePwd Ajax.ChangePassword{..} =
     , newPassword = newPassword
     }
 
-throwApiError :: MonadProtocol m => ApiError -> m a
-throwApiError = throwError . ProtocolApiError
-
--- | Reads the data from the request and deserializes from JSON.
-getMessage :: forall json m . FromJSON json => MonadProtocol m => m json
-getMessage = do
-  s <- Snap.runRequestBody Streams.read >>= \case
-    Nothing -> throwApiError ErrReadBody
-    Just a -> pure $ convertString a
-  case eitherDecode @json s of
-    Left e  -> throwApiError $ DecodeError e
-    Right a -> pure a
-
-
-lessonsHandler :: MonadProtocol m => m (Response Ajax.LessonList)
-lessonsHandler = getMessage >>= fmap pure . handleLessons
 
 handleLessons :: MonadProtocol m => Ajax.LoginToken -> m Ajax.LessonList
 handleLessons (Ajax.LoginToken t) = do
@@ -142,18 +117,6 @@ getActiveLessons t =
     -- nothing.  Though they should all agree.
     maybeScores :: Maybe (NonEmpty Score)
     maybeScores = traverse identity scores
-
-lessonHandler :: MonadProtocol m => m (Response Ajax.MenuResponse)
-lessonHandler = getMessage >>= fmap pure . handleLessonInit
-
-menuHandler :: MonadProtocol m => m (Response Ajax.MenuResponse)
-menuHandler = getMessage >>= fmap pure . handleMenuRequest
-
-loginHandler :: MonadProtocol m => m (Response Ajax.LoginToken)
-loginHandler = getMessage >>= fmap pure . handleLoginRequest
-
-logoutHandler :: MonadProtocol m => m (Response ())
-logoutHandler = getMessage >>= fmap pure . handleLogoutRequest
 
 
 handleLoginRequest
@@ -366,9 +329,6 @@ makeTree c lesson s d
   ctxt = throwLeft $ getContext c lesson language
   language = Sentence.language s
 
-
-highScoresHandler :: MonadProtocol m => m (Response [Ajax.HighScore])
-highScoresHandler = getMessage >>= fmap pure . handleHighScores
 
 handleHighScores :: MonadProtocol m => Ajax.LoginToken -> m [Ajax.HighScore]
 handleHighScores (Ajax.LoginToken token) = do

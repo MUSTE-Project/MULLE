@@ -28,9 +28,10 @@ import qualified Database.SQLite.Simple as SQL
 
 import           Data.ByteString (ByteString)
 import qualified Data.Map                     as Map
+import qualified Data.Aeson                   as Aeson
 import qualified Snap
-import           Snap (MonadSnap)
 import qualified Snap.Util.CORS               as Cors
+import qualified System.IO.Streams            as Streams
 
 #ifdef DIAGNOSTICS
 import qualified Data.Text.IO                 as Text
@@ -110,20 +111,30 @@ registerRoutes db lessons = do
 -- | Map requests to various handlers.
 apiRoutes :: forall v . [(ByteString, Snap.Handler v AppState ())]
 apiRoutes =
-  [ "login"        |> Handlers.loginHandler
-  , "logout"       |> Handlers.logoutHandler
-  , "lessons"      |> Handlers.lessonsHandler
-  , "lesson"       |> Handlers.lessonHandler
-  , "menu"         |> Handlers.menuHandler
-  , "create-user"  |> Handlers.createUserHandler
-  , "change-pwd"   |> Handlers.changePwdHandler
-  , "high-scores"  |> Handlers.highScoresHandler
+  [ "login"        |> Handlers.handleLoginRequest
+  , "logout"       |> Handlers.handleLogoutRequest
+  , "lessons"      |> Handlers.handleLessons
+  , "lesson"       |> Handlers.handleLessonInit
+  , "menu"         |> Handlers.handleMenuRequest
+  , "create-user"  |> Handlers.handleCreateUser
+  , "change-pwd"   |> Handlers.handleChangePwd
+  , "high-scores"  |> Handlers.handleHighScores
   ]
   where
-    (|>) :: forall txt json snap . ToJSON json
-         => MonadSnap snap
-         => Grammar.MonadGrammar snap
-         => txt
-         -> ProtocolT snap (Response json)
-         -> (txt, snap ())
-    t |> act = (t, runProtocolT (Snap.method Snap.POST act))
+    t |> action = (t, runProtocolT $
+                      Snap.method Snap.POST $
+                      do msg <- getMessage
+                         fmap pure (action msg)
+                  )
+
+
+-- | Reads the data from the request and deserializes from JSON.
+getMessage :: (FromJSON json, MonadProtocol m) => m json
+getMessage = 
+  do s <- do body <- Snap.runRequestBody Streams.read
+             case body of
+               Nothing -> throwError (ProtocolApiError ErrReadBody)
+               Just  a -> return (convertString a)
+     case Aeson.eitherDecode s of
+       Left  e -> throwError (ProtocolApiError (DecodeError e))
+       Right a -> return a
