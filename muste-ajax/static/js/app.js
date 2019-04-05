@@ -140,8 +140,10 @@ function show_page(page) {
 }
 
 PAGES.pageLogin = function() {
-  LOGIN = {};
-  muste_request({}, 'logout');
+  if (LOGIN.token) {
+    muste_request({}, 'logout');
+    LOGIN = {};
+  }
 }
 
 PAGES.pageLessons = function() {
@@ -182,7 +184,7 @@ FORMS.formLogin = function(form) {
     .done(function(response) {
       LOGIN = {
         name: form.name.value,
-        token: response['login-success'],
+        token: response['token'],
       };
       // window.sessionStorage.setItem('LOGIN_TOKEN',LOGIN.token);
       $('.username').text(form.name.value);
@@ -279,6 +281,7 @@ function update_timer() {
 // Returns a promise with the request. Reports errors.
 function muste_request(data, endpoint) {
   busy_start();
+  if (LOGIN.token) data.token = LOGIN.token;
   if (DEBUG) console.log(`AJAX request (${endpoint}):`, data);
   var request = {
     cache: false,
@@ -365,7 +368,7 @@ function start_exercise(data) {
   show_page('pageExercise');
   if (data.data) data = data.data;
   start_timer();
-  muste_request(data, 'lesson/' + data.lesson)
+  muste_request(data, 'lesson')
     .then(handle_menu_response);
 }
 

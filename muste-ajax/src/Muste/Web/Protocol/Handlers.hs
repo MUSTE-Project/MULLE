@@ -100,23 +100,16 @@ getMessage = do
     Left e  -> throwApiError $ DecodeError e
     Right a -> pure a
 
--- TODO Token should be set as an HTTP Unsafe.header.
--- | Gets the current session token.
-getToken :: MonadProtocol m => m Database.Token
-getToken = do
-  m <- getTokenCookie
-  case m of
-    Just c -> pure $ Database.Token $ convertString $ Snap.cookieValue c
-    Nothing -> throwApiError NoAccessToken
-
-getTokenCookie :: MonadProtocol m => m (Maybe Snap.Cookie)
-getTokenCookie = Snap.getCookie "LOGIN_TOKEN"
 
 lessonsHandler :: MonadProtocol m => m (Response Ajax.LessonList)
-lessonsHandler = do
-  t <- getToken
+lessonsHandler = getMessage >>= fmap pure . handleLessons
+
+handleLessons :: MonadProtocol m => Ajax.LoginToken -> m Ajax.LessonList
+handleLessons (Ajax.LoginToken t) = do
+  Database.verifySession t
   lessons <- getActiveLessons t
-  pure <$> verifyMessage (Ajax.LessonList lessons)
+  return (Ajax.LessonList lessons)
+
 
 getActiveLessons :: MonadProtocol m => Database.Token -> m [Ajax.ActiveLesson]
 getActiveLessons t =
@@ -149,68 +142,36 @@ getActiveLessons t =
     maybeScores = traverse identity scores
 
 lessonHandler :: MonadProtocol m => m (Response Ajax.MenuResponse)
-lessonHandler = Snap.method Snap.POST $ do
-  l <- Snap.pathArg (pure . Database.Key @Database.Lesson)
-  Ajax.StartLessonSettings restart <- getMessage @Ajax.StartLessonSettings
-  when restart (resetLesson l)
-  pure <$> handleLessonInit l
-
--- | Removes all finished exercises for the given lesson.
-resetLesson
-  :: MonadProtocol m
-  => Database.Key Database.Lesson
-  -> m ()
-resetLesson l = do
-  t <- getToken
-  Database.resetLesson t l
+lessonHandler = getMessage >>= fmap pure . handleLessonInit
 
 menuHandler :: MonadProtocol m => m (Response Ajax.MenuResponse)
 menuHandler = getMessage >>= fmap pure . handleMenuRequest
 
-loginHandler :: MonadProtocol m => m (Response Ajax.LoginSuccess)
-loginHandler = Snap.method Snap.POST
-  $ getMessage >>= fmap pure . handleLoginRequest
+loginHandler :: MonadProtocol m => m (Response Ajax.LoginToken)
+loginHandler = getMessage >>= fmap pure . handleLoginRequest
 
 logoutHandler :: MonadProtocol m => m (Response ())
-logoutHandler
-  = Snap.method Snap.POST
-  $ getToken >>= handleLogoutRequest
+logoutHandler = getMessage >>= fmap pure . handleLogoutRequest
 
-setLoginCookie
-  :: MonadProtocol m
-  => Text -- ^ The token
-  -> m ()
-setLoginCookie tok
-  = Snap.modifyResponse $ Snap.addResponseCookie c
-  where
-    c = Snap.Cookie "LOGIN_TOKEN" (convertString tok)
-      Nothing Nothing (pure "/") False False
 
--- TODO I think we shouldn't be using sessions for this.  I think the
--- way to go is to use the basic http authentication *on every
--- request*.  That is, the client submits user/password on every
--- request.  Security is handled by SSL in the transport layer.
--- Further thought: Well, we're just sending the authentication token
--- in stead.  This one also cannot be spoofed.
 handleLoginRequest
   :: MonadProtocol m
   => Ajax.LoginRequest
-  -> m Ajax.LoginSuccess
+  -> m Ajax.LoginToken
 handleLoginRequest Ajax.LoginRequest{..} = do
   Database.authUser name password
-  Database.Token token <- Database.startSession name
-  setLoginCookie token
-  pure $ Ajax.LoginSuccess token
+  token <- Database.startSession name
+  pure $ Ajax.LoginToken token
 
 askContexts :: MonadProtocol m => m Contexts
 askContexts = asks contexts
 
 handleLessonInit
   :: forall m . MonadProtocol m
-  => Database.Key Database.Lesson
+  => Ajax.StartLesson
   -> m Ajax.MenuResponse
-handleLessonInit lesson = do
-  token <- getToken
+handleLessonInit (Ajax.StartLesson token lesson restart) = do
+  when restart $ Database.resetLesson token lesson
   Database.ExerciseLesson{..} <- Database.startLesson token lesson
   menu <- assembleMenus $ AssembleMenu
     { lesson = lessonName
@@ -223,7 +184,7 @@ handleLessonInit lesson = do
       , direction = dir trgDir
       }
     }
-  verifyMessage $ Ajax.MenuResponse
+  return $ Ajax.MenuResponse
     { lesson = Ajax.Lesson
       { key  = lesson
       , name = lessonName
@@ -263,8 +224,7 @@ handleMenuRequest Ajax.MenuRequest{..} = do
   let Ajax.Score{..}  = score
       Ajax.Lesson{..} = lesson
       lessonName = Lesson.name lesson
-  verifySession
-  token <- getToken
+  Database.verifySession token
   let
     newScore
       = score
@@ -279,7 +239,7 @@ handleMenuRequest Ajax.MenuRequest{..} = do
     , source = src
     , target = trg
     }
-  verifyMessage $ Ajax.MenuResponse
+  return $ Ajax.MenuResponse
     { lesson           = lesson
     , score            = newScore
     , menu             = menu
@@ -334,20 +294,9 @@ disambiguate lesson Ajax.ClientTree{..} = do
 
 handleLogoutRequest
   :: MonadProtocol m
-  => Database.Token
-  -> m (Response ())
-handleLogoutRequest = fmap pure . Database.endSession
-
--- | @'verifySession' tok@ verifies the user identified by @tok@.
--- This method throws (using one of the error instances of
--- 'MonadProtocol') if the user is not authenticated.
-verifySession :: MonadProtocol m => m ()
-verifySession = getToken >>= Database.verifySession
-
--- | Returns the same message unmodified if the user is authenticated,
--- otherwise return 'SMSessionInvalid'.
-verifyMessage :: MonadProtocol m => a -> m a
-verifyMessage msg = msg <$ verifySession
+  => Ajax.LoginToken
+  -> m ()
+handleLogoutRequest (Ajax.LoginToken token) = Database.endSession token
 
 data AssembleMenu = AssembleMenu
   { lesson :: Text
@@ -361,7 +310,6 @@ assembleMenus
   :: MonadProtocol m
   => AssembleMenu
   -> m Ajax.MenuList
--- assembleMenus lesson sourceTree targetTree srcDir trgDir = do
 assembleMenus AssembleMenu{..} = do
   c <- askContexts
   let mkTree = makeTree c lesson
@@ -416,8 +364,16 @@ makeTree c lesson s d
   ctxt = throwLeft $ getContext c lesson language
   language = Sentence.language s
 
+
 highScoresHandler :: MonadProtocol m => m (Response [Ajax.HighScore])
-highScoresHandler = pure . step <$> Database.getUserLessonScores
+highScoresHandler = getMessage >>= fmap pure . handleHighScores
+
+handleHighScores :: MonadProtocol m => Ajax.LoginToken -> m [Ajax.HighScore]
+handleHighScores (Ajax.LoginToken token) = do
+  Database.verifySession token
+  scores <- Database.getUserLessonScores
+  return (step scores)
+
   where
   -- Group by lesson, then sort by the valuation of the score.
   step :: [Database.UserLessonScore] -> [Ajax.HighScore]

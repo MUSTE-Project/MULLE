@@ -126,4 +126,4 @@ apiRoutes =
          => txt
          -> ProtocolT snap (Response json)
          -> (txt, snap ())
-    t |> act = (t, runProtocolT act)
+    t |> act = (t, runProtocolT (Snap.method Snap.POST act))

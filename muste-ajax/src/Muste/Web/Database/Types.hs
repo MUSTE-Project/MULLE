@@ -49,6 +49,7 @@ import Database.SQLite.Simple.FromField (FromField(..))
 import Data.Int (Int64)
 import Data.ByteString (ByteString)
 import Data.Aeson (FromJSON(..), ToJSON(..))
+import qualified Data.Aeson as Aeson
 
 import Muste.Tree (TTree)
 import qualified Muste.Sentence.Unannotated as Sentence (Unannotated)
@@ -147,6 +148,13 @@ deriving stock    instance Show      Token
 deriving stock    instance Generic   Token
 deriving newtype  instance ToField   Token
 deriving newtype  instance FromField Token
+
+instance FromJSON Token where
+  parseJSON = Aeson.withText "Token" $ \s -> return (Token s)
+
+instance ToJSON Token where
+  toJSON (Token token) = Aeson.String token
+
 
 -- NB Missing the key to be exactly the same as the stuff in the db.
 data Session = Session

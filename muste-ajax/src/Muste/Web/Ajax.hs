@@ -24,7 +24,7 @@ module Muste.Web.Ajax
   , ChangePassword(..)
   , MenuRequest(..)
   , MenuList(..)
-  , LoginSuccess(..)
+  , LoginToken(..)
   , LessonList(..)
   , MenuResponse(..)
   , MenuSettings(..)
@@ -32,7 +32,7 @@ module Muste.Web.Ajax
   , Lesson(..)
   , Score(..)
   , Direction(..)
-  , StartLessonSettings(..)
+  , StartLesson(..)
   ) where
 
 import Prelude ()
@@ -90,7 +90,8 @@ instance ToJSON LoginRequest where
     ]
 
 data MenuRequest = MenuRequest
-  { lesson   :: Lesson
+  { token    :: Database.Token
+  , lesson   :: Lesson
   -- FIXME I feel like this should not be a part of the menu response.
   -- In stead we should store the score along with the users session,
   -- and only when the exercise is done respond with the final score.
@@ -103,7 +104,8 @@ data MenuRequest = MenuRequest
 
 instance ToJSON MenuRequest where
   toJSON MenuRequest{..} = Aeson.object
-    [ "lesson"   .= lesson
+    [ "token"    .= token
+    , "lesson"   .= lesson
     , "score"    .= score
     , "src"      .= src
     , "trg"      .= trg
@@ -113,7 +115,8 @@ instance ToJSON MenuRequest where
 instance FromJSON MenuRequest where
   parseJSON = Aeson.withObject "menu-request"
     $  \b -> MenuRequest
-    <$> b .:  "lesson"
+    <$> b .:  "token"
+    <*> b .:  "lesson"
     <*> b .:  "score"
     <*> b .:  "src"
     <*> b .:  "trg"
@@ -173,16 +176,17 @@ instance ToJSON ServerTree where
     , "direction" .= direction
     ]
 
-newtype LoginSuccess = LoginSuccess Text
 
-instance FromJSON LoginSuccess where
+newtype LoginToken = LoginToken Database.Token
+
+instance FromJSON LoginToken where
   parseJSON = Aeson.withObject "login-success"
-    $ \ v ->  LoginSuccess
+    $ \ v ->  LoginToken
     <$> v .: "token"
 
-instance ToJSON LoginSuccess where
-  toJSON (LoginSuccess token) = Aeson.object
-    [ "login-success" .= token
+instance ToJSON LoginToken where
+  toJSON (LoginToken token) = Aeson.object
+    [ "token" .= token
     ]
 
 newtype LessonList = LessonList [ActiveLesson]
@@ -371,15 +375,27 @@ instance ToJSON ActiveLesson where
     , "enabled"       .= enabled
     ]
 
--- | Determines if we should restart a lesson if it is not already started.
-newtype StartLessonSettings = StartLessonSettings
-  { restart       :: Bool
+
+data StartLesson = StartLesson
+  { token   :: Database.Token
+  , lesson  :: Database.Key Database.Lesson
+  , restart :: Bool
   }
 
-deriving stock    instance Show    StartLessonSettings
-deriving stock    instance Generic StartLessonSettings
+deriving stock    instance Show    StartLesson
+deriving stock    instance Generic StartLesson
 
-instance FromJSON StartLessonSettings where
-  parseJSON = Aeson.withObject "settings"
-    $ \v -> StartLessonSettings
-    <$> v .:? "restart" .!= False
+instance FromJSON StartLesson where
+  parseJSON = Aeson.withObject "StartLesson"
+    $ \v -> StartLesson
+    <$> v .:  "token"
+    <*> v .:  "lesson"
+    <*> v .:? "restart" .!= False
+
+instance ToJSON StartLesson where
+  toJSON StartLesson{..} = Aeson.object
+    [ "token"   .= token
+    , "lesson"  .= lesson
+    , "restart" .= restart
+    ]
+
