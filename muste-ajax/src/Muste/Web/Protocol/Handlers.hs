@@ -64,28 +64,30 @@ liftEither :: MonadError ProtocolError m => SomeException ~ e => Either e a -> m
 liftEither = either (throwError . SomeProtocolError) pure
 
 createUserHandler :: MonadProtocol m => m (Response ())
-createUserHandler = do
-  Ajax.CreateUser{..} <- getMessage
+createUserHandler = getMessage >>= fmap pure . handleCreateUser
+
+handleCreateUser :: MonadProtocol m => Ajax.CreateUser -> m ()
+handleCreateUser Ajax.CreateUser{..} = 
   Database.addUser $ Database.CreateUser
     { name     = name
     , password = password
     , enabled  = True
     }
-  pure mempty
 
 -- | Change password of the user.  The user currently (as of this
 -- writing) does not need to be authenticated to change their
 -- password.  They must simply provide their old password which is
 -- then checked against the database.
 changePwdHandler :: MonadProtocol m => m (Response ())
-changePwdHandler = do
-  Ajax.ChangePassword{..} <- getMessage
+changePwdHandler = getMessage >>= fmap pure . handleChangePwd
+
+handleChangePwd :: MonadProtocol m => Ajax.ChangePassword -> m ()
+handleChangePwd Ajax.ChangePassword{..} =
   Database.changePassword Database.ChangePassword
     { name = name
     , oldPassword = oldPassword
     , newPassword = newPassword
     }
-  pure mempty
 
 throwApiError :: MonadProtocol m => ApiError -> m a
 throwApiError = throwError . ProtocolApiError
