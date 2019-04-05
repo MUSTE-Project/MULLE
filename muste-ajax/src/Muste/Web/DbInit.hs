@@ -11,7 +11,6 @@ import           Database.SQLite.Simple.QQ (sql)
 import qualified Database.SQLite.Simple as SQL
 
 import           Data.ByteString (ByteString)
-import qualified Data.ByteString.Char8 as ByteString
 import           Data.FileEmbed (embedFile, makeRelativeToProject)
 import           Data.Text (pack, unpack)
 import           Data.Text.Encoding (decodeUtf8)
@@ -84,9 +83,7 @@ showLessons lessonsFile lessons =
      mapM_ showLess (zip [1..] lessons)
   where showLess :: (Int, Data.Lesson) -> IO ()
         showLess (n, lesson) =
-          do printf "[Lesson: %d]\n" n
-             printf $ ByteString.unpack $ Yaml.encode $ lesson
-             printf "\n"
+          printf "[%d: %s = %d exercises]\n" n (Data.name lesson) (length (Data.exercises' lesson))
 
 -- | Converts our nested structure from the config file to something
 -- suitable for a RDBMS.
