@@ -15,7 +15,6 @@ import qualified Database.SQLite.Simple.Ok        as SQL
 import qualified Database.SQLite.Simple.FromField as SQL
 import Data.Binary (Binary)
 import Data.Typeable (Typeable)
-import Data.ByteString (ByteString)
 
 fromBlob :: Typeable b => Binary b => SQL.Field -> SQL.Ok b
 fromBlob fld = case SQL.fieldData fld of
