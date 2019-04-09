@@ -1,5 +1,8 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# Language ConstraintKinds #-}
+{-# Language
+ ConstraintKinds,
+ TypeFamilies
+#-}
 
 module Muste.Sentence.Class
   ( Sentence(..)

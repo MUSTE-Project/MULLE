@@ -1,6 +1,14 @@
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing -Wno-incomplete-patterns #-}
-{-# language DeriveGeneric, DeriveLift, DeriveAnyClass,
-  DeriveDataTypeable, OverloadedStrings #-}
+{-# Language
+ DeriveAnyClass,
+ DeriveGeneric,
+ DerivingStrategies,
+ GeneralizedNewtypeDeriving,
+ LambdaCase,
+ OverloadedStrings,
+ StandaloneDeriving
+#-}
+
 {- | This Module is the internal implementation behind the module 'Muste.Tree' -}
 module Muste.Tree.Internal
   ( Path
@@ -60,8 +68,6 @@ deriving newtype instance Semigroup Category
 deriving newtype instance Monoid Category
 deriving newtype instance NFData Category
 deriving newtype instance Typeable Category
-deriving stock instance Data Category
-deriving anyclass instance Lift Category
 deriving newtype instance Binary Category
 deriving newtype instance IsString Category
 
@@ -83,8 +89,6 @@ data TTree
   deriving (Ord, Eq, Show, Read, Generic)
 
 instance NFData TTree where
-
-deriving instance Lift TTree
 
 instance Binary TTree
 
@@ -171,8 +175,6 @@ data FunType
   -- parameters.
   | NoType
   deriving (Ord, Eq, Show, Read, Generic)
-
-deriving instance Lift FunType
 
 instance Binary FunType
 

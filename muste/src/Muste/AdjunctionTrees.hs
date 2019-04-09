@@ -1,6 +1,12 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# Language ConstraintKinds, CPP, OverloadedStrings, NamedFieldPuns,
-  RecordWildCards, DuplicateRecordFields #-}
+{-# Language
+ CPP,
+ ConstraintKinds,
+ NamedFieldPuns,
+ OverloadedStrings,
+ RecordWildCards
+#-}
+
 -- | Adjunction trees
 --
 -- Interfacint with 'AdjunctionTrees' is done using the interface for

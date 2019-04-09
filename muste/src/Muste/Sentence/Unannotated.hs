@@ -1,5 +1,13 @@
 {-# OPTIONS_GHC -Wall -Wno-type-defaults #-}
-{-# Language NamedFieldPuns, RecordWildCards, OverloadedStrings #-}
+{-# Language
+ DeriveGeneric,
+ NamedFieldPuns,
+ OverloadedStrings,
+ RecordWildCards,
+ StandaloneDeriving,
+ TypeFamilies
+#-}
+
 module Muste.Sentence.Unannotated where
 
 import Prelude ()

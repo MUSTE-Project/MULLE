@@ -1,5 +1,16 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# Language NamedFieldPuns, RecordWildCards, OverloadedStrings #-}
+{-# Language
+ DeriveGeneric,
+ FlexibleContexts,
+ LambdaCase,
+ NamedFieldPuns,
+ OverloadedStrings,
+ RecordWildCards,
+ StandaloneDeriving,
+ TypeApplications,
+ TypeFamilies
+#-}
+
 module Muste.Sentence.Annotated
   (Annotated, annotated, merge, mergeL, mkLinearization)
   where

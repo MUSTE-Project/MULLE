@@ -1,5 +1,7 @@
 {-# OPTIONS_GHC -Wall -Wcompat #-}
-{-# Language RecordWildCards #-}
+{-# Language
+ RecordWildCards
+#-}
 
 module Main (main) where
 

@@ -1,6 +1,13 @@
 {-# OPTIONS_GHC -Wall -Wno-type-defaults #-}
-{-# Language NamedFieldPuns, RecordWildCards, OverloadedStrings ,
-  DuplicateRecordFields #-}
+{-# Language
+ DeriveGeneric,
+ DuplicateRecordFields,
+ NamedFieldPuns,
+ OverloadedStrings,
+ RecordWildCards,
+ StandaloneDeriving
+#-}
+
 module Muste.Sentence.Token
   ( Annotated(Annotated)
   , Unannotated(Unannotated)

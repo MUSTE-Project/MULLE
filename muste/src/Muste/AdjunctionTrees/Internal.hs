@@ -1,4 +1,11 @@
 {-# OPTIONS_GHC -Wall -Wno-orphans #-}
+{-# Language
+ DeriveGeneric,
+ GeneralizedNewtypeDeriving,
+ StandaloneDeriving,
+ TypeFamilies
+#-}
+
 -- | Adjunction trees
 --
 -- Interfacint with 'AdjunctionTrees' is done using the interface for

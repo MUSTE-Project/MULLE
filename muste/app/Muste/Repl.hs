@@ -4,9 +4,19 @@
 -- "System.Control.Repline".
 
 {-# OPTIONS_GHC -Wall #-}
-{-# Language RecordWildCards, NamedFieldPuns, TemplateHaskell,
-  DeriveAnyClass, OverloadedStrings, MultiParamTypeClasses,
-  DerivingStrategies, MultiWayIf, CPP #-}
+{-# Language
+ CPP,
+ DeriveAnyClass,
+ DerivingStrategies,
+ GeneralizedNewtypeDeriving,
+ MultiParamTypeClasses,
+ NamedFieldPuns,
+ OverloadedStrings,
+ RecordWildCards,
+ ScopedTypeVariables,
+ StandaloneDeriving,
+ TypeApplications
+#-}
 
 module Muste.Repl
   -- * The repl monad
@@ -133,9 +143,8 @@ updateMenu s = do
              <+> pretty (sum (map (length . snd) menuList))
            ]
         <> (purdy <$> menuList)
-  let doc = if
-        | comp      -> compDoc
-        | otherwise -> prettyMenu verb ctxt s m
+  let doc = if comp then compDoc
+            else prettyMenu verb ctxt s m
   liftIO $ do
     Text.putStrLn $ "Sentence is now: " <> s
     putDocLn doc

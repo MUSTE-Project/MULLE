@@ -6,7 +6,10 @@
 -}
 
 {-# OPTIONS_GHC -Wall -Wcompat #-}
-{-# Language OverloadedStrings #-}
+{-# Language
+ LambdaCase,
+ OverloadedStrings
+#-}
 
 module Muste.Feat
   ( mkFEAT

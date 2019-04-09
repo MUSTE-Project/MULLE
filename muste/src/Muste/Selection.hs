@@ -1,5 +1,11 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# Language InstanceSigs #-}
+{-# Language
+ DeriveGeneric,
+ GeneralizedNewtypeDeriving,
+ StandaloneDeriving,
+ TypeFamilies
+#-}
+
 -- | A 'Set' with a dfferent 'Ord' instance.
 module Muste.Selection
     ( Interval(Interval, runInterval)

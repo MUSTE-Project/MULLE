@@ -1,5 +1,16 @@
 {-# OPTIONS_GHC -Wall -Wcompat #-}
-{-# Language NamedFieldPuns, RecordWildCards, OverloadedStrings, DeriveAnyClass #-}
+{-# Language
+ DeriveAnyClass,
+ DeriveGeneric,
+ DerivingStrategies,
+ GeneralizedNewtypeDeriving,
+ NamedFieldPuns,
+ OverloadedStrings,
+ RecordWildCards,
+ StandaloneDeriving,
+ TypeApplications
+#-}
+
 module Muste.Sentence.Language
   (Language(Language), Grammar(Grammar))
   where

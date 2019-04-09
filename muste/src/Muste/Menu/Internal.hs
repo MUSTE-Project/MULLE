@@ -1,5 +1,15 @@
 {-# OPTIONS_GHC -Wall -Wcompat #-}
-{-# Language CPP, UndecidableInstances, OverloadedLists, OverloadedStrings #-}
+{-# Language
+ CPP,
+ DeriveGeneric,
+ GeneralizedNewtypeDeriving,
+ OverloadedStrings,
+ StandaloneDeriving,
+ TypeApplications,
+ TypeFamilies,
+ UndecidableInstances
+#-}
+
 module Muste.Menu.Internal
   ( Menu(..)
   , getMenu

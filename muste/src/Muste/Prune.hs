@@ -1,7 +1,14 @@
 {-# OPTIONS_GHC -Wall -Wno-unused-top-binds -Wno-name-shadowing #-}
-{-# Language DerivingStrategies, ConstraintKinds, CPP, OverloadedStrings #-}
--- FIXME Should this be an internal module? It's not currently used in
--- @muste-ajax@.
+{-# Language
+ CPP,
+ ConstraintKinds,
+ DerivingStrategies,
+ OverloadedStrings,
+ ScopedTypeVariables,
+ StandaloneDeriving
+#-}
+
+-- FIXME Should this be an internal module? It's not currently used in @muste-ajax@.
 module Muste.Prune
   ( replaceAllTrees
   , PruneOpts(..)

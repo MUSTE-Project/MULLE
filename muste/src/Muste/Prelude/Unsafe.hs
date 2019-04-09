@@ -1,5 +1,7 @@
 {-# OPTIONS_GHC -Wall -Wcompat #-}
-{-# Language TemplateHaskell #-}
+{-# Language
+ TemplateHaskell
+#-}
 
 module Muste.Prelude.Unsafe where
 

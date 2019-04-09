@@ -1,5 +1,9 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# Language RecordWildCards #-}
+{-# Language
+ FlexibleContexts,
+ RecordWildCards
+#-}
+
 -- | An interface for (un-)annotated sentences.  For the two
 -- respective implementations see:
 --

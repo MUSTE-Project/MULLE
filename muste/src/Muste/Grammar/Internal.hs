@@ -1,5 +1,18 @@
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# Language DeriveGeneric, UndecidableInstances #-}
+{-# Language
+ DeriveGeneric,
+ DerivingStrategies,
+ FlexibleContexts,
+ GeneralizedNewtypeDeriving,
+ LambdaCase,
+ MultiParamTypeClasses,
+ ScopedTypeVariables,
+ StandaloneDeriving,
+ TypeApplications,
+ TypeFamilies,
+ UndecidableInstances
+#-}
+
 {- | This Module is the internal implementation behind the module 'Muste.Grammar' -}
 module Muste.Grammar.Internal
   ( Grammar(..)

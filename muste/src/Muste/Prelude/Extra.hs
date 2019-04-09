@@ -1,5 +1,11 @@
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# Language FlexibleContexts, OverloadedStrings, CPP #-}
+{-# Language
+ CPP,
+ FlexibleContexts,
+ LambdaCase,
+ OverloadedStrings
+#-}
+
 module Muste.Prelude.Extra
   ( preAndSuffix
   , wildCard
@@ -90,8 +96,8 @@ noDuplicates _ = True
 
 -- | True if the (ordered) list (without duplicated) are disjoint
 areDisjoint :: Ord a => [a] -> [a] -> Bool
-areDisjoint (Set.fromList -> xs) (Set.fromList -> ys)
-  = Set.intersection xs ys
+areDisjoint xs ys
+  = Set.intersection (Set.fromList xs) (Set.fromList ys)
   & Set.null
 
 -- | @'isSubList' c d@ Check if all elements in @c@ also occur in @d@

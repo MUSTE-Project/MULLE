@@ -1,5 +1,16 @@
 {-# OPTIONS_GHC -Wall -Wno-type-defaults #-}
-{-# Language NamedFieldPuns, RecordWildCards, OverloadedStrings #-}
+{-# Language
+ DeriveGeneric,
+ GeneralizedNewtypeDeriving,
+ NamedFieldPuns,
+ OverloadedStrings,
+ RecordWildCards,
+ ScopedTypeVariables,
+ StandaloneDeriving,
+ TypeApplications,
+ TypeFamilies
+#-}
+
 module Muste.Sentence.Linearization where
 
 import Prelude ()

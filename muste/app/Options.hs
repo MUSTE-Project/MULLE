@@ -1,5 +1,7 @@
 {-# OPTIONS_GHC -Wall #-}
-{-# Language OverloadedStrings #-}
+{-# Language
+ OverloadedStrings
+#-}
 
 module Options
   ( getOptions

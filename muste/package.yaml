@@ -64,23 +64,6 @@ when:
       - -Wno-name-shadowing
       - -Werr
 
-default-extensions:
-  - NamedWildCards
-  - TypeSynonymInstances
-  - FlexibleInstances
-  - FlexibleContexts
-  - ScopedTypeVariables
-  - ViewPatterns
-  - DeriveGeneric
-  - LambdaCase
-  - TypeApplications
-  - StandaloneDeriving
-  - GADTs
-  - GeneralizedNewtypeDeriving
-  - TypeFamilies
-  - MultiParamTypeClasses
-  - DerivingStrategies
-
 library:
   exposed-modules:
     - Muste.Tree
