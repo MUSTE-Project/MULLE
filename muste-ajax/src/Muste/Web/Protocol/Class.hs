@@ -11,9 +11,24 @@
 -- reported via HTTP status codes. Additional information are provided
 -- via a json formatted response.
 
-{-# Language RecordWildCards, UndecidableInstances, DeriveAnyClass,
-  OverloadedLists #-}
 {-# OPTIONS_GHC -Wall -Wcompat #-}
+{-# Language
+ ConstraintKinds,
+ DeriveAnyClass,
+ DerivingStrategies,
+ FlexibleContexts,
+ GADTs,
+ GeneralizedNewtypeDeriving,
+ LambdaCase,
+ MultiParamTypeClasses,
+ OverloadedLists,
+ OverloadedStrings,
+ RecordWildCards,
+ ScopedTypeVariables,
+ StandaloneDeriving,
+ TypeApplications,
+ UndecidableInstances
+#-}
 
 module Muste.Web.Protocol.Class
   ( MonadProtocol

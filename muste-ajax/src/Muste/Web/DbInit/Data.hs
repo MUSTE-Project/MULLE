@@ -1,7 +1,15 @@
 -- | Data used for inititializing the database
 
-{-# Language OverloadedStrings, OverloadedLists, DuplicateRecordFields, RecordWildCards #-}
 {-# OPTIONS_GHC -Wall #-}
+{-# Language
+ DerivingStrategies,
+ DuplicateRecordFields,
+ GeneralizedNewtypeDeriving,
+ OverloadedLists,
+ OverloadedStrings,
+ RecordWildCards,
+ StandaloneDeriving
+#-}
 
 module Muste.Web.DbInit.Data
   ( SearchOptions(..)

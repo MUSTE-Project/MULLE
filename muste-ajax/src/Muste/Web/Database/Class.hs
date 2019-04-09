@@ -6,8 +6,19 @@
 -- Portability : POSIX
 
 {-# OPTIONS_GHC -Wall #-}
-{-# Language QuasiQuotes, RecordWildCards, MultiWayIf, DeriveAnyClass,
-  NamedFieldPuns #-}
+{-# Language
+ ConstraintKinds,
+ DeriveAnyClass,
+ DerivingStrategies,
+ FlexibleInstances,
+ GeneralizedNewtypeDeriving,
+ LambdaCase,
+ MultiParamTypeClasses,
+ NamedFieldPuns,
+ RecordWildCards,
+ StandaloneDeriving,
+ TypeApplications
+#-}
 
 module Muste.Web.Database.Class
   ( MonadDB

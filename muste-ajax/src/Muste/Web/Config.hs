@@ -10,7 +10,11 @@
 
 -- FIXME Name shadowing.
 {-# OPTIONS_GHC -Wall -Wcompat -Wno-name-shadowing #-}
-{-# LANGUAGE NamedWildCards, TemplateHaskell, RecordWildCards, DuplicateRecordFields #-}
+{-# Language
+ DuplicateRecordFields,
+ OverloadedStrings,
+ RecordWildCards
+#-}
 
 module Muste.Web.Config
   ( AppConfig(..)

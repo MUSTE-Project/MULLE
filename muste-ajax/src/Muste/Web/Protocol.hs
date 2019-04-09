@@ -13,9 +13,18 @@
 --
 --  * "Muste.Web.Protocol.Handlers"
 --
-{-# Language CPP, RecordWildCards, UndecidableInstances, DeriveAnyClass,
-  OverloadedLists #-}
 {-# OPTIONS_GHC -Wall -Wcompat #-}
+{-# Language
+ CPP,
+ DeriveAnyClass,
+ FlexibleContexts,
+ OverloadedLists,
+ OverloadedStrings,
+ RecordWildCards,
+ ScopedTypeVariables,
+ UndecidableInstances
+#-}
+
 module Muste.Web.Protocol
   ( apiInit
   , AppState

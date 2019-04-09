@@ -18,26 +18,6 @@ flags:
     manual: true
     default: false
 
-default-extensions:
-  - ConstraintKinds
-  - DeriveGeneric
-  - FlexibleContexts
-  - FlexibleInstances
-  - GADTs
-  - GeneralizedNewtypeDeriving
-  - LambdaCase
-  - NamedWildCards
-  - OverloadedStrings
-  - ScopedTypeVariables
-  - StandaloneDeriving
-  - TupleSections
-  - TypeApplications
-  - TypeFamilies
-  - TypeSynonymInstances
-  - ViewPatterns
-  - DerivingStrategies
-  - EmptyCase
-
 dependencies:
   - QuickCheck           >= 2.11.3   && < 2.12
   - aeson                >= 1.3.1.1  && < 1.5
@@ -78,19 +58,6 @@ dependencies:
   - binary               >= 0.8.5.1  && < 0.9
 
 library:
-  default-extensions:
-    - LambdaCase
-    - ScopedTypeVariables
-    - OverloadedStrings
-    - TypeApplications
-    - ViewPatterns
-    - FlexibleContexts
-    - StandaloneDeriving
-    - TupleSections
-    - UnicodeSyntax
-    - ConstraintKinds
-    - MultiParamTypeClasses
-
   source-dirs:
     - src
 

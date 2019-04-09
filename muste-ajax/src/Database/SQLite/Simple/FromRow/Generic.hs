@@ -5,7 +5,13 @@
 --
 -- [1]: https://github.com/nurpax/sqlite-simple/pull/69
 {-# OPTIONS_GHC -Wall #-}
-{-# Language TypeOperators #-}
+{-# Language
+ FlexibleContexts,
+ KindSignatures,
+ ScopedTypeVariables,
+ TypeOperators
+#-}
+
 module Database.SQLite.Simple.FromRow.Generic
   ( GFromRow(..)
   , GToRow(..)

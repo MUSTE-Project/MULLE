@@ -6,7 +6,12 @@
 -- Portability : POSIX
 
 {-# OPTIONS_GHC -Wall -Wcompat #-}
-{-# Language RecordWildCards #-}
+{-# Language
+ DerivingStrategies,
+ OverloadedStrings,
+ RecordWildCards,
+ StandaloneDeriving
+#-}
 
 module Muste.Web.Types.Score
   ( Score(..)
@@ -103,4 +108,4 @@ valuation :: Score -> Double
 valuation Score{..} = normalize clicks * normalize time
   where
   normalize :: Real n => n -> Double
-  normalize (realToFrac -> x) = 1 / Math.log (x + 1)
+  normalize x = 1 / Math.log (realToFrac x + 1)

@@ -11,8 +11,16 @@
 -- document oriented.
 
 {-# OPTIONS_GHC -Wall -Wcompat #-}
-{-# language OverloadedStrings, DuplicateRecordFields , RecordWildCards,
-  NamedFieldPuns #-}
+{-# Language
+ DeriveGeneric,
+ DerivingStrategies,
+ DuplicateRecordFields,
+ LambdaCase,
+ NamedFieldPuns,
+ OverloadedStrings,
+ RecordWildCards,
+ StandaloneDeriving
+#-}
 
 module Muste.Web.Ajax
   ( ServerTree(..)

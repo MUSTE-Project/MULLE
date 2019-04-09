@@ -1,5 +1,9 @@
 {-# OPTIONS_GHC -Wall -Wcompat #-}
-{-# language OverloadedStrings, TemplateHaskell #-}
+{-# Language
+ OverloadedStrings,
+ TemplateHaskell
+#-}
+
 module Main (main) where
 
 import Prelude ()

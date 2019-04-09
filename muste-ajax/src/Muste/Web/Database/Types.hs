@@ -13,9 +13,18 @@
 -- SQL database are row-orientend whereas JSON is document oriented.
 
 {-# OPTIONS_GHC -Wall #-}
-{-# Language StandaloneDeriving , GeneralizedNewtypeDeriving ,
-    TypeOperators , DuplicateRecordFields, DeriveAnyClass,
-    RecordWildCards #-}
+{-# Language
+ LambdaCase,
+ DeriveAnyClass,
+ DeriveGeneric,
+ DerivingStrategies,
+ DuplicateRecordFields,
+ GeneralizedNewtypeDeriving,
+ RecordWildCards,
+ StandaloneDeriving,
+ TypeApplications,
+ TypeOperators
+#-}
 
 module Muste.Web.Database.Types
   ( User(..)

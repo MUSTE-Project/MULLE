@@ -9,9 +9,17 @@
 -- accessing the stored data as well as invoking the core logic
 -- defined in package @muste@.
 
-{-# Language RecordWildCards, UndecidableInstances, DeriveAnyClass,
-  OverloadedLists #-}
 {-# OPTIONS_GHC -Wall -Wcompat #-}
+{-# Language
+ DeriveAnyClass,
+ FlexibleContexts,
+ GADTs,
+ LambdaCase,
+ OverloadedLists,
+ RecordWildCards,
+ ScopedTypeVariables,
+ UndecidableInstances
+#-}
 
 module Muste.Web.Protocol.Handlers
   ( handleLoginRequest

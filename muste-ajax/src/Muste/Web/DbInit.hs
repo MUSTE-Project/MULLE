@@ -1,6 +1,15 @@
-{-# LANGUAGE CPP, OverloadedStrings, TemplateHaskell,
-  QuasiQuotes, TypeApplications, RecordWildCards, OverloadedLists #-}
 {-# OPTIONS_GHC -Wall #-}
+{-# Language
+ CPP,
+ LambdaCase,
+ OverloadedLists,
+ OverloadedStrings,
+ QuasiQuotes,
+ RecordWildCards,
+ TemplateHaskell,
+ TypeApplications
+#-}
+
 module Muste.Web.DbInit (initDb) where
 
 import           Prelude ()
