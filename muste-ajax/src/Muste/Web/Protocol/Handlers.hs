@@ -15,7 +15,6 @@
  FlexibleContexts,
  GADTs,
  LambdaCase,
- OverloadedLists,
  RecordWildCards,
  ScopedTypeVariables,
  UndecidableInstances

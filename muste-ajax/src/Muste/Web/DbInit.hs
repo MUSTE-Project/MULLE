@@ -2,7 +2,6 @@
 {-# Language
  CPP,
  LambdaCase,
- OverloadedLists,
  OverloadedStrings,
  QuasiQuotes,
  RecordWildCards,

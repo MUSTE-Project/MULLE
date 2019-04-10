@@ -5,7 +5,6 @@
  DerivingStrategies,
  DuplicateRecordFields,
  GeneralizedNewtypeDeriving,
- OverloadedLists,
  OverloadedStrings,
  RecordWildCards,
  StandaloneDeriving

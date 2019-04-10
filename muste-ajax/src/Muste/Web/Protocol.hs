@@ -18,7 +18,6 @@
  CPP,
  DeriveAnyClass,
  FlexibleContexts,
- OverloadedLists,
  OverloadedStrings,
  RecordWildCards,
  ScopedTypeVariables,

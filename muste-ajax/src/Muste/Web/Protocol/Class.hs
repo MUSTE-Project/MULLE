@@ -21,7 +21,6 @@
  GeneralizedNewtypeDeriving,
  LambdaCase,
  MultiParamTypeClasses,
- OverloadedLists,
  OverloadedStrings,
  RecordWildCards,
  ScopedTypeVariables,
@@ -176,10 +175,10 @@ class HasErrorIdentifier a where
 
 instance HasErrorIdentifier ProtocolError where
   errorIdentifier = \case
-    UnspecifiedError    -> [0]
-    SomeProtocolError{} -> [1]
-    DatabaseError e     -> [2] <> errorIdentifier e
-    ProtocolApiError e  -> [3] <> errorIdentifier e
+    UnspecifiedError    -> fromList [0]
+    SomeProtocolError{} -> fromList [1]
+    DatabaseError e     -> fromList [2] <> errorIdentifier e
+    ProtocolApiError e  -> fromList [3] <> errorIdentifier e
   errorResponseCode = \case
     UnspecifiedError    -> 500
     SomeProtocolError{} -> 500

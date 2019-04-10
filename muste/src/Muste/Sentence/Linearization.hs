@@ -26,7 +26,6 @@ import qualified Data.Vector as Vector
 import GHC.Generics (Generic)
 import Data.Binary hiding (Word)
 import Control.Category ((>>>))
-import GHC.Exts (IsList(..))
 import Data.Typeable (Typeable)
 import Data.Text.Prettyprint.Doc (Pretty(..))
 import Control.DeepSeq (NFData)
