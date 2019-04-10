@@ -1,7 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language
  CPP,
- LambdaCase,
  OverloadedStrings,
  QuasiQuotes,
  RecordWildCards,
@@ -119,9 +118,8 @@ toDatabaseLesson Data.Lesson{..}
   Data.Languages sourceLanguage targetLanguage = languages
   Data.SearchOptions{..} = searchOptions
   dir :: Data.Direction -> Database.Direction
-  dir = \case
-    Data.VersoRecto -> Database.VersoRecto
-    Data.RectoVerso -> Database.RectoVerso
+  dir Data.VersoRecto = Database.VersoRecto
+  dir Data.RectoVerso = Database.RectoVerso
 
 toDatabaseExercise :: Data.Lesson -> [Database.Exercise]
 toDatabaseExercise Data.Lesson{..} = step <$> zip [0..] exercises'

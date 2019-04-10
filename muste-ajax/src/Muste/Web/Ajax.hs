@@ -15,7 +15,6 @@
  DeriveGeneric,
  DerivingStrategies,
  DuplicateRecordFields,
- LambdaCase,
  NamedFieldPuns,
  OverloadedStrings,
  RecordWildCards,
@@ -149,9 +148,8 @@ instance FromJSON Direction where
         k t = if kw == t then pure d else empty
 
 instance ToJSON Direction where
-  toJSON = \case
-    VersoRecto -> "ltr"
-    RectoVerso -> "rtl"
+  toJSON VersoRecto = "ltr"
+  toJSON RectoVerso = "rtl"
 
 oneOf :: (Foldable t, Alternative f) => t (f a) -> f a
 oneOf = foldl (<|>) empty

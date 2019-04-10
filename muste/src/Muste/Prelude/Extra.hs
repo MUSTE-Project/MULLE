@@ -2,7 +2,6 @@
 {-# Language
  CPP,
  FlexibleContexts,
- LambdaCase,
  OverloadedStrings
 #-}
 
@@ -147,27 +146,23 @@ readFail :: Read r => MonadFail m => String -> m r
 readFail = eitherFail . readEither
 
 eitherFail :: MonadFail m => Either String a -> m a
-eitherFail = \case
-  Left s -> fail s
-  Right a -> pure a
+eitherFail (Left  s) = fail s
+eitherFail (Right a) = pure a
 
 enumerate :: [a] -> [(Int, a)]
 enumerate = zip [0..]
 
 maybeFail :: MonadFail m => String -> Maybe a -> m a
-maybeFail err = \case
-  Nothing -> fail err
-  Just a -> pure a
+maybeFail err Nothing = fail err
+maybeFail _  (Just a) = pure a
 
 maybeFailIO :: MonadIO m => Exception e => e -> Maybe a -> m a
-maybeFailIO err = \case
-  Nothing -> liftIO $ throwIO err
-  Just a -> pure a
+maybeFailIO err Nothing = liftIO $ throwIO err
+maybeFailIO _  (Just a) = pure a
 
 maybeThrow :: MonadThrow m => Exception e => e -> Maybe a -> m a
-maybeThrow e = \case
-  Nothing -> throwM e
-  Just a  -> pure a
+maybeThrow err Nothing = throwM err
+maybeThrow _  (Just a) = pure a
 
 binaryToText :: Binary bin => ConvertibleStrings ByteString text => bin -> text
 binaryToText = convertString . Binary.encode

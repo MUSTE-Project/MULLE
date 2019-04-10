@@ -8,7 +8,6 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language
  DeriveAnyClass,
- LambdaCase,
  NamedFieldPuns,
  OverloadedStrings,
  QuasiQuotes,
@@ -705,11 +704,11 @@ getExercise
   -> Text
   -> Types.Numeric -- ^ Round
   -> db Types.ExerciseLesson
-getExercise lesson user round
-  = queryNamed q [ ":Lesson" := lesson, ":User" := user, ":Round" := round ]
-  >>= \case
-    [x] -> pure x
-    _ -> throwDbError NoActiveExercisesInLesson
+getExercise lesson user round =
+  do xs <- queryNamed q [ ":Lesson" := lesson, ":User" := user, ":Round" := round ]
+     case xs of
+       [x] -> pure x
+       _   -> throwDbError NoActiveExercisesInLesson
   where
 
   q = [sql|

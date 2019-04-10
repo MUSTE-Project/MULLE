@@ -12,7 +12,6 @@
  DerivingStrategies,
  FlexibleInstances,
  GeneralizedNewtypeDeriving,
- LambdaCase,
  MultiParamTypeClasses,
  NamedFieldPuns,
  RecordWildCards,
@@ -62,7 +61,7 @@ data Error
 
 deriving stock instance Show Error
 instance Exception Error where
-  displayException = \case
+  displayException err = case err of
     NoUserFound         -> "No user found."
     LangNotFound        -> "Could not find the languages."
     MultipleUsers
@@ -178,6 +177,7 @@ wrappedWithCon act = do
 -- wrapper.
 wrapIoError :: MonadDB r db => IO a -> db a
 wrapIoError io =
-  liftIO (try io) >>= \case
-  Left e  -> throwDbError $ DriverError e
-  Right a -> pure a
+  do result <- liftIO (try io)
+     case result of
+       Left e  -> throwDbError $ DriverError e
+       Right a -> pure a

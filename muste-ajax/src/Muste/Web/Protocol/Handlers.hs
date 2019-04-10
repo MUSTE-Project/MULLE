@@ -14,7 +14,6 @@
  DeriveAnyClass,
  FlexibleContexts,
  GADTs,
- LambdaCase,
  RecordWildCards,
  ScopedTypeVariables,
  UndecidableInstances
@@ -174,9 +173,8 @@ handleLessonInit (Ajax.StartLesson token lesson restart) = do
     }
 
 dir :: Database.Direction -> Ajax.Direction
-dir = \case
-  Database.VersoRecto -> Ajax.VersoRecto
-  Database.RectoVerso -> Ajax.RectoVerso
+dir Database.VersoRecto = Ajax.VersoRecto
+dir Database.RectoVerso = Ajax.RectoVerso
 
 -- | This request is called after the user selects a new sentence from
 -- the drop-down menu.  A request consists of two 'Ajax.ClientTree's
@@ -313,9 +311,8 @@ lookupM err k = liftMaybe err . Map.lookup k
 
 -- | Lift a 'Maybe' to any 'MonadThrow'.
 liftMaybe :: MonadThrow m => Exception e => e -> Maybe a -> m a
-liftMaybe e = \case
-  Nothing -> throwM e
-  Just a  -> pure a
+liftMaybe err Nothing = throwM err
+liftMaybe _  (Just a) = pure a
 
 -- | @'makeTree' ctxt lesson src trg tree@ Creates a 'ServerTree' from
 -- a source trees and a target tree.  The 'Menu' is provided given

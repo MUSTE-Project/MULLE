@@ -2,7 +2,6 @@
 {-# Language
  DeriveGeneric,
  FlexibleContexts,
- LambdaCase,
  NamedFieldPuns,
  OverloadedStrings,
  RecordWildCards,
@@ -113,9 +112,8 @@ mkLinearization c t
     >>> Tree.unCategory
     >>> pure @[]
   name :: TTree -> Category
-  name = \case
-    Tree.TNode n _ _ -> n
-    Tree.TMeta{} -> error "Expected saturated tree"
+  name (Tree.TNode n _ _) = n
+  name (Tree.TMeta _)     = error "Expected saturated tree"
 
 -- | @'annotated' c t@ creates a 'Sentence' of @t@.  The 'Sentence' 
 -- will be a valid such in the grammar and languages specified by the
@@ -127,9 +125,9 @@ annotated c l t = Annotated l $ mkLinearization c t
 
 -- | Merge multiple
 merge :: MonadThrow m => Exception e => e -> [Annotated] -> m Annotated
-merge e = \case
-  [] -> throwM e
-  xs -> pure $ Unsafe.foldl1 merge1 xs
+merge e [] = throwM e
+merge _ xs = pure $ Unsafe.foldl1 merge1 xs
+
 -- Merge two sentences, assuming they have the same language.
 merge1 :: Annotated -> Annotated -> Annotated
 merge1 a b = Annotated lang ((mergeL `on` linearization) a b)

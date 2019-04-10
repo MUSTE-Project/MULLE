@@ -4,7 +4,6 @@
  DerivingStrategies,
  FlexibleContexts,
  GeneralizedNewtypeDeriving,
- LambdaCase,
  MultiParamTypeClasses,
  ScopedTypeVariables,
  StandaloneDeriving,
@@ -320,9 +319,8 @@ parseSentence grammar lang = Text.unpack >>> pgfIfy >>> fmap musteIfy
 
 -- | Returns a bag of all meta-variables in a tree.
 getMetas :: TTree -> MultiSet Category
-getMetas = \case
-  TMeta cat -> MultiSet.singleton cat
-  TNode _ _ ts -> mconcat $ getMetas <$> ts
+getMetas (TMeta cat)    = MultiSet.singleton cat
+getMetas (TNode _ _ ts) = mconcat $ getMetas <$> ts
 
 -- | Returns a bag of all functions in a tree.
 getFunctions :: TTree -> MultiSet Rule

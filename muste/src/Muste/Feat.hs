@@ -7,7 +7,6 @@
 
 {-# OPTIONS_GHC -Wall -Wcompat #-}
 {-# Language
- LambdaCase,
  OverloadedStrings
 #-}
 
@@ -71,7 +70,7 @@ mkFEAT gr =
        cats :: [Category]
        cats = nub [ x | r <- Grammar.getAllRules gr, let (Fun y xs) = Grammar.getRuleType r, x <- y:xs ]
        memo :: ([Category] -> Int -> (Integer, Integer -> [TTree])) -> ([Category] -> Int -> (Integer, Integer -> [TTree]))
-       memo f = \case
+       memo f xs = case xs of
          []   -> (nil Unsafe.!!)
          a:as -> Unsafe.head [ f' as | (c,f') <- cons, a == c ]
          where

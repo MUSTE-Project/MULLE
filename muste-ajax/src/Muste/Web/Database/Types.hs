@@ -14,7 +14,6 @@
 
 {-# OPTIONS_GHC -Wall #-}
 {-# Language
- LambdaCase,
  DeriveAnyClass,
  DeriveGeneric,
  DerivingStrategies,
@@ -226,16 +225,14 @@ instance ToField Direction where
   toField = toField @Bool . toBool
     where
     toBool :: Direction -> Bool
-    toBool = \case
-      VersoRecto -> False
-      RectoVerso -> True
+    toBool VersoRecto = False
+    toBool RectoVerso = True
 instance FromField Direction where
   fromField = fmap fromBool <$> fromField @Bool
     where
     fromBool :: Bool -> Direction
-    fromBool = \case
-      False -> VersoRecto
-      True -> RectoVerso
+    fromBool False = VersoRecto
+    fromBool True = RectoVerso
 
 data Lesson = Lesson
   { key                 :: Key Lesson

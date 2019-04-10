@@ -19,7 +19,6 @@
  FlexibleContexts,
  GADTs,
  GeneralizedNewtypeDeriving,
- LambdaCase,
  MultiParamTypeClasses,
  OverloadedStrings,
  RecordWildCards,
@@ -104,9 +103,8 @@ instance Monad m => MonadDatabaseError (ProtocolT m) where
     = ProtocolT $ catchError act (unProtocolT . h')
     where
     -- The "demoted" handler.
-    h' = \case
-      DatabaseError err -> h err
-      e                 -> ProtocolT $ throwError e
+    h' (DatabaseError err) = h err
+    h'  e                  = ProtocolT $ throwError e
 
 data ProtocolError
   -- 'UnspecifiedError' is needed to make this a monoid to in turn
@@ -127,11 +125,11 @@ instance Monoid ProtocolError where
 deriving stock instance Show ProtocolError
 
 instance Exception ProtocolError where
-  displayException = \case
+  displayException err = case err of
     UnspecifiedError    -> "Some unspecified error occured"
-    DatabaseError err   -> "A database error occurred: " <> displayException err
+    DatabaseError     e -> "A database error occurred: " <> displayException e
     SomeProtocolError e -> displayException e
-    ProtocolApiError e  -> displayException e
+    ProtocolApiError  e -> displayException e
 
 data ApiError
   = MissingApiRoute String
@@ -147,7 +145,7 @@ data ApiError
 deriving stock instance Show ApiError
 
 instance Exception ApiError where
-  displayException = \case
+  displayException err = case err of
     MissingApiRoute s   -> printf "missing api route for `%s`" s
     NoAccessToken       -> "No cookie found"
     SessionInvalid      -> "Session invalid, please log in again"
@@ -174,19 +172,19 @@ class HasErrorIdentifier a where
   errorResponseCode :: a -> HttpStatus
 
 instance HasErrorIdentifier ProtocolError where
-  errorIdentifier = \case
+  errorIdentifier err = case err of
     UnspecifiedError    -> fromList [0]
     SomeProtocolError{} -> fromList [1]
     DatabaseError e     -> fromList [2] <> errorIdentifier e
     ProtocolApiError e  -> fromList [3] <> errorIdentifier e
-  errorResponseCode = \case
+  errorResponseCode err = case err of
     UnspecifiedError    -> 500
     SomeProtocolError{} -> 500
     DatabaseError e     -> errorResponseCode e
     ProtocolApiError e  -> errorResponseCode e
 
 instance HasErrorIdentifier ApiError where
-  errorIdentifier = fromList . pure . \case
+  errorIdentifier err = fromList $ pure $ case err of
     MissingApiRoute{}  -> 0
     NoAccessToken      -> 1
     SessionInvalid     -> 2
@@ -196,7 +194,7 @@ instance HasErrorIdentifier ApiError where
     DecodeError{}      -> 6
     LessonNotFound{}   -> 7
     LanguageNotFound{} -> 8
-  errorResponseCode = \case
+  errorResponseCode err = case err of
     MissingApiRoute{}  -> 501
     NoAccessToken      -> 401
     SessionInvalid     -> 400
@@ -209,7 +207,7 @@ instance HasErrorIdentifier ApiError where
 
 
 instance HasErrorIdentifier Database.Error where
-  errorIdentifier = fromList . pure . \case
+  errorIdentifier err = fromList $ pure $ case err of
     Database.NoUserFound               -> 0
     Database.LangNotFound              -> 1
     Database.MultipleUsers             -> 2
@@ -223,7 +221,7 @@ instance HasErrorIdentifier Database.Error where
     Database.UserAlreadyExists         -> 10
     Database.NoActiveExercisesInLesson -> 11
     Database.LessonAlreadySolved       -> 12
-  errorResponseCode = \case
+  errorResponseCode err = case err of
     Database.NoUserFound               -> 401
     Database.LangNotFound              -> 400
     Database.MultipleUsers             -> 401
@@ -263,8 +261,7 @@ instance Database.HasConnection AppState where
 data Reason = UnprocessableEntity
 
 displayReason :: Reason -> ByteString
-displayReason = \case
-  UnprocessableEntity -> "Unprocessable Entity"
+displayReason UnprocessableEntity = "Unprocessable Entity"
 
 data HttpStatus = Code Int | CodeReason Int Reason
 
