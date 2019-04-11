@@ -21,8 +21,7 @@
  GeneralizedNewtypeDeriving,
  RecordWildCards,
  StandaloneDeriving,
- TypeApplications,
- TypeOperators
+ TypeApplications
 #-}
 
 module Muste.Web.Database.Types
@@ -47,17 +46,19 @@ module Muste.Web.Database.Types
   , Token(..)
   ) where
 
-import Prelude ()
-import Muste.Prelude
+import Database.SQLite.Simple (FromRow(fromRow), ToRow(toRow))
+import Database.SQLite.Simple.ToField (ToField(toField))
+import Database.SQLite.Simple.FromField (FromField(fromField))
 
-import Database.SQLite.Simple (FromRow(..), ToRow(..))
-import Database.SQLite.Simple.ToField (ToField(..))
-import Database.SQLite.Simple.FromField (FromField(..))
+import GHC.Generics (Generic)
+import Database.SQLite.Simple.FromRow.Generic
 
 import Data.Int (Int64)
 import Data.ByteString (ByteString)
-import Data.Aeson (FromJSON(..), ToJSON(..))
+import Data.Aeson (FromJSON(parseJSON), ToJSON(toJSON))
 import qualified Data.Aeson as Aeson
+import Data.Text (Text)
+import Data.Time.Clock (UTCTime)
 
 import Muste.Tree (TTree)
 import qualified Muste.Sentence.Unannotated as Sentence (Unannotated)
@@ -65,7 +66,6 @@ import Muste.Sentence.Unannotated (Unannotated)
 
 import Muste.Web.Types.Score (Score)
 
-import Database.SQLite.Simple.FromRow.Generic
 
 newtype Blob = Blob { unBlob :: ByteString }
 

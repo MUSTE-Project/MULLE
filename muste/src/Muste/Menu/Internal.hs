@@ -21,10 +21,17 @@ module Muste.Menu.Internal
   , Prune.emptyPruneOpts
   ) where
 
-import Prelude ()
-import Muste.Prelude
-import qualified Muste.Prelude.Unsafe as Unsafe
+#ifdef DIAGNOSTICS
+import System.IO.Unsafe (unsafePerformIO)
+import System.CPUTime (getCPUTime)
+#endif
 
+import Control.Category ((>>>))
+import Control.DeepSeq (NFData)
+import Data.Function ((&))
+import GHC.Generics (Generic)
+
+import Data.Aeson (ToJSON, FromJSON)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
@@ -35,28 +42,24 @@ import qualified Data.Array as Array
 import Data.MonoTraversable
 import qualified Data.Containers as Mono
 import qualified Data.List as List
-import Control.DeepSeq (NFData)
 import qualified Data.Text as Text
+import Data.Text (Text)
+import Data.Text.Prettyprint.Doc (Pretty(pretty))
 
 import Muste.Selection (Interval(Interval), Selection(Selection))
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.Linearization.Internal
-  (Linearization(..), Context, ctxtGrammar, ctxtLang, ctxtPrecomputed)
+       (Linearization(Linearization), Context, ctxtGrammar, ctxtLang, ctxtPrecomputed)
 import qualified Muste.Linearization.Internal as Linearization
-import Muste.Tree.Internal (TTree(..), Path, Category)
+import Muste.Tree.Internal (TTree(TNode), Path, Category)
 import qualified Muste.Tree.Internal as Tree
 import qualified Muste.Prune as Prune
-import Data.Function ((&))
 
 import qualified Muste.Sentence as Sentence
 import qualified Muste.Sentence.Linearization as Sentence (Linearization)
 import qualified Muste.Sentence.Token as Token
 import qualified Muste.Sentence.Annotated as Annotated
 
-#ifdef DIAGNOSTICS
-import System.IO.Unsafe (unsafePerformIO)
-import System.CPUTime (getCPUTime)
-#endif
 
 type Tokn = Text
 type Node = Category
@@ -229,7 +232,7 @@ buildMenu ctxt items
         (oldselection, newselection, newwords) <- Set.toAscList items,
         let newlins' = map (Annotated.mkLinearization ctxt) (parseSentence ctxt (Text.unwords newwords)),
         not (null newlins'),
-        let newlin = Unsafe.foldl1 Annotated.mergeL newlins'
+        let newlin = foldl1 Annotated.mergeL newlins'
       ]
 
 
@@ -277,7 +280,7 @@ makeEmptyIntervals positions = [ Interval (i,i) | i <- IntSet.toList positions ]
 
 groupConsecutive :: IntSet -> [Interval]
 groupConsecutive positions = [ Interval (i, i + length group) |
-                               group <- groups, let i = snd (Unsafe.head group) ]
+                               group <- groups, let i = snd (head group) ]
     where groups = List.groupBy (\(i,n) (j,m) -> j-i == m-n) $ zip [0..] $ IntSet.toList positions
 
 

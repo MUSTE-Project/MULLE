@@ -29,31 +29,37 @@ module Muste.Web.Protocol
   , AppState
   ) where
 
-import           Prelude ()
-import           Muste.Prelude
+import Control.Exception (throw)
+import Control.Monad.Except (throwError)
+import Control.Monad.IO.Class (MonadIO(liftIO))
+import qualified Snap
+import qualified Snap.Util.CORS as Cors
+import qualified System.IO.Streams as Streams
 
 import qualified Database.SQLite.Simple as SQL
 
-import           Data.ByteString (ByteString)
-import qualified Data.Map                     as Map
-import qualified Data.Aeson                   as Aeson
-import qualified Snap
-import qualified Snap.Util.CORS               as Cors
-import qualified System.IO.Streams            as Streams
+import Data.Aeson (FromJSON)
+import Data.String.Conversions (convertString)
+import Data.Text (Text)
+
+import Data.ByteString (ByteString)
+import qualified Data.Map as Map
+import qualified Data.Aeson as Aeson
 
 #ifdef DIAGNOSTICS
-import qualified Data.Text.IO                 as Text
+import qualified Data.Text.IO as Text
 #endif
 
-import qualified Muste.Grammar                as Grammar
-import qualified Muste.Linearization          as Linearization
-import qualified Muste.Sentence               as Sentence
+import qualified Muste.Grammar as Grammar
+import qualified Muste.Linearization as Linearization
+import qualified Muste.Sentence as Sentence
 
-import qualified Muste.Web.Database           as Database
-import           Muste.Web.Database (MonadDB)
-import qualified Muste.Web.Database.Types     as Database
-import           Muste.Web.Protocol.Class
-import qualified Muste.Web.Protocol.Handlers  as Handlers
+import qualified Muste.Web.Database as Database
+import Muste.Web.Database (MonadDB)
+import qualified Muste.Web.Database.Types as Database
+import Muste.Web.Protocol.Class
+import qualified Muste.Web.Protocol.Handlers as Handlers
+
 
 openConnection :: MonadIO io => String -> io SQL.Connection
 openConnection p = do

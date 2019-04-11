@@ -18,25 +18,25 @@ module Muste.Sentence.Token
   )
   where
 
-import Prelude ()
-import Muste.Prelude
+import Control.DeepSeq (NFData)
+import GHC.Generics (Generic)
 
 import Muste.Prelude.SQL (toBlob, fromBlob)
-import Database.SQLite.Simple.ToField (ToField(..))
-import Database.SQLite.Simple.FromField (FromField(..))
+import Database.SQLite.Simple.ToField (ToField(toField))
+import Database.SQLite.Simple.FromField (FromField(fromField))
 
-import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:))
+import Data.Aeson (ToJSON(toJSON), FromJSON(parseJSON), (.=), (.:))
 import qualified Data.Aeson as Aeson
+import Data.Binary (Binary)
 import Data.Set (Set)
 import qualified Data.Set as Set
-import GHC.Generics (Generic)
-import Data.Text.Prettyprint.Doc (Pretty(..))
-import Control.DeepSeq (NFData)
+import Data.Text (Text)
+import Data.Text.Prettyprint.Doc (Pretty(pretty))
 
 import Muste.Sentence.Token.Class (IsToken)
 import qualified Muste.Sentence.Token.Class as Token
 
-
+
 -- * Annotated words
 data Annotated = Annotated
   { concrete :: Text

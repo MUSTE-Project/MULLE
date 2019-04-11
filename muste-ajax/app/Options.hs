@@ -2,13 +2,13 @@
 
 module Options (getOptions, Options(..)) where
 
-import Prelude ()
-import Muste.Prelude
 import qualified Muste.Prelude.Unsafe as Unsafe
+
 import Options.Applicative (Parser, execParser, ParserInfo)
 import qualified Options.Applicative as O
 import Control.Applicative ((<**>))
 import System.FilePath (FilePath)
+
 
 data Options = Options
   { configFile :: FilePath

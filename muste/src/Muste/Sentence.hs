@@ -21,16 +21,16 @@ module Muste.Sentence
   -- , module Sentence
   ) where
 
-import Prelude ()
-import Muste.Prelude
+import Data.Function ((&))
+import Data.Text (Text)
 
 import Muste.Linearization.Internal (Context)
 import Muste.Tree.Internal (TTree)
 import qualified Muste.Linearization.Internal as OldLinearization
 import qualified Muste.Grammar.Internal as Grammar
+import qualified Muste.Sentence.Class as Sentence
+import qualified Muste.Sentence.Token as Token
 
-import qualified Muste.Sentence.Class    as Sentence
-import qualified Muste.Sentence.Token    as Token
 
 parse :: Context -> Text -> [TTree]
 parse OldLinearization.Context{..}

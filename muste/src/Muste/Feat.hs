@@ -18,13 +18,12 @@ module Muste.Feat
   , generateTrees
   ) where
 
-import Prelude ()
-import Muste.Prelude
-import qualified Muste.Prelude.Unsafe as Unsafe
+import Data.List (nub)
 
 import Muste.Grammar.Internal (Rule(Function), Grammar)
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.Tree
+
 
 type FEAT = Category -> Int -> (Integer, Integer -> TTree)
 
@@ -41,7 +40,7 @@ featIth f c n = snd (f c n)
 
 mkFEAT :: Grammar -> FEAT
 mkFEAT gr =
-  \c s -> let (n,h) = catList [c] s in (n, Unsafe.head . h)
+  \c s -> let (n,h) = catList [c] s in (n, head . h)
  where
    catList' :: [Category] -> Int -> (Integer, Integer -> [TTree])
    catList' [] s =
@@ -71,8 +70,8 @@ mkFEAT gr =
        cats = nub [ x | r <- Grammar.getAllRules gr, let (Fun y xs) = Grammar.getRuleType r, x <- y:xs ]
        memo :: ([Category] -> Int -> (Integer, Integer -> [TTree])) -> ([Category] -> Int -> (Integer, Integer -> [TTree]))
        memo f xs = case xs of
-         []   -> (nil Unsafe.!!)
-         a:as -> Unsafe.head [ f' as | (c,f') <- cons, a == c ]
+         []   -> (nil !!)
+         a:as -> head [ f' as | (c,f') <- cons, a == c ]
          where
            nil  = [ f [] s | s <- [0..] ]
            cons = [ (c, memo (f . (c:))) | c <- cats ]

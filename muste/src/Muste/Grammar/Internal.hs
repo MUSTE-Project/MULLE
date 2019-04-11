@@ -38,10 +38,24 @@ module Muste.Grammar.Internal
   , noGrammars
   ) where
 
-import Prelude ()
-import Muste.Prelude
-import qualified Muste.Prelude.Unsafe as Unsafe
-import Muste.Prelude.Extra
+import Muste.Prelude.Extra (wildCard)
+
+import Control.Applicative (Alternative)
+import Control.Category ((>>>))
+import Control.Monad (MonadPlus)
+import Control.Monad.Base (MonadBase)
+import Control.DeepSeq (NFData, force)
+import Control.Monad.Except (ExceptT)
+import Control.Monad.IO.Class (MonadIO(liftIO))
+import Control.Monad.Reader (MonadReader, ReaderT)
+import qualified Control.Monad.Reader as Reader
+import Control.Monad.Trans (MonadTrans(lift))
+import Control.Monad.Trans.Control (MonadBaseControl)
+import Data.IORef (IORef)
+import qualified Data.IORef as IO
+import GHC.Generics (Generic)
+import Snap (MonadSnap)
+import qualified Snap
 
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -49,30 +63,22 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.ByteString.Lazy as LB
 -- This might be the only place we should know of PGF
-import qualified PGF
-  ( Tree, wildCId, functions
-  , startCat, functionType, parsePGF
-  , bracketedLinearize, parse
-  )
-import PGF.Internal as PGF hiding (funs, cats, Binary)
 import Data.List (union, partition)
+import Data.Text (Text)
+import qualified Data.Text as Text
+import Text.Printf (printf)
 import Data.Text.Prettyprint.Doc (Pretty(..))
 import qualified Data.Text.Prettyprint.Doc as Doc
-import Control.DeepSeq
 import Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as MultiSet
-import qualified Data.Text as Text
-import qualified Control.Monad.Reader as Reader
-import Control.Monad.Except (ExceptT)
-import Data.IORef (IORef)
-import qualified Data.IORef as IO
-import Control.Monad.Trans.Control (MonadBaseControl)
-import Control.Monad.Base (MonadBase)
-import Snap (MonadSnap)
-import qualified Snap
+
+import qualified PGF (Tree, wildCId, functions, startCat, functionType,
+                      parsePGF, bracketedLinearize, parse)
+import PGF.Internal as PGF hiding (funs, cats, Binary)
 
 import Muste.Tree
 import qualified Muste.Tree.Internal as Tree
+
 
 -- | Type 'Rule' consists of a 'String' representing the function name
 -- and a 'FunType' representing its type.
@@ -131,7 +137,7 @@ getFunType g id =
   let
     rules = filter (\r -> getRuleName r == id) $ getAllRules g
   in
-    if not $ null rules then getRuleType $ Unsafe.head rules else NoType
+    if not $ null rules then getRuleType $ head rules else NoType
 
 -- | The function 'getRuleName' extracts the name of a rule
 getRuleName :: Rule -> Category
@@ -188,7 +194,7 @@ brackets grammar language ttree
   = PGF.bracketedLinearize (pgf grammar) language (Tree.toGfTree ttree)
 
 parseTTree :: Grammar -> String -> TTree
-parseTTree g = fromGfTree g . Unsafe.read
+parseTTree g = fromGfTree g . read
 
 -- | The function 'fromGfTree' creates a 'TTree' from a 'PGF.Tree' and
 -- a 'Grammar'. Handles only 'EApp' and 'EFun'. Generates a 'hole' in

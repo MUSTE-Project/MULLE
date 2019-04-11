@@ -10,36 +10,35 @@
 
 module Muste.Sentence.Unannotated where
 
-import Prelude ()
-import Muste.Prelude
+import Control.Monad.Catch (MonadThrow)
+import Control.Exception (Exception)
+import Control.Category ((>>>))
+import Data.Function ((&))
+import GHC.Generics (Generic)
 
 import Muste.Prelude.SQL (toBlob, fromBlob)
-import Database.SQLite.Simple.ToField (ToField(..))
-import Database.SQLite.Simple.FromField (FromField(..))
+import Database.SQLite.Simple.ToField (ToField(toField))
+import Database.SQLite.Simple.FromField (FromField(fromField))
 
-import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:))
+import Data.Aeson (ToJSON(toJSON), FromJSON(parseJSON), (.=), (.:))
 import qualified Data.Aeson as Aeson
-import GHC.Generics (Generic)
-import Data.Function ((&))
+import Data.Binary (Binary)
 import GHC.Exts (fromList)
 import Data.MonoTraversable
 import qualified Data.Text as Text
+import Data.Text (Text)
 
 import Muste.Tree.Internal (TTree)
 import Muste.Linearization.Internal (Context(..))
 import qualified Muste.Grammar.Internal as Grammar
 import qualified Muste.Sentence.Token as Token
-import Muste.Sentence.Class
-  ( Sentence
-  , Language(Language)
-  , Linearization
-  , Grammar(Grammar)
-  )
+import Muste.Sentence.Class (Sentence, Language(Language), Linearization, Grammar(Grammar))
 import qualified Muste.Sentence.Linearization as Linearization
 import qualified Muste.Sentence.Class as Sentence
 import qualified Muste.Linearization.Internal as OldLinearization
 import Muste.Sentence.Annotated (Annotated)
 import qualified Muste.Sentence.Annotated as Annotated
+
 
 data Unannotated = Unannotated
   { language      :: Language

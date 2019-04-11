@@ -5,19 +5,19 @@
 
 module Main (main) where
 
-import Prelude ()
-import Muste.Prelude
-import qualified Data.Binary                  as Binary
-import qualified Data.Text                    as Text
+import qualified Data.Binary as Binary
+import qualified Data.Text as Text
+import Data.Text (Text)
 
 import Muste.Grammar (Grammar)
-import qualified Muste.Util                   as Util
-import qualified Muste.Menu                   as Menu
-import qualified Muste.AdjunctionTrees        as AdjTrees
-import qualified Muste.Grammar                as Grammar
-import qualified Muste.Linearization          as Linearization
-import qualified Muste.Repl                   as Repl
-import qualified Options                      as O
+import qualified Muste.Util as Util
+import qualified Muste.Menu as Menu
+import qualified Muste.AdjunctionTrees as AdjTrees
+import qualified Muste.Grammar as Grammar
+import qualified Muste.Linearization as Linearization
+import qualified Muste.Repl as Repl
+import qualified Options as O
+
 
 makeEnv :: Text -> O.SearchOptions -> O.MusteOptions -> IO Repl.Env
 makeEnv grammar searchOpts O.MusteOptions{..} =

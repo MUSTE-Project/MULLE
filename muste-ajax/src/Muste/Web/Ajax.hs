@@ -42,20 +42,21 @@ module Muste.Web.Ajax
   , StartLesson(..)
   ) where
 
-import Prelude ()
-import Muste.Prelude
+import Control.Applicative (Alternative(empty, (<|>)))
+import GHC.Generics (Generic)
 
-import Data.Aeson ((.:), (.=), (.:?), (.!=))
+import Data.Aeson (FromJSON(parseJSON), ToJSON(toJSON), (.:), (.=), (.:?), (.!=))
 import Data.Aeson.Types (Parser)
 import qualified Data.Aeson as Aeson
+import Data.Text (Text)
 
 import Muste.Menu (Menu)
 import Muste.Sentence.Unannotated (Unannotated)
 import Muste.Sentence.Annotated (Annotated)
 
 import qualified Muste.Web.Database.Types as Database
+import Muste.Web.Types.Score (Score(..))
 
-import           Muste.Web.Types.Score (Score(..))
 
 data ClientTree = ClientTree
   { sentence      :: Unannotated

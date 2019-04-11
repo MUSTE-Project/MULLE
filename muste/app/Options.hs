@@ -12,12 +12,12 @@ module Options
   , SearchOptions(..)
   ) where
 
-import Prelude ()
-import Muste.Prelude
-import qualified Muste.Prelude.Unsafe as Unsafe
 import qualified Options.Applicative as O
 import Options.Applicative (Parser)
-import Control.Applicative ((<**>))
+import Control.Applicative ((<**>), (<|>), some)
+import Data.Text (Text)
+ 
+import qualified Muste.Prelude.Unsafe as Unsafe
 
 
 -- Options type hierarchy

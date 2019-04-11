@@ -35,22 +35,32 @@ module Muste.Tree.Internal
   , cIdToCat
   ) where
 
-import Prelude ()
-import Muste.Prelude
-import Muste.Prelude.Extra
-import qualified Muste.Prelude.Unsafe as Unsafe
-
 import Muste.Prelude.SQL (toBlob, fromBlob)
 import Database.SQLite.Simple.ToField (ToField(..))
 import Database.SQLite.Simple.FromField (FromField(..))
 
 -- TODO Do not depend on PGF
-import qualified PGF
-  (CId, utf8CId, Tree, wildCId, mkMeta, mkApp, showExpr, showCId)
+import qualified PGF (CId, utf8CId, Tree, wildCId, mkMeta, mkApp, showExpr, showCId)
+
+import Control.Category ((>>>))
+import Control.DeepSeq (NFData)
+import GHC.Generics (Generic)
 
 import Data.Aeson
-import qualified Data.Text as Text
+import Data.Binary (Binary)
+import Data.Data (Typeable)
+import Data.Maybe (fromJust)
+import Data.String (IsString(fromString))
+import Data.String.Conversions (convertString)
 import Data.String.ToString
+import Data.Text (Text)
+import qualified Data.Text as Text
+import Data.Text.Prettyprint.Doc (Pretty(pretty))
+import Text.Printf (printf)
+import Text.Read (readEither)
+
+import Muste.Prelude.Extra (editDistance, wildCard)
+
 
 -- * Trees
 
@@ -113,12 +123,12 @@ treeDiff :: TTree -> TTree -> Int
 treeDiff t t' = flatten t `editDistance` flatten t'
 
 
--- parseTree :: MonadFail fail => String -> fail TTree
+-- parseTree :: Monad fail => String -> fail TTree
 -- parseTree = do
 --   gfTree <- liftFailMaybe _ . PGF.readExpr
 --   _ gfTree
 
--- liftFailMaybe :: MonadFail m => String -> Maybe a -> m a
+-- liftFailMaybe :: Monad m => String -> Maybe a -> m a
 -- liftFailMaybe err = _
 
 -- TODO Make generalized container for @TTree@ (i.e. kind @* -> *@,
@@ -134,12 +144,12 @@ treeDiff t t' = flatten t `editDistance` flatten t'
 --   TNode nm tp xs -> f (foldl (foldlTTree f) x xs) (Left (nm, tp))
 --   TMeta cat      -> f x (Right cat)
 
-parseString :: MonadFail m => String -> (Text.Text -> m p) -> Value -> m p
+parseString :: Monad m => String -> (Text -> m p) -> Value -> m p
 parseString errMsg f = \case
   (String s) -> f s
   val -> fail $ printf "%s: %s" errMsg (show val)
 
-liftFailEither :: MonadFail m => Either String a -> m a
+liftFailEither :: Monad m => Either String a -> m a
 liftFailEither = either fail pure
 
 -- I've experimented with different ways of serializing this data.
@@ -222,7 +232,7 @@ instance TreeC TTree where
   selectBranch (TNode _ _ [] ) _ = Nothing
   selectBranch (TNode _ _ trees) i
     | i < 0 || i >= length trees = Nothing
-    | otherwise = Just (trees Unsafe.!! i)
+    | otherwise = Just (trees !! i)
 
 -- List-related functions
 -- | The function 'listReplace' replaces an element in a 'List' if the
@@ -250,7 +260,7 @@ isValid t =
         brokenPath = filter (not . fst) vs
       in
         if (t == ccats) && all fst vs then (True,Nothing)
-        else if null brokenPath then (False, Just $ reverse path) else (False, Just $ reverse $ fromJust $ snd $ Unsafe.head brokenPath)
+        else if null brokenPath then (False, Just $ reverse path) else (False, Just $ reverse $ fromJust $ snd $ head brokenPath)
     check _ path = (False, Just $ reverse path)
   in
     check t []
@@ -283,7 +293,7 @@ instance TreeC LTree where
   selectBranch (LNode _ _ [] ) _ = Nothing
   selectBranch (LNode _ _ trees) i
     | i < 0 || i >= length trees = Nothing
-    | otherwise = Just (trees Unsafe.!! i)
+    | otherwise = Just (trees !! i)
 
 -- | Creates a labeled LTree from a TTree
 ttreeToLTree :: TTree -> LTree

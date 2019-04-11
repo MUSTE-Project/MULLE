@@ -74,7 +74,6 @@ library:
     - Muste.Sentence.Annotated
     - Muste.Sentence.Unannotated
     # FIXME Perhaps a seperate module for these helper?
-    - Muste.Prelude
     - Muste.Prelude.Extra
     - Muste.Prelude.SQL
     - Muste.Prelude.Unsafe
@@ -95,7 +94,6 @@ library:
     - Muste.Sentence.Linearization
     - Muste.Sentence.Token
     - Muste.Sentence.Token.Class
-    - Muste.Prelude.ReExports
 
 custom-setup:
   dependencies:

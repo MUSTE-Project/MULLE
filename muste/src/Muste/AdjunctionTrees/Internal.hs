@@ -15,19 +15,19 @@ module Muste.AdjunctionTrees.Internal
     , AdjKey, AdjTree
     ) where
 
-import Prelude ()
-import Muste.Prelude
-import qualified Data.Containers      as Mono
-import Data.MonoTraversable
-import qualified Data.Map.Strict      as M
-import Data.MultiSet (MultiSet)
-import qualified Data.MultiSet as MultiSet
 import GHC.Generics (Generic)
 import Control.DeepSeq (NFData)
+
+import qualified Data.Containers as Mono
+import Data.MonoTraversable
+import qualified Data.Map.Strict as M
+import Data.MultiSet (MultiSet)
+import qualified Data.MultiSet as MultiSet
 import Data.Binary (Binary)
 import qualified Data.Binary as Binary
 
 import Muste.Tree
+
 
 instance Binary a => Binary (MultiSet a) where
   get = MultiSet.fromOccurMap <$> Binary.get

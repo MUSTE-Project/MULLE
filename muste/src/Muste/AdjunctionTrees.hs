@@ -17,25 +17,26 @@ module Muste.AdjunctionTrees
   , BuilderInfo(..)
   ) where
 
-import Prelude ()
-import Muste.Prelude
+#ifdef DIAGNOSTICS
+import System.IO.Unsafe
+import System.CPUTime (getCPUTime)
+#endif
+
+import Control.Monad (guard)
+import Control.Applicative (Alternative(empty))
+
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.MultiSet as MultiSet
 import Data.Text (isPrefixOf)
 
 import Muste.Tree
+import qualified Muste.Tree.Internal as Tree
 import Muste.Grammar
 import Muste.Grammar.Internal (Rule(Function))
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees.Internal
 
-import qualified Muste.Tree.Internal as Tree
-
-#ifdef DIAGNOSTICS
-import System.IO.Unsafe
-import System.CPUTime (getCPUTime)
-#endif
 
 -- * Creating adjunction trees.
 
@@ -98,7 +99,7 @@ diagnose builderInfo ats@(AdjunctionTrees adjTrees) = unsafePerformIO $ do
   printf "<< Building adjunction trees: %.2f s\n\n" secs
   return ats
 #else
-diagnose _ = identity
+diagnose _ = \x -> x
 #endif
 
 data BuilderEnv = BuilderEnv

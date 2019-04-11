@@ -41,27 +41,36 @@ module Muste.Web.Protocol.Class
   , Contexts
   ) where
 
-import           Prelude ()
-import           Muste.Prelude
+import Control.Applicative (Alternative)
+import Control.Exception (Exception(displayException))
+import Control.Monad (MonadPlus)
+import Control.Monad.Base (MonadBase)
+import Control.Monad.Except (MonadError, ExceptT, runExceptT, throwError, catchError)
+import Control.Monad.IO.Class (MonadIO)
+import Control.Monad.Reader (MonadReader)
+import Control.Monad.Trans.Control (MonadBaseControl)
 
-import           Database.SQLite.Simple (Connection)
-
-import           Control.Monad.Base (MonadBase)
-import           Control.Monad.Trans.Control (MonadBaseControl)
-import           Data.Aeson
-import           Data.ByteString (ByteString)
-import           Data.Map (Map)
-import           Data.Vector (Vector)
 import qualified Snap
-import           Snap (MonadSnap)
+import Snap (MonadSnap)
+import Database.SQLite.Simple (Connection)
+
+import Data.Aeson
+import Data.ByteString (ByteString)
+import Data.Map (Map)
+import Data.Vector (Vector)
 import qualified Data.List as List
+import GHC.Exts (IsList(fromList, toList))
+import Data.String.Conversions (convertString)
+import Data.Text (Text)
+import Text.Printf (printf)
 
-import           Muste.Linearization (Context)
-import qualified Muste.Sentence      as Sentence
-import qualified Muste.Grammar       as Grammar
+import Muste.Linearization (Context)
+import qualified Muste.Sentence as Sentence
+import qualified Muste.Grammar as Grammar
 
-import qualified Muste.Web.Database  as Database
-import           Muste.Web.Database (MonadDatabaseError(..))
+import qualified Muste.Web.Database as Database
+import Muste.Web.Database (MonadDatabaseError(..))
+
 
 -- | Maps a lesson to a map from grammars(-identifiers) to their
 -- corresponding contexts.

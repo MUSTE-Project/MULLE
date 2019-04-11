@@ -20,19 +20,18 @@ module Muste.Web.Types.Score
   , valuation
   ) where
 
-import Prelude ()
-import Muste.Prelude
-
 import Muste.Prelude.SQL (toBlob, fromNullableBlob)
 import Database.SQLite.Simple.ToField (ToField(..))
 import Database.SQLite.Simple.FromField (FromField(..))
 
 import qualified GHC.Float as Math
-import           GHC.Real ((/))
+import GHC.Real ((/))
 
-import Data.Aeson ((.:), (.=))
+import Data.Aeson (FromJSON (parseJSON), ToJSON(toJSON), (.:), (.=))
 import qualified Data.Aeson as Aeson
 import Data.Binary (Binary(..))
+import Data.Time (NominalDiffTime)
+
 
 data Score = Score
   -- Does not represent the clicks in the UI, but the time a menu has

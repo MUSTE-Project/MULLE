@@ -6,28 +6,28 @@
 
 module Main (main) where
 
-import Prelude ()
-import Muste.Prelude
-
-import Snap
-  ( SnapletInit, makeSnaplet, nestSnaplet, addRoutes
-  , ConfigLog(ConfigFileLog)
-  )
+import Snap (SnapletInit, makeSnaplet, nestSnaplet, addRoutes, ConfigLog(ConfigFileLog))
 import qualified Snap as Snap
 import qualified Snap.Util.FileServe as Snap (serveDirectory)
+import Control.Lens (makeLenses)
+import Control.Monad (void, when)
+
 import System.IO.Error (catchIOError)
 import System.FilePath (takeDirectory)
 import System.Directory (createDirectoryIfMissing, getCurrentDirectory)
+
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as ByteString
 import Data.Semigroup (Semigroup((<>)))
 import qualified Data.Yaml as Yaml (encode)
-import Control.Lens (makeLenses)
+import Data.String (IsString)
+import Text.Printf (printf)
 
 import qualified Muste.Web.Protocol as Protocol
-import qualified Muste.Web.Config   as Config
-import qualified Muste.Web.DbInit   as DbInit
+import qualified Muste.Web.Config as Config
+import qualified Muste.Web.DbInit as DbInit
 import qualified Options
+
 
 data App = App
   { _api    :: Snap.Snaplet Protocol.AppState

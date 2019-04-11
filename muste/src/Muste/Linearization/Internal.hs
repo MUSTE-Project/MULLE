@@ -1,6 +1,5 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language
- CPP,
  DeriveGeneric,
  GeneralizedNewtypeDeriving,
  OverloadedStrings,
@@ -26,34 +25,38 @@ module Muste.Linearization.Internal
   , languages
   ) where
 
-import Prelude ()
-import Muste.Prelude
-import qualified Muste.Prelude.Unsafe as Unsafe
+import Control.Category ((>>>))
+import Data.Function (on)
+import GHC.Generics (Generic)
 
 import Muste.Prelude.SQL (toBlob, fromBlob)
 import Database.SQLite.Simple.ToField (ToField(..))
 import Database.SQLite.Simple.FromField (FromField(..))
 
+import Data.Binary (Binary)
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Aeson
--- This might be the only place we should know of PGF
-import qualified PGF
-import qualified PGF.Internal as PGF hiding (funs, cats)
-import Data.MonoTraversable
-  ( Element, MonoTraversable(..), MonoFunctor
-  , MonoFoldable(..), GrowingAppend, MonoPointed
-  )
+import qualified Data.Aeson as Aeson
+import Data.Aeson (FromJSON(parseJSON), ToJSON(toJSON), (.=), (.:))
+import Data.MonoTraversable (Element, MonoTraversable(..), MonoFunctor,
+                             MonoFoldable(..), GrowingAppend, MonoPointed)
 import qualified Data.MonoTraversable as Mono
 import Data.Sequences (SemiSequence, IsSequence, Index)
 import qualified Data.Sequences as Mono
 import qualified Data.Text as Text
+import Data.Text (Text)
+import Data.Text.Prettyprint.Doc (Pretty(pretty))
+
+-- This might be the only place we should know of PGF
+import qualified PGF
+import qualified PGF.Internal as PGF hiding (funs, cats)
 
 import Muste.Tree
 import qualified Muste.Tree.Internal as Tree
 import Muste.Grammar
 import qualified Muste.Grammar.Internal as Grammar
 import Muste.AdjunctionTrees
+
 
 data LinToken = LinToken
   -- The path refers to the path in the 'TTree'
@@ -108,13 +111,13 @@ data Context = Context
   }
 
 instance FromJSON LinToken where
-  parseJSON = withObject "LinToken" $ \v -> LinToken
+  parseJSON = Aeson.withObject "LinToken" $ \v -> LinToken
     <$> v .: "path"
     <*> v .: "lin"
     <*> v .: "matched"
 
 instance ToJSON LinToken where
-  toJSON (LinToken path lin m) = object
+  toJSON (LinToken path lin m) = Aeson.object
     [ "path"    .= path
     , "lin"     .= lin
     , "matched" .= m
@@ -168,7 +171,7 @@ linearizeTree (Context grammar language _) ttree =
     if not (Grammar.isEmptyGrammar grammar)
       && language `elem` PGF.languages (Grammar.pgf grammar)
       && not (null brackets)
-    then bracketsToTuples ttree $ Unsafe.head brackets
+    then bracketsToTuples ttree $ head brackets
     else Linearization [LinToken [] "?0" []]
 
 -- | Given an identifier for a grammar, looks up that grammar and then

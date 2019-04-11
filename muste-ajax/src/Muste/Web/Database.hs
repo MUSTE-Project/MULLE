@@ -41,34 +41,37 @@ module Muste.Web.Database
   , resetLesson
   ) where
 
-import           Prelude ()
-import           Muste.Prelude
-import qualified Muste.Prelude.Unsafe      as Unsafe
+import Control.Exception (fromException)
+import Control.Monad (void, when)
+import Control.Monad.IO.Class (MonadIO(liftIO))
 
-import           Database.SQLite.Simple (Only(..), NamedParam(..))
-import           Database.SQLite.Simple.QQ (sql)
+import Database.SQLite.Simple (Only(..), NamedParam(..))
+import Database.SQLite.Simple.QQ (sql)
 import qualified Database.SQLite.Simple as SQL
 
-import qualified Crypto.Random             as Crypto
-import qualified Crypto.KDF.PBKDF2         as Crypto
-import qualified Crypto.Hash               as Crypto
+import qualified Crypto.Random as Crypto
+import qualified Crypto.KDF.PBKDF2 as Crypto
+import qualified Crypto.Hash as Crypto
 
-import           Data.ByteString (ByteString)
-import qualified Data.Text.Encoding        as T
-import qualified Data.Time.Clock           as Time
-import qualified Data.Time.Format          as Time
+import Data.List (sortOn)
+import Data.ByteString (ByteString)
+import Data.String.Conversions (convertString)
+import Data.Text (Text)
+import qualified Data.Text.Encoding as T
+import Data.Time (NominalDiffTime)
+import Data.Time.Clock (UTCTime)
+import qualified Data.Time.Clock as Time
+import qualified Data.Time.Format as Time
 
--- FIXME QuickCheck seems like a heavy dependency just to get access
--- to `shuffle`.
-import qualified Test.QuickCheck           as QC (shuffle, generate)
+-- FIXME QuickCheck seems like a heavy dependency just to get access to `shuffle`.
+import qualified Test.QuickCheck as QC (shuffle, generate)
 
-import qualified Muste.Web.Database.Types  as Types
-import qualified Muste.Web.Database.Types  as ExerciseLesson
-  (ExerciseLesson(..))
-import qualified Muste.Web.Database.Types  as User (User(..))
-import           Muste.Web.Types.Score (Score)
+import qualified Muste.Web.Database.Types as Types
+import qualified Muste.Web.Database.Types as ExerciseLesson (ExerciseLesson(..))
+import qualified Muste.Web.Database.Types as User (User(..))
+import Muste.Web.Types.Score (Score)
 
-import           Muste.Web.Database.Class
+import Muste.Web.Database.Class
   ( MonadDB
   , Error(..)
   , executeNamed
@@ -82,6 +85,7 @@ import           Muste.Web.Database.Class
   , query_
   , executeManyNamed
   )
+
 
 -- | @'hashPasswd' pw salt@ encodes @pw@ using PBKDF2 (using @salt@ as
 -- cyrptographic salt, doing 1e4 iterations and creating 1KiB
@@ -471,7 +475,7 @@ checkStarted
   -> Types.Key Types.Lesson
   -> db Bool
 checkStarted user lesson
-  =   ((0 :: Int) /=) . fromOnly . Unsafe.head
+  =   ((0 :: Int) /=) . fromOnly . head
   <$> queryNamed q [":User" := user, ":Lesson" := lesson]
   where
 
@@ -547,11 +551,11 @@ newLesson user lesson = do
   startLessonAux $ Types.StartedLesson lesson user lessonRound
   let
     step :: (Types.Numeric, Types.ExerciseLesson) -> Types.ExerciseList
-    step (round, Types.ExerciseLesson{..}) -- (exercise, _name, _, _)
+    step (round', Types.ExerciseLesson{..}) -- (exercise, _name, _, _)
       = Types.ExerciseList
       { user     = user
       , exercise = exercise
-      , round    = round
+      , round    = round'
       , score    = Nothing
       }
   insertExercises $ step <$> zip [lessonRound..] selectedTrees
@@ -573,13 +577,13 @@ pickExercises lesson = do
   else pure $ sortOn ExerciseLesson.exerciseOrder es
 
 startLessonAux :: MonadDB r db => Types.StartedLesson -> db ()
-startLessonAux (Types.StartedLesson lesson user round) =
+startLessonAux (Types.StartedLesson lesson user round') =
   executeNamed
   " INSERT INTO StartedLesson (Lesson, User, Round) \
   \ VALUES (:Lesson, :User, :Round) "
   [ ":Lesson"   := lesson
   , ":User"     := user
-  , ":Round"    := round
+  , ":Round"    := round'
   ]
 
 insertExercises :: MonadDB r db => [Types.ExerciseList] -> db ()
@@ -587,10 +591,10 @@ insertExercises exercises =
   executeManyNamed q
   [ [ ":User"     := user
     , ":Exercise" := exercise
-    , ":Round"    := round
+    , ":Round"    := round'
     , ":Score"    := score
     ]
-  | Types.ExerciseList user exercise round score <- exercises ]
+  | Types.ExerciseList user exercise round' score <- exercises ]
 
   where q = " INSERT INTO ExerciseList (User, Exercise, Round, Score) \
             \ VALUES (:User, :Exercise, :Round, :Score) "
@@ -604,7 +608,7 @@ getLessonRound
   -> Types.Key Types.Lesson
   -> db Types.Numeric
 getLessonRound user lesson =
-  fromOnly . Unsafe.head <$> queryNamed q [ ":User" := user, ":Lesson" := lesson ]
+  fromOnly . head <$> queryNamed q [ ":User" := user, ":Lesson" := lesson ]
   where
 
   q = [sql|
@@ -626,8 +630,8 @@ continueLesson
   -> Types.Key Types.Lesson
   -> db Types.ExerciseLesson
 continueLesson user lesson = do
-  round <- getLessonRound user lesson
-  getExercise lesson user round
+  round' <- getLessonRound user lesson
+  getExercise lesson user round'
 
 -- FIXME Add 'FinishExercise' type.
 finishExercise
@@ -640,16 +644,16 @@ finishExercise token lesson score = do
   -- get user name
   user <- getUser token
   -- get lesson round
-  round <- getLessonRound user lesson
-  Types.ExerciseLesson{..} <- getExercise lesson user round
+  round' <- getLessonRound user lesson
+  Types.ExerciseLesson{..} <- getExercise lesson user round'
   finishExerciseAux $ Types.ExerciseList
     { user     = user
     , exercise = exercise
-    , round    = round
+    , round    = round'
     , score    = Just score
     }
   finished <- checkFinished user lesson
-  when finished $ finishLesson user lesson round
+  when finished $ finishLesson user lesson round'
   pure finished
 
 checkFinished
@@ -670,7 +674,7 @@ finishLesson
   -> Types.Key Types.Lesson
   -> Types.Numeric -- ^ Round
   -> db ()
-finishLesson user lesson round = do
+finishLesson user lesson round' = do
   score <- getScore user lesson
   deleteStartedLessons user lesson
   executeNamed
@@ -679,7 +683,7 @@ finishLesson user lesson round = do
     [ ":Lesson" := lesson
     , ":User"   := user
     , ":Score"  := score
-    , ":Round"  := succ round
+    , ":Round"  := succ round'
     ]
 
 deleteStartedLessons
@@ -704,8 +708,8 @@ getExercise
   -> Text
   -> Types.Numeric -- ^ Round
   -> db Types.ExerciseLesson
-getExercise lesson user round =
-  do xs <- queryNamed q [ ":Lesson" := lesson, ":User" := user, ":Round" := round ]
+getExercise lesson user round' =
+  do xs <- queryNamed q [ ":Lesson" := lesson, ":User" := user, ":Round" := round' ]
      case xs of
        [x] -> pure x
        _   -> throwDbError NoActiveExercisesInLesson
@@ -737,13 +741,13 @@ finishExerciseAux
   :: MonadDB r db
   => Types.ExerciseList
   -> db ()
-finishExerciseAux (Types.ExerciseList user exercise round score) =
+finishExerciseAux (Types.ExerciseList user exercise round' score) =
   executeNamed
   " UPDATE ExerciseList SET Score = :Score \
   \ WHERE User = :User AND Exercise = :Exercise AND Round = :Round "
   [ ":User"      := user
   , ":Exercise"  := exercise
-  , ":Round"     := round
+  , ":Round"     := round'
   , ":Score"     := score
   ]
 
@@ -753,7 +757,7 @@ getFinishedExercises
   -> Types.Key Types.Lesson
   -> db Types.Numeric
 getFinishedExercises user lesson
-  =   fromOnly . Unsafe.head
+  =   fromOnly . head
   <$> queryNamed q [ ":User" := user, ":Lesson" := lesson ]
   where
 
@@ -773,7 +777,7 @@ getExerciseCount
   => Types.Key Types.Lesson
   -> db Types.Numeric
 getExerciseCount lesson =
-  fromOnly . Unsafe.head <$> queryNamed q [":Lesson" := lesson]
+  fromOnly . head <$> queryNamed q [":Lesson" := lesson]
   where
 
   q = [sql|

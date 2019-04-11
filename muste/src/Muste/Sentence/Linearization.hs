@@ -13,26 +13,27 @@
 
 module Muste.Sentence.Linearization where
 
-import Prelude ()
-import Muste.Prelude
+import Control.Category ((>>>))
+import Control.DeepSeq (NFData)
+import Data.Typeable (Typeable)
+import GHC.Generics (Generic)
 
 import Muste.Prelude.SQL (toBlob, fromBlob)
-import Database.SQLite.Simple.ToField (ToField(..))
-import Database.SQLite.Simple.FromField (FromField(..))
+import Database.SQLite.Simple.ToField (ToField(toField))
+import Database.SQLite.Simple.FromField (FromField(fromField))
 
-import Data.Aeson (ToJSON(..), FromJSON(..))
+import Data.Aeson (ToJSON, FromJSON)
 import Data.Vector (Vector)
 import qualified Data.Vector as Vector
-import GHC.Generics (Generic)
 import Data.Binary hiding (Word)
-import Control.Category ((>>>))
-import Data.Typeable (Typeable)
-import Data.Text.Prettyprint.Doc (Pretty(..))
-import Control.DeepSeq (NFData)
 import qualified Data.Text as Text
+import Data.Text (Text)
+import Data.Text.Prettyprint.Doc (Pretty(..))
+import GHC.Exts (IsList(fromList, toList, Item))
 
 import Muste.Sentence.Token (IsToken)
 import qualified Muste.Sentence.Token as Token
+
 
 newtype Linearization a = Linearization
   { unLinearization :: Vector a }

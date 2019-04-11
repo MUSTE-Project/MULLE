@@ -34,15 +34,15 @@ module Muste.Web.Database.Class
   , executeManyNamed
   ) where
 
-import           Prelude ()
-import           Muste.Prelude
+import Control.Exception (Exception(displayException), SomeException, try, throw, catch)
+import Control.Monad.Except (ExceptT, throwError, runExceptT, catchError)
+import Control.Monad.Reader
 
-import           Database.SQLite.Simple (Query, Connection, FromRow, NamedParam)
+import Database.SQLite.Simple (Query, Connection, FromRow, NamedParam)
 import qualified Database.SQLite.Simple as SQL
 
-import           Control.Monad.Reader
-
 import Muste.Grammar (MonadGrammar)
+
 
 data Error
   = NoUserFound
@@ -85,7 +85,7 @@ class HasConnection v where
   giveConnection :: v -> Connection
 
 instance HasConnection Connection where
-  giveConnection = identity
+  giveConnection = \x -> x
 
 getConnection :: MonadDB r m => m Connection
 getConnection = giveConnection <$> ask

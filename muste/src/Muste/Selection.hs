@@ -12,13 +12,18 @@ module Muste.Selection
     , Selection(Selection, runSelection)
     ) where
 
-import Prelude ()
-import Muste.Prelude
+import Control.Category ((>>>))
+import Control.DeepSeq (NFData)
+import GHC.Generics (Generic)
+
+import GHC.Exts (IsList(fromList, toList, Item))
 import qualified Data.List as List
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.Aeson (ToJSONKey, toJSONKey, ToJSONKeyFunction(ToJSONKeyValue), toJSON, toEncoding,
-                   FromJSONKey, fromJSONKey, FromJSONKeyFunction(FromJSONKeyValue), parseJSON)
+import Data.Text.Prettyprint.Doc (Pretty(pretty))
+import Data.Aeson (ToJSONKey(toJSONKey), ToJSONKeyFunction(ToJSONKeyValue),
+                   FromJSONKey(fromJSONKey), FromJSONKeyFunction(FromJSONKeyValue),
+                   FromJSON, ToJSON(toJSON, toEncoding), parseJSON)
 
 
 newtype Interval = Interval { runInterval :: (Int, Int) }

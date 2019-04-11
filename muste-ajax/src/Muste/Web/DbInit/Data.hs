@@ -20,9 +20,6 @@ module Muste.Web.DbInit.Data
   , Ajax.Direction(..)
   ) where
 
-import Prelude ()
-import Muste.Prelude
-
 import Data.Text (Text)
 import Data.Aeson (Object, FromJSON(..), ToJSON(..), (.:), (.:?), (.!=), (.=))
 import Data.Aeson.Types (Parser)

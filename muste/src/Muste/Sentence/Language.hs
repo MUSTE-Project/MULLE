@@ -15,15 +15,16 @@ module Muste.Sentence.Language
   (Language(Language), Grammar(Grammar))
   where
 
-import Prelude ()
-import Muste.Prelude
-import qualified Muste.Prelude.Unsafe as Unsafe
-
 import Database.SQLite.Simple.ToField (ToField)
 import Database.SQLite.Simple.FromField (FromField)
 
-import Data.Aeson ((.=), (.:))
+import GHC.Generics (Generic)
+import Data.Aeson ((.=), (.:), FromJSON, ToJSON)
 import qualified Data.Aeson as Aeson
+import Data.Binary (Binary)
+import Data.String (IsString(fromString))
+import Data.Text (Text)
+
 
 newtype Grammar = Grammar Text
 
@@ -59,7 +60,7 @@ deriving stock instance Ord  Language
 instance IsString Language where
   fromString s = Language (fromString g) (fromString l)
     where
-    (g, l) = Unsafe.read @(String, String) s
+    (g, l) = read @(String, String) s
 
 instance ToJSON Language where
   toJSON (Language {..}) = Aeson.object

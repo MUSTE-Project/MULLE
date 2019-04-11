@@ -30,38 +30,45 @@ module Muste.Web.Protocol.Handlers
   , handleHighScores
   ) where
 
-import           Prelude ()
-import           Muste.Prelude
-import           Muste.Prelude.Extra
+import Control.Category ((>>>))
+import Control.Exception (Exception, SomeException, ErrorCall(ErrorCall))
+import Control.Monad.Catch (MonadThrow(throwM))
+import Control.Monad.Except (MonadError, throwError)
+import Control.Monad.Reader
+import Data.Function ((&), on)
 
-import           Control.Monad.Reader
-import           Data.Map (Map)
-import qualified Data.Map.Lazy               as Map
-import qualified Data.Set                    as Set
-import           Data.Set (Set)
+import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NonEmpty
+import Data.Maybe (isJust)
+import Data.Semigroup (sconcat)
+import Data.Text (Text)
+import Data.Map (Map)
+import qualified Data.Map.Lazy as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
 import qualified GHC.Num as Math
 
-import           Muste.Linearization (Context)
-import           Muste.Tree (TTree)
-import qualified Muste.Menu                  as Menu
-import qualified Muste.Sentence              as Sentence
-import           Muste.Sentence.Annotated (Annotated)
-import qualified Muste.Sentence.Unannotated  as Unannotated
-import           Muste.Sentence.Unannotated (Unannotated)
+import Muste.Linearization (Context)
+import Muste.Tree (TTree)
+import qualified Muste.Menu as Menu
+import qualified Muste.Sentence as Sentence
+import Muste.Sentence.Annotated (Annotated)
+import qualified Muste.Sentence.Unannotated as Unannotated
+import Muste.Sentence.Unannotated (Unannotated)
 
-import qualified Muste.Web.Ajax              as Ajax
-import qualified Muste.Web.Ajax              as Lesson ( Lesson(..) )
-import qualified Muste.Web.Ajax              as ClientTree ( ClientTree(..) )
-import qualified Muste.Web.Database          as Database
-import qualified Muste.Web.Database.Types    as Database
-import qualified Muste.Web.Database.Types
-  as Database.UserLessonScore ( UserLessonScore(..) )
-import qualified Muste.Web.Database.Types    as ActiveLessonForUser
-  (ActiveLessonForUser(..))
-import           Muste.Web.Protocol.Class
-import           Muste.Web.Types.Score (Score)
-import qualified Muste.Web.Types.Score       as Score
+import Muste.Prelude.Extra (groupOn, throwLeft)
+
+import qualified Muste.Web.Ajax as Ajax
+import qualified Muste.Web.Ajax as Lesson (Lesson(..))
+import qualified Muste.Web.Ajax as ClientTree (ClientTree(..))
+import qualified Muste.Web.Database as Database
+import qualified Muste.Web.Database.Types as Database
+import qualified Muste.Web.Database.Types as Database.UserLessonScore (UserLessonScore(..))
+import qualified Muste.Web.Database.Types as ActiveLessonForUser (ActiveLessonForUser(..))
+import Muste.Web.Protocol.Class
+import Muste.Web.Types.Score (Score)
+import qualified Muste.Web.Types.Score as Score
+
 
 liftEither :: MonadError ProtocolError m => SomeException ~ e => Either e a -> m a
 liftEither = either (throwError . SomeProtocolError) pure
@@ -122,7 +129,7 @@ getActiveLessons t =
     -- If just a single score is a Nothing we say that the score is a
     -- nothing.  Though they should all agree.
     maybeScores :: Maybe (NonEmpty Score)
-    maybeScores = traverse identity scores
+    maybeScores = traverse (\x -> x) scores
 
 
 handleLoginRequest

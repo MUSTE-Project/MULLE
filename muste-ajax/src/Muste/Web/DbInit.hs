@@ -10,33 +10,32 @@
 
 module Muste.Web.DbInit (initDb) where
 
-import           Prelude ()
-import           Muste.Prelude
+import Control.Monad (void)
+import System.Directory (createDirectoryIfMissing)
+import System.FilePath (takeDirectory, (</>))
+import Data.FileEmbed (embedFile, makeRelativeToProject)
 
-import           Database.SQLite.Simple (Connection(Connection))
-import           Database.SQLite.Simple.QQ (sql)
+import Database.SQLite.Simple (Connection(Connection))
+import Database.SQLite.Simple.QQ (sql)
 import qualified Database.SQLite.Simple as SQL
-
-import           Data.ByteString (ByteString)
-import           Data.FileEmbed (embedFile, makeRelativeToProject)
-import           Data.Text (pack, unpack)
-import           Data.Text.Encoding (decodeUtf8)
 import qualified Database.SQLite3 as SQL
-import           System.Directory (createDirectoryIfMissing)
-import           System.FilePath (takeDirectory, (</>))
+
+import Data.Maybe (fromMaybe)
+import Data.ByteString (ByteString)
+import Data.String.Conversions (convertString)
+import Data.Text (Text, pack, unpack)
+import Data.Text.Encoding (decodeUtf8)
+import Text.Printf (printf)
 import qualified Data.Yaml as Yaml
 
-#ifdef DIAGNOSTICS
-import qualified Data.Text.IO as Text
-#endif
-
-import           Muste.Sentence.Unannotated (Unannotated)
+import Muste.Sentence.Unannotated (Unannotated)
 import qualified Muste.Sentence.Unannotated as Unannotated
 
-import qualified Muste.Web.Config         as Config
-import qualified Muste.Web.Database       as Database
+import qualified Muste.Web.Config as Config
+import qualified Muste.Web.Database as Database
 import qualified Muste.Web.Database.Types as Database
-import qualified Muste.Web.DbInit.Data    as Data
+import qualified Muste.Web.DbInit.Data as Data
+
 
 initDb :: Config.AppConfig -> IO ()
 initDb cfg = do

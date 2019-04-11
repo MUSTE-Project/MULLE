@@ -6,15 +6,15 @@ module Muste.Prelude.SQL
   , fromNullableBlob
   ) where
 
-import Prelude ()
-import Muste.Prelude
-import Muste.Prelude.Extra
-
-import qualified Database.SQLite.Simple           as SQL
-import qualified Database.SQLite.Simple.Ok        as SQL
+import qualified Database.SQLite.Simple as SQL
+import qualified Database.SQLite.Simple.Ok as SQL
 import qualified Database.SQLite.Simple.FromField as SQL
+
 import Data.Binary (Binary)
 import Data.Typeable (Typeable)
+
+import Muste.Prelude.Extra (binaryFromText, binaryToText)
+
 
 fromBlob :: Typeable b => Binary b => SQL.Field -> SQL.Ok b
 fromBlob fld = case SQL.fieldData fld of

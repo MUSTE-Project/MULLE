@@ -31,32 +31,35 @@ module Muste.Repl
   , Env(..)
   ) where
 
-import Prelude ()
-import Muste.Prelude
-import qualified Muste.Prelude.Unsafe as Unsafe
-import Muste.Prelude.Extra
+import System.Console.Repline (HaskelineT, runHaskelineT)
+import qualified System.Console.Haskeline as Repl
+import qualified System.Console.Repline as Repl
 
-import System.Console.Repline
-  (HaskelineT, runHaskelineT)
-import qualified System.Console.Haskeline     as Repl
-import qualified System.Console.Repline       as Repl
-import Data.Text.Prettyprint.Doc ((<+>))
-import qualified Data.Text.Prettyprint.Doc    as Doc
-import qualified Data.Set                     as Set
-import qualified Data.Containers              as Mono
-import qualified Data.List                    as List
+import Control.Category ((>>>))
 import Control.Monad.State.Strict
 import Control.Monad.Reader
+import Data.Function ((&))
+
+import Data.Text.Prettyprint.Doc (Doc, Pretty(pretty), (<+>))
+import qualified Data.Text.Prettyprint.Doc as Doc
+import Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
+import qualified Data.Set as Set
+import qualified Data.Containers as Mono
+import qualified Data.List as List
+import GHC.Exts (toList)
 
-import qualified Muste.Grammar       as Grammar
+import Muste.Prelude.Extra (putDocLn)
+
+import qualified Muste.Grammar as Grammar
 import Muste.Selection (Selection, runInterval)
 import Muste.Menu (Menu)
-import qualified Muste.Menu          as Menu
-import qualified Muste.Sentence.Annotated     as Annotated
+import qualified Muste.Menu as Menu
+import qualified Muste.Sentence.Annotated as Annotated
 import qualified Muste.Linearization as Linearization
 import Muste.Tree (TTree)
+
 
 -- | Options for the REPL.
 data Options = Options
@@ -179,7 +182,7 @@ prettyMenu verbose ctxt s = Doc.vsep . fmap (uncurry go) . open
   annotated
     = parse s
     & map (\t -> Annotated.mkLinearization ctxt t)
-    & Unsafe.foldl1 Annotated.mergeL
+    & foldl1 Annotated.mergeL
     & toList
     & map getNodes
   parse :: Text -> [TTree]

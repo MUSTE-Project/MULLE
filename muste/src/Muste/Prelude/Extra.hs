@@ -38,23 +38,28 @@ module Muste.Prelude.Extra
   , throwLeft
   ) where
 
-import Prelude ()
-import Muste.Prelude
-import qualified Muste.Prelude.Unsafe as Unsafe
+import Control.Monad.Catch (MonadThrow(throwM))
+import Control.Exception (Exception, throwIO, throw)
+import Control.Monad.IO.Class (MonadIO(liftIO))
+import Data.Function ((&), on)
 
+import Data.Aeson (FromJSON)
 import qualified Data.Set as Set
-import Text.Read (readEither)
 import Data.Binary (Binary)
 import qualified Data.Binary as Binary
 import Data.ByteString.Lazy (ByteString)
 import Data.String.Conversions (ConvertibleStrings(convertString))
 import qualified Data.Containers as Mono
 import Data.Containers (IsMap)
+import Data.String (IsString)
+import Data.Text (Text)
 import Data.Text.Prettyprint.Doc (Doc, Pretty)
 import qualified Data.Text.Prettyprint.Doc as Doc
 import Data.Text.Prettyprint.Doc.Render.String (renderString)
 import qualified Data.Text.Prettyprint.Doc.Render.Text as Doc
+import Text.Read (readEither)
 import qualified Data.List.NonEmpty as NonEmpty
+import Data.List.NonEmpty (NonEmpty, groupBy)
 import qualified Data.Yaml as Yaml
 
 import qualified Debug.Trace
@@ -111,22 +116,22 @@ isSubList csub@(c:sub) (d:super) | c == d    = isSubList sub super
 -- <https://wiki.haskell.org/Edit_distance>
 editDistance :: Eq a => [a] -> [a] -> Int
 editDistance a b = last (if lab == 0 then mainDiag
-                         else if lab > 0 then lowers Unsafe.!! (lab - 1)
-                              else {- < 0 -}  uppers Unsafe.!! (-1 - lab))
-    where mainDiag = oneDiag a b (Unsafe.head uppers) (-1 : Unsafe.head lowers)
+                         else if lab > 0 then lowers !! (lab - 1)
+                              else {- < 0 -}  uppers !! (-1 - lab))
+    where mainDiag = oneDiag a b (head uppers) (-1 : head lowers)
           uppers   = eachDiag a b (mainDiag : uppers) -- upper diagonals
           lowers   = eachDiag b a (mainDiag : lowers) -- lower diagonals
           eachDiag _ [] _ = []
           eachDiag a (_:bs) (lastDiag:diags) = oneDiag a bs nextDiag lastDiag : eachDiag a bs diags
-              where nextDiag = Unsafe.head (Unsafe.tail diags)
+              where nextDiag = head (tail diags)
           eachDiag _ _ _ = error "Common.editDistance: Unmatched clause"
           oneDiag a b diagAbove diagBelow = thisdiag
               where doDiag [] _b _nw _n _w = []
                     doDiag _a [] _nw _n _w = []
-                    doDiag (ach:as) (bch:bs) nw n w = me : doDiag as bs me (Unsafe.tail n) (Unsafe.tail w)
-                        where me = if ach == bch then nw else 1 + min3 (Unsafe.head w) nw (Unsafe.head n)
-                    firstelt = 1 + Unsafe.head diagBelow
-                    thisdiag = firstelt : doDiag a b firstelt diagAbove (Unsafe.tail diagBelow)
+                    doDiag (ach:as) (bch:bs) nw n w = me : doDiag as bs me (tail n) (tail w)
+                        where me = if ach == bch then nw else 1 + min3 (head w) nw (head n)
+                    firstelt = 1 + head diagBelow
+                    thisdiag = firstelt : doDiag a b firstelt diagAbove (tail diagBelow)
           lab = length a - length b
           min3 x y z = if x < y then x else min y z
 
@@ -142,17 +147,17 @@ groupOnSingle p = map NonEmpty.head . groupOn p
 isSubListOf :: Ord a => Eq a => [a] -> [a] -> Bool
 isSubListOf = Set.isSubsetOf `on` Set.fromList
 
-readFail :: Read r => MonadFail m => String -> m r
+readFail :: Read r => Monad m => String -> m r
 readFail = eitherFail . readEither
 
-eitherFail :: MonadFail m => Either String a -> m a
+eitherFail :: Monad m => Either String a -> m a
 eitherFail (Left  s) = fail s
 eitherFail (Right a) = pure a
 
 enumerate :: [a] -> [(Int, a)]
 enumerate = zip [0..]
 
-maybeFail :: MonadFail m => String -> Maybe a -> m a
+maybeFail :: Monad m => String -> Maybe a -> m a
 maybeFail err Nothing = fail err
 maybeFail _  (Just a) = pure a
 
@@ -170,7 +175,7 @@ binaryToText = convertString . Binary.encode
 binaryFromText :: Binary bin => ConvertibleStrings text ByteString => text -> bin
 binaryFromText = Binary.decode . convertString
 
-
+
 -- * Debug aids
 
 {-# DEPRECATED trace "Development aid remain in your codeUnsafe.!!" #-}
@@ -197,7 +202,7 @@ prettyTraceId :: Pretty a => a -> a
 prettyTraceId a = trace (prettyShow a) a
 
 lookupFail
-  :: MonadFail m
+  :: Monad m
   => IsMap map
   => String
   -> Mono.ContainerKey map
@@ -245,4 +250,4 @@ decodeFileThrow = Yaml.decodeFileThrow
 -- | Throws an exception if the it's a 'Left' (requires the left to be
 -- an exception).  This method is *unsafe*!
 throwLeft :: Exception e => Either e c -> c
-throwLeft = either throw identity
+throwLeft = either throw (\x -> x)

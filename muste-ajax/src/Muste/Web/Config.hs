@@ -22,15 +22,13 @@ module Muste.Web.Config
   , Types.User(..)
   ) where
 
-import Prelude ()
-import Muste.Prelude
-import Muste.Prelude.Extra (decodeFileThrow)
-
 import System.FilePath (takeDirectory, (</>), (<.>))
 import Data.Aeson (FromJSON(..), ToJSON(..), (.:?), (.!=), (.=))
 import qualified Data.Aeson as Aeson
 
+import Muste.Prelude.Extra (decodeFileThrow)
 import qualified Muste.Web.Config.Types as Types
+
 
 appConfig :: FilePath -> IO AppConfig
 appConfig cfgFile =

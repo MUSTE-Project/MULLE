@@ -1,6 +1,5 @@
 {-# OPTIONS_GHC -Wall -Wno-unused-top-binds -Wno-name-shadowing #-}
 {-# Language
- CPP,
  ConstraintKinds,
  DerivingStrategies,
  OverloadedStrings,
@@ -15,22 +14,21 @@ module Muste.Prune
   , emptyPruneOpts
   ) where
 
-import           Prelude ()
-import           Muste.Prelude
+import Control.Monad (guard)
 
-import qualified Data.Containers         as Mono
-import           Data.Map (Map)
-import qualified Data.Map                as Map
-import           Data.Set (Set)
-import qualified Data.Set                as Set
-import qualified Data.MultiSet           as MultiSet
+import qualified Data.Containers as Mono
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
+import qualified Data.MultiSet as MultiSet
 
-import           Muste.Tree (TTree(..), Path, FunType(..), Category)
-import qualified Muste.Tree.Internal     as Tree
-import qualified Muste.Grammar.Internal  as Grammar
-import           Muste.AdjunctionTrees hiding (BuilderInfo(..))
+import Muste.Tree (TTree(..), Path, FunType(..), Category)
+import qualified Muste.Tree.Internal as Tree
+import qualified Muste.Grammar.Internal as Grammar
+import Muste.AdjunctionTrees hiding (BuilderInfo(..))
 
-
+
 -- * Replacing trees
 
 replaceAllTrees :: PruneOpts -> AdjunctionTrees -> [TTree] -> [(TTree, TTree)]
