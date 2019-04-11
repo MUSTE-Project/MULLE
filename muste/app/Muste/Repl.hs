@@ -5,7 +5,6 @@
 
 {-# OPTIONS_GHC -Wall #-}
 {-# Language
- CPP,
  DeriveAnyClass,
  DerivingStrategies,
  GeneralizedNewtypeDeriving,
@@ -111,11 +110,7 @@ evalRepl
   -> HaskelineT m a              -- ^ Initializer
   -> m ()
 evalRepl b c o s i
-#if MIN_VERSION_repline(0,2,0)
   = Repl.evalRepl (pure b) c o (pure ':') s i
-#else
-  = Repl.evalRepl b c o s i
-#endif
 
 interactively :: Options -> Env -> Repl.Command (HaskelineT (Muste IO)) -> IO ()
 interactively opts env cmd

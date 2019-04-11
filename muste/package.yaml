@@ -112,7 +112,7 @@ executables:
     dependencies:
       - muste
       - haskeline            >= 0.7.4.3  && < 0.8
-      - repline              >= 0.1.7.0  && < 0.3
+      - repline              >= 0.2.0.0  && < 0.3
       - optparse-applicative >= 0.14.3.0 && < 0.15
 
 tests:
