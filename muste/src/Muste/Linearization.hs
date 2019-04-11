@@ -1,11 +1,12 @@
 module Muste.Linearization
   ( Linearization
   , Context(..)
-  , buildContext
+  , buildContexts
   , getLangAndContext
   , mkLin
   , disambiguate
   , BuilderInfo(..)
+  , languages
   ) where
 
 import Muste.Linearization.Internal

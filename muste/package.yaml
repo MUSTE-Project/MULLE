@@ -88,7 +88,6 @@ library:
     - Muste.Selection
     - Muste.Prune
     - Muste.Feat
-    - Muste.Util
     - Muste.Sentence.Class
     - Muste.Sentence.Language
     - Muste.Sentence.Linearization

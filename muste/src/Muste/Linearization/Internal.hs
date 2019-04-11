@@ -9,7 +9,6 @@
 
 module Muste.Linearization.Internal
   ( Context(..)
-  , buildContext
   , Linearization(Linearization)
   , LinToken(..)
   , linearizeTree
@@ -17,7 +16,6 @@ module Muste.Linearization.Internal
   , mkLin
   , sameOrder
   , disambiguate
-  -- Used in test suite:
   , buildContexts
   , stringRep
   , BuilderInfo(..)

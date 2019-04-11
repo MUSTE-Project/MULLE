@@ -9,8 +9,8 @@ import qualified Data.Binary as Binary
 import qualified Data.Text as Text
 import Data.Text (Text)
 
-import Muste.Grammar (Grammar)
-import qualified Muste.Util as Util
+import Muste.Prelude.Extra (lookupFail)
+
 import qualified Muste.Menu as Menu
 import qualified Muste.AdjunctionTrees as AdjTrees
 import qualified Muste.Grammar as Grammar
@@ -21,15 +21,15 @@ import qualified Options as O
 
 makeEnv :: Text -> O.SearchOptions -> O.MusteOptions -> IO Repl.Env
 makeEnv grammar searchOpts O.MusteOptions{..} =
-    Repl.Env <$> 
-    do g <- getGrammar grammar
+    Repl.Env <$>
+    do g <- Grammar.getGrammarOneOff grammar
        case input of
-         Nothing -> return $ Util.unsafeGetContext (builderInfo searchOpts) g language
+         Nothing -> do let cxts = Linearization.buildContexts (builderInfo searchOpts) g
+                       lookupFail err language cxts
          Just p  -> do adj <- Binary.decodeFile p
-                       return $ Linearization.Context g (Util.unsafeGetLang g language) adj
-
-getGrammar :: Text -> IO Grammar
-getGrammar = Grammar.getGrammarOneOff
+                       lng <- lookupFail err language $ Linearization.languages g
+                       return $ Linearization.Context g lng adj
+  where err = "Cannot find language: " ++ Text.unpack language
 
 builderInfo :: O.SearchOptions -> AdjTrees.BuilderInfo
 builderInfo O.SearchOptions{..} =
@@ -57,7 +57,7 @@ muste grammar searchOpts opts@O.MusteOptions{..} =
 
 precompute :: Text -> O.SearchOptions -> O.PrecomputeOptions -> IO ()
 precompute grammar searchOpts O.PrecomputeOptions{..} = 
-    do g <- getGrammar grammar
+    do g <- Grammar.getGrammarOneOff grammar
        Binary.encodeFile output $ AdjTrees.getAdjunctionTrees (builderInfo searchOpts) g
 
 main :: IO ()
