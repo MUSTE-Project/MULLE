@@ -10,7 +10,6 @@
  DeriveAnyClass,
  NamedFieldPuns,
  OverloadedStrings,
- QuasiQuotes,
  RecordWildCards,
  ScopedTypeVariables,
  TypeApplications
@@ -46,7 +45,6 @@ import Control.Monad (void, when)
 import Control.Monad.IO.Class (MonadIO(liftIO))
 
 import Database.SQLite.Simple (Only(..), NamedParam(..))
-import Database.SQLite.Simple.QQ (sql)
 import qualified Database.SQLite.Simple as SQL
 
 import qualified Crypto.Random as Crypto
@@ -112,61 +110,19 @@ createSalt
 getCurrentTime :: MonadIO io => io UTCTime
 getCurrentTime = liftIO Time.getCurrentTime
 
-getLessons
-  :: MonadDB r db
-  => db [Types.Lesson]
-getLessons = query_ q
-  where
+getLessons :: MonadDB r db => db [Types.Lesson]
+getLessons = query_ lessonBaseQuery
 
-  q = [sql|
--- getLessons
-SELECT
-    Id
-  , Name
-  , Grammar
-  , SourceLanguage
-  , TargetLanguage
-  , ExerciseCount
-  , Enabled
-  , SearchLimitDepth
-  , SearchLimitSize
-  , Repeatable
-  , SourceDirection
-  , TargetDirection
-  , HighlightMatches
-  , ShowSourceSentence
-  , RandomizeOrder
-FROM Lesson;
-|]
+getLesson :: MonadDB r db => Types.Key Types.Lesson -> db Types.Lesson
+getLesson l = head <$> queryNamed q [":Lesson" := l]
+  where q = lessonBaseQuery <> " WHERE Id = :Lesson "
 
-getLesson
-  :: MonadDB r db
-  => Types.Key Types.Lesson
-  -> db Types.Lesson
-getLesson l = Unsafe.head <$> queryNamed q [":Lesson" := l]
-
-  where
-  q = [sql|
--- getLessons
-SELECT
-    Id
-  , Name
-  , Grammar
-  , SourceLanguage
-  , TargetLanguage
-  , ExerciseCount
-  , Enabled
-  , SearchLimitDepth
-  , SearchLimitSize
-  , Repeatable
-  , SourceDirection
-  , TargetDirection
-  , HighlightMatches
-  , ShowSourceSentence
-  , RandomizeOrder
-FROM Lesson
-WHERE Id = :Lesson;
-|]
+lessonBaseQuery :: SQL.Query
+lessonBaseQuery = 
+  " SELECT Id, Name, Grammar, SourceLanguage, TargetLanguage, ExerciseCount,        \
+  \        Enabled, SearchLimitDepth, SearchLimitSize, Repeatable, SourceDirection, \
+  \        TargetDirection, HighlightMatches, ShowSourceSentence, RandomizeOrder    \
+  \ FROM Lesson "
 
 -- FIXME In this contexts the naming suggests that the user is
 -- persisted.  Consider changin.
@@ -208,11 +164,8 @@ addUser usr = do
         -> throwDbError UserAlreadyExists
       _ -> throwDbError e
     _ -> throwDbError e
-  q = [sql|
--- addUser
-INSERT INTO User (Username, Password, Salt, Enabled)
-VALUES (:Username, :Password, :Salt, :Enabled);
-|]
+  q = " INSERT INTO User (Username, Password, Salt, Enabled) \
+      \ VALUES (:Username, :Password, :Salt, :Enabled) "
 
 -- | Removes an existing user from the database.
 rmUser
@@ -221,13 +174,7 @@ rmUser
   -> db ()
 rmUser u = void $ executeNamed q [ ":User" := u ]
   where
-
-  q = [sql|
--- rmUser
-DELETE
-FROM User
-WHERE Username = :User;
-|]
+    q = " DELETE FROM User WHERE Username = :User "
 
 authUser
   :: MonadDB r db
@@ -246,17 +193,8 @@ authUser user pass = do
              else throwDbError NotAuthenticated
     _     -> throwDbError NoUserFound
   where
-
-  q = [sql|
--- authUser
-SELECT
-  Username,
-  Password,
-  Salt,
-  Enabled
-FROM User
-WHERE Username = :Username;
-|]
+    q = " SELECT Username, Password, Salt, Enabled \
+        \ FROM User WHERE Username = :Username "
 
 changePassword
   :: MonadDB r db
@@ -287,12 +225,7 @@ createSession user = do
     , lastActive = timeStamp
     }
   where
-
-  q = [sql|
-DELETE
-FROM Session
-WHERE User = :User;
-|]
+    q = " DELETE FROM Session WHERE User = :User "
 
 endSession
   :: MonadDB r db
@@ -300,13 +233,7 @@ endSession
   -> db ()
 endSession t = executeNamed q [ ":Token" := t ]
   where
-
-  q = [sql|
--- endSession
-DELETE
-FROM Session
-WHERE Token = :Token;
-|]
+    q = " DELETE FROM Session WHERE Token = :Token "
 
 -- FIXME Reduce the three-layered string conversion going on here.
 genToken :: UTCTime -> Types.Token
@@ -348,13 +275,8 @@ updateActivity token = do
   timeStamp <- formatTime <$> getCurrentTime
   executeNamed q [ ":LastActive" := timeStamp, ":Token" := token ]
   where
-
-  q = [sql|
--- updateActivity
-UPDATE Session
-SET LastActive = :LastActive
-WHERE Token = :Token;
-|]
+    q = " UPDATE Session SET LastActive = :LastActive \
+        \ WHERE Token = :Token "
 
 -- | Throws @SessionTimeout@ if the session has timed out.
 verifySession
@@ -400,13 +322,7 @@ getLastActive t = do
     []         -> throwDbError NotCurrentSession
     (Only x:_) -> pure x
   where
-
-  q = [sql|
--- getLastActive
-SELECT LastActive
-FROM Session
-WHERE Token = :Token;
-|]
+    q = " SELECT LastActive FROM Session WHERE Token = :Token "
 
 deleteSession
   :: MonadDB r db
@@ -414,13 +330,7 @@ deleteSession
   -> db ()
 deleteSession token = executeNamed q [ ":Token" := token ]
   where
-
-  q = [sql|
--- deleteSession
-DELETE
-FROM Session
-WHERE Token = :Token;
-|]
+    q = " DELETE FROM Session WHERE Token = :Token "
 
 -- | List all the lessons i.e. lesson name and exercise
 -- count
@@ -438,22 +348,15 @@ getActiveLessonsForUser
   -> db [Types.ActiveLessonForUser]
 getActiveLessonsForUser user = queryNamed q [":User" := user]
   where
-
-  q = [sql|
--- getActiveLessonsForUser
-SELECT
-  Lesson.Id AS Lesson,
-  Lesson.Name,
-  COALESCE(ExerciseCount,0) AS ExerciseCount,
-  Score,
-  Lesson.Enabled,
-  FinishedExercise.User
-FROM Exercise
-JOIN Lesson ON Exercise.Lesson = Lesson.Id
-LEFT
-  JOIN FinishedExercise
-  ON   FinishedExercise.Exercise = Exercise.Id AND User = :User OR User IS NULL;
-|]
+    q = " SELECT Lesson.Id AS Lesson, Lesson.Name, \
+        \ COALESCE(ExerciseCount,0) AS ExerciseCount, \
+        \ Score, Lesson.Enabled, FinishedExercise.User \
+        \ FROM Exercise \
+        \ JOIN Lesson ON Exercise.Lesson = Lesson.Id \
+        \ LEFT \
+        \ JOIN FinishedExercise \
+        \ ON   FinishedExercise.Exercise = Exercise.Id \
+        \ AND  User = :User  OR  User IS NULL "
 
 -- | Start a new lesson by randomly choosing the right number of
 -- exercises and adding them to the users exercise list
@@ -478,14 +381,8 @@ checkStarted user lesson
   =   ((0 :: Int) /=) . fromOnly . head
   <$> queryNamed q [":User" := user, ":Lesson" := lesson]
   where
-
-  q = [sql|
--- checkStarted
-SELECT COUNT(*)
-FROM UnfinishedLesson
-WHERE User = :User
-  AND Lesson = :Lesson;
-|]
+    q = " SELECT COUNT(*) FROM UnfinishedLesson \
+        \ WHERE  User = :User  AND  Lesson = :Lesson "
 
 getUser
   :: MonadDB r db
@@ -498,13 +395,7 @@ getUser token = do
     [Only x] -> pure x
     _        -> throwDbError MultipleUsers
   where
-
-  q = [sql|
--- getuser
-SELECT User
-FROM Session
-WHERE Token = :Token;
-|]
+    q = " SELECT User FROM Session WHERE Token = :Token "
 
 shuffle :: MonadIO m => [a] -> m [a]
 shuffle = liftIO . QC.generate . QC.shuffle
@@ -515,22 +406,11 @@ getExerciseLessons
   -> db [Types.ExerciseLesson]
 getExerciseLessons lesson = queryNamed q [":Lesson" := lesson]
   where
-  q = [sql|
--- getExerciseLessons
-SELECT
-  Exercise
-, Lesson
-, Name
-, SourceTree
-, TargetTree
-, SourceDirection
-, TargetDirection
-, HighlightMatches
-, ShowSourceSentence
-, ExerciseOrder
-FROM ExerciseLesson
-WHERE Lesson = :Lesson;
-|]
+  q = " SELECT Exercise, Lesson, Name, SourceTree, TargetTree, \
+      \        SourceDirection, TargetDirection, HighlightMatches, \
+      \        ShowSourceSentence, ExerciseOrder \
+      \ FROM   ExerciseLesson \
+      \ WHERE  Lesson = :Lesson "
 
 newLesson
   :: MonadDB r db
@@ -610,19 +490,12 @@ getLessonRound
 getLessonRound user lesson =
   fromOnly . head <$> queryNamed q [ ":User" := user, ":Lesson" := lesson ]
   where
-
-  q = [sql|
--- getLessonRound
-SELECT ifnull(MAX(ExerciseList.Round) + 1,0)
-FROM ExerciseList
-JOIN Exercise ON ExerciseList.Exercise = Exercise.Id
-WHERE
-  ExerciseList.User = :User
-  -- Does this happen automatically if Lesson is null given the next
-  -- condition?
-  AND Lesson = :Lesson
-  AND Score IS NOT NULL;
-|]
+    q = " SELECT ifnull(MAX(ExerciseList.Round) + 1,0) \
+        \ FROM   ExerciseList \
+        \ JOIN   Exercise ON ExerciseList.Exercise = Exercise.Id \
+        \ WHERE  ExerciseList.User = :User \
+        \   AND  Lesson = :Lesson \
+        \   AND  Score IS NOT NULL "
 
 continueLesson
   :: MonadDB r db
@@ -693,13 +566,8 @@ deleteStartedLessons
   -> db ()
 deleteStartedLessons u l = executeNamed q [":User" := u, ":Lesson" := l]
   where
-
-  q = [sql|
--- deleteStartedLesson
-DELETE FROM StartedLesson
-WHERE User   = :User
-  AND Lesson = :Lesson;
-|]
+    q = " DELETE FROM StartedLesson \ 
+        \ WHERE  User = :User  AND  Lesson = :Lesson "
 
 -- | Gets an unfinished exercise.
 getExercise
@@ -714,28 +582,16 @@ getExercise lesson user round' =
        [x] -> pure x
        _   -> throwDbError NoActiveExercisesInLesson
   where
-
-  q = [sql|
--- getExercise
-SELECT
-    Exercise
-  , Lesson.Id
-  , Lesson.Name
-  , SourceTree
-  , TargetTree
-  , SourceDirection
-  , TargetDirection
-  , HighlightMatches
-  , ShowSourceSentence
-  , ExerciseOrder
-FROM ExerciseList
-JOIN Exercise ON Exercise = Exercise.Id
-JOIN Lesson   ON Lesson   = Lesson.Id
-WHERE Lesson = :Lesson
-  AND User   = :User
-  AND Round  = :Round
-  AND Score IS NULL;
-|]
+    q = " SELECT Exercise, Lesson.Id, Lesson.Name, SourceTree, TargetTree, \
+        \        SourceDirection, TargetDirection, HighlightMatches, \
+        \        ShowSourceSentence, ExerciseOrder \
+        \ FROM   ExerciseList \
+        \ JOIN   Exercise ON Exercise = Exercise.Id \
+        \ JOIN   Lesson   ON Lesson   = Lesson.Id \
+        \ WHERE  Lesson = :Lesson \
+        \   AND  User   = :User \
+        \   AND  Round  = :Round \
+        \   AND  Score IS NULL "
 
 finishExerciseAux
   :: MonadDB r db
@@ -744,7 +600,7 @@ finishExerciseAux
 finishExerciseAux (Types.ExerciseList user exercise round' score) =
   executeNamed
   " UPDATE ExerciseList SET Score = :Score \
-  \ WHERE User = :User AND Exercise = :Exercise AND Round = :Round "
+  \ WHERE  User = :User  AND  Exercise = :Exercise  AND  Round = :Round "
   [ ":User"      := user
   , ":Exercise"  := exercise
   , ":Round"     := round'
@@ -760,17 +616,10 @@ getFinishedExercises user lesson
   =   fromOnly . head
   <$> queryNamed q [ ":User" := user, ":Lesson" := lesson ]
   where
-
-  q = [sql|
--- getFinishedExercises
-SELECT COUNT(*)
-FROM ExerciseList
-JOIN Exercise ON Exercise = Exercise.Id
-JOIN Lesson   ON Lesson   = Lesson.Id
-WHERE User = :User
-AND Lesson = :Lesson
-AND Score NOT NULL;
-|]
+    q = " SELECT COUNT(*) FROM ExerciseList \
+        \ JOIN   Exercise ON Exercise = Exercise.Id \
+        \ JOIN   Lesson   ON Lesson   = Lesson.Id \
+        \ WHERE  User = :User  AND  Lesson = :Lesson  AND  Score NOT NULL "
 
 getExerciseCount
   :: MonadDB r db
@@ -779,13 +628,7 @@ getExerciseCount
 getExerciseCount lesson =
   fromOnly . head <$> queryNamed q [":Lesson" := lesson]
   where
-
-  q = [sql|
--- getExerciseCount
-SELECT ExerciseCount
-FROM Lesson
-WHERE Id = :Lesson;
-|]
+    q = " SELECT ExerciseCount FROM Lesson WHERE Id = :Lesson "
 
 -- | Get the score for the user and lesson.
 getScore
@@ -800,16 +643,9 @@ getScore user lesson
   , ":Lesson" := lesson
   ]
   where
-
-  q = [sql|
--- getScore
-SELECT Score
-FROM ExerciseList
-JOIN Exercise ON Exercise = Exercise.Id
-WHERE User = :User
-AND Lesson = :Lesson
-AND Score NOT NULL;
-|]
+    q = " SELECT Score FROM ExerciseList \
+        \ JOIN   Exercise ON Exercise = Exercise.Id \
+        \ WHERE  User = :User  AND  Lesson = :Lesson  AND  Score NOT NULL "
 
 -- | The user and their score on each excercise.  If score and user is
 -- null this means that /no/ user has completed the exercise.  If a
@@ -818,23 +654,15 @@ AND Score NOT NULL;
 getUserLessonScores
   :: MonadDB r db
   => db [Types.UserLessonScore]
-getUserLessonScores = query_ q
-  where
-
-  q = [sql|
--- getUserLessonScores
-SELECT
-  Lesson.Id,
-  Lesson.Name,
-  User.Username,
-  FinishedLesson.Score
-FROM FinishedLesson
-JOIN User
-  ON User = User.Username
-LEFT
-  JOIN Lesson
-  ON Lesson = Lesson.Id;
-|]
+getUserLessonScores =
+  query_ 
+  " SELECT Lesson.Id, Lesson.Name, User.Username, FinishedLesson.Score \
+  \ FROM   FinishedLesson \
+  \ JOIN   User \
+  \   ON   User = User.Username \
+  \ LEFT \
+  \   JOIN Lesson \
+  \   ON   Lesson = Lesson.Id "
 
 resetLesson
   :: MonadDB r db
@@ -853,14 +681,6 @@ deleteExerciseList
   -> db ()
 deleteExerciseList u l = executeNamed q [":User" := u, ":Lesson" := l]
   where
-
-  q = [sql|
--- deleteExerciseList
-DELETE FROM ExerciseList
-WHERE User = :User
-AND Exercise IN (
-  SELECT Id
-  FROM Exercise
-  WHERE Lesson = :Lesson
-);
-|]
+    q = " DELETE FROM ExerciseList \ 
+        \ WHERE  User = :User \
+        \   AND  Exercise IN ( SELECT Id FROM Exercise WHERE Lesson = :Lesson ) "

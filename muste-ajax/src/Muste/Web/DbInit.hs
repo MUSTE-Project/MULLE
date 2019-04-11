@@ -1,7 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language
  OverloadedStrings,
- QuasiQuotes,
  RecordWildCards,
  TemplateHaskell,
  TypeApplications
@@ -15,7 +14,6 @@ import System.FilePath (takeDirectory, (</>))
 import Data.FileEmbed (embedFile, makeRelativeToProject)
 
 import Database.SQLite.Simple (Connection(Connection))
-import Database.SQLite.Simple.QQ (sql)
 import qualified Database.SQLite.Simple as SQL
 import qualified Database.SQLite3 as SQL
 
@@ -139,43 +137,17 @@ dropRecreateUser c Config.User{..}
     }
 
 insertLessons :: Connection -> [Database.Lesson] -> IO ()
-insertLessons c = SQL.executeMany c q
-  where
-
-  q = [sql|
--- insertLessons
-INSERT INTO Lesson
-( Id
-, Name
-, Grammar
-, SourceLanguage
-, TargetLanguage
-, ExerciseCount
-, Enabled
-, SearchLimitDepth
-, SearchLimitSize
-, Repeatable
-, SourceDirection
-, TargetDirection
-, HighlightMatches
-, ShowSourceSentence
-, RandomizeOrder
-)
-VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-;|]
+insertLessons c =
+  SQL.executeMany c 
+  " INSERT INTO Lesson \
+  \ ( Id, Name, Grammar, SourceLanguage, TargetLanguage, ExerciseCount, Enabled, \
+  \   SearchLimitDepth, SearchLimitSize, Repeatable, SourceDirection, TargetDirection, \
+  \   HighlightMatches, ShowSourceSentence, RandomizeOrder ) \
+  \ VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
 
 insertExercises :: Connection -> [Database.Exercise] -> IO ()
-insertExercises c = SQL.executeMany c q
-  where
-
-  q = [sql|
--- insertExercises
-INSERT INTO Exercise
-( SourceTree
-, TargetTree
-, Lesson
-, Timeout
-, ExerciseOrder
-)
-VALUES (?,?,?,?,?);
-|]
+insertExercises c =
+  SQL.executeMany c 
+  " INSERT INTO Exercise \
+  \ ( SourceTree, TargetTree, Lesson, Timeout, ExerciseOrder ) \
+  \ VALUES (?,?,?,?,?) "
