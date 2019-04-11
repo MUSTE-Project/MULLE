@@ -38,8 +38,6 @@ module Muste.Grammar.Internal
   , noGrammars
   ) where
 
-import Muste.Prelude.Extra (wildCard)
-
 import Control.Applicative (Alternative)
 import Control.Category ((>>>))
 import Control.Monad (MonadPlus)
@@ -76,6 +74,7 @@ import qualified PGF (Tree, wildCId, functions, startCat, functionType,
                       parsePGF, bracketedLinearize, parse)
 import PGF.Internal as PGF hiding (funs, cats, Binary)
 
+import Muste.Util (wildCard)
 import Muste.Tree
 import qualified Muste.Tree.Internal as Tree
 

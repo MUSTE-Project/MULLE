@@ -9,8 +9,7 @@ import qualified Data.Binary as Binary
 import qualified Data.Text as Text
 import Data.Text (Text)
 
-import Muste.Prelude.Extra (lookupFail)
-
+import Muste.Util (lookupFail)
 import qualified Muste.Menu as Menu
 import qualified Muste.AdjunctionTrees as AdjTrees
 import qualified Muste.Grammar as Grammar

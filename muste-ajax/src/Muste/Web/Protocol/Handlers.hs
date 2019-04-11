@@ -48,6 +48,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified GHC.Num as Math
 
+import Muste.Util (groupOn, throwLeft)
 import Muste.Linearization (Context)
 import Muste.Tree (TTree)
 import qualified Muste.Menu as Menu
@@ -55,8 +56,6 @@ import qualified Muste.Sentence as Sentence
 import Muste.Sentence.Annotated (Annotated)
 import qualified Muste.Sentence.Unannotated as Unannotated
 import Muste.Sentence.Unannotated (Unannotated)
-
-import Muste.Prelude.Extra (groupOn, throwLeft)
 
 import qualified Muste.Web.Ajax as Ajax
 import qualified Muste.Web.Ajax as Lesson (Lesson(..))

@@ -59,7 +59,7 @@ import Data.Text.Prettyprint.Doc (Pretty(pretty))
 import Text.Printf (printf)
 import Text.Read (readEither)
 
-import Muste.Prelude.Extra (editDistance, wildCard)
+import Muste.Util (editDistance, wildCard)
 
 
 -- * Trees

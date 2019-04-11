@@ -26,7 +26,7 @@ import System.FilePath (takeDirectory, (</>), (<.>))
 import Data.Aeson (FromJSON(..), ToJSON(..), (.:?), (.!=), (.=))
 import qualified Data.Aeson as Aeson
 
-import Muste.Prelude.Extra (decodeFileThrow)
+import Muste.Util (decodeFileThrow)
 import qualified Muste.Web.Config.Types as Types
 
 

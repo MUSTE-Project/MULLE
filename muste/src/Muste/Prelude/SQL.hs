@@ -13,7 +13,7 @@ import qualified Database.SQLite.Simple.FromField as SQL
 import Data.Binary (Binary)
 import Data.Typeable (Typeable)
 
-import Muste.Prelude.Extra (binaryFromText, binaryToText)
+import Muste.Util (binaryFromText, binaryToText)
 
 
 fromBlob :: Typeable b => Binary b => SQL.Field -> SQL.Ok b

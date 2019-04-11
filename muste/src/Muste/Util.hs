@@ -4,7 +4,7 @@
  OverloadedStrings
 #-}
 
-module Muste.Prelude.Extra
+module Muste.Util
   ( wildCard
   , editDistance
   , groupOn

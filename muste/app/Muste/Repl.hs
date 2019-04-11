@@ -49,8 +49,7 @@ import qualified Data.Containers as Mono
 import qualified Data.List as List
 import GHC.Exts (toList)
 
-import Muste.Prelude.Extra (putDocLn)
-
+import Muste.Util (putDocLn)
 import qualified Muste.Grammar as Grammar
 import Muste.Selection (Selection, runInterval)
 import Muste.Menu (Menu)
