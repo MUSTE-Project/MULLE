@@ -1,6 +1,5 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language
- CPP,
  OverloadedStrings,
  QuasiQuotes,
  RecordWildCards,
@@ -41,16 +40,8 @@ initDb :: Config.AppConfig -> IO ()
 initDb cfg = do
   putStrLn "[Initializing database...]"
   mkParDir (Config.db cfg)
-  withConnection (Config.db cfg) (initDbAux cfg)
+  SQL.withConnection (Config.db cfg) (initDbAux cfg)
   putStrLn "[Initializing database... Done]"
-
-withConnection :: FilePath -> (Connection -> IO ()) -> IO ()
-withConnection db m =
-  SQL.withConnection db $ \c -> do
-#ifdef DIAGNOSTICS
-    SQL.setTrace c (Just Text.putStrLn)
-#endif
-    m c
 
 -- | @'mkParDir' p@ Ensure that the directory that @p@ is in is
 -- created like the linux command @mkdir -p@.
