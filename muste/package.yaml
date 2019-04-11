@@ -76,7 +76,6 @@ library:
     - Muste.Util
     # FIXME Perhaps a seperate module for these helper?
     - Muste.Prelude.SQL
-    - Muste.Prelude.Unsafe
 
   other-modules:
     - Muste.Tree.Internal

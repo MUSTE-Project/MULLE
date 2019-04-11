@@ -1,8 +1,11 @@
 {-# OPTIONS_GHC -Wall #-}
+{-# Language
+ TemplateHaskell
+#-}
 
 module Options (getOptions, Options(..)) where
 
-import qualified Muste.Prelude.Unsafe as Unsafe
+import Development.GitRev (gitDescribe)
 
 import Options.Applicative (Parser, execParser, ParserInfo)
 import qualified Options.Applicative as O
@@ -32,18 +35,19 @@ getOptions :: IO Options
 getOptions = execParser opts
 
 opts :: ParserInfo Options
-opts = O.info (optionsParser <**> O.helper <**> version)
+opts = O.info (optionsParser <**> O.helper <**> versionParser)
   (  O.fullDesc
   <> O.progDesc descr
   <> O.header header
   )
 
-version :: Parser (a -> a)
-version = O.infoOption Unsafe.gitDescription $ mconcat
-  [ O.long "version"
-  , O.help "Output version information and exit"
-  , O.hidden
-  ]
+versionParser :: Parser (a -> a)
+versionParser = O.infoOption $(gitDescribe)
+    (  O.short 'v'
+    <> O.long "version"
+    <> O.help "Output version information and exit"
+    <> O.hidden
+    )
 
 header :: String
 header = "muste-ajax - REST API for the Multi Semantic Text Editor (MUSTE)"

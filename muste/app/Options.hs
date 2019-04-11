@@ -1,6 +1,7 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language
- OverloadedStrings
+ OverloadedStrings,
+ TemplateHaskell
 #-}
 
 module Options
@@ -12,12 +13,12 @@ module Options
   , SearchOptions(..)
   ) where
 
+import Development.GitRev (gitDescribe)
+
 import qualified Options.Applicative as O
 import Options.Applicative (Parser)
 import Control.Applicative ((<**>), (<|>), some)
 import Data.Text (Text)
- 
-import qualified Muste.Prelude.Unsafe as Unsafe
 
 
 -- Options type hierarchy
@@ -61,7 +62,7 @@ getOptions = O.execParser $
     )
 
 versionParser :: Parser (a -> a)
-versionParser = O.infoOption Unsafe.gitDescription 
+versionParser = O.infoOption $(gitDescribe)
     (  O.short 'v'
     <> O.long "version"
     <> O.help "Output version information and exit"
