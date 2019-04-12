@@ -13,16 +13,6 @@ copyright:
 synopsis:            Multimodal semantics in Text editing
 category:            Text
 
-flags:
-  hastePGF:
-    description: Build test suite
-    manual: true
-    default: false
-  dist:
-    description: Build the distribution version
-    manual: true
-    default: false
-
 source-dirs:
   - src/
 
@@ -90,13 +80,6 @@ library:
     - Muste.Sentence.Linearization
     - Muste.Sentence.Token
     - Muste.Sentence.Token.Class
-
-custom-setup:
-  dependencies:
-    - base
-    - Cabal
-    - turtle
-    - text
 
 executables:
   muste-cli:
