@@ -31,11 +31,11 @@ module Muste.Web.Protocol.Handlers
   ) where
 
 import Control.Category ((>>>))
-import Control.Exception (Exception, SomeException, ErrorCall(ErrorCall))
+import Control.Exception (throw, Exception, SomeException, ErrorCall(ErrorCall))
 import Control.Monad.Catch (MonadThrow(throwM))
 import Control.Monad.Except (MonadError, throwError)
 import Control.Monad.Reader
-import Data.Function ((&), on)
+import Data.Function ((&), on, id)
 
 import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NonEmpty
@@ -48,7 +48,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified GHC.Num as Math
 
-import Muste.Util (groupOn, throwLeft)
+import Muste.Util (groupOn)
 import Muste.Linearization (Context)
 import Muste.Tree (TTree)
 import qualified Muste.Menu as Menu
@@ -128,7 +128,7 @@ getActiveLessons t =
     -- If just a single score is a Nothing we say that the score is a
     -- nothing.  Though they should all agree.
     maybeScores :: Maybe (NonEmpty Score)
-    maybeScores = traverse (\x -> x) scores
+    maybeScores = traverse id scores
 
 
 handleLoginRequest
@@ -336,7 +336,7 @@ makeTree c lesson s d
   , direction = d
   }
   where
-  ctxt = throwLeft $ getContext c lesson language
+  ctxt = either throw id $ getContext c lesson language
   language = Sentence.language s
 
 

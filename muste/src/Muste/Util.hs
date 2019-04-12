@@ -12,10 +12,9 @@ module Muste.Util
   , binaryToText
   , lookupFail
   , putDocLn
-  , throwLeft
   ) where
 
-import Control.Exception (Exception, throw)
+import Control.Exception (Exception)
 import Control.Monad.IO.Class (MonadIO)
 import Data.Function (on)
 
@@ -89,8 +88,3 @@ putDoc = Doc.putDoc
 
 putDocLn :: Doc a -> IO ()
 putDocLn = putDoc . (<> Doc.line)
-
--- | Throws an exception if the it's a 'Left' (requires the left to be
--- an exception).  This method is *unsafe*!
-throwLeft :: Exception e => Either e c -> c
-throwLeft = either throw (\x -> x)
