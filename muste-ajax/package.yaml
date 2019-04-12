@@ -10,6 +10,7 @@ copyright:
   - (c) 2018-2019 Peter Ljunglöf
   - (c) 2018      Frederik Hanghøj Iversen
 
+synopsis:            Multimodal semantics in Text editing (web server + API)
 category:            Web
 
 dependencies:
@@ -52,33 +53,27 @@ dependencies:
   - binary               >= 0.8.5.1  && < 0.9
   - gitrev               >= 1.3.1    && < 1.4
 
-library:
+executable:
   source-dirs:
     - src
 
-  exposed-modules:
+  main: Main.hs
+
+  other-modules:
+    - Database.SQLite.Simple.FromRow.Generic
     - Muste.Web.Ajax
+    - Muste.Web.Config
+    - Muste.Web.Config.Types
     - Muste.Web.Database
     - Muste.Web.Database.Class
     - Muste.Web.Database.Types
     - Muste.Web.DbInit
     - Muste.Web.DbInit.Data
-    - Muste.Web.Types.Score
-    - Muste.Web.Config
-    - Muste.Web.Config.Types
     - Muste.Web.Protocol
     - Muste.Web.Protocol.Class
     - Muste.Web.Protocol.Handlers
-    - Database.SQLite.Simple.FromRow.Generic
-
-  other-modules:
-    - Paths_muste_ajax
-
-executable:
-  source-dirs:
-    - app
-
-  main: Main.hs
+    - Muste.Web.Types.Score
+    - Options
 
   dependencies:
-    - muste-ajax
+    - muste
