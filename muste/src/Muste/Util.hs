@@ -12,7 +12,6 @@ module Muste.Util
   , binaryToText
   , lookupFail
   , putDocLn
-  , decodeFileThrow
   , throwLeft
   ) where
 
@@ -33,7 +32,6 @@ import Data.Text.Prettyprint.Doc (Doc)
 import qualified Data.Text.Prettyprint.Doc as Doc
 import qualified Data.Text.Prettyprint.Doc.Render.Text as Doc
 import Data.List.NonEmpty (NonEmpty, groupBy)
-import qualified Data.Yaml as Yaml
 
 wildCard :: IsString text => text
 wildCard = "*empty*"
@@ -91,9 +89,6 @@ putDoc = Doc.putDoc
 
 putDocLn :: Doc a -> IO ()
 putDocLn = putDoc . (<> Doc.line)
-
-decodeFileThrow :: MonadIO m => FromJSON a => FilePath -> m a
-decodeFileThrow = Yaml.decodeFileThrow
 
 -- | Throws an exception if the it's a 'Left' (requires the left to be
 -- an exception).  This method is *unsafe*!

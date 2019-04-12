@@ -25,14 +25,14 @@ module Muste.Web.Config
 import System.FilePath (takeDirectory, (</>), (<.>))
 import Data.Aeson (FromJSON(..), ToJSON(..), (.:?), (.!=), (.=))
 import qualified Data.Aeson as Aeson
+import qualified Data.Yaml as Yaml
 
-import Muste.Util (decodeFileThrow)
 import qualified Muste.Web.Config.Types as Types
 
 
 appConfig :: FilePath -> IO AppConfig
 appConfig cfgFile =
-  do cfg@AppConfig{..} <- decodeFileThrow cfgFile
+  do cfg@AppConfig{..} <- Yaml.decodeFileThrow cfgFile
      return cfg { db = cfgDir </> db
                 , lessons = cfgDir </> lessons
                 , accessLog = cfgDir </> accessLog
