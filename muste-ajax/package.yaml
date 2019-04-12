@@ -1,5 +1,5 @@
 name:                muste-ajax
-version:             0.2.8.1
+version:             0.4.0
 license:             Artistic-2.0
 license-file:        LICENSE
 maintainer:
@@ -30,7 +30,7 @@ dependencies:
   - io-streams           >= 1.5.0.1  && < 1.6
   - lens                 >= 4.16.1   && < 4.18
   - mtl                  >= 2.2.2    && < 2.3
-  - muste                >= 0.2.8.1  && < 0.3
+  - muste                >= 0.4      && < 0.5
   - network-uri          >= 2.6.1.0  && < 2.7
   - optparse-applicative >= 0.14.3.0 && < 0.15
   - pgf                  >= 3.10     && < 3.11
