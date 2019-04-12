@@ -1,5 +1,5 @@
-name:                muste
-version:             0.2.8.1
+name:                muste-cli
+version:             0.3.0
 license:             BSD3
 license-file:        LICENSE
 maintainer:
@@ -10,11 +10,8 @@ copyright:
   - (c) 2018-2019 Peter Ljunglöf
   - (c) 2018      Frederik Hanghøj Iversen
 
-synopsis:            Multimodal semantics in Text editing (base library)
+synopsis:            Multimodal semantics in Text editing (command-line interface)
 category:            Text
-
-source-dirs:
-  - src/
 
 dependencies:
   - aeson              >= 1.3.1.1  && < 1.5
@@ -28,6 +25,7 @@ dependencies:
   - filepath           >= 1.4.2    && < 1.5
   - mono-traversable   >= 1.0.9.0  && < 1.1
   - mtl                >= 2.2.2    && < 2.3
+  - muste              >= 0.3.0    && < 0.4
   - pgf                >= 3.10     && < 3.11
   - prettyprinter      >= 1.2.1    && < 1.3
   - sqlite-simple      >= 0.4.16.0 && < 0.5
@@ -47,36 +45,19 @@ dependencies:
   - time               >= 1.8.0.2  && < 1.9
   - gitrev             >= 1.3.1    && < 1.4
 
-when:
-  - condition: flag(dist)
-    ghc-options:
-      - -Wall
-      - -Wno-name-shadowing
-      - -Werr
+executables:
+  muste-cli:
+    source-dirs:
+      - src
 
-library:
-  exposed-modules:
-    - Muste.AdjunctionTrees
-    - Muste.Tree
-    - Muste.Grammar
-    - Muste.Linearization
-    - Muste.Menu
-    - Muste.Selection
-    - Muste.Sentence
-    - Muste.Sentence.Annotated
-    - Muste.Sentence.Unannotated
-    - Muste.Util
+    main: Main.hs
 
-  other-modules:
-    - Muste.Tree.Internal
-    - Muste.Grammar.Internal
-    - Muste.Linearization.Internal
-    - Muste.AdjunctionTrees.Internal
-    - Muste.Menu.Internal
-    - Muste.Prune
-    - Muste.Feat
-    - Muste.Sentence.Class
-    - Muste.Sentence.Language
-    - Muste.Sentence.Linearization
-    - Muste.Sentence.Token
-    - Muste.Sentence.Token.Class
+    other-modules:
+      - Muste.Repl
+      - Options
+
+    dependencies:
+      - muste
+      - haskeline            >= 0.7.4.3  && < 0.8
+      - repline              >= 0.2.0.0  && < 0.3
+      - optparse-applicative >= 0.14.3.0 && < 0.15

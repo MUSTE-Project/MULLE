@@ -2,6 +2,7 @@ resolver: lts-12.13 # => ghc-8.4.3
 
 packages:
 - ./muste/
+- ./muste-cli/
 - ./muste-ajax/
 
 extra-deps:
