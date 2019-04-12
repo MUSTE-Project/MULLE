@@ -74,8 +74,6 @@ library:
     - Muste.Sentence.Annotated
     - Muste.Sentence.Unannotated
     - Muste.Util
-    # FIXME Perhaps a seperate module for these helper?
-    - Muste.Prelude.SQL
 
   other-modules:
     - Muste.Tree.Internal

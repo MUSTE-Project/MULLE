@@ -27,7 +27,7 @@ import Control.Category ((>>>))
 import Data.Function (on)
 import GHC.Generics (Generic)
 
-import Muste.Prelude.SQL (toBlob, fromBlob)
+import Muste.Util (toBlob, fromBlob)
 import Database.SQLite.Simple.ToField (ToField(..))
 import Database.SQLite.Simple.FromField (FromField(..))
 

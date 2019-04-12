@@ -18,7 +18,7 @@ import Control.DeepSeq (NFData)
 import Data.Typeable (Typeable)
 import GHC.Generics (Generic)
 
-import Muste.Prelude.SQL (toBlob, fromBlob)
+import Muste.Util (toBlob, fromBlob)
 import Database.SQLite.Simple.ToField (ToField(toField))
 import Database.SQLite.Simple.FromField (FromField(fromField))
 

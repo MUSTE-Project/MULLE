@@ -35,7 +35,7 @@ module Muste.Tree.Internal
   , cIdToCat
   ) where
 
-import Muste.Prelude.SQL (toBlob, fromBlob)
+import Muste.Util (toBlob, fromBlob)
 import Database.SQLite.Simple.ToField (ToField(..))
 import Database.SQLite.Simple.FromField (FromField(..))
 

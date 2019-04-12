@@ -11,8 +11,14 @@ module Muste.Util
   , binaryToText
   , lookupFail
   , putDocLn
+  , fromBlob
+  , toBlob
+  , fromNullableBlob
   ) where
 
+import qualified Database.SQLite.Simple as SQL
+import qualified Database.SQLite.Simple.Ok as SQL
+import qualified Database.SQLite.Simple.FromField as SQL
 
 import Data.Binary (Binary)
 import qualified Data.Binary as Binary
@@ -25,6 +31,8 @@ import Data.Text (Text)
 import Data.Text.Prettyprint.Doc (Doc)
 import qualified Data.Text.Prettyprint.Doc as Doc
 import qualified Data.Text.Prettyprint.Doc.Render.Text as Doc
+
+import Data.Typeable (Typeable)
 
 wildCard :: IsString text => text
 wildCard = "*empty*"
@@ -79,3 +87,23 @@ putDoc = Doc.putDoc
 
 putDocLn :: Doc a -> IO ()
 putDocLn = putDoc . (<> Doc.line)
+
+
+--------------------------------------------------------------------------------
+-- SQL utilities, converting to/from BLOBs
+
+fromBlob :: Typeable b => Binary b => SQL.Field -> SQL.Ok b
+fromBlob fld = case SQL.fieldData fld of
+  SQL.SQLBlob t -> pure $ binaryFromText t
+  _ -> SQL.returnError SQL.ConversionFailed fld mempty
+
+toBlob :: Binary b => b -> SQL.SQLData
+toBlob = SQL.SQLBlob . binaryToText
+
+-- | Safe conversion of blob columns that may be null.
+fromNullableBlob :: Typeable b => Binary b => Monoid b => SQL.Field -> SQL.Ok b
+fromNullableBlob fld = case SQL.fieldData fld of
+  SQL.SQLBlob t -> pure $ binaryFromText t
+  SQL.SQLNull -> pure mempty
+  _ -> SQL.returnError SQL.ConversionFailed fld mempty
+

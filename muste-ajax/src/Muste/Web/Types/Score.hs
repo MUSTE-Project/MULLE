@@ -20,7 +20,7 @@ module Muste.Web.Types.Score
   , valuation
   ) where
 
-import Muste.Prelude.SQL (toBlob, fromNullableBlob)
+import Muste.Util (toBlob, fromNullableBlob)
 import Database.SQLite.Simple.ToField (ToField(..))
 import Database.SQLite.Simple.FromField (FromField(..))
 
