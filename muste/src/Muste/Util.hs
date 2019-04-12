@@ -7,7 +7,6 @@
 module Muste.Util
   ( wildCard
   , editDistance
-  , groupOn
   , binaryFromText
   , binaryToText
   , lookupFail
@@ -16,7 +15,6 @@ module Muste.Util
 
 import Control.Exception (Exception)
 import Control.Monad.IO.Class (MonadIO)
-import Data.Function (on)
 
 import Data.Aeson (FromJSON)
 import Data.Binary (Binary)
@@ -30,7 +28,6 @@ import Data.Text (Text)
 import Data.Text.Prettyprint.Doc (Doc)
 import qualified Data.Text.Prettyprint.Doc as Doc
 import qualified Data.Text.Prettyprint.Doc.Render.Text as Doc
-import Data.List.NonEmpty (NonEmpty, groupBy)
 
 wildCard :: IsString text => text
 wildCard = "*empty*"
@@ -60,9 +57,6 @@ editDistance a b = last (if lab == 0 then mainDiag
                     thisdiag = firstelt : doDiag a b firstelt diagAbove (tail diagBelow)
           lab = length a - length b
           min3 x y z = if x < y then x else min y z
-
-groupOn :: Eq b => (a -> b) -> [a] -> [NonEmpty a]
-groupOn p = groupBy ((==) `on` p)
 
 maybeFail :: Monad m => String -> Maybe a -> m a
 maybeFail err Nothing = fail err

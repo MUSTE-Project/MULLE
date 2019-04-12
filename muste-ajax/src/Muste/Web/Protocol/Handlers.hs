@@ -37,7 +37,7 @@ import Control.Monad.Except (MonadError, throwError)
 import Control.Monad.Reader
 import Data.Function ((&), on, id)
 
-import Data.List.NonEmpty (NonEmpty((:|)))
+import Data.List.NonEmpty (NonEmpty((:|)), groupBy)
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Maybe (isJust)
 import Data.Semigroup (sconcat)
@@ -48,7 +48,6 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified GHC.Num as Math
 
-import Muste.Util (groupOn)
 import Muste.Linearization (Context)
 import Muste.Tree (TTree)
 import qualified Muste.Menu as Menu
@@ -102,7 +101,7 @@ handleLessons (Ajax.LoginToken t) = do
 
 getActiveLessons :: MonadProtocol m => Database.Token -> m [Ajax.ActiveLesson]
 getActiveLessons t =
-  fmap step . groupOn ActiveLessonForUser.lesson <$> Database.getActiveLessons t
+  fmap step . groupBy ((==) `on` ActiveLessonForUser.lesson) <$> Database.getActiveLessons t
   where
   step :: NonEmpty Database.ActiveLessonForUser -> Ajax.ActiveLesson
   step xs@(Database.ActiveLessonForUser{..} :| _) = Ajax.ActiveLesson
