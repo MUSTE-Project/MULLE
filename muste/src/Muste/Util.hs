@@ -13,10 +13,7 @@ module Muste.Util
   , putDocLn
   ) where
 
-import Control.Exception (Exception)
-import Control.Monad.IO.Class (MonadIO)
 
-import Data.Aeson (FromJSON)
 import Data.Binary (Binary)
 import qualified Data.Binary as Binary
 import Data.ByteString.Lazy (ByteString)
