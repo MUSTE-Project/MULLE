@@ -47,13 +47,6 @@ dependencies:
   - time               >= 1.8.0.2  && < 1.9
   - gitrev             >= 1.3.1    && < 1.4
 
-when:
-  - condition: flag(dist)
-    ghc-options:
-      - -Wall
-      - -Wno-name-shadowing
-      - -Werr
-
 library:
   exposed-modules:
     - Muste.AdjunctionTrees
