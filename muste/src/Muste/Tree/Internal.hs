@@ -129,27 +129,6 @@ treeDiff :: TTree -> TTree -> Int
 treeDiff t t' = flatten t `editDistance` flatten t'
 
 
--- parseTree :: Monad fail => String -> fail TTree
--- parseTree = do
---   gfTree <- liftFailMaybe _ . PGF.readExpr
---   _ gfTree
-
--- liftFailMaybe :: Monad m => String -> Maybe a -> m a
--- liftFailMaybe err = _
-
--- TODO Make generalized container for @TTree@ (i.e. kind @* -> *@,
--- that way we can make suitable instances for @Foldable@,
--- @Traversable@...
-
--- The challenge is that these are not regular rose trees since
--- @TTree@ has the guarantee that the leafs only contain a string and
--- the internal nodes contain a @Sring@ and a `FunType`.
-
--- foldlTTree :: (b -> Either (String, FunType) Category -> b) -> b -> TTree -> b
--- foldlTTree f x t = case t of
---   TNode nm tp xs -> f (foldl (foldlTTree f) x xs) (Left (nm, tp))
---   TMeta cat      -> f x (Right cat)
-
 parseString :: Monad m => String -> (Text -> m p) -> Value -> m p
 parseString errMsg f = \case
   (String s) -> f s
@@ -368,24 +347,6 @@ getPath ltree id =
         if not $ null d then d else b
   in
     reverse $ deep (ttreeToLTree ltree) id []
-
--- -- My attempt at replacing the above function with something that does
--- -- not need to know about @LTree@'s. I misunderstood @getPath@ and
--- -- wrote a depth first algorithm in stead.
--- getPathDF :: TTree -> Int -> Path
--- getPathDF t n = maybe mempty reverse $ evalState (aux t) n
---   where
---   aux :: TTree -> State Int (Maybe Path)
---   aux t = do
---     n <- get
---     modify pred
---     if n <= 0
---     then pure $ pure $ [0]
---     else case t of
---       TMeta{}      -> pure Nothing
---       TNode _ _ xs -> fmap (listToMaybe . catMaybes) <$> mapM step $ zip [0..] xs
---   step :: (Int, TTree) -> State Int (Maybe Path)
---   step (childNo, t) = fmap (childNo :) <$> aux t
 
 -- | The function 'maxDepth' gets the length of the maximum path between root and a leaf (incl. meta nodes) of a 'TTree'
 maxDepth :: TTree -> Int
