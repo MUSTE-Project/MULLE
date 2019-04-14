@@ -28,21 +28,15 @@ module Muste.Tree.Internal
   , prettyTree
   , TTree(TNode,TMeta)
   , FunType(Fun, NoType)
-  , toGfTree
   , flatten
   , treeDiff
   , foldMapTTree
-  , cIdToCat
   ) where
 
 import Muste.Util (toBlob, fromBlob)
 import Database.SQLite.Simple.ToField (ToField(..))
 import Database.SQLite.Simple.FromField (FromField(..))
 
--- TODO Do not depend on PGF
-import qualified PGF (CId, utf8CId, Tree, wildCId, mkMeta, mkApp, showExpr, showCId)
-
-import Control.Category ((>>>))
 import Control.DeepSeq (NFData)
 import GHC.Generics (Generic)
 
@@ -51,7 +45,6 @@ import Data.Binary (Binary)
 import Data.Data (Typeable)
 import Data.Maybe (fromJust)
 import Data.String (IsString(fromString))
-import Data.String.Conversions (convertString)
 import Data.String.ToString
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -251,16 +244,16 @@ getTreeCat (TNode _id typ _) =
     }
 getTreeCat (TMeta cat) = cat
 
-data LTree = LNode PGF.CId Int [LTree] | LLeaf deriving (Show,Eq)
+data LTree = LNode Category Int [LTree] | LLeaf deriving (Show,Eq)
 
 -- | Creates a labeled LTree from a TTree
 ttreeToLTree :: TTree -> LTree
 ttreeToLTree tree =
   let
     -- Convert structure without caring about labels
-    convert (TMeta cat) = LNode (catToCid cat) (-1) [LNode (catToCid "_") (-1) [LLeaf]]
-    convert (TNode _ (Fun cat _) []) = LNode (catToCid cat) (-1) []
-    convert (TNode _ (Fun cat _) ts) = LNode (catToCid cat) (-1) (map convert ts)
+    convert (TMeta cat) = LNode cat (-1) [LNode "_" (-1) [LLeaf]]
+    convert (TNode _ (Fun cat _) []) = LNode cat (-1) []
+    convert (TNode _ (Fun cat _) ts) = LNode cat (-1) (map convert ts)
     convert rest = error $ "Could not convert tree due to lack of types" ++ show rest
 
     -- Update the labels in a tree
@@ -284,17 +277,6 @@ ttreeToLTree tree =
 
   in
     snd $ update 0 $ convert tree
-
-catToCid :: Category -> PGF.CId
-catToCid = unCategory >>> convertString >>> PGF.utf8CId
-
--- FIXME A 'PGF.CId' is just a newtype wrapper around a 'ByteString'.
--- If we could just get at that somehow.  If [this PR][PR#9] goes
--- through we will be able to do this.
---
--- [PR#9]: https://github.com/GrammaticalFramework/gf-core/pull/9
-cIdToCat :: PGF.CId -> Category
-cIdToCat = PGF.showCId >>> Text.pack >>> Category
 
 -- | Calculates the @Path@ to a node given an index. The index refers
 -- to the the numbering nodes in breadth first search order.  The empty
@@ -377,32 +359,6 @@ countMatchedNodes tree1 tree2 =
     paths = getAllPaths tree1
   in
     length $ filter (\p -> selectNode tree1 p == selectNode tree2 p) paths
-
--- FIXME I didn't want to place this here, it really belongs in the
--- Muste.Grammar module, but we need it here to get a 'Pretty'
--- instance for 'TTree' (we're reusing functionality in 'PGF').  This
--- is the lesser evil compared to orhpan instances.
--- | Creates a GF abstract syntax Tree from a generic tree.
-toGfTree :: TTree -> PGF.Tree
-toGfTree tree =
-  let
-    loop :: [TTree] -> Int -> (Int,[PGF.Tree])
-    loop [] id = (id,[])
-    loop (t:ts) id =
-      let
-        (nid,nt) = convert t id
-        (fid,nts) = loop ts nid
-      in
-        (fid,nt:nts)
-    convert :: TTree -> Int -> (Int,PGF.Tree)
-    convert (TMeta _) id = (id + 1, PGF.mkMeta id)
-    convert (TNode name _ ns) id =
-      let
-        (nid,nts) = loop ns id
-      in
-        if name == wildCard then (nid,PGF.mkApp PGF.wildCId nts) else (nid,PGF.mkApp (catToCid name) nts)
-  in
-    snd $ convert tree 0
 
 {-# INLINE foldMapTTree #-}
 -- | If 'TTree' was an instance of 'Foldable' then 'foldMap' would look

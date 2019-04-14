@@ -60,18 +60,19 @@ import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.ByteString.Lazy as LB
--- This might be the only place we should know of PGF
 import Data.List (union, partition)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Text.Printf (printf)
 import Data.Text.Prettyprint.Doc (Pretty(..))
 import qualified Data.Text.Prettyprint.Doc as Doc
+import Data.String.Conversions (convertString)
 import Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as MultiSet
 
-import qualified PGF (Tree, wildCId, functions, startCat, functionType,
-                      parsePGF, bracketedLinearize, parse)
+-- This might be the only place we should know of PGF
+import qualified PGF (Tree, wildCId, showCId, utf8CId, functions, startCat,
+                      functionType, parsePGF, bracketedLinearize, parse)
 import PGF.Internal as PGF hiding (funs, cats, Binary)
 
 import Muste.Util (wildCard)
@@ -153,13 +154,13 @@ pgfToGrammar pgf
       -- Get their types
       funtypes = map (getFunTypeWithPGF pgf) funs
       -- Combine to a rule
-      rules = zipWith Function (map Tree.cIdToCat funs) funtypes
+      rules = zipWith Function (map cIdToCat funs) funtypes
       -- Split in lexical and syntactical rules
       (lexrules,synrules) = partition (\r -> case r of { Function _ (Fun _ []) -> True ; _ -> False } ) rules
       -- Get the startcat from the PGF
       (_, startcat, _) = unType (PGF.startCat pgf)
     in
-      Grammar (Tree.cIdToCat startcat) synrules lexrules pgf
+      Grammar (cIdToCat startcat) synrules lexrules pgf
   where
     getFunTypeWithPGF :: PGF -> CId -> FunType
     getFunTypeWithPGF grammar id
@@ -175,7 +176,7 @@ pgfToGrammar pgf
               (hypos,typeid,_exprs) = unType t
               cats = map (\(_,_,DTyp _ cat _) -> cat) hypos
             in
-              Fun (Tree.cIdToCat typeid) (map Tree.cIdToCat cats)
+              Fun (cIdToCat typeid) (map cIdToCat cats)
             }
 
 -- | Although the parameter to 'parseGrammar' is a lazy stream it's
@@ -190,10 +191,43 @@ parseGrammar = pgfToGrammar . PGF.parsePGF . force
 
 brackets :: Grammar -> PGF.Language -> TTree -> [PGF.BracketedString]
 brackets grammar language ttree
-  = PGF.bracketedLinearize (pgf grammar) language (Tree.toGfTree ttree)
+  = PGF.bracketedLinearize (pgf grammar) language (toGfTree ttree)
 
 parseTTree :: Grammar -> String -> TTree
 parseTTree g = fromGfTree g . read
+
+-- | Creates a GF abstract syntax Tree from a generic tree.
+toGfTree :: TTree -> PGF.Tree
+toGfTree tree =
+  let
+    loop :: [TTree] -> Int -> (Int,[PGF.Tree])
+    loop [] id = (id,[])
+    loop (t:ts) id =
+      let
+        (nid,nt) = convert t id
+        (fid,nts) = loop ts nid
+      in
+        (fid,nt:nts)
+    convert :: TTree -> Int -> (Int,PGF.Tree)
+    convert (TMeta _) id = (id + 1, PGF.mkMeta id)
+    convert (TNode name _ ns) id =
+      let
+        (nid,nts) = loop ns id
+      in
+        if name == wildCard then (nid,PGF.mkApp PGF.wildCId nts) else (nid,PGF.mkApp (catToCid name) nts)
+  in
+    snd $ convert tree 0
+
+catToCid :: Category -> PGF.CId
+catToCid = Tree.unCategory >>> convertString >>> PGF.utf8CId
+
+-- FIXME A 'PGF.CId' is just a newtype wrapper around a 'ByteString'.
+-- If we could just get at that somehow.  If [this PR][PR#9] goes
+-- through we will be able to do this.
+--
+-- [PR#9]: https://github.com/GrammaticalFramework/gf-core/pull/9
+cIdToCat :: PGF.CId -> Category
+cIdToCat = PGF.showCId >>> Text.pack >>> Tree.Category
 
 -- | The function 'fromGfTree' creates a 'TTree' from a 'PGF.Tree' and
 -- a 'Grammar'. Handles only 'EApp' and 'EFun'. Generates a 'hole' in
@@ -201,9 +235,9 @@ parseTTree g = fromGfTree g . read
 fromGfTree :: Grammar -> PGF.Tree -> TTree
 fromGfTree g (EFun f) =
   let
-    typ = getFunType g (Tree.cIdToCat f)
+    typ = getFunType g (cIdToCat f)
   in
-    TNode (Tree.cIdToCat f) typ []
+    TNode (cIdToCat f) typ []
 fromGfTree g (EApp e1 e2) =
   let
     (TNode name typ sts) = fromGfTree g e1
