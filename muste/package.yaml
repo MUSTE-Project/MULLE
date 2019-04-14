@@ -59,7 +59,6 @@ library:
     - Muste.AdjunctionTrees.Internal
     - Muste.Menu.Internal
     - Muste.Prune
-    - Muste.Feat
     - Muste.Sentence.Class
     - Muste.Sentence.Language
     - Muste.Sentence.Linearization
