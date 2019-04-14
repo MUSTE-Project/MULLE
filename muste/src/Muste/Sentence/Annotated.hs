@@ -107,7 +107,7 @@ mkLinearization c t
   -- function name!
   names :: Tree.Path -> [Text]
   names
-    =   Tree.selectNode @TTree t
+    =   Tree.selectNode t
     >>> fromMaybe (error "Expected to find path here")
     >>> name
     >>> Tree.unCategory

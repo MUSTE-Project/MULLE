@@ -166,8 +166,7 @@ instance ToField TTree where
 -- | The basic type of sentences and sentence formers.
 data FunType
   = Fun Category [Category]
-  -- ^ Contains the resulting category and the categories of the
-  -- parameters.
+  -- ^ Contains the resulting category and the categories of the parameters.
   | NoType
   deriving (Ord, Eq, Show, Read, Generic)
 
@@ -175,15 +174,6 @@ instance Binary FunType
 
 instance NFData FunType where
   -- Generic derivation
-
--- | Generic class for trees
-class Show t => TreeC t where
-  -- | The function 'selectNode' returns a subtree at a given 'Path'
-  -- if it exists.
-  selectNode :: t -> Path -> Maybe t
-  -- | The function 'selectNode' returns a subtree at a given node if
-  -- it exists.
-  selectBranch :: t -> Int -> Maybe t
 
 prettyFunType :: FunType -> String
 prettyFunType (Fun c _) = prettyCat c
@@ -197,31 +187,28 @@ type Pos = Int
 -- instance for this type and avoid using this `clean_lin` function
 -- which is defined in `muste-gui.js`.
 
--- FIXME Another idea for indexing into a tree would be to a graph.
-
 -- | A path in a tree.  Used by e.g. linearization for indexing into
 -- the tree.
 type Path = [Pos]
 
--- | A generic tree with types is in TreeC class.  The existence of
--- this class is a legacy from when there existed multiple
--- representations.
-instance TreeC TTree where
-  selectNode t [] = Just t
-  selectNode t [b] = selectBranch t b
-  selectNode t (hd:tl) =
-    let
-        branch = selectBranch t hd
-    in
-      case branch of {
-        Just b -> selectNode b tl ;
-        Nothing -> Nothing
-      }
-  selectBranch (TMeta _) _ = Nothing
-  selectBranch (TNode _ _ [] ) _ = Nothing
-  selectBranch (TNode _ _ trees) i
-    | i < 0 || i >= length trees = Nothing
-    | otherwise = Just (trees !! i)
+  -- | The function 'selectNode' returns a subtree at a given 'Path' if it exists.
+selectNode :: TTree -> Path -> Maybe TTree
+selectNode t [] = Just t
+selectNode t [b] = selectBranch t b
+selectNode t (hd:tl) =
+  let branch = selectBranch t hd
+  in case branch of {
+    Just b -> selectNode b tl ;
+    Nothing -> Nothing
+    }
+
+-- | The function 'selectBranch' returns a subtree at a given node if it exists.
+selectBranch :: TTree -> Int -> Maybe TTree
+selectBranch (TMeta _) _ = Nothing
+selectBranch (TNode _ _ [] ) _ = Nothing
+selectBranch (TNode _ _ trees) i
+  | i < 0 || i >= length trees = Nothing
+  | otherwise = Just (trees !! i)
 
 -- List-related functions
 -- | The function 'listReplace' replaces an element in a 'List' if the
@@ -265,24 +252,6 @@ getTreeCat (TNode _id typ _) =
 getTreeCat (TMeta cat) = cat
 
 data LTree = LNode PGF.CId Int [LTree] | LLeaf deriving (Show,Eq)
-
--- | A generic tree with types is in TreeC class
-instance TreeC LTree where
-  selectNode t [] = Just t
-  selectNode t [b] = selectBranch t b
-  selectNode t (hd:tl) =
-    let
-        branch = selectBranch t hd
-    in
-      case branch of {
-        Just b -> selectNode b tl ;
-        Nothing -> Nothing
-      }
-  selectBranch LLeaf _ = Nothing
-  selectBranch (LNode _ _ [] ) _ = Nothing
-  selectBranch (LNode _ _ trees) i
-    | i < 0 || i >= length trees = Nothing
-    | otherwise = Just (trees !! i)
 
 -- | Creates a labeled LTree from a TTree
 ttreeToLTree :: TTree -> LTree
