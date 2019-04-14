@@ -81,6 +81,9 @@ deriving newtype instance Typeable Category
 deriving newtype instance Binary Category
 deriving newtype instance IsString Category
 
+prettyCat :: Category -> String
+prettyCat (Category c) = Text.unpack c
+
 -- * = Typed Trees
 --
 -- This is a representation of gramatically structured natural
@@ -106,7 +109,10 @@ instance Pretty TTree where
   pretty = pretty . prettyTree
 
 prettyTree :: TTree -> String
-prettyTree = PGF.showExpr mempty . toGfTree
+prettyTree (TNode cat fun trees) =
+  "(" ++ prettyFunType fun ++ ":" ++ prettyCat cat ++
+  concat [ " " ++ prettyTree t | t <- trees ] ++ ")"
+prettyTree (TMeta cat) = "?:" ++ prettyCat cat
 
 -- | Flattening a 'TTree' into a list of its function nodes.
 -- This is reversable, if the grammar is known.
@@ -199,6 +205,10 @@ class Show t => TreeC t where
   -- | The function 'selectNode' returns a subtree at a given node if
   -- it exists.
   selectBranch :: t -> Int -> Maybe t
+
+prettyFunType :: FunType -> String
+prettyFunType (Fun c _) = prettyCat c
+prettyFunType (NoType)  = "?"
 
 -- FIXME Consider making abstract.
 -- | Position in a path
