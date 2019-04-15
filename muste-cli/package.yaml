@@ -35,5 +35,5 @@ executables:
     main: Main.hs
 
     other-modules:
-      - Muste.Repl
+      - Repl
       - Options
