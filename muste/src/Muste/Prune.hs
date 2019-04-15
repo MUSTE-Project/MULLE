@@ -7,10 +7,9 @@
  StandaloneDeriving
 #-}
 
--- FIXME Should this be an internal module? It's not currently used in @muste-ajax@.
 module Muste.Prune
   ( replaceAllTrees
-  , PruneOpts(..)
+  , PruneOpts(PruneOpts, pruneDepth, pruneSize)
   , emptyPruneOpts
   ) where
 
@@ -24,8 +23,8 @@ import qualified Data.Set as Set
 import qualified Data.MultiSet as MultiSet
 
 import Muste.Tree (TTree(..), Path, FunType(..), Category)
-import qualified Muste.Tree.Internal as Tree
-import qualified Muste.Grammar.Internal as Grammar
+import qualified Muste.Tree as Tree
+import qualified Muste.Grammar as Grammar
 import Muste.AdjunctionTrees hiding (BuilderInfo(..))
 
 
@@ -129,8 +128,8 @@ getToplevelCat _ = error "Muste.Prune.getToplevelCat: Non-exhaustive pattern mat
 
 
 data PruneOpts = PruneOpts
-  { searchDepth :: Maybe Int
-  , searchSize  :: Maybe Int
+  { pruneDepth :: Maybe Int
+  , pruneSize  :: Maybe Int
   } deriving Show
 
 emptyPruneOpts :: PruneOpts
