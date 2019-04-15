@@ -41,6 +41,10 @@ dependencies:
 
 library:
   exposed-modules:
+    - Muste
+
+  other-modules:
+    - Muste.Prune
     - Muste.AdjunctionTrees
     - Muste.Tree
     - Muste.Grammar
@@ -48,19 +52,4 @@ library:
     - Muste.Menu
     - Muste.Selection
     - Muste.Sentence
-    - Muste.Sentence.Annotated
-    - Muste.Sentence.Unannotated
     - Muste.Util
-
-  other-modules:
-    - Muste.Tree.Internal
-    - Muste.Grammar.Internal
-    - Muste.Linearization.Internal
-    - Muste.AdjunctionTrees.Internal
-    - Muste.Menu.Internal
-    - Muste.Prune
-    - Muste.Sentence.Class
-    - Muste.Sentence.Language
-    - Muste.Sentence.Linearization
-    - Muste.Sentence.Token
-    - Muste.Sentence.Token.Class
