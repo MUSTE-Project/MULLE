@@ -244,60 +244,16 @@ getTreeCat (TNode _id typ _) =
     }
 getTreeCat (TMeta cat) = cat
 
-data LTree = LNode Category Int [LTree] | LLeaf deriving (Show,Eq)
-
--- | Creates a labeled LTree from a TTree
-ttreeToLTree :: TTree -> LTree
-ttreeToLTree tree =
-  let
-    -- Convert structure without caring about labels
-    convert (TMeta cat) = LNode cat (-1) [LNode "_" (-1) [LLeaf]]
-    convert (TNode _ (Fun cat _) []) = LNode cat (-1) []
-    convert (TNode _ (Fun cat _) ts) = LNode cat (-1) (map convert ts)
-    convert rest = error $ "Could not convert tree due to lack of types" ++ show rest
-
-    -- Update the labels in a tree
-    update :: Int -> LTree -> (Int, LTree)
-    update pos LLeaf = (pos, LLeaf)
-    update pos (LNode cat _id []) = (pos + 1, LNode cat pos [])
-    update pos (LNode cat _id ns) =
-      let
-        (npos,ults) = updates pos ns
-      in
-        (npos + 1, LNode cat npos ults)
-    -- Update a list of trees
-    updates :: Int -> [LTree] -> (Int, [LTree])
-    updates pos [] = (pos, [])
-    updates pos (lt:lts) =
-      let
-        (npos1,ult) = update pos lt
-        (npos,ults) = updates npos1 lts
-      in
-        (npos, ult:ults)
-
-  in
-    snd $ update 0 $ convert tree
-
--- | Calculates the @Path@ to a node given an index. The index refers
--- to the the numbering nodes in breadth first search order.  The empty
--- list is used as an out of bounds value.
---- | The function 'getPath' finds a path to a node with a given label in a labeled tree
+-- | Calculates the @Path@ to a node given an index.
+-- The index refers to the the numbering nodes in depth first search order
+-- (children come before their parent).
+-- The empty list is used as an out of bounds value.
 getPath :: TTree -> Int -> Path
-getPath ltree id =
-  let
-    deep :: LTree -> Int -> Path -> Path
-    deep LLeaf _ _ = []
-    deep (LNode _cid fid ns) _id path = if fid == id then path else broad ns id path 0
-    broad :: [LTree] -> Int -> Path -> Pos -> Path
-    broad [] _ _ _ = []
-    broad (n:ns) id path pos =
-      let
-        d = deep n id (pos:path)
-        b = broad ns id path (pos + 1)
-      in
-        if not $ null d then d else b
-  in
-    reverse $ deep (ttreeToLTree ltree) id []
+getPath tree n = (enumDFS [] tree ++ repeat []) !! n
+  where enumDFS path (TMeta _) = [reverse path]
+        enumDFS path (TNode _ _ children) =
+          [ p | (i, child) <- zip [0..] children, p <- enumDFS (i:path) child ]
+          ++ [reverse path]
 
 -- | The function 'maxDepth' gets the length of the maximum path between root and a leaf (incl. meta nodes) of a 'TTree'
 maxDepth :: TTree -> Int
