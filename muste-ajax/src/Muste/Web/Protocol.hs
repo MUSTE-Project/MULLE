@@ -50,9 +50,7 @@ import qualified Data.Aeson as Aeson
 import qualified Data.Text.IO as Text
 #endif
 
-import qualified Muste.Grammar as Grammar
-import qualified Muste.Linearization as Linearization
-import qualified Muste.Sentence as Sentence
+import qualified Muste
 
 import qualified Muste.Web.Database as Database
 import Muste.Web.Database (MonadDB)
@@ -74,12 +72,12 @@ initApp db lessons = do
   liftIO  $ putStrLn "[Initializing app...]"
   conn    <- openConnection db
   ctxts   <- initContexts conn
-  knownGs <- Grammar.noGrammars
+  knownGs <- Muste.noGrammars
   liftIO  $ putStrLn "[Initializing app... Done]"
   pure    $ AppState conn ctxts knownGs lessons
 
 initContexts :: MonadIO io => SQL.Connection -> io Contexts
-initContexts conn = Grammar.runGrammarT $ do
+initContexts conn = Muste.runGrammarT $ do
   c <- flip Database.runDbT conn $ do
     lessons <- Database.getLessons
     mkContexts lessons
@@ -89,23 +87,23 @@ initContexts conn = Grammar.runGrammarT $ do
 
 mkContexts
   :: MonadDB r m
-  => Grammar.MonadGrammar m
+  => Muste.MonadGrammar m
   => [Database.Lesson]
   -> m Contexts
 mkContexts xs = Map.fromList <$> traverse mkContext xs
 
 mkContext
-  :: Grammar.MonadGrammar m
+  :: Muste.MonadGrammar m
   => Database.Lesson
-  -> m (Text, Map.Map Sentence.Language Linearization.Context)
+  -> m (Text, Map.Map Muste.Language Muste.Context)
 mkContext Database.Lesson{..} = do
-  m <- Linearization.getLangAndContext nfo grammar
+  m <- Muste.getLangAndContext nfo grammar
   pure (name, Map.mapKeys f m)
   where
-  f :: Text -> Sentence.Language
-  f l = Sentence.Language (Sentence.Grammar grammar) l
-  nfo :: Linearization.BuilderInfo
-  nfo = Linearization.BuilderInfo
+  f :: Text -> Muste.Language
+  f l = Muste.Language (Muste.Grammar grammar) l
+  nfo :: Muste.BuilderInfo
+  nfo = Muste.BuilderInfo
     { searchDepth = fromIntegral <$> searchLimitDepth
     , searchSize  = fromIntegral <$> searchLimitSize
     }

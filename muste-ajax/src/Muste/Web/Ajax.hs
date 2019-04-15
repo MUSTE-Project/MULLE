@@ -50,16 +50,14 @@ import Data.Aeson.Types (Parser)
 import qualified Data.Aeson as Aeson
 import Data.Text (Text)
 
-import Muste.Menu (Menu)
-import Muste.Sentence.Unannotated (Unannotated)
-import Muste.Sentence.Annotated (Annotated)
+import qualified Muste
 
 import qualified Muste.Web.Database.Types as Database
 import Muste.Web.Types.Score (Score(..))
 
 
 data ClientTree = ClientTree
-  { sentence      :: Unannotated
+  { sentence      :: Muste.Annotated
   -- Asking the client to supply these is a bit of a hack.  We just
   -- send it back unmodified!
   , direction     :: Direction
@@ -165,8 +163,8 @@ oneOf = foldl (<|>) empty
 -- reason for it of course is that less information is needed by the
 -- server when receiving a request for e.g. @\/api\/menu@.
 data ServerTree = ServerTree
-  { sentence  :: Annotated
-  , menu      :: Menu
+  { sentence  :: Muste.Annotated
+  , menu      :: Muste.Menu
   , direction :: Direction
   } deriving (Show)
 

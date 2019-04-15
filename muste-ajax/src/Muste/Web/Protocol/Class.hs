@@ -64,9 +64,7 @@ import Data.String.Conversions (convertString)
 import Data.Text (Text)
 import Text.Printf (printf)
 
-import Muste.Linearization (Context)
-import qualified Muste.Sentence as Sentence
-import qualified Muste.Grammar as Grammar
+import qualified Muste
 
 import qualified Muste.Web.Database as Database
 import Muste.Web.Database (MonadDatabaseError(..))
@@ -74,17 +72,17 @@ import Muste.Web.Database (MonadDatabaseError(..))
 
 -- | Maps a lesson to a map from grammars(-identifiers) to their
 -- corresponding contexts.
-type Contexts = Map Text (Map Sentence.Language Context)
+type Contexts = Map Text (Map Muste.Language Muste.Context)
 
 -- | The state that the server will have throughout the uptime.
 data AppState = AppState
   { connection    :: Connection
   , contexts      :: Contexts
-  , knownGrammars :: Grammar.KnownGrammars
+  , knownGrammars :: Muste.KnownGrammars
   , lessonsCfg    :: FilePath
   }
 
-instance Grammar.HasKnownGrammars AppState where
+instance Muste.HasKnownGrammars AppState where
   giveKnownGrammars = knownGrammars
 
 -- | A simple monad transformer for handling responding to requests.
@@ -103,7 +101,7 @@ deriving newtype instance MonadPlus m    => MonadPlus    (ProtocolT m)
 deriving newtype instance Monad m        => Alternative  (ProtocolT m)
 deriving newtype instance MonadSnap m    => MonadSnap    (ProtocolT m)
 deriving newtype instance Monad m        => MonadError ProtocolError (ProtocolT m)
-deriving newtype instance Grammar.MonadGrammar m => Grammar.MonadGrammar (ProtocolT m)
+deriving newtype instance Muste.MonadGrammar m => Muste.MonadGrammar (ProtocolT m)
 
 instance Monad m => MonadDatabaseError (ProtocolT m) where
   throwDbError = ProtocolT . throwError . DatabaseError
@@ -149,7 +147,7 @@ data ApiError
   | ErrReadBody
   | DecodeError String
   | LessonNotFound Text
-  | LanguageNotFound Sentence.Language
+  | LanguageNotFound Muste.Language
 
 deriving stock instance Show ApiError
 
@@ -260,7 +258,7 @@ type MonadProtocol m =
   , Database.MonadDatabaseError m
   , MonadError ProtocolError m
   , MonadSnap m
-  , Grammar.MonadGrammar m
+  , Muste.MonadGrammar m
   )
 
 instance Database.HasConnection AppState where

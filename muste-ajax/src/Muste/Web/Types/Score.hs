@@ -20,7 +20,6 @@ module Muste.Web.Types.Score
   , valuation
   ) where
 
-import Muste.Util (toBlob, fromNullableBlob)
 import Database.SQLite.Simple.ToField (ToField(..))
 import Database.SQLite.Simple.FromField (FromField(..))
 
@@ -31,6 +30,8 @@ import Data.Aeson (FromJSON (parseJSON), ToJSON(toJSON), (.:), (.=))
 import qualified Data.Aeson as Aeson
 import Data.Binary (Binary(..))
 import Data.Time (NominalDiffTime)
+
+import qualified Muste
 
 
 data Score = Score
@@ -79,10 +80,10 @@ instance FromJSON Score where
 -- @(Int, Int)@ using the 'Enum' instance for 'NominalDiffTime' in the
 -- process.
 instance FromField Score where
-  fromField = fromNullableBlob
+  fromField = Muste.fromNullableBlob
 
 instance ToField Score where
-  toField = toBlob
+  toField = Muste.toBlob
 
 
 -- This also has an implementation in js:

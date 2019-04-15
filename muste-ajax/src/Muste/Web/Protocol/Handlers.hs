@@ -48,13 +48,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified GHC.Num as Math
 
-import Muste.Linearization (Context)
-import Muste.Tree (TTree)
-import qualified Muste.Menu as Menu
-import qualified Muste.Sentence as Sentence
-import Muste.Sentence.Annotated (Annotated)
-import qualified Muste.Sentence.Unannotated as Unannotated
-import Muste.Sentence.Unannotated (Unannotated)
+import qualified Muste
 
 import qualified Muste.Web.Ajax as Ajax
 import qualified Muste.Web.Ajax as Lesson (Lesson(..))
@@ -226,17 +220,17 @@ handleMenuRequest Ajax.MenuRequest{..} = do
 annotate
   :: MonadProtocol m
   => Text
-  -> Unannotated
-  -> m Annotated
+  -> Muste.Annotated
+  -> m Muste.Annotated
 annotate lesson s = do
   cs <- askContexts
   liftEither $ do
     ctxt <- getContext cs lesson $ l
-    Unannotated.annotate
+    Muste.annotate
       (ErrorCall $ "Unable to parse: " <> show s) ctxt s
     where
-    l :: Sentence.Language
-    l = Sentence.language s
+    l :: Muste.Language
+    l = Muste.language s
 
 oneSimiliarTree
   :: forall m . MonadProtocol m
@@ -251,21 +245,21 @@ oneSimiliarTree lesson src trg = do
   where
   oneInCommon :: Ord a => Set a -> Set a -> Bool
   oneInCommon a b = not $ Set.null $ Set.intersection a b
-  parse :: Ajax.ClientTree -> m (Set TTree)
+  parse :: Ajax.ClientTree -> m (Set Muste.TTree)
   parse = fmap Set.fromList . disambiguate lesson
 
 disambiguate
   :: forall m . MonadProtocol m
   => Text
   -> Ajax.ClientTree
-  -> m [TTree]
+  -> m [Muste.TTree]
 disambiguate lesson Ajax.ClientTree{..} = do
   cs <- askContexts
   let
-    getC :: Unannotated -> m Context
-    getC u = liftEither $ getContext cs lesson (Sentence.language u)
+    getC :: Muste.Annotated -> m Muste.Context
+    getC u = liftEither $ getContext cs lesson (Muste.language u)
   c <- getC sentence
-  pure $ Sentence.disambiguate c sentence
+  pure $ Muste.disambiguate c sentence
 
 handleLogoutRequest
   :: MonadProtocol m
@@ -300,8 +294,8 @@ getContext
   :: MonadThrow m
   => Contexts
   -> Text              -- ^ Lesson
-  -> Sentence.Language -- ^ Language
-  -> m Context
+  -> Muste.Language -- ^ Language
+  -> m Muste.Context
 getContext ctxts lesson s
   =   pure ctxts
   >>= lookupM (LessonNotFound lesson) lesson
@@ -325,18 +319,18 @@ liftMaybe _  (Just a) = pure a
 makeTree
   :: Contexts
   -> Text
-  -> Annotated
+  -> Muste.Annotated
   -> Ajax.Direction
   -> Ajax.ServerTree
 makeTree c lesson s d
   = Ajax.ServerTree
   { sentence  = s
-  , menu      = Menu.getMenu Menu.emptyPruneOpts ctxt (Sentence.linearization s)
+  , menu      = Muste.getMenu Muste.emptyPruneOpts ctxt (Muste.linearization s)
   , direction = d
   }
   where
   ctxt = either throw id $ getContext c lesson language
-  language = Sentence.language s
+  language = Muste.language s
 
 
 handleHighScores :: MonadProtocol m => Ajax.LoginToken -> m [Ajax.HighScore]

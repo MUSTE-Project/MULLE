@@ -25,8 +25,7 @@ import Data.Text.Encoding (decodeUtf8)
 import Text.Printf (printf)
 import qualified Data.Yaml as Yaml
 
-import Muste.Sentence.Unannotated (Unannotated)
-import qualified Muste.Sentence.Unannotated as Unannotated
+import qualified Muste
 
 import qualified Muste.Web.Config as Config
 import qualified Muste.Web.Database as Database
@@ -122,8 +121,8 @@ toDatabaseExercise Data.Lesson{..} = step <$> zip [0..] exercises'
     }
   Data.LessonSettings{..} = settings
   Data.Languages srcL trgL = languages
-  lin :: Text -> Data.Sentence -> Unannotated
-  lin l (Data.Sentence t) = Unannotated.fromText grammar l t
+  lin :: Text -> Data.Sentence -> Muste.Annotated
+  lin l (Data.Sentence t) = Muste.fromText grammar l t
 
 dropRecreateUser :: Connection -> Config.User -> IO ()
 dropRecreateUser c Config.User{..}

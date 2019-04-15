@@ -37,8 +37,6 @@ module Muste.Web.Database.Types
   , ActiveLessonForUser(..)
   , UserLessonScore(..)
   , Key(..)
-  , TTree
-  , Sentence.Unannotated
   , Blob(..)
   , Numeric(..)
   , ExerciseLesson(..)
@@ -60,9 +58,7 @@ import qualified Data.Aeson as Aeson
 import Data.Text (Text)
 import Data.Time.Clock (UTCTime)
 
-import Muste.Tree (TTree)
-import qualified Muste.Sentence.Unannotated as Sentence (Unannotated)
-import Muste.Sentence.Unannotated (Unannotated)
+import qualified Muste
 
 import Muste.Web.Types.Score (Score)
 
@@ -185,8 +181,8 @@ data ExerciseLesson = ExerciseLesson
   { exercise         :: Key Exercise
   , lessonKey        :: Key Lesson
   , lessonName       :: Text
-  , source           :: Unannotated
-  , target           :: Unannotated
+  , source           :: Muste.Annotated
+  , target           :: Muste.Annotated
   , srcDir           :: Direction
   , trgDir           :: Direction
   , highlightMatches :: Bool
@@ -203,8 +199,8 @@ instance FromRow ExerciseLesson where
 
 -- NB Doesn't really correspond to the db.
 data Exercise = Exercise
-  { sourceLinearization :: Unannotated
-  , targetLinearization :: Unannotated
+  { sourceLinearization :: Muste.Annotated
+  , targetLinearization :: Muste.Annotated
   , lesson              :: Key Lesson
   , timeout             :: Numeric
   , exerciseOrder       :: Numeric
