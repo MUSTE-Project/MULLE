@@ -2,9 +2,13 @@
 {-# Language
  CPP,
  ConstraintKinds,
+ DeriveGeneric,
+ GeneralizedNewtypeDeriving,
  NamedFieldPuns,
  OverloadedStrings,
- RecordWildCards
+ RecordWildCards,
+ StandaloneDeriving,
+ TypeFamilies
 #-}
 
 -- | Adjunction trees
@@ -14,7 +18,7 @@
 module Muste.AdjunctionTrees
   ( AdjunctionTrees, AdjKey, AdjTree
   , getAdjunctionTrees
-  , BuilderInfo(..)
+  , BuilderInfo(BuilderInfo, searchDepth, searchSize)
   ) where
 
 #ifdef DIAGNOSTICS
@@ -27,15 +31,26 @@ import Control.Applicative (Alternative(empty))
 
 import Data.Map (Map)
 import qualified Data.Map as Map
-import qualified Data.MultiSet as MultiSet
 import Data.Text (isPrefixOf)
 
-import Muste.Tree
-import qualified Muste.Tree.Internal as Tree
-import Muste.Grammar
-import Muste.Grammar.Internal (Rule(Function))
-import qualified Muste.Grammar.Internal as Grammar
-import Muste.AdjunctionTrees.Internal
+import Data.Binary (Binary)
+import qualified Data.Binary as Binary
+import qualified Data.Map.Strict as M
+import Data.MultiSet (MultiSet)
+import qualified Data.MultiSet as MultiSet
+
+import qualified Data.Containers as Mono
+import Data.MonoTraversable
+  (GrowingAppend, MonoFoldable, MonoTraversable, MonoFunctor, Element,
+   ofoldl', ofoldr, ofoldMap, ofoldr1Ex, ofoldl1Ex', otraverse)
+
+import Control.DeepSeq (NFData)
+import GHC.Generics (Generic)
+
+import qualified Muste.Tree as Tree
+import Muste.Tree (TTree(TNode,TMeta), Category, FunType(Fun))
+import Muste.Grammar (Rule(Function), Grammar)
+import qualified Muste.Grammar as Grammar
 
 
 -- * Creating adjunction trees.
@@ -147,3 +162,57 @@ getAdjTrees (BuilderEnv (BuilderInfo depthLimit sizeLimit) ruleGen defaultTree) 
           value `less` Just limit = value < limit
           _     `less` Nothing    = True
   
+
+
+----------------------------------------------------------------------
+
+instance Binary a => Binary (MultiSet a) where
+  get = MultiSet.fromOccurMap <$> Binary.get
+  put = Binary.put . MultiSet.toMap
+
+type AdjKey = (Category, MultiSet Category)
+type AdjTree = (AdjKey, TTree)
+
+-- TODO: add (multi)set of the functions in the Adjtree
+
+-- | @AdjunctionTrees@ really is a map from a @Category@ to a set of
+-- trees that have this category.
+newtype AdjunctionTrees
+  = AdjunctionTrees (M.Map AdjKey [TTree])
+  deriving (Show, MonoFunctor, Generic, NFData, Binary)
+
+type instance Element AdjunctionTrees = [TTree]
+
+instance MonoFoldable AdjunctionTrees where
+  ofoldl'    f a (AdjunctionTrees m) = ofoldl' f a m
+  ofoldr     f a (AdjunctionTrees m) = ofoldr f a m
+  ofoldMap   f (AdjunctionTrees m)   = ofoldMap f m
+  ofoldr1Ex  f (AdjunctionTrees m)   = ofoldr1Ex f m
+  ofoldl1Ex' f (AdjunctionTrees m)   = ofoldl1Ex' f m
+
+instance MonoTraversable AdjunctionTrees where
+  otraverse f (AdjunctionTrees m) = AdjunctionTrees <$> otraverse f m
+
+deriving instance Semigroup AdjunctionTrees
+
+deriving instance Monoid AdjunctionTrees
+
+instance GrowingAppend AdjunctionTrees where
+
+instance Mono.SetContainer AdjunctionTrees where
+  type ContainerKey AdjunctionTrees = (Category, MultiSet Category)
+  member k     (AdjunctionTrees m) = Mono.member k m
+  notMember k  (AdjunctionTrees m) = Mono.notMember k m
+  union        (AdjunctionTrees a) (AdjunctionTrees b) = AdjunctionTrees $ a `Mono.union` b
+  intersection (AdjunctionTrees a) (AdjunctionTrees b) = AdjunctionTrees $ a `Mono.intersection` b
+  difference   (AdjunctionTrees a) (AdjunctionTrees b) = AdjunctionTrees $ a `Mono.difference` b
+  keys         (AdjunctionTrees m) = Mono.keys m
+
+instance Mono.IsMap AdjunctionTrees where
+  type MapValue AdjunctionTrees = [TTree]
+  lookup c       (AdjunctionTrees m) = Mono.lookup c m
+  singletonMap c t                   = AdjunctionTrees $ Mono.singletonMap c t
+  mapFromList as                     = AdjunctionTrees $ Mono.mapFromList as
+  insertMap k vs (AdjunctionTrees m) = AdjunctionTrees $ Mono.insertMap k vs m
+  deleteMap k    (AdjunctionTrees m) = AdjunctionTrees $ Mono.deleteMap k m
+  mapToList      (AdjunctionTrees m) = Mono.mapToList m
