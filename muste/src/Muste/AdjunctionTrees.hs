@@ -44,7 +44,6 @@ import Data.MonoTraversable
   (GrowingAppend, MonoFoldable, MonoTraversable, MonoFunctor, Element,
    ofoldl', ofoldr, ofoldMap, ofoldr1Ex, ofoldl1Ex', otraverse)
 
-import Control.DeepSeq (NFData)
 import GHC.Generics (Generic)
 
 import qualified Muste.Tree as Tree
@@ -179,7 +178,7 @@ type AdjTree = (AdjKey, TTree)
 -- trees that have this category.
 newtype AdjunctionTrees
   = AdjunctionTrees (M.Map AdjKey [TTree])
-  deriving (Show, MonoFunctor, Generic, NFData, Binary)
+  deriving (Show, MonoFunctor, Generic, Binary)
 
 type instance Element AdjunctionTrees = [TTree]
 

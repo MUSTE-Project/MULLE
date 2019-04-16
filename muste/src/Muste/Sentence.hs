@@ -41,7 +41,6 @@ import Database.SQLite.Simple.FromField (FromField(..))
 
 import Control.Monad.Catch (MonadThrow(throwM), Exception)
 import Control.Category ((>>>))
-import Control.DeepSeq (NFData)
 import Data.Typeable (Typeable)
 import Data.Function ((&), on)
 import GHC.Generics (Generic)
@@ -309,7 +308,6 @@ deriving newtype instance ToJSON a => ToJSON (Linearization a)
 deriving instance Eq a => Eq (Linearization a)
 deriving instance Ord a => Ord (Linearization a)
 deriving instance Generic a => Generic (Linearization a)
-instance (Generic a, NFData a) => NFData (Linearization a) where
 
 -- There is no 'Binary' instance for 'Vector', so we go via '[]'.
 instance Binary a => Binary (Linearization a) where
@@ -364,7 +362,6 @@ instance FromJSON Token where
     $ \o -> Token
     <$> o .: "concrete"
     <*> o .: "classes"
-instance NFData Token where
 
 instance Pretty Token where
   pretty (Token s _) = pretty s

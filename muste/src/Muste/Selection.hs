@@ -13,7 +13,6 @@ module Muste.Selection
     ) where
 
 import Control.Category ((>>>))
-import Control.DeepSeq (NFData)
 import GHC.Generics (Generic)
 
 import GHC.Exts (IsList(fromList, toList, Item))
@@ -37,7 +36,6 @@ deriving instance Eq Interval
 deriving instance Ord Interval
 deriving instance Read Interval
 deriving instance Generic Interval
-instance NFData Interval where
 
 sizeInterval :: Interval -> Int
 sizeInterval (Interval (i, j)) = 100 * (j - i) + 1
@@ -68,7 +66,6 @@ instance Ord Selection where
     size :: Selection -> Int
     size = runSelection >>> Set.map sizeInterval >>> sum
 deriving instance Generic Selection
-instance NFData Selection where
 
 deriving instance Semigroup Selection
 deriving instance Monoid Selection

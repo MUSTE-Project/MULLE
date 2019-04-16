@@ -22,7 +22,6 @@ import System.CPUTime (getCPUTime)
 #endif
 
 import Control.Category ((>>>))
-import Control.DeepSeq (NFData)
 import Data.Function ((&))
 import GHC.Generics (Generic)
 
@@ -75,7 +74,6 @@ deriving instance Monoid     Menu
 deriving instance ToJSON     Menu
 deriving instance FromJSON   Menu
 deriving instance Generic    Menu
-instance NFData Menu where
 
 deriving instance MonoFunctor Menu
 

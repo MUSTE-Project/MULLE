@@ -33,7 +33,6 @@ module Muste.Tree
   , foldMapTTree
   ) where
 
-import Control.DeepSeq (NFData)
 import GHC.Generics (Generic)
 
 import Data.Binary (Binary)
@@ -63,7 +62,6 @@ deriving newtype instance Read Category
 deriving newtype instance Eq Category
 deriving newtype instance Semigroup Category
 deriving newtype instance Monoid Category
-deriving newtype instance NFData Category
 deriving newtype instance Typeable Category
 deriving newtype instance Binary Category
 deriving newtype instance IsString Category
@@ -88,7 +86,6 @@ data TTree
    -- read/show instances for @CId@
   deriving (Ord, Eq, Show, Read, Generic)
 
-instance NFData TTree where
 
 instance Binary TTree
 
@@ -124,9 +121,6 @@ data FunType
   deriving (Ord, Eq, Show, Read, Generic)
 
 instance Binary FunType
-
-instance NFData FunType where
-  -- Generic derivation
 
 prettyFunType :: FunType -> String
 prettyFunType (Fun c _) = prettyCat c

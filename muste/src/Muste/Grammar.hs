@@ -28,7 +28,6 @@ module Muste.Grammar
   , runGrammarT
   , getGrammar
   , getGrammarOneOff
-  , parseGrammar
   , parseSentence
   , getMetas
   , getFunctions
@@ -44,7 +43,6 @@ import Control.Applicative (Alternative)
 import Control.Category ((>>>))
 import Control.Monad (MonadPlus)
 import Control.Monad.Base (MonadBase)
-import Control.DeepSeq (NFData, force)
 import Control.Monad.Except (ExceptT)
 import Control.Monad.IO.Class (MonadIO(liftIO))
 import Control.Monad.Reader (MonadReader, ReaderT)
@@ -61,7 +59,6 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
-import qualified Data.ByteString.Lazy as LB
 import Data.List (union, partition)
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -73,9 +70,8 @@ import Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as MultiSet
 
 -- This might be the only place we should know of PGF
-import qualified PGF (Tree, wildCId, showCId, utf8CId, functions, startCat,
-                      functionType, parsePGF, bracketedLinearize, parse)
-import PGF.Internal as PGF hiding (funs, cats, Binary)
+import qualified PGF
+import qualified PGF.Internal as PGFI
 
 import Muste.Util (wildCard)
 import qualified Muste.Tree as Tree
@@ -88,15 +84,12 @@ data Rule = Function Category FunType deriving (Ord,Eq,Show,Read)
 
 deriving instance Generic Rule
 
-instance NFData Rule where
-  -- Generic derivation
-
 -- | Type 'Grammar' consists of a start category and a list of rules.
 data Grammar = Grammar
   { startcat :: Category
   , synrules :: [Rule]
   , lexrules :: [Rule]
-  , pgf :: PGF
+  , pgf :: PGF.PGF
   }
 
 instance Pretty Grammar where
@@ -121,12 +114,12 @@ getRuleType (Function _ funType) = funType
 
 -- | Constant for an empty 'Grammar' in line with 'emptyPGF'
 emptyGrammar :: Grammar
-emptyGrammar = Grammar wildCard [] [] emptyPGF
+emptyGrammar = Grammar wildCard [] [] PGFI.emptyPGF
 
 -- | Predicate to check if a PGF is empty, i.e. when the absname is
 -- PGF.wildCId
-isEmptyPGF :: PGF -> Bool
-isEmptyPGF pgf = absname pgf == PGF.wildCId
+isEmptyPGF :: PGF.PGF -> Bool
+isEmptyPGF pgf = PGFI.absname pgf == PGF.wildCId
 
 -- | Predicate to check if a Grammar is empty, i.e. when the startcat
 -- is PGF.wildCId and pgf is empty
@@ -146,7 +139,7 @@ getRuleName :: Rule -> Category
 getRuleName (Function name _) = name
 
 -- | The function 'pgfToGrammar' transforms a PGF grammar to a simpler grammar data structure
-pgfToGrammar :: PGF -> Grammar
+pgfToGrammar :: PGF.PGF -> Grammar
 pgfToGrammar pgf
   | isEmptyPGF pgf = emptyGrammar
   | otherwise =
@@ -160,11 +153,11 @@ pgfToGrammar pgf
       -- Split in lexical and syntactical rules
       (lexrules,synrules) = partition (\r -> case r of { Function _ (Fun _ []) -> True ; _ -> False } ) rules
       -- Get the startcat from the PGF
-      (_, startcat, _) = unType (PGF.startCat pgf)
+      (_, startcat, _) = PGFI.unType (PGF.startCat pgf)
     in
       Grammar (cIdToCat startcat) synrules lexrules pgf
   where
-    getFunTypeWithPGF :: PGF -> CId -> FunType
+    getFunTypeWithPGF :: PGF.PGF -> PGF.CId -> FunType
     getFunTypeWithPGF grammar id
       | isEmptyPGF grammar = NoType -- Empty grammar
       | otherwise =
@@ -175,19 +168,11 @@ pgfToGrammar pgf
             Nothing -> NoType ; -- No type found in grammar
             Just t ->
             let
-              (hypos,typeid,_exprs) = unType t
-              cats = map (\(_,_,DTyp _ cat _) -> cat) hypos
+              (hypos,typeid,_exprs) = PGFI.unType t
+              cats = map (\(_,_,PGFI.DTyp _ cat _) -> cat) hypos
             in
               Fun (cIdToCat typeid) (map cIdToCat cats)
             }
-
--- | Although the parameter to 'parseGrammar' is a lazy stream it's
--- contents will be forced.
-parseGrammar :: LB.ByteString -> Grammar
--- 'PGF.parsePGF' seems to consume the lazy bytestring in an
--- inconvenient manner.  The problem does not appear to be there if we
--- force the bytestring.
-parseGrammar = pgfToGrammar . PGF.parsePGF . force
 
 
 brackets :: Grammar -> PGF.Language -> TTree -> [PGF.BracketedString]
@@ -205,7 +190,7 @@ bracketsToTuples = deep
   deep ltree (PGF.Bracket _ fid _ _ _ _ [PGF.Leaf token]) =
     [(Text.pack token, Tree.getPath ltree fid)]
   -- Meta leaf
-  deep ltree (PGF.Bracket _ fid _ _ _ [PGF.EMeta i] _) =
+  deep ltree (PGF.Bracket _ fid _ _ _ [PGFI.EMeta i] _) =
     [("?" <> Text.pack (show i), Tree.getPath ltree fid)]
   -- In the middle of the tree
   deep ltree (PGF.Bracket _ fid _ _ _ _ bs) =
@@ -264,12 +249,12 @@ cIdToCat = PGF.showCId >>> Text.pack >>> Tree.Category
 -- a 'Grammar'. Handles only 'EApp' and 'EFun'. Generates a 'hole' in
 -- unsupported cases.
 fromGfTree :: Grammar -> PGF.Tree -> TTree
-fromGfTree g (EFun f) =
+fromGfTree g (PGFI.EFun f) =
   let
     typ = getFunType g (cIdToCat f)
   in
     TNode (cIdToCat f) typ []
-fromGfTree g (EApp e1 e2) =
+fromGfTree g (PGFI.EApp e1 e2) =
   let
     (TNode name typ sts) = fromGfTree g e1
     st2 = fromGfTree g e2
@@ -349,9 +334,8 @@ runGrammarT (GrammarT m) = do
   Reader.runReaderT m (KnownGrammars r)
 
 readGrammar :: MonadIO io => Text -> io Grammar
-readGrammar p = do
-  g <- liftIO $ LB.readFile $ Text.unpack p
-  pure $ parseGrammar g
+readGrammar p = liftIO $ do g <- PGF.readPGF $ Text.unpack p
+                            return $ pgfToGrammar g
 
 -- | Looks for a grammar at the specified location.  If the grammar is
 -- found it is added to the known grammars and returned.  If the
@@ -377,7 +361,7 @@ loadAndInsert idf = do
 
 -- | Parses a linearized sentence.  Essentially a wrapper around
 -- 'PGF.parse'.
-parseSentence :: Grammar -> Language -> Text -> [TTree]
+parseSentence :: Grammar -> PGF.Language -> Text -> [TTree]
 parseSentence grammar lang = Text.unpack >>> pgfIfy >>> fmap musteIfy
   where
   pgfIfy :: String -> [PGF.Tree]
