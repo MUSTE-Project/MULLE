@@ -51,9 +51,6 @@ import GHC.Exts (toList)
 
 import qualified Muste
 
--- import qualified Muste.Tree.Internal as TTT
--- import qualified Muste.Linearization.Internal as LLL
-
 
 -- | Options for the REPL.
 data Options = Options
@@ -140,14 +137,6 @@ updateMenu s = do
             else prettyMenu verb ctxt s m
   liftIO $ do
     Text.putStrLn $ "Sentence is now: " <> s
-    -- let tree' = head $ Muste.parseSentence
-    --       (Muste.ctxtGrammar ctxt) (Muste.ctxtLang ctxt) s
-    --     paths' = [ TTT.getPath tree' n | n <- [0..25] ]
-    --     LLL.Linearization lin' = LLL.linearizeTree ctxt tree'
-    -- mapM_ print lin'
-    -- putStrLn ""
-    -- mapM_ print paths'
-    -- putStrLn ""
     Muste.putDocLn doc
     where
     purdy (sel, items)
