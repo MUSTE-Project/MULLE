@@ -48,7 +48,6 @@ library:
     - Muste.AdjunctionTrees
     - Muste.Tree
     - Muste.Grammar
-    - Muste.Linearization
     - Muste.Menu
     - Muste.Selection
     - Muste.Sentence

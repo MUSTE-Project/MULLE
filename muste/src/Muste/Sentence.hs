@@ -16,17 +16,23 @@
 #-}
 
 module Muste.Sentence
-  ( stringRep
+  ( buildContexts
+  , languages
+  , getLangAndContext
+  , Context(Context, ctxtGrammar, ctxtLang, ctxtPrecomputed)
+  , stringRep
   , disambiguate
   , Language(Language)
   , Grammar(Grammar)
-  , Linearization
+  , Linearization(Linearization)
   , Annotated(linearization, language)
   , mkLinearization
   , mergeL
   , annotate
   , fromText
   , Token(Token, concrete, classes)
+  , linTree
+  , linearizeTree
   ) where
 
 import Muste.Util (toBlob, fromBlob)
@@ -43,7 +49,6 @@ import GHC.Generics (Generic)
 import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:))
 import qualified Data.Aeson as Aeson
 import Data.Binary (Binary, get, put)
-import Data.MonoTraversable (otoList)
 import qualified Data.Text as Text
 import Data.Text (Text)
 import Data.Maybe (fromMaybe)
@@ -54,24 +59,68 @@ import Data.Text.Prettyprint.Doc (Pretty(..))
 import Data.Vector (Vector)
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.Map (Map)
+import qualified Data.Map as Map
 
-import Muste.Tree (TTree, Category)
+import qualified PGF
+
+import Muste.Tree (TTree, Path, Category)
 import qualified Muste.Tree as Tree
-import qualified Muste.Linearization as OldLin
 import qualified Muste.Grammar as Grammar
+import Muste.AdjunctionTrees (BuilderInfo, AdjunctionTrees, getAdjunctionTrees)
 
-parse :: OldLin.Context -> Text -> [TTree]
-parse OldLin.Context{..}
+parse :: Context -> Text -> [TTree]
+parse (Context ctxtGrammar ctxtLang _ctxtPrecomputed)
   = Grammar.parseSentence ctxtGrammar ctxtLang
 
 -- | Get all 'TTree's correspnding to this sentence in a given
 -- context.  It's an invariant that the sentence is a valid sentence
 -- in the grammar /and/ language given by the 'Context'.
-disambiguate :: OldLin.Context -> Annotated -> [TTree]
+disambiguate :: Context -> Annotated -> [TTree]
 disambiguate c s
   = linearization s
   & stringRep
   & parse c
+
+
+--------------------------------------------------------------------------------
+
+-- | Given a grammar creates a mapping from all the languages in that
+-- grammar to their respective 'Context's.
+buildContexts :: BuilderInfo -> Grammar.Grammar -> Map Text Context
+buildContexts nfo g = buildContext nfo g <$> languages g
+
+-- | Memoize all @AjdunctionTrees@ for a given grammar and language.
+buildContext :: BuilderInfo -> Grammar.Grammar -> PGF.Language -> Context
+buildContext nfo g lang =
+  Context g lang (getAdjunctionTrees nfo g)
+
+-- | Gets all the languages in the grammar.
+languages :: Grammar.Grammar -> Map Text PGF.Language
+languages g
+  = Map.fromList $ mkCtxt <$> PGF.languages (Grammar.pgf g)
+  where
+  mkCtxt :: PGF.Language -> (Text, PGF.Language)
+  mkCtxt lang = (Text.pack $ PGF.showCId lang, lang)
+
+-- | Given an identifier for a grammar, looks up that grammar and then
+-- creates a mapping from all the languages in that grammar to their
+-- respective 'Context's.
+--
+-- This method will throw a 'FileNotFoundException' if the grammar
+-- cannot be located.
+getLangAndContext :: Grammar.MonadGrammar m => BuilderInfo -> Text -> m (Map Text Context)
+getLangAndContext nfo idf = do
+  g <- Grammar.getGrammar idf
+  pure $ buildContexts nfo g
+
+-- | Remember all 'AdjunctionTrees' in a certain 'PGF.Language' for a
+-- certain 'Grammar'.
+data Context = Context
+  { ctxtGrammar :: Grammar.Grammar
+  , ctxtLang   :: PGF.Language
+  , ctxtPrecomputed :: AdjunctionTrees
+  }
 
 
 --------------------------------------------------------------------------------
@@ -105,8 +154,8 @@ instance FromField Annotated where
   fromField = fromBlob
 
 
-annotate :: MonadThrow m => Exception e => e -> OldLin.Context -> Annotated -> m Annotated
-annotate e c@OldLin.Context{..} s
+annotate :: MonadThrow m => Exception e => e -> Context -> Annotated -> m Annotated
+annotate e c@Context{..} s
   = linearization s
   & stringRep
   & Grammar.parseSentence ctxtGrammar ctxtLang
@@ -131,27 +180,12 @@ fromText g l xs
 -- | @'mkLinearization' c t@ creates a 'Linearization' of @t@. The
 -- 'Linearization' will be a valid such in the grammar and languages
 -- specified by the 'Context' @c@.
---
--- This implementation reuses the functionality from
--- 'Muste.OldLin.Internal.mkLin' and then converts it to the
--- new representation.  In doing so note in particular that we do not
--- create ambiguities in the individual words.  Eachs 'Token' will
--- correspond exactly to an internal node in the 'TTree' (idenfitied
--- by the "name" of that node).
-mkLinearization :: OldLin.Context -> TTree -> Linearization Token
-mkLinearization c t
-  -- Reuse functionality from 'Muste.OldLin.Internal'
-  = OldLin.linearizeTree c t
-  & otoList
-  -- Convert old representation to new.
-  & fmap step
-  & fromList
+mkLinearization :: Context -> TTree -> Linearization Token
+mkLinearization c t = fromList [ step tok | tok <- linearizeTree c t ]
   where
-  step :: OldLin.LinToken -> Token
-  step (OldLin.LinToken { .. })
-    = mkToken ltlin (fromList @[Text] $ names ltpath)
-  -- Throws if the path is not found /and/ only finds a single
-  -- function name!
+  step :: (Text, Path) -> Token
+  step (ltlin, ltpath) = mkToken ltlin (fromList @[Text] $ names ltpath)
+  -- Throws if the path is not found /and/ only finds a single function name!
   names :: Tree.Path -> [Text]
   names
     =   Tree.selectNode t
@@ -163,12 +197,32 @@ mkLinearization c t
   name (Tree.TNode n _ _) = n
   name (Tree.TMeta _)     = error "Expected saturated tree"
 
+
+linTree :: Context -> TTree -> ([Text], [Category])
+linTree ctxt tree = (toks, nods)
+  where
+    toks = [ ltlin | (ltlin, _) <- lintokens ]
+    nods = [ Tree.lookupNode tree ltpath | (_, ltpath) <- lintokens ]
+    lintokens = linearizeTree ctxt tree
+
+
+linearizeTree :: Context -> TTree -> [(Text, Path)]
+linearizeTree (Context grammar language _) ttree =
+  if not (Grammar.isEmptyGrammar grammar)
+     && language `elem` PGF.languages (Grammar.pgf grammar)
+     && not (null brackets)
+  then Grammar.bracketsToTuples ttree $ head brackets
+  else [("?0", [])]
+  where
+    brackets = Grammar.brackets grammar language ttree
+
+
 -- | @'annotated' c t@ creates a 'Sentence' of @t@.  The 'Sentence' 
 -- will be a valid such in the grammar and languages specified by the
 -- 'Context' @c@.
 --
 -- See also the documentation for 'linearization'.
-annotated :: OldLin.Context -> Language -> TTree -> Annotated
+annotated :: Context -> Language -> TTree -> Annotated
 annotated c l t = Annotated l $ mkLinearization c t
 
 -- | Merge multiple

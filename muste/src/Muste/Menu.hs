@@ -43,14 +43,10 @@ import Data.Text.Prettyprint.Doc (Pretty(pretty))
 
 import Muste.Selection (Interval(Interval), Selection(Selection))
 import qualified Muste.Grammar as Grammar
-import Muste.Linearization
-       (Linearization(Linearization), Context, ctxtGrammar, ctxtLang, ctxtPrecomputed)
-import qualified Muste.Linearization as Linearization
-import Muste.Tree (TTree(TNode), Path, Category)
-import qualified Muste.Tree as Tree
+import Muste.Tree (TTree, Category)
 import qualified Muste.Prune as Prune
-
 import qualified Muste.Sentence as Sentence
+import Muste.Sentence (Context(ctxtGrammar, ctxtLang, ctxtPrecomputed))
 
 
 type Tokn = Text
@@ -61,20 +57,6 @@ type Node = Category
 parseSentence :: Context -> Text -> [TTree]
 parseSentence ctxt sent
   = Grammar.parseSentence (ctxtGrammar ctxt) (ctxtLang ctxt) sent
-
-linTree :: Context -> TTree -> ([Tokn], [Node])
-linTree ctxt tree = (toks, nods)
-  where
-  toks :: [Tokn]
-  toks = Linearization.ltlin <$> lintokens
-  nods = lookupNode tree . Linearization.ltpath <$> lintokens
-  Linearization lintokens = Linearization.linearizeTree ctxt tree
-
-lookupNode :: TTree -> Path -> Node
-lookupNode tree path
-  = case Tree.selectNode tree path of
-    Just (TNode node _ _) -> node
-    _ -> error "Incomplete Pattern-Match"
 
 similarTrees :: Prune.PruneOpts -> Context -> [TTree] -> [(TTree, TTree)]
 similarTrees opts ctxt
@@ -181,7 +163,8 @@ diagnose _ _ _ convert = convert
 
 collectTreeSubstitutions :: Prune.PruneOpts -> Context -> [TTree] -> Set (([Tokn], [Node]), ([Tokn], [Node]))
 collectTreeSubstitutions opts ctxt oldtrees 
-    = Set.fromList [ (linTree ctxt old, linTree ctxt new) | (old, new) <- similarTrees opts ctxt oldtrees ]
+    = Set.fromList [ (Sentence.linTree ctxt old, Sentence.linTree ctxt new)
+                   | (old, new) <- similarTrees opts ctxt oldtrees ]
 
 
 collectMenuItems :: Set (([Tokn], [Node]), ([Tokn], [Node])) -> Set (Selection, Selection, [Tokn])

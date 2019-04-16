@@ -5,6 +5,7 @@
  FlexibleContexts,
  GeneralizedNewtypeDeriving,
  MultiParamTypeClasses,
+ OverloadedStrings,
  ScopedTypeVariables,
  StandaloneDeriving,
  TypeApplications,
@@ -36,6 +37,7 @@ module Muste.Grammar
   , HasKnownGrammars(..)
   , KnownGrammars
   , noGrammars
+  , bracketsToTuples
   ) where
 
 import Control.Applicative (Alternative)
@@ -77,7 +79,7 @@ import PGF.Internal as PGF hiding (funs, cats, Binary)
 
 import Muste.Util (wildCard)
 import qualified Muste.Tree as Tree
-import Muste.Tree (TTree(TNode,TMeta), Category, FunType(Fun,NoType))
+import Muste.Tree (TTree(TNode,TMeta), Category, Path, FunType(Fun,NoType))
 
 
 -- | Type 'Rule' consists of a 'String' representing the function name
@@ -181,17 +183,46 @@ pgfToGrammar pgf
 
 -- | Although the parameter to 'parseGrammar' is a lazy stream it's
 -- contents will be forced.
-parseGrammar
-  :: LB.ByteString -- ^ The grammar in binary format.
-  -> Grammar
+parseGrammar :: LB.ByteString -> Grammar
 -- 'PGF.parsePGF' seems to consume the lazy bytestring in an
 -- inconvenient manner.  The problem does not appear to be there if we
 -- force the bytestring.
 parseGrammar = pgfToGrammar . PGF.parsePGF . force
 
+
 brackets :: Grammar -> PGF.Language -> TTree -> [PGF.BracketedString]
 brackets grammar language ttree
   = PGF.bracketedLinearize (pgf grammar) language (toGfTree ttree)
+
+
+-- | Convert a 'PGF.BracketedString' to a list of string/path tuples.
+bracketsToTuples :: TTree -> PGF.BracketedString -> [(Text, Path)]
+bracketsToTuples = deep
+  where
+  deep :: TTree -> PGF.BracketedString -> [(Text, Path)]
+  deep _     (PGF.Bracket _ _   _ _ _ _ []) = mempty
+  -- Ordinary leaf
+  deep ltree (PGF.Bracket _ fid _ _ _ _ [PGF.Leaf token]) =
+    [(Text.pack token, Tree.getPath ltree fid)]
+  -- Meta leaf
+  deep ltree (PGF.Bracket _ fid _ _ _ [PGF.EMeta i] _) =
+    [("?" <> Text.pack (show i), Tree.getPath ltree fid)]
+  -- In the middle of the tree
+  deep ltree (PGF.Bracket _ fid _ _ _ _ bs) =
+    broad ltree fid bs mempty
+  deep _ _ = error "Muste.bracketsToTuples: Non-exhaustive pattern match"
+  broad :: TTree -> Int -> [PGF.BracketedString] -> [(Text, Path)] -> [(Text, Path)]
+  -- End of node siblings
+  broad _     _   []                 ts = ts
+  -- Syncategorial word
+  broad ltree fid (PGF.Leaf token:bss) ts = (x:xs)
+    where
+    x = (Text.pack token, Tree.getPath ltree fid)
+    xs = broad ltree fid bss ts
+  -- In the middle of the nodes
+  broad ltree fid (bs:bss)
+    ts = deep ltree bs ++ broad ltree fid bss ts
+
 
 parseTTree :: Grammar -> String -> TTree
 parseTTree g = fromGfTree g . read

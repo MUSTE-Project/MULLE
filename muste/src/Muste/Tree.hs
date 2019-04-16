@@ -20,6 +20,7 @@ module Muste.Tree
   , getTreeCat
   , replaceNode
   , selectNode
+  , lookupNode
   , isValid
   , treeDepth
   , countNodes
@@ -148,6 +149,14 @@ selectNode t (hd:tl) =
     Just b -> selectNode b tl ;
     Nothing -> Nothing
     }
+
+
+lookupNode :: TTree -> Path -> Category
+lookupNode tree path
+  = case selectNode tree path of
+    Just (TNode node _ _) -> node
+    _ -> error "Incomplete Pattern-Match"
+
 
 -- | The function 'selectBranch' returns a subtree at a given node if it exists.
 selectBranch :: TTree -> Int -> Maybe TTree

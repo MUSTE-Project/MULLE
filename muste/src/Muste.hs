@@ -4,7 +4,6 @@ module Muste
   , module Muste.Prune
   , module Muste.AdjunctionTrees
   , module Muste.Grammar
-  , module Muste.Linearization
   , module Muste.Sentence
   , module Muste.Selection
   , module Muste.Tree
@@ -37,15 +36,12 @@ import Muste.Grammar
   , runGrammarT
   )
 
-import Muste.Linearization
+import Muste.Sentence
   ( buildContexts
   , languages
   , Context(Context, ctxtGrammar, ctxtLang)
   , getLangAndContext
-  )
-
-import Muste.Sentence
-  ( mkLinearization
+  , mkLinearization
   , mergeL
   , Linearization
   , Token(Token) 
