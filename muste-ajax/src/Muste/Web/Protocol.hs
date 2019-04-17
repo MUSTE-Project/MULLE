@@ -101,7 +101,7 @@ mkContext Database.Lesson{..} = do
   pure (name, Map.mapKeys f m)
   where
   f :: Text -> Muste.Language
-  f l = Muste.Language (Muste.Grammar grammar) l
+  f language = Muste.Language grammar language
   nfo :: Muste.BuilderInfo
   nfo = Muste.BuilderInfo
     { searchDepth = fromIntegral <$> searchLimitDepth

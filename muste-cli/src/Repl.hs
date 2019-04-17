@@ -145,36 +145,32 @@ updateMenu s = do
         <+> pretty (length items)
 
 prettyMenu :: forall a . Bool -> Muste.Context -> Text -> Muste.Menu -> Doc a
-prettyMenu verbose ctxt s = Doc.vsep . fmap (uncurry go) . open
+prettyMenu verbose ctxt sent menu
+  = Doc.vsep
+    [ Doc.vcat
+      [ ""
+      , maybeVerbose
+        (pretty sel <> ":" <+> prettyLin sel (Text.words sent))
+        (prettyLin sel annotated)
+      , Doc.vcat
+        [ maybeVerbose
+          (prettyLin sel' (map getWord lin))
+          (prettyLin sel' (map getWord lin))
+        | (sel', Muste.Linearization lin) <- Set.toList items ]
+      ]
+    | (sel, items) <- Mono.mapToList menu ]
   where
-  open = fmap @[] (fmap @((,) Muste.Selection) Set.toList)
-    . Mono.mapToList
-  go :: Muste.Selection
-    -> [(Muste.Selection, Muste.Linearization Muste.Token)]
-    -> Doc a
-  go sel xs = Doc.vcat
-    [ ""
-    , maybeVerbose prettySel $ prettyLin sel annotated
-    , Doc.vcat $ fmap gogo xs
-    ]
-    where
-    prettySel = pretty sel <> ":" <+> prettyLin sel (Text.words s)
-  gogo :: (Muste.Selection, Muste.Linearization Muste.Token) -> Doc a
-  gogo (sel, lin)
-    = maybeVerbose prettyMenuItems
-    $ prettyLin sel (map getNodes (toList lin))
-    where
-    prettyMenuItems = prettyLin sel (map getWord (toList lin))
   annotated :: [Text]
-  annotated
-    = parse s
-    & map (\t -> Muste.mkLinearization ctxt t)
-    & foldl1 Muste.mergeL
-    & toList
-    & map getNodes
-  parse :: Text -> [Muste.TTree]
-  parse = Muste.parseSentence
-    (Muste.ctxtGrammar ctxt) (Muste.ctxtLang ctxt)
+  annotated = [ getNodes tok | tok <- lin ]
+    where Muste.Linearization lin
+            = foldl1 Muste.mergeL 
+              [ Muste.mkLinearization ctxt t
+              | t <- Muste.parseSentence
+                     (Muste.ctxtGrammar ctxt)
+                     (Muste.ctxtLang ctxt)
+                     sent
+              ]
+  getWord :: Muste.Token -> Text
   getWord (Muste.Token word _) = word
   getNodes :: Muste.Token -> Text
   getNodes (Muste.Token _ nodes) = Text.intercalate "+" (Set.toList nodes)

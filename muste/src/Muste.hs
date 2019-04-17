@@ -43,12 +43,11 @@ import Muste.Sentence
   , getLangAndContext
   , mkLinearization
   , mergeL
-  , Linearization
+  , Linearization(Linearization)
   , Token(Token) 
   , Annotated(linearization, language)
   , annotate
   , Language(Language)
-  , Grammar(Grammar)
   , disambiguate
   , fromText
   )

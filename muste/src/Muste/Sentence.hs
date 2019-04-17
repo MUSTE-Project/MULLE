@@ -1,18 +1,9 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language
- DeriveAnyClass,
  DeriveGeneric,
- DerivingStrategies,
- FlexibleContexts,
- FlexibleInstances,
  GeneralizedNewtypeDeriving,
  NamedFieldPuns,
- OverloadedStrings,
- RecordWildCards,
- ScopedTypeVariables,
- StandaloneDeriving,
- TypeApplications,
- TypeFamilies
+ OverloadedStrings
 #-}
 
 module Muste.Sentence
@@ -20,10 +11,9 @@ module Muste.Sentence
   , languages
   , getLangAndContext
   , Context(Context, ctxtGrammar, ctxtLang, ctxtPrecomputed)
-  , stringRep
+  , textRep
   , disambiguate
   , Language(Language)
-  , Grammar(Grammar)
   , Linearization(Linearization)
   , Annotated(linearization, language)
   , mkLinearization
@@ -40,22 +30,15 @@ import Database.SQLite.Simple.ToField (ToField(..))
 import Database.SQLite.Simple.FromField (FromField(..))
 
 import Control.Monad.Catch (MonadThrow(throwM), Exception)
-import Control.Category ((>>>))
-import Data.Typeable (Typeable)
 import Data.Function ((&), on)
 import GHC.Generics (Generic)
 
 import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:))
 import qualified Data.Aeson as Aeson
-import Data.Binary (Binary, get, put)
+import Data.Binary (Binary)
 import qualified Data.Text as Text
 import Data.Text (Text)
-import Data.Maybe (fromMaybe)
-import qualified Data.Vector as Vector
-import GHC.Exts (IsList(fromList, toList, Item))
-import Data.String (IsString(fromString))
 import Data.Text.Prettyprint.Doc (Pretty(..))
-import Data.Vector (Vector)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Map (Map)
@@ -78,7 +61,7 @@ parse (Context ctxtGrammar ctxtLang _ctxtPrecomputed)
 disambiguate :: Context -> Annotated -> [TTree]
 disambiguate c s
   = linearization s
-  & stringRep
+  & textRep
   & parse c
 
 
@@ -126,13 +109,12 @@ data Context = Context
 
 data Annotated = Annotated
   { language      :: Language
-  , linearization :: Linearization Token
+  , linearization :: Linearization
   }
-
-deriving instance Show Annotated
+  deriving (Show, Generic)
 
 instance ToJSON Annotated where
-  toJSON (Annotated {..}) = Aeson.object
+  toJSON (Annotated language linearization) = Aeson.object
     [ "language"      .= language
     , "linearization" .= linearization
     ]
@@ -143,7 +125,6 @@ instance FromJSON Annotated where
     <$> o .: "language"
     <*> o .: "linearization"
 
-deriving instance Generic Annotated
 instance Binary Annotated where
 
 instance ToField Annotated where
@@ -154,47 +135,38 @@ instance FromField Annotated where
 
 
 annotate :: MonadThrow m => Exception e => e -> Context -> Annotated -> m Annotated
-annotate e c@Context{..} s
-  = linearization s
-  & stringRep
-  & Grammar.parseSentence ctxtGrammar ctxtLang
+annotate err ctxt sent
+  = linearization sent
+  & textRep
+  & Grammar.parseSentence (ctxtGrammar ctxt) (ctxtLang ctxt)
   & map unambigSimpl
-  & merge e
+  & merge err
   where
-  unambigSimpl :: TTree -> Annotated
-  unambigSimpl t
-    = annotated c l t
-  l :: Language
-  l = language s
+    unambigSimpl :: TTree -> Annotated
+    unambigSimpl tree = annotated ctxt (language sent) tree
 
 
 fromText :: Text -> Text -> Text -> Annotated
 fromText g l xs
-  = Annotated (Language (Grammar g) l) (fromList (go <$> Text.words xs))
-  where
-  go :: Text -> Token
-  go s = Token s mempty
+  = Annotated (Language g l) (Linearization [Token s mempty | s <- Text.words xs])
 
 
--- | @'mkLinearization' c t@ creates a 'Linearization' of @t@. The
--- 'Linearization' will be a valid such in the grammar and languages
--- specified by the 'Context' @c@.
-mkLinearization :: Context -> TTree -> Linearization Token
-mkLinearization c t = fromList [ step tok | tok <- linearizeTree c t ]
+-- | @'mkLinearization' ctxt tree@ creates a 'Linearization' of @tree@.
+-- The 'Linearization' will be a valid such in the grammar and languages
+-- specified by the 'Context' @ctxt@.
+mkLinearization :: Context -> TTree -> Linearization 
+mkLinearization ctxt tree = Linearization [ step tok | tok <- linearizeTree ctxt tree ]
   where
-  step :: (Text, Path) -> Token
-  step (ltlin, ltpath) = mkToken ltlin (fromList @[Text] $ names ltpath)
-  -- Throws if the path is not found /and/ only finds a single function name!
-  names :: Tree.Path -> [Text]
-  names
-    =   Tree.selectNode t
-    >>> fromMaybe (error "Expected to find path here")
-    >>> name
-    >>> Tree.unCategory
-    >>> pure @[]
-  name :: TTree -> Category
-  name (Tree.TNode n _ _) = n
-  name (Tree.TMeta _)     = error "Expected saturated tree"
+    step :: (Text, Path) -> Token
+    step (ltlin, ltpath) = mkToken ltlin (names ltpath)
+    -- Throws if the path is not found /and/ only finds a single function name!
+    names :: Tree.Path -> [Text]
+    names path = case Tree.selectNode tree path of
+                   Nothing -> error "Expected to find path here"
+                   Just node -> [Tree.unCategory (name node)]
+    name :: TTree -> Category
+    name (Tree.TNode n _ _) = n
+    name (Tree.TMeta _)     = error "Expected saturated tree"
 
 
 linTree :: Context -> TTree -> ([Text], [Category])
@@ -235,54 +207,18 @@ merge1 a b = Annotated lang ((mergeL `on` linearization) a b)
   where
   lang = language a
 
-mergeL
-  :: Linearization Token
-  -> Linearization Token
-  -> Linearization Token
+mergeL :: Linearization -> Linearization -> Linearization
 mergeL (Linearization a) (Linearization b)
-  = Linearization (Vector.zipWith mergeToken a b)
+  = Linearization (zipWith mergeToken a b)
 
 
 --------------------------------------------------------------------------------
 
-newtype Grammar = Grammar Text
-
-deriving stock   instance Show      Grammar
-deriving newtype instance Eq        Grammar
-deriving newtype instance Ord       Grammar
-deriving newtype instance FromJSON  Grammar
-deriving newtype instance ToJSON    Grammar
-deriving stock   instance Generic   Grammar
-deriving newtype instance Binary    Grammar
-deriving newtype instance FromField Grammar
-deriving newtype instance ToField   Grammar
-deriving newtype instance IsString  Grammar
-
-data Language = Language
-  -- NB This field is not in use.
-  { grammar  :: Grammar
-  , lang     :: Text
-  }
-                             
-deriving stock instance Show Language
-deriving stock instance Eq   Language
-deriving stock instance Ord  Language
-
--- | The implementation is a bit hacky, we just use the read instance
--- for pairs to be able to parse a 'Language'.  So the language must
--- be given as:
---
---   "(\"grammar\", \"lang\")"
---
--- Note the gratiutious double-quotes.  Not exactly the most
--- elegant...
-instance IsString Language where
-  fromString s = Language (fromString g) (fromString l)
-    where
-    (g, l) = read @(String, String) s
+data Language = Language { grammar :: Text, lang :: Text }
+  deriving (Eq, Ord, Show, Generic)
 
 instance ToJSON Language where
-  toJSON (Language {..}) = Aeson.object
+  toJSON (Language grammar lang) = Aeson.object
     [ "grammar"  .= grammar
     , "language" .= lang
     ]
@@ -293,47 +229,25 @@ instance FromJSON Language where
     <$> o .: "grammar"
     <*> o .: "language"
 
-deriving stock    instance Generic Language
-deriving anyclass instance Binary  Language
+instance Binary Language where
 
 
 --------------------------------------------------------------------------------
 
-newtype Linearization a = Linearization
-  { unLinearization :: Vector a }
+newtype Linearization = Linearization [Token]
+  deriving (Eq, Ord, Show, FromJSON, ToJSON, Binary, Generic)
 
-deriving instance Show a => Show (Linearization a)
-deriving newtype instance FromJSON a => FromJSON (Linearization a)
-deriving newtype instance ToJSON a => ToJSON (Linearization a)
-deriving instance Eq a => Eq (Linearization a)
-deriving instance Ord a => Ord (Linearization a)
-deriving instance Generic a => Generic (Linearization a)
-
--- There is no 'Binary' instance for 'Vector', so we go via '[]'.
-instance Binary a => Binary (Linearization a) where
-  put = put @[a] . Vector.toList . unLinearization
-  get = Linearization . Vector.fromList <$> get @[a]
-
-instance (Binary a, Typeable a) => ToField (Linearization a) where
+instance ToField Linearization where
   toField = toBlob
 
-instance (Binary a, Typeable a) => FromField (Linearization a) where
+instance FromField Linearization where
   fromField = fromBlob
 
-instance IsList (Linearization a) where
-  type Item (Linearization a) = a
-  fromList = Vector.fromList >>> Linearization
-  toList = unLinearization >>> Vector.toList
+instance Pretty Linearization where
+  pretty = pretty . textRep
 
-instance Pretty (Linearization Token) where
-  pretty = pretty . stringRep
-
--- FIXME change name to @textRep@
-stringRep :: Linearization Token -> Text
-stringRep
-  =   toList
-  >>> fmap concrete
-  >>> Text.unwords
+textRep :: Linearization -> Text
+textRep (Linearization as) = Text.unwords (map concrete as)
 
 
 --------------------------------------------------------------------------------
@@ -342,21 +256,22 @@ data Token = Token
   { concrete :: Text
   , classes  :: Set Text
   }
+  deriving (Eq, Ord, Show, Generic)
 
-deriving instance Show Token
-deriving instance Generic Token
-deriving instance Eq Token
-deriving instance Ord Token
 instance Binary Token where
+
 instance ToField Token where
   toField = toBlob
+
 instance FromField Token where
   fromField = fromBlob
+
 instance ToJSON Token where
-  toJSON Token{..} = Aeson.object
+  toJSON (Token concrete classes) = Aeson.object
     [ "concrete" .= concrete
     , "classes"  .= classes
     ]
+
 instance FromJSON Token where
   parseJSON = Aeson.withObject "token"
     $ \o -> Token

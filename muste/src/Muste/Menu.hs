@@ -65,7 +65,7 @@ similarTrees opts ctxt
 
 newtype Menu = Menu
   { unMenu :: Map Selection
-    (Set (Selection, Sentence.Linearization Sentence.Token))
+    (Set (Selection, Sentence.Linearization))
   }
 
 deriving instance Show       Menu
@@ -78,7 +78,7 @@ deriving instance Generic    Menu
 deriving instance MonoFunctor Menu
 
 type instance Element Menu
-  = (Set (Selection, Sentence.Linearization Sentence.Token))
+  = (Set (Selection, Sentence.Linearization))
 
 instance MonoFoldable Menu where
   ofoldl'    f a (Menu m) = ofoldl' f a m
@@ -121,10 +121,10 @@ getMenu
 --  :: Sentence.IsToken a  =>
   :: Prune.PruneOpts
   -> Context
-  -> Sentence.Linearization Sentence.Token
+  -> Sentence.Linearization
   -> Menu
 getMenu opts c l
-  = Sentence.stringRep l
+  = Sentence.textRep l
   & getMenuItems opts c
 
 getMenuItems :: Prune.PruneOpts -> Context -> Text -> Menu
