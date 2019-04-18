@@ -20,7 +20,6 @@
  FlexibleContexts,
  OverloadedStrings,
  RecordWildCards,
- ScopedTypeVariables,
  UndecidableInstances
 #-}
 
@@ -121,7 +120,7 @@ registerRoutes db lessons = do
   initApp db lessons
 
 -- | Map requests to various handlers.
-apiRoutes :: forall v . [(ByteString, Snap.Handler v AppState ())]
+apiRoutes :: [(ByteString, Snap.Handler v AppState ())]
 apiRoutes =
   [ "login"        |> Handlers.handleLoginRequest
   , "logout"       |> Handlers.handleLogoutRequest
