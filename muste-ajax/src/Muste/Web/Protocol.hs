@@ -141,7 +141,7 @@ apiRoutes =
 
 
 -- | Reads the data from the request and deserializes from JSON.
-getMessage :: (FromJSON json, MonadProtocol m) => m json
+getMessage :: FromJSON json => MULLE v json
 getMessage = 
   do s <- do body <- Snap.runRequestBody Streams.read
              case body of

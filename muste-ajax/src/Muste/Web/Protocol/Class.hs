@@ -29,7 +29,7 @@
 #-}
 
 module Muste.Web.Protocol.Class
-  ( MonadProtocol
+  ( MULLE
   , ProtocolT
   , runProtocolT
   , AppState(..)
@@ -68,6 +68,9 @@ import qualified Muste
 
 import qualified Muste.Web.Database as Database
 import Muste.Web.Database (MonadDatabaseError(..))
+
+
+type MULLE v a = ProtocolT (Snap.Handler v AppState) a
 
 
 -- | Maps a lesson to a map from grammars(-identifiers) to their
@@ -248,15 +251,6 @@ instance ToJSON ProtocolError where
       , "id"      .= errorIdentifier err
       ]
     ]
-
-type MonadProtocol m =
-  ( MonadReader AppState m
-  , MonadIO m
-  , Database.MonadDatabaseError m
-  , MonadError ProtocolError m
-  , MonadSnap m
-  , Muste.MonadGrammar m
-  )
 
 instance Database.HasConnection AppState where
   giveConnection = connection

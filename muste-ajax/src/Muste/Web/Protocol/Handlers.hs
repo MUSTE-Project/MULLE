@@ -44,7 +44,6 @@ import Data.Semigroup (sconcat)
 import Data.Text (Text)
 import Data.Map (Map)
 import qualified Data.Map.Lazy as Map
-import Data.Set (Set)
 import qualified Data.Set as Set
 import qualified GHC.Num as Math
 
@@ -65,7 +64,7 @@ import qualified Muste.Web.Types.Score as Score
 liftEither :: MonadError ProtocolError m => SomeException ~ e => Either e a -> m a
 liftEither = either (throwError . SomeProtocolError) pure
 
-handleCreateUser :: MonadProtocol m => Ajax.CreateUser -> m ()
+handleCreateUser :: Ajax.CreateUser -> MULLE v ()
 handleCreateUser Ajax.CreateUser{..} = 
   Database.addUser $ Database.CreateUser
     { name     = name
@@ -77,7 +76,7 @@ handleCreateUser Ajax.CreateUser{..} =
 -- writing) does not need to be authenticated to change their
 -- password.  They must simply provide their old password which is
 -- then checked against the database.
-handleChangePwd :: MonadProtocol m => Ajax.ChangePassword -> m ()
+handleChangePwd :: Ajax.ChangePassword -> MULLE v ()
 handleChangePwd Ajax.ChangePassword{..} =
   Database.changePassword Database.ChangePassword
     { name = name
@@ -86,14 +85,14 @@ handleChangePwd Ajax.ChangePassword{..} =
     }
 
 
-handleLessons :: MonadProtocol m => Ajax.LoginToken -> m Ajax.LessonList
+handleLessons :: Ajax.LoginToken -> MULLE v Ajax.LessonList
 handleLessons (Ajax.LoginToken t) = do
   Database.verifySession t
   lessons <- getActiveLessons t
   return (Ajax.LessonList lessons)
 
 
-getActiveLessons :: MonadProtocol m => Database.Token -> m [Ajax.ActiveLesson]
+getActiveLessons :: Database.Token -> MULLE v [Ajax.ActiveLesson]
 getActiveLessons t =
   fmap step . groupBy ((==) `on` ActiveLessonForUser.lesson) <$> Database.getActiveLessons t
   where
@@ -124,22 +123,16 @@ getActiveLessons t =
     maybeScores = traverse id scores
 
 
-handleLoginRequest
-  :: MonadProtocol m
-  => Ajax.LoginRequest
-  -> m Ajax.LoginToken
+handleLoginRequest :: Ajax.LoginRequest -> MULLE v Ajax.LoginToken
 handleLoginRequest Ajax.LoginRequest{..} = do
   Database.authUser name password
   token <- Database.startSession name
   pure $ Ajax.LoginToken token
 
-askContexts :: MonadProtocol m => m Contexts
+askContexts :: MULLE v Contexts
 askContexts = asks contexts
 
-handleLessonInit
-  :: forall m . MonadProtocol m
-  => Ajax.StartLesson
-  -> m Ajax.MenuResponse
+handleLessonInit :: Ajax.StartLesson -> MULLE v Ajax.MenuResponse
 handleLessonInit (Ajax.StartLesson token lesson restart) = do
   when restart $ Database.resetLesson token lesson
   Database.ExerciseLesson{..} <- Database.startLesson token lesson
@@ -185,10 +178,7 @@ dir Database.RectoVerso = Ajax.RectoVerso
 -- exercise is over.  In either case we also return two new
 -- 'Ajax.ClientTree's. For more information about what these contain
 -- see the documentation there.
-handleMenuRequest
-  :: forall m . MonadProtocol m
-  => Ajax.MenuRequest
-  -> m Ajax.MenuResponse
+handleMenuRequest :: Ajax.MenuRequest -> MULLE v Ajax.MenuResponse
 handleMenuRequest Ajax.MenuRequest{..} = do
   let Ajax.Score{..}  = score
       Ajax.Lesson{..} = lesson
@@ -217,54 +207,30 @@ handleMenuRequest Ajax.MenuRequest{..} = do
     , settings         = settings
     }
 
-annotate
-  :: MonadProtocol m
-  => Text
-  -> Muste.Annotated
-  -> m Muste.Annotated
-annotate lesson s = do
+annotate :: Text -> Muste.Annotated -> MULLE v Muste.Annotated
+annotate lesson sent = do
   cs <- askContexts
   liftEither $ do
-    ctxt <- getContext cs lesson $ l
+    ctxt <- getContext cs lesson $ Muste.language sent
     Muste.annotate
-      (ErrorCall $ "Unable to parse: " <> show s) ctxt s
-    where
-    l :: Muste.Language
-    l = Muste.language s
+      (ErrorCall $ "Unable to parse: " <> show sent) ctxt sent
 
-oneSimiliarTree
-  :: forall m . MonadProtocol m
-  => Text
-  -> Ajax.ClientTree
-  -> Ajax.ClientTree
-  -> m Bool
-oneSimiliarTree lesson src trg = do
-  srcS <- parse src
-  trgS <- parse trg
-  pure $ oneInCommon srcS trgS
+oneSimiliarTree :: Text -> Ajax.ClientTree -> Ajax.ClientTree -> MULLE v Bool
+oneSimiliarTree lesson src trg
+  = do srcS <- parse src
+       trgS <- parse trg
+       pure $ oneInCommon srcS trgS
   where
-  oneInCommon :: Ord a => Set a -> Set a -> Bool
-  oneInCommon a b = not $ Set.null $ Set.intersection a b
-  parse :: Ajax.ClientTree -> m (Set Muste.TTree)
-  parse = fmap Set.fromList . disambiguate lesson
+    oneInCommon a b = not $ Set.null $ Set.intersection a b
+    parse sent = fmap Set.fromList $ disambiguate lesson sent
 
-disambiguate
-  :: forall m . MonadProtocol m
-  => Text
-  -> Ajax.ClientTree
-  -> m [Muste.TTree]
+disambiguate :: Text -> Ajax.ClientTree -> MULLE v [Muste.TTree]
 disambiguate lesson Ajax.ClientTree{..} = do
   cs <- askContexts
-  let
-    getC :: Muste.Annotated -> m Muste.Context
-    getC u = liftEither $ getContext cs lesson (Muste.language u)
-  c <- getC sentence
-  pure $ Muste.disambiguate c sentence
+  ctxt <- liftEither $ getContext cs lesson (Muste.language sentence)
+  pure $ Muste.disambiguate ctxt sentence
 
-handleLogoutRequest
-  :: MonadProtocol m
-  => Ajax.LoginToken
-  -> m ()
+handleLogoutRequest :: Ajax.LoginToken -> MULLE v ()
 handleLogoutRequest (Ajax.LoginToken token) = Database.endSession token
 
 data AssembleMenu = AssembleMenu
@@ -275,10 +241,7 @@ data AssembleMenu = AssembleMenu
 
 -- | Gets the menus for a lesson.  This consists of a source tree and
 -- a target tree.
-assembleMenus
-  :: MonadProtocol m
-  => AssembleMenu
-  -> m Ajax.MenuList
+assembleMenus :: AssembleMenu -> MULLE v Ajax.MenuList
 assembleMenus AssembleMenu{..} = do
   c <- askContexts
   let mkTree = makeTree c lesson
@@ -290,22 +253,13 @@ assembleMenus AssembleMenu{..} = do
     , trg = mkTree trg $ ClientTree.direction target
     }
 
-getContext
-  :: MonadThrow m
-  => Contexts
-  -> Text              -- ^ Lesson
-  -> Muste.Language -- ^ Language
-  -> m Muste.Context
-getContext ctxts lesson s
+getContext :: MonadThrow m => Contexts -> Text -> Muste.Language -> m Muste.Context
+getContext ctxts lesson lang
   =   pure ctxts
   >>= lookupM (LessonNotFound lesson) lesson
-  >>= lookupM (LanguageNotFound s) s
+  >>= lookupM (LanguageNotFound lang) lang
 
-lookupM
-  :: MonadThrow m
-  => Exception e
-  => Ord k
-  => e -> k -> Map k a -> m a
+lookupM :: MonadThrow m => Exception e => Ord k => e -> k -> Map k a -> m a
 lookupM err k = liftMaybe err . Map.lookup k
 
 -- | Lift a 'Maybe' to any 'MonadThrow'.
@@ -316,12 +270,7 @@ liftMaybe _  (Just a) = pure a
 -- | @'makeTree' ctxt lesson src trg tree@ Creates a 'ServerTree' from
 -- a source trees and a target tree.  The 'Menu' is provided given
 -- @tree@.
-makeTree
-  :: Contexts
-  -> Text
-  -> Muste.Annotated
-  -> Ajax.Direction
-  -> Ajax.ServerTree
+makeTree :: Contexts -> Text -> Muste.Annotated -> Ajax.Direction -> Ajax.ServerTree
 makeTree c lesson s d
   = Ajax.ServerTree
   { sentence  = s
@@ -333,7 +282,7 @@ makeTree c lesson s d
   language = Muste.language s
 
 
-handleHighScores :: MonadProtocol m => Ajax.LoginToken -> m [Ajax.HighScore]
+handleHighScores :: Ajax.LoginToken -> MULLE v [Ajax.HighScore]
 handleHighScores (Ajax.LoginToken token) = do
   Database.verifySession token
   scores <- Database.getUserLessonScores
