@@ -21,7 +21,6 @@
  GeneralizedNewtypeDeriving,
  MultiParamTypeClasses,
  OverloadedStrings,
- RecordWildCards,
  ScopedTypeVariables,
  StandaloneDeriving,
  TypeApplications,
@@ -34,7 +33,6 @@ module Muste.Web.Protocol.Class
   , runProtocolT
   , AppState(..)
   , HttpStatus(..)
-  , Response(..)
   , ProtocolError(..)
   , ApiError(..)
   , Reason(..)
@@ -279,10 +277,7 @@ setResponseCode s = case s of
   Code n -> Snap.setResponseCode n
   CodeReason n r -> Snap.setResponseStatus n (displayReason r)
 
-data Response a = Response
-  { body   :: a
-  , status :: Maybe HttpStatus
-  }
+data Response a = Response a (Maybe HttpStatus)
 
 instance Functor Response where
   fmap f (Response b s) = Response (f b) s
@@ -309,4 +304,4 @@ runProtocolT app = do
     Right resp -> respond resp
 
 respond :: MonadSnap m => ToJSON a => Response a -> m ()
-respond Response{..} = Snap.writeLBS $ encode body
+respond (Response body _status) = Snap.writeLBS $ encode body
