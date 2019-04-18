@@ -82,9 +82,6 @@ data AppState = AppState
   , lessonsCfg    :: FilePath
   }
 
-instance Muste.HasKnownGrammars AppState where
-  giveKnownGrammars = knownGrammars
-
 -- | A simple monad transformer for handling responding to requests.
 newtype ProtocolT m a = ProtocolT
   { unProtocolT :: ExceptT ProtocolError m a

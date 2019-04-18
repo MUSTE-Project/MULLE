@@ -19,7 +19,6 @@ module Muste.State
   , runGrammarT
   , getGrammar
   , getGrammarOneOff
-  , HasKnownGrammars(..)
   , KnownGrammars
   , noGrammars
   , getLangAndContext
@@ -39,8 +38,6 @@ import Control.Monad.Trans (MonadTrans(lift))
 import Control.Monad.Trans.Control (MonadBaseControl)
 import Data.IORef (IORef)
 import qualified Data.IORef as IO
-import Snap (MonadSnap)
-import qualified Snap
 import Data.Function ((&), on)
 
 import qualified Data.Map as Map
@@ -117,7 +114,6 @@ deriving newtype instance MonadTrans GrammarT
 deriving newtype instance MonadBaseControl IO m => MonadBaseControl IO (GrammarT m)
 deriving newtype instance MonadBase IO m => MonadBase IO (GrammarT m)
 deriving newtype instance (Alternative m, Monad m) => Alternative (GrammarT m)
-deriving newtype instance (MonadSnap m) => MonadSnap (GrammarT m)
 deriving newtype instance MonadPlus m => MonadPlus (GrammarT m)
 
 class MonadIO m => MonadGrammar m where
@@ -143,22 +139,6 @@ instance MonadGrammar m => MonadGrammar (ReaderT r m) where
 instance MonadGrammar m => MonadGrammar (ExceptT r m) where
   getKnownGrammars = lift getKnownGrammars
   insertGrammar t g = lift $ insertGrammar t g
-
-class HasKnownGrammars g where
-  giveKnownGrammars :: g -> KnownGrammars
-
-instance HasKnownGrammars w => MonadGrammar (Snap.Handler v w) where
-  -- Implementation is almost identitcal to that of 'GrammarT'...
-  getKnownGrammars = do
-    ref <- unKnownGrammars . giveKnownGrammars <$> Reader.ask @_ @(Snap.Handler _ _)
-    mp <- liftIO $ IO.readIORef ref
-    liftIO $ do
-      putStrLn "getKnownGrammars @Snap.Handler"
-      print $ Map.size mp
-    pure mp
-  insertGrammar t g = do
-    KnownGrammars ref  <- giveKnownGrammars <$> Reader.ask
-    liftIO $ IO.modifyIORef ref $ Map.insert t g
 
 runGrammarT :: MonadIO io => GrammarT io a -> io a
 runGrammarT (GrammarT m) = do
