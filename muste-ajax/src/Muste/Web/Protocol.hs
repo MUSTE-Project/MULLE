@@ -71,9 +71,8 @@ initApp db lessons = do
   liftIO  $ putStrLn "[Initializing app...]"
   conn    <- openConnection db
   ctxts   <- initContexts conn
-  knownGs <- Muste.noGrammars
   liftIO  $ putStrLn "[Initializing app... Done]"
-  pure    $ AppState conn ctxts knownGs lessons
+  pure    $ AppState conn ctxts lessons
 
 initContexts :: MonadIO io => SQL.Connection -> io Contexts
 initContexts conn = Muste.runGrammarT $ do

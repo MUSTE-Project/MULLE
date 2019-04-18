@@ -19,8 +19,6 @@ module Muste.State
   , runGrammarT
   , getGrammar
   , getGrammarOneOff
-  , KnownGrammars
-  , noGrammars
   , getLangAndContext
   , annotate
   ) where
@@ -98,9 +96,6 @@ newtype KnownGrammars = KnownGrammars
   -- No pun.
   { unKnownGrammars :: IORef (Map Text Grammar)
   }
-
-noGrammars :: MonadIO io => io KnownGrammars
-noGrammars = KnownGrammars <$> liftIO (IO.newIORef mempty)
 
 -- | A monad for managing loaded grammars.
 newtype GrammarT m a = GrammarT ( ReaderT KnownGrammars m a )

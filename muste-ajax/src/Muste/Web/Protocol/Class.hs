@@ -79,7 +79,6 @@ type Contexts = Map Text (Map Muste.Language Muste.Context)
 data AppState = AppState
   { connection    :: Connection
   , contexts      :: Contexts
-  , knownGrammars :: Muste.KnownGrammars
   , lessonsCfg    :: FilePath
   }
 

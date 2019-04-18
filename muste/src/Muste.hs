@@ -15,8 +15,6 @@ module Muste
 
 import Muste.State
   ( MonadGrammar
-  , KnownGrammars
-  , noGrammars
   , runGrammarT
   , getLangAndContext
   , annotate
