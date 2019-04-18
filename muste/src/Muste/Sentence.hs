@@ -9,28 +9,26 @@
 module Muste.Sentence
   ( buildContexts
   , languages
-  , getLangAndContext
   , Context(Context, ctxtGrammar, ctxtLang, ctxtPrecomputed)
   , textRep
   , disambiguate
   , Language(Language)
   , Linearization(Linearization)
-  , Annotated(linearization, language)
+  , Annotated(Annotated, linearization, language)
   , mkLinearization
   , mergeL
-  , annotate
   , fromText
   , Token(Token, concrete, classes)
   , linTree
   , linearizeTree
+  , annotated
   ) where
 
 import Muste.Util (toBlob, fromBlob)
 import Database.SQLite.Simple.ToField (ToField(..))
 import Database.SQLite.Simple.FromField (FromField(..))
 
-import Control.Monad.Catch (MonadThrow(throwM), Exception)
-import Data.Function ((&), on)
+import Data.Function ((&))
 import GHC.Generics (Generic)
 
 import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:), (.:?), (.!=))
@@ -85,17 +83,6 @@ languages g
   mkCtxt :: PGF.Language -> (Text, PGF.Language)
   mkCtxt lang = (Text.pack $ PGF.showCId lang, lang)
 
--- | Given an identifier for a grammar, looks up that grammar and then
--- creates a mapping from all the languages in that grammar to their
--- respective 'Context's.
---
--- This method will throw a 'FileNotFoundException' if the grammar
--- cannot be located.
-getLangAndContext :: Grammar.MonadGrammar m => BuilderInfo -> Text -> m (Map Text Context)
-getLangAndContext nfo idf = do
-  g <- Grammar.getGrammar idf
-  pure $ buildContexts nfo g
-
 -- | Remember all 'AdjunctionTrees' in a certain 'PGF.Language' for a
 -- certain 'Grammar'.
 data Context = Context
@@ -133,17 +120,6 @@ instance ToField Annotated where
 instance FromField Annotated where
   fromField = fromBlob
 
-
-annotate :: MonadThrow m => Exception e => e -> Context -> Annotated -> m Annotated
-annotate err ctxt sent
-  = linearization sent
-  & textRep
-  & Grammar.parseSentence (ctxtGrammar ctxt) (ctxtLang ctxt)
-  & map unambigSimpl
-  & merge err
-  where
-    unambigSimpl :: TTree -> Annotated
-    unambigSimpl tree = annotated ctxt (language sent) tree
 
 
 fromText :: Text -> Text -> Text -> Annotated
@@ -195,17 +171,6 @@ linearizeTree (Context grammar language _) ttree =
 -- See also the documentation for 'linearization'.
 annotated :: Context -> Language -> TTree -> Annotated
 annotated c l t = Annotated l $ mkLinearization c t
-
--- | Merge multiple
-merge :: MonadThrow m => Exception e => e -> [Annotated] -> m Annotated
-merge e [] = throwM e
-merge _ xs = pure $ foldl1 merge1 xs
-
--- Merge two sentences, assuming they have the same language.
-merge1 :: Annotated -> Annotated -> Annotated
-merge1 a b = Annotated lang ((mergeL `on` linearization) a b)
-  where
-  lang = language a
 
 mergeL :: Linearization -> Linearization -> Linearization
 mergeL (Linearization a) (Linearization b)

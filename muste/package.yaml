@@ -43,6 +43,7 @@ library:
     - Muste
 
   other-modules:
+    - Muste.State
     - Muste.Prune
     - Muste.AdjunctionTrees
     - Muste.Tree

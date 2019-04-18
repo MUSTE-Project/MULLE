@@ -1,6 +1,7 @@
 
 module Muste
-  ( module Muste.Menu
+  ( module Muste.State
+  , module Muste.Menu
   , module Muste.Prune
   , module Muste.AdjunctionTrees
   , module Muste.Grammar
@@ -10,15 +11,25 @@ module Muste
   , module Muste.Util
   ) where
 
+-- used by muste-ajax
+
+import Muste.State
+  ( MonadGrammar
+  , KnownGrammars
+  , HasKnownGrammars(giveKnownGrammars)
+  , noGrammars
+  , runGrammarT
+  , getLangAndContext
+  , annotate
+  )
+
 import Muste.Prune
-  ( PruneOpts(PruneOpts, pruneDepth, pruneSize)
-  , emptyPruneOpts
+  ( emptyPruneOpts
   )
 
 import Muste.Menu
   ( Menu
   , getMenu
-  , getMenuItems
   )
 
 import Muste.AdjunctionTrees
@@ -26,35 +37,13 @@ import Muste.AdjunctionTrees
   , getAdjunctionTrees
   )
 
-import Muste.Grammar
-  ( getGrammarOneOff
-  , parseSentence
-  , MonadGrammar
-  , KnownGrammars
-  , HasKnownGrammars(giveKnownGrammars)
-  , noGrammars
-  , runGrammarT
-  )
-
 import Muste.Sentence
-  ( buildContexts
-  , languages
-  , Context(Context, ctxtGrammar, ctxtLang)
-  , getLangAndContext
-  , mkLinearization
-  , mergeL
-  , Linearization(Linearization)
-  , Token(Token) 
+  ( Context
+  , Linearization
   , Annotated(linearization, language)
-  , annotate
   , Language(Language)
   , disambiguate
   , fromText
-  )
-
-import Muste.Selection
-  ( Selection(runSelection)
-  , Interval(runInterval)
   )
 
 import Muste.Tree
@@ -63,9 +52,43 @@ import Muste.Tree
 
 import Muste.Util
   ( toBlob
-  , fromBlob
   , fromNullableBlob
-  , lookupFail
-  , putDocLn
   )
 
+-- only used by muste-cli
+
+import Muste.State
+  ( getGrammarOneOff
+  )
+
+import Muste.Grammar
+  ( parseSentence
+  )
+
+import Muste.Prune
+  ( PruneOpts(PruneOpts, pruneDepth, pruneSize)
+  )
+
+import Muste.Menu
+  ( getMenuItems
+  )
+
+import Muste.Sentence
+  ( buildContexts
+  , languages
+  , Context(Context, ctxtGrammar, ctxtLang)
+  , mkLinearization
+  , mergeL
+  , Linearization(Linearization)
+  , Token(Token) 
+  )
+
+import Muste.Selection
+  ( Selection
+  , runInterval
+  )
+
+import Muste.Util
+  ( lookupFail
+  , putDocLn
+  )
