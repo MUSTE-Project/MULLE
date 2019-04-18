@@ -118,7 +118,6 @@ instance Pretty Menu where
     >>> pretty
 
 getMenu
---  :: Sentence.IsToken a  =>
   :: Prune.PruneOpts
   -> Context
   -> Sentence.Linearization

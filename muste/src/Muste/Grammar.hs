@@ -13,7 +13,6 @@
  UndecidableInstances
 #-}
 
-{- | This Module is the internal implementation behind the module 'Muste.Grammar' -}
 module Muste.Grammar
   ( Grammar(..)
   , Rule(..)
