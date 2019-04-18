@@ -33,7 +33,7 @@ import Control.Monad.Catch (MonadThrow(throwM), Exception)
 import Data.Function ((&), on)
 import GHC.Generics (Generic)
 
-import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:))
+import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:), (.:?), (.!=))
 import qualified Data.Aeson as Aeson
 import Data.Binary (Binary)
 import qualified Data.Text as Text
@@ -276,7 +276,7 @@ instance FromJSON Token where
   parseJSON = Aeson.withObject "token"
     $ \o -> Token
     <$> o .: "concrete"
-    <*> o .: "classes"
+    <*> o .:? "classes" .!= mempty
 
 instance Pretty Token where
   pretty (Token s _) = pretty s
