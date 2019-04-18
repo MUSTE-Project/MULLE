@@ -11,12 +11,7 @@
 
 {-# OPTIONS_GHC -Wall -Wcompat #-}
 {-# Language
- DeriveAnyClass,
- FlexibleContexts,
- GADTs,
- RecordWildCards,
- ScopedTypeVariables,
- UndecidableInstances
+ RecordWildCards
 #-}
 
 module Muste.Web.Protocol.Handlers
@@ -31,9 +26,9 @@ module Muste.Web.Protocol.Handlers
   ) where
 
 import Control.Category ((>>>))
-import Control.Exception (throw, Exception, SomeException, ErrorCall(ErrorCall))
+import Control.Exception (throw, Exception, ErrorCall(ErrorCall))
 import Control.Monad.Catch (MonadThrow(throwM))
-import Control.Monad.Except (MonadError, throwError)
+import Control.Monad.Except (throwError)
 import Control.Monad.Reader
 import Data.Function ((&), on, id)
 
@@ -60,9 +55,6 @@ import Muste.Web.Protocol.Class
 import Muste.Web.Types.Score (Score)
 import qualified Muste.Web.Types.Score as Score
 
-
-liftEither :: MonadError ProtocolError m => SomeException ~ e => Either e a -> m a
-liftEither = either (throwError . SomeProtocolError) pure
 
 handleCreateUser :: Ajax.CreateUser -> MULLE v ()
 handleCreateUser Ajax.CreateUser{..} = 
@@ -229,6 +221,10 @@ disambiguate lesson Ajax.ClientTree{..} = do
   cs <- askContexts
   ctxt <- liftEither $ getContext cs lesson (Muste.language sentence)
   pure $ Muste.disambiguate ctxt sentence
+
+liftEither :: Exception e => Either e a -> MULLE v a
+liftEither (Left err) = throwError $ SomeProtocolError err
+liftEither (Right a)  = return a
 
 handleLogoutRequest :: Ajax.LoginToken -> MULLE v ()
 handleLogoutRequest (Ajax.LoginToken token) = Database.endSession token
