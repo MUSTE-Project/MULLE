@@ -53,18 +53,21 @@ import Muste.Web.Protocol.Class
 import qualified Muste.Web.Protocol.Handlers as Handlers
 
 
-openConnection :: MonadIO io => String -> io SQL.Connection
-openConnection p = do
-  c <- liftIO $ SQL.open p
-  pure c
+-- | The main api.  For the protocol see @Protocol.apiRoutes@.
+apiInit :: FilePath -> FilePath -> Snap.SnapletInit a AppState
+apiInit db lessons
+  = Snap.makeSnaplet "api" "MUSTE API" Nothing
+  $ initializer db lessons
 
-initApp :: MonadIO io => FilePath -> FilePath -> io AppState
-initApp db lessons = do
-  liftIO  $ putStrLn "[Initializing app...]"
-  conn    <- openConnection db
-  ctxts   <- initContexts conn
-  liftIO  $ putStrLn "[Initializing app... Done]"
-  pure    $ AppState conn ctxts lessons
+initializer :: FilePath -> FilePath -> Snap.Initializer v AppState AppState
+initializer db lessons
+  = do liftIO $ putStrLn "[Initializing app...]"
+       Snap.wrapSite (Cors.applyCORS Cors.defaultOptions)
+       Snap.addRoutes apiRoutes
+       conn  <- liftIO $ SQL.open db
+       ctxts <- initContexts conn
+       liftIO $ putStrLn "[Initializing app... Done]"
+       return $ AppState conn ctxts lessons
 
 initContexts :: MonadIO io => SQL.Connection -> io Contexts
 initContexts conn = Muste.runGrammarT $ do
@@ -98,17 +101,6 @@ mkContext Database.Lesson{..} = do
     , searchSize  = fromIntegral <$> searchLimitSize
     }
 
--- | The main api.  For the protocol see @Protocol.apiRoutes@.
-apiInit :: FilePath -> FilePath -> Snap.SnapletInit a AppState
-apiInit db lessons = Snap.makeSnaplet "api" "MUSTE API" Nothing $ do
-  Snap.wrapSite (Cors.applyCORS Cors.defaultOptions)
-  registerRoutes db lessons
-
-
-registerRoutes :: FilePath -> FilePath -> Snap.Initializer v AppState AppState
-registerRoutes db lessons = do
-  Snap.addRoutes apiRoutes
-  initApp db lessons
 
 -- | Map requests to various handlers.
 apiRoutes :: [(ByteString, Snap.Handler v AppState ())]
