@@ -65,41 +65,36 @@ initializer db lessons
        Snap.wrapSite (Cors.applyCORS Cors.defaultOptions)
        Snap.addRoutes apiRoutes
        conn  <- liftIO $ SQL.open db
-       ctxts <- initContexts conn
+       ctxts <- Muste.runGrammarT $ initContexts conn
        liftIO $ putStrLn "[Initializing app... Done]"
        return $ AppState conn ctxts lessons
 
-initContexts :: MonadIO io => SQL.Connection -> io Contexts
-initContexts conn = Muste.runGrammarT $ do
-  c <- flip Database.runDbT conn $ do
-    lessons <- Database.getLessons
-    mkContexts lessons
-  case c of
-    Left e -> liftIO $ throw e
-    Right a -> pure a
+initContexts :: MonadIO io => SQL.Connection -> Muste.GrammarT io Contexts
+initContexts conn
+  = do ctxts' <- Database.runDbT mkContexts conn
+       case ctxts' of
+         Left err -> liftIO $ throw err
+         Right ctxts -> return ctxts
 
-mkContexts
-  :: MonadDB r m
-  => Muste.MonadGrammar m
-  => [Database.Lesson]
-  -> m Contexts
-mkContexts xs = Map.fromList <$> traverse mkContext xs
+mkContexts :: MonadDB r m => Muste.MonadGrammar m => m Contexts
+mkContexts 
+  = do lessons <- Database.getLessons
+       cxtlist <- traverse mkContext lessons
+       return $ Map.fromList cxtlist
 
-mkContext
-  :: Muste.MonadGrammar m
-  => Database.Lesson
+mkContext :: Muste.MonadGrammar m => Database.Lesson
   -> m (Text, Map.Map Muste.Language Muste.Context)
-mkContext Database.Lesson{..} = do
-  m <- Muste.getLangAndContext nfo grammar
-  pure (name, Map.mapKeys f m)
+mkContext Database.Lesson{..}
+  = do m <- Muste.getLangAndContext nfo grammar
+       return (name, Map.mapKeys f m)
   where
-  f :: Text -> Muste.Language
-  f language = Muste.Language grammar language
-  nfo :: Muste.BuilderInfo
-  nfo = Muste.BuilderInfo
-    { searchDepth = fromIntegral <$> searchLimitDepth
-    , searchSize  = fromIntegral <$> searchLimitSize
-    }
+    f :: Text -> Muste.Language
+    f language = Muste.Language grammar language
+    nfo :: Muste.BuilderInfo
+    nfo = Muste.BuilderInfo
+      { searchDepth = fromIntegral <$> searchLimitDepth
+      , searchSize  = fromIntegral <$> searchLimitSize
+      }
 
 
 -- | Map requests to various handlers.
