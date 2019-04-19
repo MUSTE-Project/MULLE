@@ -15,7 +15,6 @@
 --
 {-# OPTIONS_GHC -Wall -Wcompat #-}
 {-# Language
- CPP,
  DeriveAnyClass,
  FlexibleContexts,
  OverloadedStrings,
@@ -45,10 +44,6 @@ import Data.ByteString (ByteString)
 import qualified Data.Map as Map
 import qualified Data.Aeson as Aeson
 
-#ifdef DIAGNOSTICS
-import qualified Data.Text.IO as Text
-#endif
-
 import qualified Muste
 
 import qualified Muste.Web.Database as Database
@@ -61,9 +56,6 @@ import qualified Muste.Web.Protocol.Handlers as Handlers
 openConnection :: MonadIO io => String -> io SQL.Connection
 openConnection p = do
   c <- liftIO $ SQL.open p
-#ifdef DIAGNOSTICS
-  liftIO $ SQL.setTrace c (Just Text.putStrLn)
-#endif
   pure c
 
 initApp :: MonadIO io => FilePath -> FilePath -> io AppState
