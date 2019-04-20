@@ -41,8 +41,6 @@ import Control.Monad.Reader
 import Database.SQLite.Simple (Query, Connection, FromRow, NamedParam)
 import qualified Database.SQLite.Simple as SQL
 
-import qualified Muste
-
 
 data Error
   = NoUserFound
@@ -123,7 +121,6 @@ deriving newtype instance Monad m   => Applicative (DbT m)
 deriving newtype instance Monad m   => Monad       (DbT m)
 deriving newtype instance MonadIO m => MonadIO     (DbT m)
 deriving newtype instance Monad m   => MonadReader Connection (DbT m)
-deriving newtype instance Muste.MonadGrammar m => Muste.MonadGrammar (DbT m)
 
 instance MonadTrans DbT where
   lift = DbT . lift . lift

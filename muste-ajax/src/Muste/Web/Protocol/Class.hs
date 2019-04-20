@@ -98,7 +98,6 @@ deriving newtype instance MonadPlus m    => MonadPlus    (ProtocolT m)
 deriving newtype instance Monad m        => Alternative  (ProtocolT m)
 deriving newtype instance MonadSnap m    => MonadSnap    (ProtocolT m)
 deriving newtype instance Monad m        => MonadError ProtocolError (ProtocolT m)
-deriving newtype instance Muste.MonadGrammar m => Muste.MonadGrammar (ProtocolT m)
 
 instance Monad m => MonadDatabaseError (ProtocolT m) where
   throwDbError = ProtocolT . throwError . DatabaseError

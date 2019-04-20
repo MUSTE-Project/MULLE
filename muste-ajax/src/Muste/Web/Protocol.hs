@@ -44,10 +44,10 @@ import Data.ByteString (ByteString)
 import qualified Data.Map as Map
 import qualified Data.Aeson as Aeson
 
+import Muste (MUSTE, runMUSTE)
 import qualified Muste
 
 import qualified Muste.Web.Database as Database
-import Muste.Web.Database (MonadDB)
 import qualified Muste.Web.Database.Types as Database
 import Muste.Web.Protocol.Class
 import qualified Muste.Web.Protocol.Handlers as Handlers
@@ -59,38 +59,33 @@ apiInit db lessons
   = Snap.makeSnaplet "api" "MUSTE API" Nothing
   $ initializer db lessons
 
+
 initializer :: FilePath -> FilePath -> Snap.Initializer v AppState AppState
 initializer db lessons
   = do liftIO $ putStrLn "[Initializing app...]"
        Snap.wrapSite (Cors.applyCORS Cors.defaultOptions)
        Snap.addRoutes apiRoutes
        conn  <- liftIO $ SQL.open db
-       ctxts <- Muste.runGrammarT $ initContexts conn
+       ctxts <- liftIO $ runMUSTE $ initContexts conn
        liftIO $ putStrLn "[Initializing app... Done]"
        return $ AppState conn ctxts lessons
 
-initContexts :: MonadIO io => SQL.Connection -> Muste.GrammarT io Contexts
+
+initContexts :: SQL.Connection -> MUSTE Contexts
 initContexts conn
-  = do ctxts' <- Database.runDbT mkContexts conn
-       case ctxts' of
-         Left err -> liftIO $ throw err
-         Right ctxts -> return ctxts
+  = do lessons' <- Database.runDbT Database.getLessons conn
+       case lessons' of
+         Left err -> throw err
+         Right lessons -> 
+           do cxtlist <- traverse mkContext lessons
+              return $ Map.fromList cxtlist
 
-mkContexts :: MonadDB r m => Muste.MonadGrammar m => m Contexts
-mkContexts 
-  = do lessons <- Database.getLessons
-       cxtlist <- traverse mkContext lessons
-       return $ Map.fromList cxtlist
 
-mkContext :: Muste.MonadGrammar m => Database.Lesson
-  -> m (Text, Map.Map Muste.Language Muste.Context)
+mkContext :: Database.Lesson -> MUSTE (Text, Map.Map Muste.Language Muste.Context)
 mkContext Database.Lesson{..}
   = do m <- Muste.getLangAndContext nfo grammar
-       return (name, Map.mapKeys f m)
+       return (name, Map.mapKeys (Muste.Language grammar) m)
   where
-    f :: Text -> Muste.Language
-    f language = Muste.Language grammar language
-    nfo :: Muste.BuilderInfo
     nfo = Muste.BuilderInfo
       { searchDepth = fromIntegral <$> searchLimitDepth
       , searchSize  = fromIntegral <$> searchLimitSize

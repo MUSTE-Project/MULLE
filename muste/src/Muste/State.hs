@@ -1,22 +1,8 @@
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
-{-# Language
- DeriveGeneric,
- DerivingStrategies,
- FlexibleContexts,
- GeneralizedNewtypeDeriving,
- MultiParamTypeClasses,
- OverloadedStrings,
- ScopedTypeVariables,
- StandaloneDeriving,
- TypeApplications,
- TypeFamilies,
- UndecidableInstances
-#-}
 
 module Muste.State
-  ( MonadGrammar(..)
-  , GrammarT
-  , runGrammarT
+  ( MUSTE
+  , runMUSTE
   , getGrammar
   , getGrammarOneOff
   , getLangAndContext
@@ -25,15 +11,9 @@ module Muste.State
 
 
 import Control.Monad.Catch (MonadThrow(throwM), Exception)
-import Control.Applicative (Alternative)
-import Control.Monad (MonadPlus)
-import Control.Monad.Base (MonadBase)
-import Control.Monad.Except (ExceptT)
 import Control.Monad.IO.Class (MonadIO(liftIO))
-import Control.Monad.Reader (MonadReader, ReaderT)
+import Control.Monad.Reader (ReaderT)
 import qualified Control.Monad.Reader as Reader
-import Control.Monad.Trans (MonadTrans(lift))
-import Control.Monad.Trans.Control (MonadBaseControl)
 import Data.IORef (IORef)
 import qualified Data.IORef as IO
 import Data.Function ((&), on)
@@ -79,85 +59,56 @@ merge1 a b = Annotated lang ((mergeL `on` linearization) a b)
   lang = language a
 
 
+
+-- -- | A monad for managing loaded grammars.
+type MUSTE = ReaderT (IORef KnownGrammars) IO
+
+type KnownGrammars = Map Text Grammar
+
 -- | Given an identifier for a grammar, looks up that grammar and then
 -- creates a mapping from all the languages in that grammar to their
 -- respective 'Context's.
 --
 -- This method will throw a 'FileNotFoundException' if the grammar
 -- cannot be located.
-getLangAndContext :: MonadGrammar m => BuilderInfo -> Text -> m (Map Text Context)
+getLangAndContext :: BuilderInfo -> Text -> MUSTE (Map Text Context)
 getLangAndContext nfo idf = do
   g <- getGrammar idf
   pure $ buildContexts nfo g
 
+getKnownGrammars :: MUSTE KnownGrammars
+getKnownGrammars
+  = do ref <- Reader.ask
+       liftIO $ IO.readIORef ref
 
+insertGrammar :: Text -> Grammar -> MUSTE ()
+insertGrammar name grammar
+  = do ref  <- Reader.ask
+       liftIO $ IO.modifyIORef ref $ Map.insert name grammar
 
-newtype KnownGrammars = KnownGrammars
-  -- No pun.
-  { unKnownGrammars :: IORef (Map Text Grammar)
-  }
-
--- | A monad for managing loaded grammars.
-newtype GrammarT m a = GrammarT ( ReaderT KnownGrammars m a )
-
-deriving newtype instance Functor m => Functor (GrammarT m)
-deriving newtype instance Monad m => Applicative (GrammarT m)
-deriving newtype instance Monad m => Monad (GrammarT m)
-deriving newtype instance Monad m => MonadReader KnownGrammars (GrammarT m)
-deriving newtype instance MonadIO m => MonadIO (GrammarT m)
-deriving newtype instance MonadTrans GrammarT
-deriving newtype instance MonadBaseControl IO m => MonadBaseControl IO (GrammarT m)
-deriving newtype instance MonadBase IO m => MonadBase IO (GrammarT m)
-deriving newtype instance (Alternative m, Monad m) => Alternative (GrammarT m)
-deriving newtype instance MonadPlus m => MonadPlus (GrammarT m)
-
-class MonadIO m => MonadGrammar m where
-  -- | Get the known grammars
-  getKnownGrammars :: m (Map Text Grammar)
-  -- | Update the known grammars with.
-  insertGrammar :: Text -> Grammar -> m ()
-
-instance MonadIO io => MonadGrammar (GrammarT io) where
-  getKnownGrammars
-    =   Reader.ask
-    >>= liftIO . IO.readIORef . unKnownGrammars
-  insertGrammar t g = do
-    KnownGrammars ref  <- Reader.ask
-    liftIO $ IO.modifyIORef ref $ Map.insert t g
-
--- Even though 'GrammarT' is implemented with a reader monad notice
--- that we pass through it here...
-instance MonadGrammar m => MonadGrammar (ReaderT r m) where
-  getKnownGrammars = lift getKnownGrammars
-  insertGrammar t g = lift $ insertGrammar t g
-
-instance MonadGrammar m => MonadGrammar (ExceptT r m) where
-  getKnownGrammars = lift getKnownGrammars
-  insertGrammar t g = lift $ insertGrammar t g
-
-runGrammarT :: MonadIO io => GrammarT io a -> io a
-runGrammarT (GrammarT m) = do
-  r <- liftIO $ IO.newIORef mempty
-  Reader.runReaderT m (KnownGrammars r)
+runMUSTE :: MUSTE a -> IO a
+runMUSTE m
+  = do ref <- liftIO $ IO.newIORef mempty
+       Reader.runReaderT m ref
 
 -- | Looks for a grammar at the specified location.  If the grammar is
 -- found it is added to the known grammars and returned.  If the
 -- grammar is not found a 'FileNotFoundException' is thrown.
-getGrammar :: forall m . MonadGrammar m => Text -> m Grammar
-getGrammar idf = do
-  m <- getKnownGrammars
-  case Map.lookup idf m of
-    Nothing -> loadAndInsert idf
-    Just a -> pure a
+getGrammar :: Text -> MUSTE Grammar
+getGrammar idf
+  = do m <- getKnownGrammars
+       case Map.lookup idf m of
+         Nothing -> loadAndInsert idf
+         Just a -> return a
 
 -- | A convenience method wrapping 'getGrammar' that just gets the
 -- grammar once but without all the nice memoization offered by
 -- 'MonadGrammar'.
-getGrammarOneOff :: MonadIO io => Text -> io Grammar
-getGrammarOneOff = runGrammarT . getGrammar
+getGrammarOneOff :: Text -> IO Grammar
+getGrammarOneOff = runMUSTE . getGrammar
 
-loadAndInsert :: forall m . MonadGrammar m => Text -> m Grammar
-loadAndInsert idf = do
-  g <- liftIO $ readGrammar idf
-  insertGrammar idf g
-  pure g
+loadAndInsert :: Text -> MUSTE Grammar
+loadAndInsert idf
+  = do grammar <- liftIO $ readGrammar idf
+       insertGrammar idf grammar
+       return grammar

@@ -14,8 +14,8 @@ module Muste
 -- used by muste-ajax
 
 import Muste.State
-  ( MonadGrammar
-  , runGrammarT
+  ( MUSTE
+  , runMUSTE
   , getLangAndContext
   , annotate
   )
