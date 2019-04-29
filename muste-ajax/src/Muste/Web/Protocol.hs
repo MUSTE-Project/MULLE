@@ -1,25 +1,8 @@
--- | This module hooks 'ProtocolT' up with the @snap@ web framework.
---
--- Module      : Muste.Web.Protocol
--- License     : Artistic License 2.0
--- Stability   : experimental
--- Portability : POSIX
---
--- The inner workings of the protocol is defined in
---
---  * "Muste.Web.Protocol.Class"
---
--- The various handlers are defined in
---
---  * "Muste.Web.Protocol.Handlers"
---
 {-# OPTIONS_GHC -Wall -Wcompat #-}
 {-# Language
- DeriveAnyClass,
- FlexibleContexts,
+ NamedFieldPuns,
  OverloadedStrings,
- RecordWildCards,
- UndecidableInstances
+ ScopedTypeVariables
 #-}
 
 module Muste.Web.Protocol
@@ -27,98 +10,125 @@ module Muste.Web.Protocol
   , AppState
   ) where
 
-import Control.Exception (throw)
-import Control.Monad.Except (throwError)
+import Control.Exception (Exception(displayException), SomeException)
+import qualified Control.Exception.Lifted as CL
 import Control.Monad.IO.Class (MonadIO(liftIO))
 import qualified Snap
 import qualified Snap.Util.CORS as Cors
+import System.FilePath ((</>)) 
 import qualified System.IO.Streams as Streams
 
 import qualified Database.SQLite.Simple as SQL
 
-import Data.Aeson (FromJSON)
-import Data.String.Conversions (convertString)
-import Data.Text (Text)
-
-import Data.ByteString (ByteString)
-import qualified Data.Map as Map
 import qualified Data.Aeson as Aeson
+import Data.Aeson (FromJSON, ToJSON, (.=))
+import qualified Data.Yaml as Yaml
+import Data.String.Conversions (convertString)
+import Data.ByteString (ByteString)
+import qualified Data.ByteString.Char8 as ByteString
+import qualified Data.HashMap.Strict as HMap
 
-import Muste (MUSTE, runMUSTE)
 import qualified Muste
+import Muste (BuilderInfo(..))
 
-import qualified Muste.Web.Database as Database
-import qualified Muste.Web.Database.Types as Database
-import Muste.Web.Protocol.Class
-import qualified Muste.Web.Protocol.Handlers as Handlers
+import qualified Muste.Web.Config as Config
+import Muste.Web.Config (AppConfig(..), Grammar(..))
+import qualified Muste.Web.Protocol.Class as Proto
+import Muste.Web.Protocol.Class (AppState(..), MULLE)
+
+import qualified Muste.Web.Handlers.Session as Session
+import qualified Muste.Web.Handlers.Results as Results
+import qualified Muste.Web.Handlers.Grammar as Grammar
 
 
 -- | The main api.  For the protocol see @Protocol.apiRoutes@.
-apiInit :: FilePath -> FilePath -> Snap.SnapletInit a AppState
-apiInit db lessons
+apiInit :: Config.AppConfig -> Snap.SnapletInit a AppState
+apiInit AppConfig{cfgDir, db, grammars, lessons}
   = Snap.makeSnaplet "api" "MUSTE API" Nothing
-  $ initializer db lessons
-
-
-initializer :: FilePath -> FilePath -> Snap.Initializer v AppState AppState
-initializer db lessons
-  = do liftIO $ putStrLn "[Initializing app...]"
-       Snap.wrapSite (Cors.applyCORS Cors.defaultOptions)
+  $ do Snap.wrapSite (Cors.applyCORS Cors.defaultOptions)
        Snap.addRoutes apiRoutes
-       conn  <- liftIO $ SQL.open db
-       ctxts <- liftIO $ runMUSTE $ initContexts conn
-       liftIO $ putStrLn "[Initializing app... Done]"
-       return $ AppState conn ctxts lessons
-
-
-initContexts :: SQL.Connection -> MUSTE Contexts
-initContexts conn
-  = do lessons' <- Database.runDbT Database.getLessons conn
-       case lessons' of
-         Left err -> throw err
-         Right lessons -> 
-           do cxtlist <- traverse mkContext lessons
-              return $ Map.fromList cxtlist
-
-
-mkContext :: Database.Lesson -> MUSTE (Text, Map.Map Muste.Language Muste.Context)
-mkContext Database.Lesson{..}
-  = do m <- Muste.getLangAndContext nfo grammar
-       return (name, Map.mapKeys (Muste.Language grammar) m)
-  where
-    nfo = Muste.BuilderInfo
-      { searchDepth = fromIntegral <$> searchLimitDepth
-      , searchSize  = fromIntegral <$> searchLimitSize
-      }
+       liftIO $
+         do putStrLn ">> Initializing app..."
+            conn <- SQL.open $ cfgDir </> db
+            let lessonsCfg = cfgDir </> lessons
+            mustate <- Muste.loadGrammarsMU cfgDir Muste.emptyMUState
+                       [ (name, path, binfo)
+                       | Grammar{name, path, options} <- grammars,
+                         let binfo = BuilderInfo
+                               { searchDepth = fromIntegral <$> Config.searchDepth options 
+                               , searchSize  = Config.searchSize options
+                               }
+                       ]
+            putStrLn "<< Initializing app: OK\n"
+            return $ AppState conn lessonsCfg mustate
 
 
 -- | Map requests to various handlers.
-apiRoutes :: [(ByteString, Snap.Handler v AppState ())]
+apiRoutes :: [(ByteString, MULLE v ())]
 apiRoutes =
-  [ "login"        |> Handlers.handleLoginRequest
-  , "logout"       |> Handlers.handleLogoutRequest
-  , "lessons"      |> Handlers.handleLessons
-  , "lesson"       |> Handlers.handleLessonInit
-  , "menu"         |> Handlers.handleMenuRequest
-  , "create-user"  |> Handlers.handleCreateUser
-  , "change-pwd"   |> Handlers.handleChangePwd
-  , "high-scores"  |> Handlers.handleHighScores
+  [ "login"                   |> Session.loginUser
+  , "logout"                  |> Session.logoutUser
+  , "create-user"             |> Session.createUser
+  , "change-pwd"              |> Session.changePwd
+  , "get-lessons"             |> Session.getAllLessons
+
+  , "get-menus"               |> Grammar.getMenus
+  , "get-edit-distance"       |> Grammar.editDistance
+
+  , "add-completed-exercise"  |> Results.addCompletedExercise
+  , "get-completed-exercises" |> Results.getCompletedExercises
+  , "add-completed-lesson"    |> Results.addCompletedLesson
+  , "get-completed-lessons"   |> Results.getCompletedLessons
+  , "get-highscores"          |> Results.getHighscores
+
+-- , "log" |> LoggingHandlers.log
   ]
+
+
+(|>) :: (FromJSON inp, ToJSON inp, ToJSON out) =>
+        ByteString -> (inp -> MULLE v out) -> (ByteString, MULLE v ())
+t |> action = (t, handler)
   where
-    t |> action = (t, runProtocolT $
-                      Snap.method Snap.POST $
-                      do msg <- getMessage
-                         fmap pure (action msg)
-                  )
+    handler
+      = Cors.applyCORS Cors.defaultOptions 
+      $ Snap.method Snap.POST 
+      $ do Snap.modifyResponse $ Snap.setContentType "application/json"
+           runMULLE
+             `CL.catch` \(e :: Proto.MULLError) ->
+             returnError (Proto.errorResponseCode e) (show e) (displayException e)
+             `CL.catch` \(e' :: SomeException) ->
+             returnError 500 ("GenericError" :: String) (displayException e')
+    runMULLE
+      = do msg <- getMessage
+           logStdout ("<--- REQUEST: " ++ show t ++ "\n") "<---\n" msg
+           result <- action msg
+           logStdout "---> RESULT:\n" "--->\n" result
+           Snap.writeLBS $ Aeson.encode result
+    returnError code errid msg
+      = do let errobj = Aeson.object [ "code" .= code, "error" .= errid, "message" .= msg ]
+           logStdout ("<===> ERROR, REQUEST: " ++ show t ++ "\n") "<===>\n" errobj
+           Snap.modifyResponse $ Snap.setResponseCode code
+           Snap.writeLBS $ Aeson.encode errobj
 
 
--- | Reads the data from the request and deserializes from JSON.
 getMessage :: FromJSON json => MULLE v json
 getMessage = 
-  do s <- do body <- Snap.runRequestBody Streams.read
-             case body of
-               Nothing -> throwError (ProtocolApiError ErrReadBody)
-               Just  a -> return (convertString a)
-     case Aeson.eitherDecode s of
-       Left  e -> throwError (ProtocolApiError (DecodeError e))
-       Right a -> return a
+  do body <- Snap.runRequestBody Streams.read
+     case body of
+       Nothing -> CL.throwIO (Proto.RequestBodyError)
+       Just a' ->
+         case Aeson.eitherDecode (convertString a') of
+           Left  e -> CL.throwIO (Proto.JSONDecodeError e)
+           Right a -> return a
+
+
+logStdout :: ToJSON json => String -> String -> json -> MULLE v ()
+logStdout header footer obj
+  = liftIO $ putStrLn $ header ++ body ++ footer
+  where
+    body = ByteString.unpack $ Yaml.encode $ transform $ Aeson.toJSON obj
+    transform (Aeson.Object o) = Aeson.Object (HMap.mapWithKey trans' o)
+    transform o = o
+    trans' key val
+      | key == "menus" = Aeson.String "<<MENUS>>"
+      | otherwise = transform val

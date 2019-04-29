@@ -1,152 +1,119 @@
-{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall -Wcompat #-}
 {-# Language
- OverloadedStrings,
- RecordWildCards,
- TemplateHaskell,
- TypeApplications
+ OverloadedStrings
 #-}
 
 module Muste.Web.DbInit (initDb) where
 
-import Control.Monad (void)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath (takeDirectory, (</>))
-import Data.FileEmbed (embedFile, makeRelativeToProject)
 
 import Database.SQLite.Simple (Connection(Connection))
 import qualified Database.SQLite.Simple as SQL
 import qualified Database.SQLite3 as SQL
 
-import Data.Maybe (fromMaybe)
-import Data.ByteString (ByteString)
-import Data.String.Conversions (convertString)
-import Data.Text (Text, pack, unpack)
-import Data.Text.Encoding (decodeUtf8)
-import Text.Printf (printf)
-import qualified Data.Yaml as Yaml
-
-import qualified Muste
+import Data.Text (Text)
+import qualified Data.Text as Text
 
 import qualified Muste.Web.Config as Config
-import qualified Muste.Web.Database as Database
-import qualified Muste.Web.Database.Types as Database
-import qualified Muste.Web.DbInit.Data as Data
+import qualified Muste.Web.Handlers.Session as Session
 
 
 initDb :: Config.AppConfig -> IO ()
 initDb cfg = do
-  putStrLn "[Initializing database...]"
-  mkParDir (Config.db cfg)
-  SQL.withConnection (Config.db cfg) (initDbAux cfg)
-  putStrLn "[Initializing database... Done]"
+  let dbFile = Config.cfgDir cfg </> Config.db cfg
+  putStrLn $ ">> Initializing database: " ++ dbFile
+  mkParDir dbFile
+  SQL.withConnection dbFile (initDbAux cfg)
+  putStrLn "<< Initializing database: OK\n"
+
 
 -- | @'mkParDir' p@ Ensure that the directory that @p@ is in is
 -- created like the linux command @mkdir -p@.
 mkParDir :: FilePath -> IO ()
 mkParDir = createDirectoryIfMissing True . takeDirectory
 
-initScript :: ByteString
-initScript = $(makeRelativeToProject "data/sql/create.sql" >>= embedFile)
-
-seedScript :: ByteString
-seedScript = $(makeRelativeToProject "data/sql/seed.sql" >>= embedFile)
-
-execRaw :: Connection -> Text -> IO ()
-execRaw (Connection db) qry = SQL.exec db qry
 
 initDbAux :: Config.AppConfig -> Connection -> IO ()
-initDbAux cfg conn = do
-  void $ traverse @[] go [ initScript, seedScript ]
-  mapM_ (dropRecreateUser conn) (Config.users cfg)
-  let lessonsFile = Config.lessons cfg
-  lessons' <- Yaml.decodeFileThrow lessonsFile
-  let lessonsDir = takeDirectory lessonsFile
-  let lessons = [ lesson { Data.grammar = pack (lessonsDir </> unpack grammar) }
-                | lesson@Data.Lesson{..} <- lessons'
-                ]
-  showLessons lessonsFile lessons
-  insertLessons conn   $ toDatabaseLesson <$> lessons
-  insertExercises conn $ lessons >>= toDatabaseExercise
-  where
-  go :: ByteString -> IO ()
-  go = execRaw conn . decodeUtf8
+initDbAux cfg conn
+  = do createTables conn [userTable, sessionTable, cmplExerciseTable, cmplLessonTable]
+       mapM_ (dropRecreateUser conn) (Config.users cfg)
 
-showLessons :: FilePath -> [Data.Lesson] -> IO ()
-showLessons lessonsFile lessons =
-  do printf "[Reading lessons file: %s]\n\n" lessonsFile
-     mapM_ showLess (zip [1..] lessons)
-  where showLess :: (Int, Data.Lesson) -> IO ()
-        showLess (n, lesson) =
-          printf "[%d: %s = %d exercises]\n" n (Data.name lesson) (length (Data.exercises' lesson))
 
--- | Converts our nested structure from the config file to something
--- suitable for a RDBMS.
-toDatabaseLesson :: Data.Lesson -> Database.Lesson
-toDatabaseLesson Data.Lesson{..}
-  = Database.Lesson
-  { key                 = key
-  , name                = name
-  , grammar             = grammar
-  , sourceLanguage      = sourceLanguage
-  , targetLanguage      = targetLanguage
-  , exerciseCount       = fromIntegral $ fromMaybe (length exercises') exerciseCount
-  , enabled             = enabled
-  , searchLimitDepth    = fromIntegral <$> searchDepthLimit
-  , searchLimitSize     = fromIntegral <$> searchSizeLimit
-  , repeatable          = repeatable
-  , sourceDirection     = dir srcDir
-  , targetDirection     = dir trgDir
-  , highlightMatches    = highlightMatches
-  , showSourceSentence  = showSourceSentence
-  , randomizeOrder      = randomizeOrder
-  }
-  where
-  Data.LessonSettings{..} = settings
-  Data.Languages sourceLanguage targetLanguage = languages
-  Data.SearchOptions{..} = searchOptions
-  dir :: Data.Direction -> Database.Direction
-  dir Data.VersoRecto = Database.VersoRecto
-  dir Data.RectoVerso = Database.RectoVerso
+dropRecreateUser :: Connection -> Config.InitialUser -> IO ()
+dropRecreateUser conn (Config.User name pwd)
+  = do putStrLn $ "Adding user: " ++ show name ++ ", pwd: " ++ show pwd
+       Session.addUser conn name pwd
 
-toDatabaseExercise :: Data.Lesson -> [Database.Exercise]
-toDatabaseExercise Data.Lesson{..} = step <$> zip [0..] exercises'
-  where
-  step (n, Data.Exercise{..})
-    = Database.Exercise
-    { sourceLinearization = lin srcL source
-    , targetLinearization = lin trgL target
-    , lesson              = key
-    , timeout             = 0
-    , exerciseOrder       = n
-    }
-  Data.LessonSettings{..} = settings
-  Data.Languages srcL trgL = languages
-  lin :: Text -> Data.Sentence -> Muste.Annotated
-  lin l (Data.Sentence t) = Muste.fromText grammar l t
 
-dropRecreateUser :: Connection -> Config.User -> IO ()
-dropRecreateUser c Config.User{..}
-  = void
-  $ flip Database.runDbT c
-  $ Database.addUser
-  $ Database.CreateUser
-    { name     = convertString name
-    , password = convertString password
-    , enabled  = enabled
-    }
+userTable :: SQLTable
+userTable = SQLTable "User"
+            [ SQLRow "Username" "TEXT" "NOT NULL PRIMARY KEY"
+            , SQLRow "Password" "BLOB" "NOT NULL"
+            , SQLRow "Salt"     "BLOB" "NOT NULL"
+            ]
 
-insertLessons :: Connection -> [Database.Lesson] -> IO ()
-insertLessons c =
-  SQL.executeMany c 
-  " INSERT INTO Lesson \
-  \ ( Id, Name, Grammar, SourceLanguage, TargetLanguage, ExerciseCount, Enabled, \
-  \   SearchLimitDepth, SearchLimitSize, Repeatable, SourceDirection, TargetDirection, \
-  \   HighlightMatches, ShowSourceSentence, RandomizeOrder ) \
-  \ VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+sessionTable :: SQLTable
+sessionTable = SQLTable "Session"
+               [ SQLRow "User"       "TEXT"    "NOT NULL UNIQUE"
+               , SQLRow "Token"      "TEXT"    "NOT NULL PRIMARY KEY"
+               , SQLRow "Starttime"  "NUMERIC" "NOT NULL DEFAULT CURRENT_TIMESTAMP"
+               , SQLRow "LastActive" "NUMERIC" "NOT NULL DEFAULT CURRENT_TIMESTAMP"
+               , SQLForeignKey "User" "User" "Username"
+               ]
 
-insertExercises :: Connection -> [Database.Exercise] -> IO ()
-insertExercises c =
-  SQL.executeMany c 
-  " INSERT INTO Exercise \
-  \ ( SourceTree, TargetTree, Lesson, Timeout, ExerciseOrder ) \
-  \ VALUES (?,?,?,?,?) "
+cmplExerciseTable :: SQLTable
+cmplExerciseTable = SQLTable "CompletedExercise"
+               [ SQLRow "User"      "TEXT"    "NOT NULL"
+               , SQLRow "Lesson"    "TEXT"    "NOT NULL"
+               , SQLRow "Exercise"  "INTEGER" "NOT NULL"
+               , SQLRow "Score"     "NUMERIC" "NOT NULL DEFAULT 0"
+               , SQLRow "Timestamp" "NUMERIC" "NOT NULL DEFAULT CURRENT_TIMESTAMP"
+               , SQLUnique ["User", "Lesson", "Exercise"]
+               , SQLForeignKey "User" "User" "Username"
+               ]
+
+cmplLessonTable :: SQLTable
+cmplLessonTable = SQLTable "CompletedLesson"
+               [ SQLRow "User"      "TEXT"    "NOT NULL"
+               , SQLRow "Lesson"    "TEXT"    "NOT NULL"
+               , SQLRow "Score"     "NUMERIC" "NOT NULL DEFAULT 0"
+               , SQLRow "Timestamp" "NUMERIC" "NOT NULL DEFAULT CURRENT_TIMESTAMP"
+               , SQLForeignKey "User" "User" "Username"
+               ]
+
+
+type SQLName = Text
+type SQLType = Text
+data SQLTable = SQLTable SQLName [SQLRow]
+data SQLRow = SQLRow SQLName SQLType Text
+            | SQLUnique [SQLName]
+            | SQLForeignKey SQLName SQLName SQLName
+
+
+createTables :: Connection -> [SQLTable] -> IO ()
+createTables (Connection db) tables
+  = do putStrLn $ "Creating tables: " ++ show [name | SQLTable name _ <- tables]
+       SQL.exec db $ Text.unlines $
+         ["BEGIN TRANSACTION;"] ++
+         map textCreateTable tables ++ 
+         ["COMMIT TRANSACTION;"]
+
+
+textCreateTable :: SQLTable -> Text
+textCreateTable (SQLTable name rows)
+  = Text.unwords [ "DROP TABLE IF EXISTS", name, ";\n"
+                 , "CREATE TABLE", name, "(\n"
+                 , Text.intercalate ",\n" (map textRow rows), "\n"
+                 , ");\n"
+                 ]
+
+
+textRow :: SQLRow -> Text
+textRow (SQLRow name typ extra) 
+  = Text.unwords [name, typ, extra]
+textRow (SQLUnique names)
+  = Text.unwords ["UNIQUE (", Text.intercalate ", " names, ")"]
+textRow (SQLForeignKey name reftbl refname)
+  = Text.unwords ["FOREIGN KEY (", name, ") REFERENCES", reftbl, "(", refname, ")"]
+

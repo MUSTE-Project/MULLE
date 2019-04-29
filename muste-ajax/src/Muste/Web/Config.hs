@@ -1,45 +1,31 @@
--- | Exposes configuration options to the rest of the application.--
---
--- Module      : Muste.Web.Config
--- License     : Artistic License 2.0
--- Stability   : experimental
--- Portability : POSIX
---
--- The configuration options that are exposed to the rest of this
--- application.
-
--- FIXME Name shadowing.
-{-# OPTIONS_GHC -Wall -Wcompat -Wno-name-shadowing #-}
+{-# OPTIONS_GHC -Wall -Wcompat #-}
 {-# Language
  DuplicateRecordFields,
- OverloadedStrings,
- RecordWildCards
+ OverloadedStrings
 #-}
 
 module Muste.Web.Config
-  ( AppConfig(..)
-  , appConfig
-  , Types.User(..)
+  ( appConfig
+  , AppConfig(..)
+  , Grammar(..)
+  , GrammarOptions(..)
+  , InitialUser(..)
   ) where
 
 import System.FilePath (takeDirectory, (</>), (<.>))
-import Data.Aeson (FromJSON(..), ToJSON(..), (.:?), (.!=), (.=))
+import Data.Aeson (FromJSON(..), ToJSON(..), (.:), (.:?), (.!=), (.=))
 import qualified Data.Aeson as Aeson
 import qualified Data.Yaml as Yaml
-
-import qualified Muste.Web.Config.Types as Types
+import Data.Text (Text)
 
 
 appConfig :: FilePath -> IO AppConfig
 appConfig cfgFile =
-  do cfg@AppConfig{..} <- Yaml.decodeFileThrow cfgFile
-     return cfg { db = cfgDir </> db
-                , lessons = cfgDir </> lessons
-                , accessLog = cfgDir </> accessLog
-                , errorLog = cfgDir </> errorLog
-                , staticDir = cfgDir </> staticDir
-                }
-  where cfgDir = takeDirectory cfgFile
+  do cfg <- Yaml.decodeFileThrow cfgFile
+     return $
+       if not (null (cfgDir cfg)) then cfg
+       else cfg { cfgDir = takeDirectory cfgFile }
+
 
 defaultDB :: FilePath
 defaultDB = defaultDataDir </> "muste" <.> "sqlite3"
@@ -70,36 +56,96 @@ defaultLogDir = "log"
 
 
 data AppConfig = AppConfig
-  { db          :: FilePath
-  -- A path to the yaml file containing the lessons
-  , lessons     :: FilePath
+  { cfgDir      :: FilePath  -- the location of this config file
+  , grammars    :: [Grammar]
+  , db          :: FilePath
+  , lessons     :: FilePath  -- the location of the lessons config file
   , accessLog   :: FilePath
   , errorLog    :: FilePath
   , port        :: Int
   , staticDir   :: FilePath
   , virtualRoot :: FilePath
-  , users       :: [Types.User]
+  , users       :: [InitialUser]
   }
 
 instance FromJSON AppConfig where
   parseJSON = Aeson.withObject "app-config" $ \v -> AppConfig
-    <$> v .:? "db"                    .!= defaultDB
+    <$> v .:? "cfg-dir"               .!= ""
+    <*> v .:  "grammars"
+    <*> v .:? "db"                    .!= defaultDB
     <*> v .:? "lessons"               .!= defaultLessons
     <*> v .:? "access-log"            .!= defaultAccessLog
     <*> v .:? "error-log"             .!= defaultErrorLog
     <*> v .:? "port"                  .!= defaultPort
     <*> v .:? "static-dir"            .!= defaultStaticDir
     <*> v .:? "virtual-root"          .!= defaultVirtualRoot
-    <*> v .:? "users"                 .!= mempty
+    <*> v .:? "users"                 .!= []
 
 instance ToJSON AppConfig where
-  toJSON AppConfig{..} = Aeson.object
-    [ "db"           .= db
-    , "lessons"      .= lessons
-    , "access-log"   .= accessLog
-    , "error-log"    .= errorLog
-    , "port"         .= port
-    , "static-dir"   .= staticDir
-    , "virtual-root" .= virtualRoot
-    , "users"        .= users
+  toJSON cfg = Aeson.object
+    [ "cfg-dir"      .= cfgDir       cfg
+    , "grammars"     .= grammars     cfg
+    , "db"           .= db           cfg
+    , "lessons"      .= lessons      cfg
+    , "access-log"   .= accessLog    cfg
+    , "error-log"    .= errorLog     cfg
+    , "port"         .= port         cfg
+    , "static-dir"   .= staticDir    cfg
+    , "virtual-root" .= virtualRoot  cfg
+    , "users"        .= users        cfg
+    ]
+
+
+data Grammar = Grammar
+  { name :: Text
+  , path :: FilePath
+  , options :: GrammarOptions
+  }
+
+instance FromJSON Grammar where
+  parseJSON = Aeson.withObject "Grammar" $ \v -> Grammar
+    <$> v .: "name"
+    <*> v .: "path"
+    <*> v .: "options"
+
+instance ToJSON Grammar where
+  toJSON (Grammar n p o) = Aeson.object
+    [ "name"    .= n
+    , "path"    .= p
+    , "options" .= o
+    ]
+
+
+data GrammarOptions = GrammarOptions
+  { searchDepth :: Maybe Int
+  , searchSize  :: Maybe Int
+  }
+  deriving (Show, Eq, Ord)
+
+instance FromJSON GrammarOptions where
+  parseJSON = Aeson.withObject "GrammarOptions" $ \v -> GrammarOptions
+    <$> v .:? "search-depth"
+    <*> v .:? "search-size"
+
+instance ToJSON GrammarOptions where
+  toJSON (GrammarOptions d s) = Aeson.object
+    [ "search-depth" .= d
+    , "search-size"  .= s
+    ]
+
+
+data InitialUser = User
+  { name :: Text
+  , pwd :: Text
+  }
+
+instance FromJSON InitialUser where
+  parseJSON = Aeson.withObject "InitialUser" $ \v -> User
+    <$> v .: "name"
+    <*> v .: "pwd"
+
+instance ToJSON InitialUser where
+  toJSON (User n p) = Aeson.object
+    [ "name" .= n
+    , "pwd"  .= p
     ]

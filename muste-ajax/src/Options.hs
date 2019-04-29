@@ -7,7 +7,6 @@ module Options (getOptions, Options(..)) where
 
 import Development.GitRev (gitDescribe)
 
-import Options.Applicative (Parser, execParser, ParserInfo)
 import qualified Options.Applicative as O
 import Control.Applicative ((<**>))
 import System.FilePath (FilePath)
@@ -18,7 +17,7 @@ data Options = Options
   , initDb     :: Bool
   }
 
-optionsParser :: Parser Options
+optionsParser :: O.Parser Options
 optionsParser = Options
   <$> O.strOption
       (  O.short 'c'
@@ -32,16 +31,16 @@ optionsParser = Options
       )
 
 getOptions :: IO Options
-getOptions = execParser opts
+getOptions = O.execParser opts
 
-opts :: ParserInfo Options
+opts :: O.ParserInfo Options
 opts = O.info (optionsParser <**> O.helper <**> versionParser)
   (  O.fullDesc
   <> O.progDesc descr
   <> O.header header
   )
 
-versionParser :: Parser (a -> a)
+versionParser :: O.Parser (a -> a)
 versionParser = O.infoOption $(gitDescribe)
     (  O.short 'v'
     <> O.long "version"

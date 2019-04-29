@@ -41,7 +41,7 @@ appInit :: Config.AppConfig -> SnapletInit App App
 appInit cfg = makeSnaplet "muste" "Multi Semantic Text Editor"
   Nothing
   $ do
-    api'    <- nestSnaplet (p "api")  api    (apiInit cfg)
+    api'    <- nestSnaplet (p "api")  api    (Protocol.apiInit cfg)
     static' <- nestSnaplet (p mempty) static (staticInit cfg)
     pure $ App api' static'
   where
@@ -88,10 +88,7 @@ appConfig cfg
 -- | Serves static files in the @demo/@ directory.
 staticInit :: Config.AppConfig -> SnapletInit a ()
 staticInit cfg = makeSnaplet "static" "Static file server" Nothing $ do
-  void $ addRoutes [("", Snap.serveDirectory (Config.staticDir cfg))]
-
-apiInit :: Config.AppConfig -> SnapletInit a Protocol.AppState
-apiInit cfg = Protocol.apiInit (Config.db cfg) (Config.lessons cfg)
+  void $ addRoutes [("", Snap.serveDirectory (Config.cfgDir cfg </> Config.staticDir cfg))]
 
 (</>) :: IsString a => Semigroup a => a -> a -> a
 a </> b = a <> "/" <> b

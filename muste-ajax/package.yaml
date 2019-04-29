@@ -31,6 +31,7 @@ dependencies:
   - gitrev               >= 1.3.1    && < 1.4   # Development.GitRev
   - io-streams           >= 1.5.0.1  && < 1.6   # System.IO.Streams
   - lens                 >= 4.16.1   && < 4.18  # Control.Lens, ...
+  - lifted-base          >= 0.2.3.12 && < 0.3   # Control.Exception.Lifted
   - monad-control        >= 1.0.2.3  && < 1.1   # Control.Monad.Trans.Control
   - mtl                  >= 2.2.2    && < 2.3   # Control.Monad.{Except, Reader, State, Trans, ...}
   - muste                >= 0.4      && < 0.5   # Muste
@@ -43,6 +44,7 @@ dependencies:
   - text                 >= 1.2.3.1  && < 1.3   # Data.Text
   - time                 >= 1.8.0.2  && < 1.9   # Data.Time
   - transformers-base    >= 0.4.5.2  && < 0.5   # Control.Monad.Base
+  - unordered-containers >= 0.2.9.0  && < 0.3   # Data.HashMap
   - vector               >= 0.12.0.1 && < 0.13  # Data.Vector
   - yaml                 >= 0.8.32   && < 0.12  # Data.Yaml
 
@@ -50,17 +52,11 @@ executable:
   main: Main.hs
 
   other-modules:
-    - Database.SQLite.Simple.FromRow.Generic
-    - Muste.Web.Ajax
     - Muste.Web.Config
-    - Muste.Web.Config.Types
-    - Muste.Web.Database
-    - Muste.Web.Database.Class
-    - Muste.Web.Database.Types
     - Muste.Web.DbInit
-    - Muste.Web.DbInit.Data
+    - Muste.Web.Handlers.Session
+    - Muste.Web.Handlers.Results
+    - Muste.Web.Handlers.Grammar
     - Muste.Web.Protocol
     - Muste.Web.Protocol.Class
-    - Muste.Web.Protocol.Handlers
-    - Muste.Web.Types.Score
     - Options
