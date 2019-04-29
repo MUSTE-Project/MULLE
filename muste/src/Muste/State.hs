@@ -1,114 +1,120 @@
 {-# OPTIONS_GHC -Wall -Wno-name-shadowing #-}
+{-# Language
+ OverloadedStrings
+#-}
 
 module Muste.State
-  ( MUSTE
-  , runMUSTE
-  , getGrammar
-  , getGrammarOneOff
-  , getLangAndContext
-  , annotate
+  ( MUState
+  , emptyMUState
+  , loadGrammarsMU
+  , loadGrammarMU
+  , getMenusMU
+  , editDistanceMU
+  , LangLin
+  , LinMenus
   ) where
 
+import Control.Monad (foldM)
+import System.FilePath ((</>))
 
-import Control.Monad.Catch (MonadThrow(throwM), Exception)
-import Control.Monad.IO.Class (MonadIO(liftIO))
-import Control.Monad.Reader (ReaderT)
-import qualified Control.Monad.Reader as Reader
-import Data.IORef (IORef)
-import qualified Data.IORef as IO
-import Data.Function ((&), on)
-
+import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:))
+import qualified Data.Aeson as Aeson
+import qualified Data.Set as Set
 import qualified Data.Map as Map
 import Data.Map (Map)
+import qualified Data.Text as Text
 import Data.Text (Text)
 
 import Muste.Grammar (Grammar, readGrammar, parseSentence)
-import Muste.AdjunctionTrees (BuilderInfo)
-import Muste.Tree (TTree)
+import Muste.AdjunctionTrees (BuilderInfo, getAdjunctionTrees, AdjunctionTrees)
+import Muste.Tree (treeDiff) ----TTree
+import Muste.Menu (Menu, getMenu, unMenu)
+import Muste.Prune (PruneOpts)
+import Muste.Selection (Selection(Selection))
 
 import Muste.Sentence
-  ( Context(ctxtGrammar, ctxtLang)
-  , buildContexts
-  , Annotated(Annotated, language, linearization)
+  ( Context(Context, ctxtGrammar, ctxtLang, ctxtPrecomputed)
+  , Linearization
   , textRep
-  , annotated
-  , mergeL
   )
 
+import qualified PGF
 
-annotate :: MonadThrow m => Exception e => e -> Context -> Annotated -> m Annotated
-annotate err ctxt sent
-  = linearization sent
-  & textRep
-  & parseSentence (ctxtGrammar ctxt) (ctxtLang ctxt)
-  & map unambigSimpl
-  & merge err
+
+data MUState = MUState (Map Text (Grammar, AdjunctionTrees))
+
+
+emptyMUState :: MUState
+emptyMUState = MUState mempty
+
+
+lookupLessonMU :: MUState -> Text -> (Grammar, AdjunctionTrees)
+lookupLessonMU (MUState grammarsM) grname
+  = case Map.lookup grname grammarsM of
+      Nothing -> error $ "Grammar not loaded: " ++ Text.unpack grname
+      Just result -> result
+
+
+loadGrammarsMU :: FilePath -> MUState -> [(Text, FilePath, BuilderInfo)] -> IO MUState
+loadGrammarsMU grammardir = foldM (loadGrammarMU grammardir)
+
+
+loadGrammarMU :: FilePath -> MUState -> (Text, FilePath, BuilderInfo) -> IO MUState
+loadGrammarMU grammardir mustate@(MUState grammarsM) (grname, grpath, binfo)
+  = if Map.member grname grammarsM then
+      do putStrLn $ "Lesson already loaded: " ++ show grname
+         return mustate
+    else
+      do putStrLn $ "Loading lesson grammar: " ++ show (grname, grpath)
+         grammar <- readGrammar $ Text.pack $ grammardir </> grpath
+         let adjtrees = getAdjunctionTrees binfo grammar
+         let grammarsM' = Map.insert grname (grammar, adjtrees) grammarsM
+         return $ MUState grammarsM'
+
+
+getMenusMU :: MUState -> PruneOpts -> Text -> LangLin -> LinMenus
+getMenusMU mustate opts lesson (LangLin lang lin) = LinMenus annotated menus
+  where (grammar, adjtrees) = lookupLessonMU mustate lesson
+        ctxt = Context { ctxtGrammar = grammar
+                                , ctxtLang    = PGF.mkCId (Text.unpack lang)
+                                , ctxtPrecomputed = adjtrees
+                                }
+        menus = getMenu opts ctxt lin
+        emptySel = Selection mempty
+        annotated = case Map.lookup emptySel (unMenu menus) of
+                      Nothing -> lin
+                      Just ms -> snd $ head $ Set.toList ms
+
+
+editDistanceMU :: MUState -> Text -> LangLin -> LangLin -> Int
+editDistanceMU mustate lesson (LangLin lang1 lin1) (LangLin lang2 lin2)
+  = minimum [ treeDiff t1 t2 |
+              t1 <- parseSentence grammar pgflang1 (textRep lin1),
+              t2 <- parseSentence grammar pgflang2 (textRep lin2) ]
   where
-    unambigSimpl :: TTree -> Annotated
-    unambigSimpl tree = annotated ctxt (language sent) tree
-
--- | Merge multiple
-merge :: MonadThrow m => Exception e => e -> [Annotated] -> m Annotated
-merge e [] = throwM e
-merge _ xs = pure $ foldl1 merge1 xs
-
--- Merge two sentences, assuming they have the same language.
-merge1 :: Annotated -> Annotated -> Annotated
-merge1 a b = Annotated lang ((mergeL `on` linearization) a b)
-  where
-  lang = language a
+    (grammar, _) = lookupLessonMU mustate lesson
+    pgflang1 = PGF.mkCId (Text.unpack lang1)
+    pgflang2 = PGF.mkCId (Text.unpack lang2)
 
 
+data LangLin = LangLin Text Linearization
 
--- -- | A monad for managing loaded grammars.
-type MUSTE = ReaderT (IORef KnownGrammars) IO
+instance ToJSON LangLin where
+  toJSON (LangLin lang lin) = Aeson.object
+    [ "lang" .= lang, "lin"  .= lin ]
 
-type KnownGrammars = Map Text Grammar
+instance FromJSON LangLin where
+  parseJSON = Aeson.withObject "LangLin" $ \v ->
+    LangLin <$> v .: "lang" <*> v .: "lin"
 
--- | Given an identifier for a grammar, looks up that grammar and then
--- creates a mapping from all the languages in that grammar to their
--- respective 'Context's.
---
--- This method will throw a 'FileNotFoundException' if the grammar
--- cannot be located.
-getLangAndContext :: BuilderInfo -> Text -> MUSTE (Map Text Context)
-getLangAndContext nfo idf = do
-  g <- getGrammar idf
-  pure $ buildContexts nfo g
 
-getKnownGrammars :: MUSTE KnownGrammars
-getKnownGrammars
-  = do ref <- Reader.ask
-       liftIO $ IO.readIORef ref
+data LinMenus = LinMenus Linearization Menu
 
-insertGrammar :: Text -> Grammar -> MUSTE ()
-insertGrammar name grammar
-  = do ref  <- Reader.ask
-       liftIO $ IO.modifyIORef ref $ Map.insert name grammar
+instance ToJSON LinMenus where
+  toJSON (LinMenus lin menus) = Aeson.object
+    [ "lin" .= lin, "menus" .= menus ]
 
-runMUSTE :: MUSTE a -> IO a
-runMUSTE m
-  = do ref <- liftIO $ IO.newIORef mempty
-       Reader.runReaderT m ref
+instance FromJSON LinMenus where
+  parseJSON = Aeson.withObject "LinMenus" $ \v ->
+    LinMenus <$> v .: "lin" <*> v .: "menus"
 
--- | Looks for a grammar at the specified location.  If the grammar is
--- found it is added to the known grammars and returned.  If the
--- grammar is not found a 'FileNotFoundException' is thrown.
-getGrammar :: Text -> MUSTE Grammar
-getGrammar idf
-  = do m <- getKnownGrammars
-       case Map.lookup idf m of
-         Nothing -> loadAndInsert idf
-         Just a -> return a
-
--- | A convenience method wrapping 'getGrammar' that just gets the
--- grammar once but without all the nice memoization offered by
--- 'MonadGrammar'.
-getGrammarOneOff :: Text -> IO Grammar
-getGrammarOneOff = runMUSTE . getGrammar
-
-loadAndInsert :: Text -> MUSTE Grammar
-loadAndInsert idf
-  = do grammar <- liftIO $ readGrammar idf
-       insertGrammar idf grammar
-       return grammar

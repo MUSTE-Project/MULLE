@@ -9,7 +9,7 @@
 
 module Muste.Prune
   ( replaceAllTrees
-  , PruneOpts(PruneOpts, pruneDepth, pruneSize)
+  , PruneOpts(..)
   , emptyPruneOpts
   ) where
 

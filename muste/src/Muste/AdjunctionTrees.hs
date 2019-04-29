@@ -57,7 +57,7 @@ import qualified Muste.Grammar as Grammar
 data BuilderInfo = BuilderInfo
   { searchDepth :: Maybe Int
   , searchSize  :: Maybe Int
-  } deriving Show
+  } deriving (Show, Eq, Ord)
 
 instance Semigroup BuilderInfo where
   BuilderInfo a0 a1 <> BuilderInfo b0 b1

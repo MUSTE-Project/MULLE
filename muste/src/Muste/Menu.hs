@@ -11,7 +11,7 @@
 #-}
 
 module Muste.Menu
-  ( Menu
+  ( Menu(unMenu)
   , getMenu
   , getMenuItems
   ) where
