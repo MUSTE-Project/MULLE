@@ -1,12 +1,9 @@
 
 - name: "Programming"
-  key: 1
-  search-options:
-    size: 7
+  grammar: "Imperative"
   settings:
     highlight-matches: off
-    show-source-sentence: off
-  grammar: "grammars/programming/Imperative.pgf"
+    hide-source-sentence: on
   languages:
     source: "ImperativeCnc"
     target: "ImperativeCnc"

@@ -3,13 +3,19 @@
 # a toy proof-of-concept that the MUSTE technique could be used for
 # learning programming.
 
+grammars:
+  - name: "Imperative"
+    path: "grammars/programming/Imperative.pgf"
+    options:
+      search-size: 7
+
 lessons: lessons-programming.yaml
 db: data/programming.sqlite3
 access-log: log/access-programming.log
 error-log: log/error-programming.log
 static-dir: ../muste-ajax/static
 port: 8080
+
 users:
   - name: guest
-    password: guest
-    enabled: yes
+    pwd: guest

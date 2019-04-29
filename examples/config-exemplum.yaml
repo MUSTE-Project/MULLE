@@ -1,13 +1,25 @@
 # This is an example of multilingual lessons,
 # consisting of five lessons with 2-4 exercises in each.
 
+grammars:
+  - name: "Exemplum"
+    path: "grammars/exemplum/Exemplum.pgf"
+    options:
+      search-size: 7
+
+  - name: "ExemplumAlt"
+    path: "grammars/exemplum/Exemplum.pgf"
+    options:
+      search-size: 5
+
 lessons: lessons-exemplum.yaml
 db: data/exemplum.sqlite3
 access-log: log/access-exemplum.log
 error-log: log/error-exemplum.log
 static-dir: ../muste-ajax/static
 port: 8080
+
 users:
   - name: guest
-    password: guest
-    enabled: yes
+    pwd: guest
+
