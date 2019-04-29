@@ -47,7 +47,7 @@ en.lesson = {
   solve: "Solve",
   continue: "Continue",
   reSolve: "Restart",
-  result: "Best so far: {{score.clicks}} clicks, {{score.time}} secs",
+  result: "Best score so far: {{lesson.score}} points",
   help: {
     title: "Instructions",
     html: `
@@ -64,13 +64,13 @@ en.exercise = {
     title: "Lesson {{data.lesson.name}} complete!",
     confirmButtonText: 'Show lessons',
     html: `
-  <p>Bravo! You used {{data.score.clicks}} clicks in {{data.score.time}} seconds.
+  <p>Bravo! You got {{data.lesson.score}} points in total.
   <p>Now you are finished with all exercises in this lesson!</p>
 `},
   exerciseComplete: {
     title: "Exercise complete!",
     html: `
-  <p>Bravo! You used {{data.score.clicks}} clicks in {{data.score.time}} seconds.
+  <p>Bravo! You gained {{data.exercise.score}} points.
   <p>Do you want to continue with the next exercise?</p>
 `},
   help: {
@@ -108,8 +108,7 @@ en.highscores = {
   title: "High scores",
   lesson: "Lesson",
   user: "User",
-  clicks: "Score - clicks",
-  time: "Score - time",
+  score: "Score",
 };
 
 en.modal = {

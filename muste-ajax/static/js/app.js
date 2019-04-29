@@ -1,10 +1,12 @@
-/*global $ jQuery Set Map : true*/
+/*Global $ jQuery : true*/
 
 
-var DATA = null;
+var DATA = {};
 var LOGIN = {};
 var DEBUG = null;
-var EXERCISES = [];
+
+var LESSON_ORDER = [];
+var LESSONS = {};
 
 
 //////////////////////////////////////////////////////////////////////
@@ -90,8 +92,7 @@ function set_language(evt) {
     $('title').localize();
     $('body').localize();
     if (LOGIN.token) {
-      fetch_and_populate_lessons();
-      fetch_and_populate_high_scores();
+      show_page('pageLessons');
     }
   });
 }
@@ -147,9 +148,25 @@ PAGES.pageLogin = function() {
 }
 
 PAGES.pageLessons = function() {
-  $('#lessonslist').empty();
-  fetch_and_populate_lessons();
-  fetch_and_populate_high_scores();
+  muste_request({}, 'get-completed-lessons')
+    .done(function(lessons) {
+      for (var less of lessons) {
+        set_score_if_better(LESSONS[less.lesson], less.score);
+        console.log("Reading completed lesson:",
+                    `${less.lesson}, score: ${less.score}`);
+      }
+
+      muste_request({}, 'get-completed-exercises')
+        .done(function(exercises) {
+          for (var ex of exercises) {
+            set_score_if_better(LESSONS[ex.lesson].exercises[ex.exercise], ex.score);
+            console.log("Reading completed exercise:",
+                        `${ex.exercise} in ${ex.lesson}, score: ${ex.score}`);
+          }
+
+          populate_lessons();
+        });
+    });
 }
 
 PAGES.pageExercise = function() {
@@ -158,6 +175,10 @@ PAGES.pageExercise = function() {
 
 PAGES.pageSettings = function() {
   $('#change-pwd-name').val(LOGIN.name);
+}
+
+PAGES.pageHighScores = function() {
+  fetch_and_populate_high_scores();
 }
 
 
@@ -178,7 +199,7 @@ function submit_form(event) {
 FORMS.formLogin = function(form) {
   var data = {
     name: form.name.value,
-    password: form.pwd.value
+    pwd: form.pwd.value
   };
   muste_request(data, 'login')
     .done(function(response) {
@@ -186,16 +207,29 @@ FORMS.formLogin = function(form) {
         name: form.name.value,
         token: response['token'],
       };
-      // window.sessionStorage.setItem('LOGIN_TOKEN',LOGIN.token);
       $('.username').text(form.name.value);
-      show_page('pageLessons');
-    });
+
+      muste_request({}, 'get-lessons')
+        .done(function(lessons) {
+          LESSON_ORDER = [];
+          LESSONS = {};
+          for (var less of lessons) {
+            LESSON_ORDER.push(less.name);
+            LESSONS[less.name] = less;
+            for (var nr = 0; nr < less.exercises.length; nr++) {
+              less.exercises[nr].nr = nr;
+            }
+          }
+          console.log("Reading lessons:", LESSON_ORDER);
+          show_page('pageLessons');
+        });
+    });   
 }
 
 FORMS.formCreateUser = function(form) {
   var data = {
     name: form.name.value,
-    password: form.pwd.value
+    pwd: form.pwd.value
   };
   muste_request(data, 'create-user')
     .done(function() {
@@ -215,8 +249,8 @@ FORMS.formCreateUser = function(form) {
 FORMS.formChangePwd = function(form) {
   var data = {
     name: form.name.value,
-    'new-password': form.pwd.value,
-    'old-password': form.oldPwd.value
+    newpwd: form.pwd.value,
+    oldpwd: form.oldPwd.value
   };
   muste_request(data, 'change-pwd')
     .done(function() {
@@ -319,43 +353,37 @@ function muste_request(data, endpoint) {
 //////////////////////////////////////////////////////////////////////
 // The lessons view
 
-function fetch_and_populate_lessons() {
-  muste_request({}, 'lessons')
-    .done(function(response) {
-      populate_lessons(response.lessons);
-    });
-}
-
-function populate_lessons(lessons) {
-  console.log(`Building info boxes for ${lessons.length} lessons:`,
-              lessons.map((l) => l.name).join(", "));
+// build the lesson boxes
+function populate_lessons() {
+  console.log(`Building info boxes for ${LESSON_ORDER.length} lessons:`,
+              LESSON_ORDER.join(", "));
   var $table = $('#lessonslist').empty();
-  for (var l of lessons) {
-    EXERCISES[l.lesson] = {
-      passedcount: l.passedcount,
-      totalcount:  l.exercisecount
-    };
+  for (var name of LESSON_ORDER) {
+    var lesson = LESSONS[name];
+    var finished = lesson.score > 0;
+    var nr_exercises = lesson.exercises.length;
+    var nr_solved = get_unsolved(lesson.exercises).length;
     $('<div>')
       .append([
         $('<h3>')
-          .text(i18next.t(`backend.${l.name}.name`, l.name)),
+          .text(i18next.t(`backend.${name}.name`, name)),
         $('<button>')
-          .click({lesson: l.lesson, restart: l.passed}, start_exercise)
-          .text(i18next.t(l.passed          ? 'lesson.reSolve' 
-                          : l.passedcount>0 ? 'lesson.continue' 
-                          :                   'lesson.solve'
+          .click({lesson: name, exercise: nr_solved}, start_exercise)
+          .text(i18next.t(nr_solved>0 ? 'lesson.continue'
+                          : finished  ? 'lesson.reSolve' 
+                          :             'lesson.solve'
                          )),
         $('<p>')
-          .html(i18next.t(`backend.${l.name}.description`, l.description || '')),
+          .html(i18next.t(`backend.${name}.description`, lesson.description || '')),
         $('<meter>')
-          .prop(update_progressbar(l.passedcount, l.exercisecount)),
+          .prop(update_progressbar(nr_solved, nr_exercises)),
         $('<p>')
-          .text(l.score ? i18next.t('lesson.result', {score: l.score}) 
-                :         i18next.t('lesson.noResult', "")
+          .text(finished ? i18next.t('lesson.result', {lesson: lesson}) 
+                :          i18next.t('lesson.noResult', "")
                ),
       ])
-      .toggleClass('finished', l.passed)
-      .toggleClass('disabled', !l.enabled)
+      .toggleClass('finished', finished)
+      .toggleClass('disabled', lesson.disabled == true)
       .appendTo($table);
   }
 }
@@ -364,21 +392,40 @@ function populate_lessons(lessons) {
 //////////////////////////////////////////////////////////////////////
 // The exercise view
 
+// clean and annotate the linearisations and menus,
+// then show the sentences
 function start_exercise(data) {
-  show_page('pageExercise');
   if (data.data) data = data.data;
-  start_timer();
-  muste_request(data, 'lesson')
-    .then(handle_menu_response);
+  show_page('pageExercise');
+  DATA = {};
+  DATA.lesson = LESSONS[data.lesson];
+  DATA.exercise = DATA.lesson.exercises[data.exercise];
+  function trimlin(sent) {
+    return sent.trim().split(/\s+/).map((t) => ({concrete:t}));
+  }
+  DATA.src = {original: trimlin(DATA.exercise.source)};
+  DATA.trg = {original: trimlin(DATA.exercise.target)};
+  update_sentences_and_menus();
 }
 
-// handles the response from the MUSTE server
-// containing the new sentences and menus
-function handle_menu_response(data) {
-  DATA = data;
-  show_exercise(data);
-  if (data['lesson-over']) {
-    var popup = i18next.t('exercise.lessonComplete', {returnObjects: true, data: data});
+
+// when the exercise is completed
+function exercise_over() {
+  DATA.exercise.score = calculate_exercise_score(DATA.exercise);
+  var next_exercise = DATA.exercise.nr + 1;
+
+  if (next_exercise >= DATA.lesson.exercises.length) {
+    DATA.lesson.score = calculate_lesson_score(DATA.lesson.exercises)
+    for (var ex of DATA.lesson.exercises) {
+      delete ex.score;
+    }
+    var request = {
+      lesson: DATA.lesson.name,
+      score: DATA.lesson.score,
+    };
+    muste_request({value:request}, 'add-completed-lesson');
+
+    var popup = i18next.t('exercise.lessonComplete', {returnObjects: true, data: DATA});
     Swal.mixin({
       type: 'success',
       allowOutsideClick: false,
@@ -390,8 +437,16 @@ function handle_menu_response(data) {
       show_page('pageLessons');
     });
   }
-  else if (data['exercise-over']) {
-    var popup = i18next.t('exercise.exerciseComplete', {returnObjects: true, data: data});
+
+  else{
+    var request = {
+      lesson: DATA.lesson.name,
+      exercise: DATA.exercise.nr,
+      score: DATA.exercise.score,
+    };
+    muste_request({value:request}, 'add-completed-exercise');
+
+    var popup = i18next.t('exercise.exerciseComplete', {returnObjects: true, data: DATA});
     Swal.mixin({
       type: 'success',
       showCancelButton: true,
@@ -404,8 +459,8 @@ function handle_menu_response(data) {
     ).then(function(reply) {
       if (reply && !reply.dismiss) {
         start_exercise({
-          lesson: data.lesson.key,
-          restart: false,
+          lesson: DATA.lesson.name,
+          exercise: next_exercise,
         });
       } else {
         show_page('pageLessons');
@@ -414,27 +469,63 @@ function handle_menu_response(data) {
   }
 }
 
-
 //////////////////////////////////////////////////////////////////////
 // Show the exercise to the user
 
-// clean and annotate the linearisations and menus,
-// then show the sentences
-function show_exercise(data) {
-  clean_lin_and_menu(data.menu.src);
-  clean_lin_and_menu(data.menu.trg);
-  matchy_magic(data.menu.src, data.menu.trg);
-  matchy_magic(data.menu.trg, data.menu.src);
-  show_sentence($('#src'), data.menu.src, data.settings);
-  show_sentence($('#trg'), data.menu.trg, data.settings);
-  register_sentence_hover();
-  $('#src').toggle(data.settings['show-source-sentence']);
-  var e = EXERCISES[data.lesson.key];
-  $('#exercisename')
-    .text(i18next.t(`backend.${data.lesson.key}.name`, data.lesson.name));
-  $('#lessoncounter')
-    .prop(update_progressbar(e.passedcount, e.totalcount));
+function update_sentences_and_menus(newdata) {
+  if (newdata && newdata.data) newdata = newdata.data;
+  if (newdata && newdata.lang && newdata.lin) {
+    DATA[newdata.lang].original = DATA[newdata.lang].lin = newdata.lin;
+  }
+  var request = {
+    grammar: DATA.lesson.grammar,
+    src: {lang: DATA.lesson.languages.source, lin: DATA.src.original},
+    trg: {lang: DATA.lesson.languages.target, lin: DATA.trg.original},
+  };
+  reset_selection();
+  muste_request({value:request}, 'get-edit-distance')
+    .done(function(result) {
+      console.log("Current edit distance:", result);
+      if (result.distance == 0) {
+        // show the final sentences, but without menus
+        DATA.src.menus = DATA.trg.menus = [];
+        handle_menu_response(DATA);
+        // show the "exercise complete" dialogue after a delay
+        setTimeout(exercise_over, 500);
+      } else {
+        muste_request({value:request}, 'get-menus')
+          .done(handle_menu_response);
+      }
+    });
 }
+
+
+// handles the response from the MUSTE server
+// containing the new sentences and menus
+function handle_menu_response(response) {
+  DATA.src = response.src;
+  DATA.trg = response.trg;
+  clean_lin_and_menu(DATA.src);
+  clean_lin_and_menu(DATA.trg);
+  matchy_magic(DATA.src, DATA.trg);
+  matchy_magic(DATA.trg, DATA.src);
+
+  if (DATA.lesson.settings['hide-source-sentence']) {
+    $('#src').hide();
+  } else {
+    $('#src').show();
+    show_sentence($('#src'), DATA.src, DATA.lesson.settings);
+  }
+  show_sentence($('#trg'), DATA.trg, DATA.lesson.settings);
+  register_sentence_hover();
+  var nr_exercises = DATA.lesson.exercises.length;
+  var nr_solved = get_unsolved(DATA.lesson.exercises).length;
+  $('#exercisename')
+    .text(i18next.t(`backend.${DATA.lesson.name}.name`, DATA.lesson.name));
+  $('#lessoncounter')
+    .prop(update_progressbar(nr_solved, nr_exercises))
+}
+
 
 function register_sentence_hover() {
   $(".sentence > span").hover(function() {
@@ -451,21 +542,19 @@ function register_sentence_hover() {
 // i.e., remove all special tokens from the linearisation
 // (which means that we have to change the selections too)
 function clean_lin_and_menu(data) {
-  var lin = data.sentence.linearization;
-  var original = annotate_and_remove_specials(lin);
-  data.sentence.original = original;
-  if (DEBUG) console.log(`Original:   ${strlin(original)}`);
-  if (DEBUG) console.log(`Convereted: ${strlin(lin)}`);
-  for (var menu of data.menu) {
-    var sel = convert_specials_selection(menu[0], original);
+  data.original = annotate_and_remove_specials(data.lin);
+  if (DEBUG) console.log(`Original:   ${strlin(data.original)}`);
+  if (DEBUG) console.log(`Convereted: ${strlin(data.lin)}`);
+  for (var menu of data.menus) {
+    var sel = convert_specials_selection(menu[0], data.original);
     menu[0] = sel;
     for (var menuitem of menu[1]) {
       var origitem = annotate_and_remove_specials(menuitem[1]);
       menuitem.push(origitem);
     }
   }
-  data.menu.sort((a,b) => size_selection(a[0]) - size_selection(b[0]));
-  if (DEBUG) console.log("Menu selections:", data.menu.map((e)=>strsel(e[0])).join(", ")); 
+  data.menus.sort((a,b) => size_selection(a[0]) - size_selection(b[0]));
+  if (DEBUG) console.log("Menu selections:", data.menus.map((e)=>strsel(e[0])).join(", ")); 
 }
 
 // convert indexes that refer to the space before a special token, to the space after
@@ -502,14 +591,14 @@ function annotate_and_remove_specials(lin) {
 // calculate which words are matched with another with in the other sentence
 function matchy_magic(src, trg) {
   var all_src_classes = {};
-  for (var tok of src.sentence.linearization) {
-    for (var cls of tok.classes) {
+  for (var tok of src.lin) {
+    for (var cls of tok.classes || []) {
       all_src_classes[cls] = true;
     }
   }
-  for (var tok of trg.sentence.linearization) {
+  for (var tok of trg.lin) {
     var matching = {};
-    for (var cls of tok.classes) {
+    for (var cls of tok.classes || []) {
       if (all_src_classes[cls]) matching[cls] = true;
     }
     tok.matchingClasses = Object.keys(matching);
@@ -519,12 +608,12 @@ function matchy_magic(src, trg) {
 // build the sentence from the linearisation, and show it
 function show_sentence($sentence, data, settings) {
   $sentence.empty().prop({dir: data.direction});
-  build_lin($sentence, data.sentence.linearization);
+  build_lin($sentence, data.lin);
 
   $sentence.children().each(function() {
     var position = $(this).data('nr');
     var isSpace = $(this).hasClass('space');
-    if (has_menu(data.menu, position, isSpace)) {
+    if (has_menu(data.menus, position, isSpace)) {
       $(this)
         .addClass('clickable')
         .click(click_word);
@@ -609,7 +698,7 @@ function click_word(event) {
   var lang      = $sentence.prop('id');
   var direction = $sentence.prop('dir');
 
-  var all_menus = DATA.menu[lang].menu;
+  var all_menus = DATA[lang].menus;
   var is_insertion = $clicked.hasClass('space');
   var entry = next_menu(all_menus, idx, is_insertion);
   if (!entry) {
@@ -622,13 +711,14 @@ function click_word(event) {
   $clicked.addClass('selected');
   mark_selected_words($sentence, selection);
 
+  if (DEBUG) console.log("CLICK", idx, lang, direction);
   var $popup = $('#menu');
   for (var i = 0; i < menu.length; i++) {
     var [sel, lin, original] = menu[i];
     var $menuitem = $('<li>')
         .prop({dir: direction})
         .addClass('menuitem clickable')
-        .click({lin:original, lang:lang}, select_menuitem)
+        .click({lin:original, lang:lang}, update_sentences_and_menus)
         .appendTo($popup);
     build_lin($menuitem, lin);
     var newsel = remove_insertions_from_selection(sel);
@@ -726,33 +816,24 @@ function popup_menu($clicked, $menu) {
   $('.overlay').show();
 }
 
-// when the user selects a menu item, the current state is sent to the server
-function select_menuitem(event) {
-  function mklang(lang) {
-    return {direction: DATA.menu.src.direction,
-            sentence: {language: lang.sentence.language,
-                       linearization: lang.sentence.original},
-           };
-  }
-  var menuRequest = {
-    key     : DATA.key,
-    lesson  : DATA.lesson,
-    score   : {clicks   : DATA.score.clicks,
-               time     : get_elapsed_time()},
-    src     : mklang(DATA.menu.src),
-    trg     : mklang(DATA.menu.trg),
-    settings: DATA.settings,
-  };
-  // use the selected menu item as the new linearisation
-  menuRequest[event.data.lang].sentence.linearization = event.data.lin;
-  muste_request(menuRequest, 'menu')
-    .then(handle_menu_response);
-  reset_selection();
-}
-
 
 //////////////////////////////////////////////////////////////////////
 // Scores
+
+function calculate_lesson_score(exercises) {
+  var total = exercises.reduce((sum,ex) => sum + ex.score, 0);
+  var bonus = 0;
+  return total + bonus;
+}
+
+function calculate_exercise_score(exercise) {
+  return 10 + Math.round(Math.random() * 20);
+}
+
+function set_score_if_better(obj, score) {
+  if (obj.score && obj.score > score) return;
+  obj.score = score;
+}
 
 function update_progressbar(passed, total) {
   return {low:     1.5,
@@ -764,21 +845,38 @@ function update_progressbar(passed, total) {
 }
 
 function fetch_and_populate_high_scores() {
-  muste_request({}, 'high-scores')
+  muste_request({}, 'get-highscores')
     .then(function (scores) {
       populate_high_scores(scores);
     });
 };
 
 function populate_high_scores(scores) {
-  var $table = $('#high-scores-table').empty();
+  var highscores = {};
   for (var row of scores) {
-    var columns = [row.lesson.name, row.user.name, row.score.clicks, row.score.time];
-    $('<tr>').append(
-      columns.map(function(cell) {
-        return $('<td>').text(cell);
-      })
-    ).appendTo($table);
+    var current = highscores[row.lesson];
+    if (!current || row.score > current.score) {
+      highscores[row.lesson] = {score: row.score, users: [row.user]};
+    } else if (row.score == current.score && !current.users.includes(row.user)) {
+      current.users.push(row.user);
+    }
+  }
+  var $table = $('#high-scores-table').empty();
+  for (var lesson of LESSON_ORDER) {
+    var $row = $('<tr>')
+        .append($('<td>').text(i18next.t(`backend.${lesson}.name`, lesson)))
+        .appendTo($table);
+    if (highscores[lesson]) {
+      $row.append(
+        $('<td>').text(highscores[lesson].score),
+        $('<td>').text(highscores[lesson].users)
+      );
+    } else {
+      $row.append(
+        $('<td>').html("&mdash;"),
+        $('<td>').html("&mdash;")
+      );
+    }
   }
 }
 
@@ -842,6 +940,12 @@ function int_to_rgba(num) {
 // deep equality between objects
 function equal(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+// given a list of exercises, return only the ones that are unsolved
+// (i.e., have a score > 0)
+function get_unsolved(exercises) {
+  return exercises.filter((e) => e.score > 0);
 }
 
 // return if a position is inside the selection

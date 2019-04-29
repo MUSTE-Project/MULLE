@@ -47,7 +47,7 @@ sv.lesson = {
   solve: "Starta",
   continue: "Fortsätt",
   reSolve: "Starta om",
-  result: "Bästa hittills: {{score.clicks}} klick, {{score.time}} s",
+  result: "Bästa hittills: {{lesson.score}} poäng",
   help: {
     title: "Instruktioner",
     html: `
@@ -64,13 +64,13 @@ sv.exercise = {
     title: "Lektion {{data.lesson.name}} klar!",
     confirmButtonText: 'Visa lektionerna',
     html: `
-  <p>Bravo! Du använde {{data.score.clicks}} klick under {{data.score.time}} sekunder.</p>
+  <p>Bravo! Du fick totalt {{data.lesson.score}} poäng.</p>
   <p>Nu är du klar med alla övningar i denna lektion!</p>
 `},
   exerciseComplete: {
     title: "Övningen klar!",
     html: `
-  <p>Bravo! Du använde {{data.score.clicks}} klick under {{data.score.time}} sekunder.</p>
+  <p>Bravo! Du fick {{data.exercise.score}} poäng.</p>
   <p>Vill du fortsätta med nästa övning?</p>
 `},
   help: {
@@ -108,8 +108,7 @@ sv.highscores = {
   title: "Poänglista",
   lesson: "Lektion",
   user: "Användare",
-  clicks: "Poäng - klick",
-  time: "Poäng - tid",
+  score: "Poäng",
 };
 
 sv.modal = {
