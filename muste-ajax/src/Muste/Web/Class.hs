@@ -3,7 +3,7 @@
  OverloadedStrings
 #-}
 
-module Muste.Web.Protocol.Class
+module Muste.Web.Class
   ( MULLE
   , AppState(..)
   , wrapConnection

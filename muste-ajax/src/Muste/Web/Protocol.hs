@@ -33,8 +33,8 @@ import Muste (BuilderInfo(..))
 
 import qualified Muste.Web.Config as Config
 import Muste.Web.Config (AppConfig(..), Grammar(..))
-import qualified Muste.Web.Protocol.Class as Proto
-import Muste.Web.Protocol.Class (AppState(..), MULLE)
+import qualified Muste.Web.Class as Proto
+import Muste.Web.Class (AppState(..), MULLE)
 
 import qualified Muste.Web.Handlers.Session as Session
 import qualified Muste.Web.Handlers.Results as Results

@@ -16,7 +16,7 @@ import Data.Aeson ((.=), (.:), FromJSON(parseJSON), ToJSON(toJSON))
 
 import qualified Muste
 
-import Muste.Web.Protocol.Class (MULLE, muState)
+import Muste.Web.Class (MULLE, muState)
 import Muste.Web.Handlers.Session (verifySession, SessionToken(..))
 
 

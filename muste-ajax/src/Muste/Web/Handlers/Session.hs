@@ -43,8 +43,8 @@ import qualified Crypto.Random as CryptoR
 import qualified Crypto.KDF.PBKDF2 as CryptoK
 import qualified Crypto.Hash as CryptoH
 
-import qualified Muste.Web.Protocol.Class as MULLError (MULLError(..))
-import Muste.Web.Protocol.Class (MULLE, wrapConnection, lessonsCfg)
+import qualified Muste.Web.Class as MULLError (MULLError(..))
+import Muste.Web.Class (MULLE, wrapConnection, lessonsCfg)
 
 
 

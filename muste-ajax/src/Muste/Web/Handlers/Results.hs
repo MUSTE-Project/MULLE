@@ -22,8 +22,8 @@ import qualified Data.Time.Clock as Time
 import Data.Text (Text)
 import Data.List (groupBy)
 
-import qualified Muste.Web.Protocol.Class as MULLError (MULLError(..))
-import Muste.Web.Protocol.Class (MULLE, wrapConnection)
+import qualified Muste.Web.Class as MULLError (MULLError(..))
+import Muste.Web.Class (MULLE, wrapConnection)
 import Muste.Web.Handlers.Session
   ( verifySession
   , Token

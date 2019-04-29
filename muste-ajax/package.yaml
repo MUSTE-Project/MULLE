@@ -52,11 +52,11 @@ executable:
   main: Main.hs
 
   other-modules:
+    - Muste.Web.Class
     - Muste.Web.Config
     - Muste.Web.DbInit
     - Muste.Web.Handlers.Session
     - Muste.Web.Handlers.Results
     - Muste.Web.Handlers.Grammar
     - Muste.Web.Protocol
-    - Muste.Web.Protocol.Class
     - Options
