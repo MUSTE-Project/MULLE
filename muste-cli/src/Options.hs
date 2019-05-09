@@ -10,7 +10,7 @@ module Options
   , Command(..)
   , MusteOptions(..)
   , PrecomputeOptions(..)
-  , SearchOptions(..)
+  , PrintOptions(..)
   ) where
 
 import Development.GitRev (gitDescribe)
@@ -20,12 +20,13 @@ import Options.Applicative (Parser)
 import Control.Applicative ((<**>), (<|>), some)
 import Data.Text (Text)
 
+import qualified Muste
 
 -- Options type hierarchy
 
 data Options = Options
-    { grammar       :: Text   -- E.g. "exemplum/Exemplum" 
-    , searchOptions :: SearchOptions
+    { grammar       :: FilePath   -- E.g. "exemplum/Exemplum.pgf" 
+    , builderInfo   :: Muste.BuilderInfo
     , command       :: Command
     }
 
@@ -34,20 +35,18 @@ data Command = Muste MusteOptions | Precompute PrecomputeOptions
 data MusteOptions = MusteOptions
     { language           :: Text   -- E.g. "ExemplumSwe"
     , input              :: Maybe FilePath
-    , printNodes         :: Bool
-    , printCompact       :: Bool
+    , pruneOptions       :: Muste.PruneOpts
+    , printOptions       :: PrintOptions
     , sentences          :: [Text]
     }
 
-data PrecomputeOptions = PrecomputeOptions
-    { output        :: FilePath
+data PrintOptions = PrintOptions
+    { printNodes    :: Bool
+    , printCompact  :: Bool
     }
 
-data SearchOptions = SearchOptions
-    { adjTreeSearchDepth :: Maybe Int
-    , adjTreeSearchSize  :: Maybe Int
-    , pruneSearchDepth   :: Maybe Int
-    , pruneSearchSize    :: Maybe Int
+newtype PrecomputeOptions = PrecomputeOptions
+    { output        :: FilePath
     }
 
 
@@ -81,7 +80,7 @@ description = "Runs the CLI for the Multi Semantic Text Editor"
 optionsParser :: Parser Options
 optionsParser = Options
                 <$> grammarParser
-                <*> searchOptionsParser
+                <*> builderInfoParser
                 <*> commandParser
 
 commandParser :: Parser Command
@@ -96,22 +95,26 @@ musteOptionsParser :: Parser MusteOptions
 musteOptionsParser = MusteOptions
                      <$> languageParser
                      <*> inputParser
-                     <*> printNodesParser
-                     <*> printCompactParser
+                     <*> pruneOptionsParser
+                     <*> printOptionsParser
                      <*> (interactiveModeParser <|> sentencesParser)
 
-searchOptionsParser :: Parser SearchOptions
-searchOptionsParser = (\(d0, d1) (s0, s1) -> SearchOptions d0 s0 d1 s1)
-                      <$> depths
-                      <*> sizes
-    where
-      depths = fmap dup searchDepthParser
-               <|> (,) <$> adjTreeSearchDepthParser <*> pruneSearchDepthParser
-      sizes  = fmap dup searchSizeParser
-               <|> (,) <$> adjTreeSearchSizeParser  <*> pruneSearchSizeParser
-      dup a  = (a, a)
+printOptionsParser :: Parser PrintOptions
+printOptionsParser = PrintOptions
+                     <$> printNodesParser
+                     <*> printCompactParser
 
+pruneOptionsParser :: Parser Muste.PruneOpts
+pruneOptionsParser = Muste.PruneOpts
+                     <$> (pruneSearchDepthParser <|> searchDepthParser)
+                     <*> (pruneSearchSizeParser  <|> searchSizeParser)
 
+builderInfoParser :: Parser Muste.BuilderInfo
+builderInfoParser = Muste.BuilderInfo
+                    <$> (adjTreeSearchDepthParser <|> searchDepthParser)
+                    <*> (adjTreeSearchSizeParser  <|> searchSizeParser)
+      
+      
 -- Basic option parsers
 
 precomputeOutputParser :: Parser FilePath
@@ -133,14 +136,11 @@ sentencesParser :: Parser [Text]
 sentencesParser = some (O.strArgument (O.metavar "SENTENCES"))
 
 
-grammarParser :: Parser Text
+grammarParser :: Parser FilePath
 grammarParser = O.strOption
     (  O.short 'G'
     <> O.long "grammar"
-    <> O.help ("The grammar to use.  " <>
-               "E.g. \"exemplum/Exemplum\".  " <>
-               "Please note that this is not actually a path, " <>
-               "but rather must be one of the built in grammars.")
+    <> O.help "The path to the PGF grammar to use (e.g., \"grammars/exemplum/Exemplum.pgf\")" 
     <> O.metavar "GRAMMAR"
     )
 
@@ -148,7 +148,7 @@ languageParser :: Parser Text
 languageParser = O.strOption
     (  O.short 'L'
     <> O.long "language"
-    <> O.help "The language to use.  E.g. \"ExemplumSwe\""
+    <> O.help "The language to use, (e.g., \"ExemplumSwe\")"
     <> O.metavar "LANG"
     )
 
@@ -182,14 +182,14 @@ adjTreeSearchDepthParser = O.optional $ O.option O.auto
 adjTreeSearchSizeParser :: Parser (Maybe Int)
 adjTreeSearchSizeParser = O.optional $ O.option O.auto
     (  O.long "max-adjtree-size"
-    <> O.help "Limit search size when creating adjunction trees. "
+    <> O.help "Limit search size when creating adjunction trees"
     <> O.metavar "SIZE"
     )
 
 pruneSearchDepthParser :: Parser (Maybe Int)
 pruneSearchDepthParser = O.optional $ O.option O.auto
     (  O.long "max-prune-depth"
-    <> O.help "Limit search depth when pruning trees. "
+    <> O.help "Limit search depth when pruning trees"
     <> O.metavar "DEPTH"
     )
 
@@ -204,8 +204,7 @@ searchDepthParser :: Parser (Maybe Int)
 searchDepthParser = O.optional $ O.option O.auto
     (  O.short 'D'
     <> O.long "max-depth"
-    <> O.help
-      "Limit search depth when pruning trees and creating adjunction trees."
+    <> O.help "Limit search depth when pruning trees and creating adjunction trees"
     <> O.metavar "DEPTH"
     )
 
@@ -213,7 +212,6 @@ searchSizeParser :: Parser (Maybe Int)
 searchSizeParser = O.optional $ O.option O.auto
     (  O.short 'S'
     <> O.long "max-size"
-    <> O.help
-      "Limit search size when pruning trees and creating adjunction trees."
+    <> O.help "Limit search size when pruning trees and creating adjunction trees"
     <> O.metavar "SIZE"
     )
