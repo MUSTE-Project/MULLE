@@ -5,29 +5,20 @@
 
 {-# OPTIONS_GHC -Wall #-}
 {-# Language
- DeriveAnyClass,
  DerivingStrategies,
  GeneralizedNewtypeDeriving,
  MultiParamTypeClasses,
- NamedFieldPuns,
  OverloadedStrings,
- RecordWildCards,
- ScopedTypeVariables,
- StandaloneDeriving,
- TypeApplications
+ StandaloneDeriving
 #-}
 
 module Repl
-  -- * The repl monad
   ( Muste
-  -- * Ways of running the repl
   , interactively
   , detachedly
-  -- * The single repl command
   , updateMenu
-  -- * Additional bits and bobs needed to make this run
-  , Options(..)
   , Env(..)
+  , grName
   ) where
 
 import System.Console.Repline (HaskelineT, runHaskelineT)
@@ -35,8 +26,7 @@ import qualified System.Console.Haskeline as Repline
 import qualified System.Console.Repline as Repline
 
 import Control.Category ((>>>))
-import Control.Monad.State.Strict
-import Control.Monad.Reader
+import Control.Monad.Reader (ask, ReaderT, runReaderT, MonadReader, MonadIO, liftIO)
 import Data.Function ((&))
 
 import Data.Text.Prettyprint.Doc (Doc, Pretty(pretty), (<+>))
@@ -50,102 +40,74 @@ import qualified Data.List as List
 import GHC.Exts (toList)
 
 import qualified Muste
+import qualified Options
 
-
--- | Options for the REPL.
-data Options = Options
-  { printNodes :: Bool
-  , compact    :: Bool
-  , pruneOpts  :: Muste.PruneOpts
-  }
+grName :: Text
+grName = "GRAMMAR"
 
 -- | Data used during execution of the REPL.
 data Env = Env
-  { ctxt :: Muste.Context
+  { printOpts  :: Options.PrintOptions
+  , pruneOpts  :: Muste.PruneOpts
+  , muState :: Muste.MUState
+  , muLang :: Text
   }
 
 -- | The monad used for interacting with the MUSTE library.
-newtype Muste m a = Muste { unMuste :: (ReaderT Options (StateT Env m)) a }
+newtype Muste a = Muste { unMuste :: (ReaderT Env IO) a }
 
-deriving newtype instance Functor m             => Functor (Muste m)
-deriving newtype instance Monad m               => Applicative (Muste m)
-deriving newtype instance Monad m               => Monad (Muste m)
-deriving newtype instance MonadIO m             => MonadIO (Muste m)
-deriving newtype instance Monad m               => MonadReader Options (Muste m)
-deriving newtype instance Monad m               => MonadState Env (Muste m)
-deriving newtype instance Repline.MonadException m => Repline.MonadException (Muste m)
+deriving newtype instance Functor Muste
+deriving newtype instance Applicative Muste
+deriving newtype instance Monad Muste
+deriving newtype instance MonadIO Muste
+deriving newtype instance MonadReader Env Muste
+deriving newtype instance Repline.MonadException Muste
 
-type Repl a = HaskelineT (Muste IO) a
+type Repl = HaskelineT Muste 
 
-detachedly :: Options -> Env -> Repl a -> IO a
-detachedly opts env act
-  = runHaskelineT Repline.defaultSettings act
-  & runMuste opts env
+detachedly :: Env -> Repl a -> IO a
+detachedly env act
+    = runHaskelineT Repline.defaultSettings act
+    & runMuste env
 
-runMuste
-  :: Monad m
-  => Options
-  -> Env
-  -> Muste m a
-  -> m a
-runMuste opts env
-  =   unMuste
-  >>> flip runReaderT opts
-  >>> flip evalStateT env
+runMuste :: Env -> Muste a -> IO a
+runMuste env = unMuste >>> flip runReaderT env
 
-evalRepl
-  :: Repline.MonadException m
-  => String                      -- ^ Banner
-  -> Repline.Command (HaskelineT m) -- ^ Command
-  -> Repline.Options (HaskelineT m) -- ^ Options
-  -> Repline.CompleterStyle m       -- ^ Tab completion
-  -> HaskelineT m a              -- ^ Initializer
-  -> m ()
-evalRepl b c o s i
-  = Repline.evalRepl (pure b) c o (pure ':') s i
+interactively :: Env -> Repline.Command Repl -> IO ()
+interactively env cmd
+    = Repline.evalRepl (return "MULLE> ") cmd [] (Just ':') completer ini
+    & runMuste env
 
-interactively :: Options -> Env -> Repline.Command (HaskelineT (Muste IO)) -> IO ()
-interactively opts env cmd
-  = evalRepl "MULLE> " cmd options completer ini
-  & runMuste opts env
-
--- I think there's a bug in the instantiation of `MonadReader` for
--- `HaskelineT` meaning that we have to use `lift` here.
-getPrintNodes :: Repl Bool
-getPrintNodes = lift $ asks @Options printNodes
-
-getCompact :: Repl Bool
-getCompact = lift $ asks @Options compact
-
-askPruneOpts :: Repl Muste.PruneOpts
--- TODO Actually be ready with an answer here.
-askPruneOpts = lift $ asks @Options pruneOpts
 
 updateMenu :: Text -> Repl ()
-updateMenu s = do
-  ctxt <- getContext
-  m <- getMenuFor s
-  verb <- getPrintNodes
-  comp <- getCompact
-  let menuList = Mono.mapToList m
-  let compDoc = Doc.vsep
+updateMenu sent = do
+    env <- ask
+    let menus = getMenuFor env sent
+    let doc = if Options.printCompact (printOpts env) 
+              then prettyCompact sent menus
+              else prettyMenu env sent menus
+    liftIO $ do
+        Text.putStrLn $ "Sentence is now: " <> sent
+        Muste.putDocLn doc
+
+
+prettyCompact :: Text -> Muste.Menu -> Doc act
+prettyCompact sent menus =
+    Doc.vsep
         $  [ Doc.fill 60 "Selection" <+> "N:o menu items, total:"
              <+> pretty (sum (map (length . snd) menuList))
            ]
         <> (purdy <$> menuList)
-  let doc = if comp then compDoc
-            else prettyMenu verb ctxt s m
-  liftIO $ do
-    Text.putStrLn $ "Sentence is now: " <> s
-    Muste.putDocLn doc
-    where
+ where
+    menuList = Mono.mapToList menus
     purdy (sel, items)
       = Doc.fill 60
             (pretty sel <> ":" <+> prettyLin sel (Text.words s))
         <+> pretty (length items)
 
-prettyMenu :: forall a . Bool -> Muste.Context -> Text -> Muste.Menu -> Doc a
-prettyMenu verbose ctxt sent menu
+
+prettyMenu :: Env -> Text -> Muste.Menu -> Doc a
+prettyMenu env sent menus
   = Doc.vsep
     [ Doc.vcat
       [ ""
@@ -155,28 +117,29 @@ prettyMenu verbose ctxt sent menu
       , Doc.vcat
         [ maybeVerbose
           (prettyLin sel' (map getWord lin))
-          (prettyLin sel' (map getWord lin))
+          (prettyLin sel' (map getNodes lin))
         | (sel', Muste.Linearization lin) <- Set.toList items ]
       ]
-    | (sel, items) <- Mono.mapToList menu ]
-  where
-  annotated :: [Text]
-  annotated = [ getNodes tok | tok <- lin ]
-    where Muste.Linearization lin
-            = foldl1 Muste.mergeL 
-              [ Muste.mkLinearization ctxt t
-              | t <- Muste.parseSentence
-                     (Muste.ctxtGrammar ctxt)
-                     (Muste.ctxtLang ctxt)
-                     sent
-              ]
-  getWord :: Muste.Token -> Text
-  getWord (Muste.Token word _) = word
-  getNodes :: Muste.Token -> Text
-  getNodes (Muste.Token _ nodes) = Text.intercalate "+" (Set.toList nodes)
-  maybeVerbose docA docB
-    | verbose   = Doc.fill 60 docA <+> docB
-    | otherwise = docA
+    | (sel, items) <- Mono.mapToList menus ]
+ where
+    annotated :: [Text]
+    annotated = [ getNodes tok | tok <- lin ]
+        where Muste.Linearization lin = foldl1 Muste.mergeL 
+                    [ Muste.mkLinearization ctxt t
+                    | let lin' = Muste.Linearization [Muste.Token (Text.pack w) mempty | w <- words (Text.unpack sent)],
+                    t <- Muste.parseSentenceMU (muState env) grName (Muste.LangLin (muLang env) lin')
+                    ]
+    ctxt :: Muste.Context
+    ctxt = Muste.getContextMU (muState env) grName (muLang env)
+    getWord :: Muste.Token -> Text
+    getWord (Muste.Token word _) = word
+    getNodes :: Muste.Token -> Text
+    getNodes (Muste.Token _ nodes) = Text.intercalate "+" (Set.toList nodes)
+    maybeVerbose :: Doc a -> Doc a -> Doc a
+    maybeVerbose docA docB
+        | Options.printNodes (printOpts env) = Doc.fill 60 docA <+> docB
+        | otherwise = docA
+
 
 prettyLin :: Pretty tok => Muste.Selection -> [tok] -> Doc a
 prettyLin sel tokens  = Doc.hsep tokens''
@@ -193,23 +156,17 @@ prettyLin sel tokens  = Doc.hsep tokens''
                         [ "[]" | length tokens `elem` insertions ]
 
 
--- | @'getMenu' s@ gets a menu for a sentence @s@.
-getMenuFor
-  :: Text -- ^ The sentence to parse
-  -> Repl Muste.Menu
-getMenuFor s = do
-  c <- getContext
-  opts <- askPruneOpts
-  pure $ Muste.getMenuItems opts c s
+getMenuFor :: Env -> Text -> Muste.Menu
+getMenuFor env sent = menus
+ where 
+    Muste.LinMenus _lin menus 
+            = Muste.getMenusMU (muState env) (pruneOpts env) grName (Muste.LangLin (muLang env) lin')
+    lin' = Muste.Linearization 
+            [ Muste.Token (Text.pack w) mempty | w <- words (Text.unpack sent) ]
 
-getContext :: Repl Muste.Context
-getContext = gets $ \(Env { .. }) -> ctxt
-
-options :: Repline.Options (HaskelineT (Muste IO))
-options = mempty
 
 -- Currently no completion support.
-completer :: Repline.CompleterStyle (Muste IO)
+completer :: Repline.CompleterStyle Muste 
 completer = Repline.Word (const (pure mempty))
 
 ini :: Repl ()
