@@ -7,8 +7,6 @@
 module Muste.Util
   ( wildCard
   , editDistance
-  , binaryFromText
-  , binaryToText
   , lookupFail
   , putDocLn
   , fromBlob
@@ -22,8 +20,7 @@ import qualified Database.SQLite.Simple.FromField as SQL
 
 import Data.Binary (Binary)
 import qualified Data.Binary as Binary
-import Data.ByteString.Lazy (ByteString)
-import Data.String.Conversions (ConvertibleStrings(convertString))
+import qualified Data.ByteString.Lazy as LazyBS
 import qualified Data.Containers as Mono
 import Data.Containers (IsMap)
 import Data.String (IsString)
@@ -67,12 +64,6 @@ maybeFail :: Monad m => String -> Maybe a -> m a
 maybeFail err Nothing = fail err
 maybeFail _  (Just a) = pure a
 
-binaryToText :: Binary bin => ConvertibleStrings ByteString text => bin -> text
-binaryToText = convertString . Binary.encode
-
-binaryFromText :: Binary bin => ConvertibleStrings text ByteString => text -> bin
-binaryFromText = Binary.decode . convertString
-
 lookupFail
   :: Monad m
   => IsMap map
@@ -94,16 +85,16 @@ putDocLn = putDoc . (<> Doc.line)
 
 fromBlob :: Typeable b => Binary b => SQL.Field -> SQL.Ok b
 fromBlob fld = case SQL.fieldData fld of
-  SQL.SQLBlob t -> pure $ binaryFromText t
+  SQL.SQLBlob t -> pure $ Binary.decode $ LazyBS.fromStrict t
   _ -> SQL.returnError SQL.ConversionFailed fld mempty
 
 toBlob :: Binary b => b -> SQL.SQLData
-toBlob = SQL.SQLBlob . binaryToText
+toBlob b = SQL.SQLBlob $ LazyBS.toStrict $ Binary.encode b
 
 -- | Safe conversion of blob columns that may be null.
 fromNullableBlob :: Typeable b => Binary b => Monoid b => SQL.Field -> SQL.Ok b
 fromNullableBlob fld = case SQL.fieldData fld of
-  SQL.SQLBlob t -> pure $ binaryFromText t
+  SQL.SQLBlob t -> pure $ Binary.decode $ LazyBS.fromStrict t
   SQL.SQLNull -> pure mempty
   _ -> SQL.returnError SQL.ConversionFailed fld mempty
 

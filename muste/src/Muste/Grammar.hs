@@ -38,10 +38,10 @@ import qualified Data.Set as Set
 import Data.List (union, partition)
 import Data.Text (Text)
 import qualified Data.Text as Text
+import qualified Data.Text.Encoding as Enc
 import Text.Printf (printf)
 import Data.Text.Prettyprint.Doc (Pretty(..))
 import qualified Data.Text.Prettyprint.Doc as Doc
-import Data.String.Conversions (convertString)
 import Data.MultiSet (MultiSet)
 import qualified Data.MultiSet as MultiSet
 
@@ -211,7 +211,7 @@ toGfTree tree =
     snd $ convert tree 0
 
 catToCid :: Category -> PGF.CId
-catToCid = Tree.unCategory >>> convertString >>> PGF.utf8CId
+catToCid = Tree.unCategory >>> Enc.encodeUtf8 >>> PGF.utf8CId
 
 -- FIXME A 'PGF.CId' is just a newtype wrapper around a 'ByteString'.
 -- If we could just get at that somehow.  If [this PR][PR#9] goes

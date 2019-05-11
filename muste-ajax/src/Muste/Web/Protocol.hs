@@ -23,9 +23,9 @@ import qualified Database.SQLite.Simple as SQL
 import qualified Data.Aeson as Aeson
 import Data.Aeson (FromJSON, ToJSON, (.=))
 import qualified Data.Yaml as Yaml
-import Data.String.Conversions (convertString)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as ByteString
+import qualified Data.ByteString.Lazy as LazyBS
 import qualified Data.HashMap.Strict as HMap
 
 import qualified Muste
@@ -117,7 +117,7 @@ getMessage =
      case body of
        Nothing -> CL.throwIO (Proto.RequestBodyError)
        Just a' ->
-         case Aeson.eitherDecode (convertString a') of
+         case Aeson.eitherDecode (LazyBS.fromStrict a') of
            Left  e -> CL.throwIO (Proto.JSONDecodeError e)
            Right a -> return a
 
