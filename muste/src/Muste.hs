@@ -7,7 +7,6 @@ module Muste
   , module Muste.Menu
   , module Muste.Sentence
   , module Muste.Selection
-  , module Muste.Util
   ) where
 
 -- used by muste-ajax
@@ -21,6 +20,8 @@ import Muste.State
   , editDistanceMU
   , LangLin(..)
   , LinMenus(..)
+  -- only used by muste-cli:
+  , lookupLessonMU
   )
 
 import Muste.Prune
@@ -34,30 +35,16 @@ import Muste.AdjunctionTrees
 
 -- only used by muste-cli
 
-import Muste.State
-  ( lookupLessonMU
-  , parseSentenceMU
-  , getContextMU
-  )
-
 import Muste.Menu
   ( Menu
-  , getMenuItems
   )
 
 import Muste.Sentence
-  ( Context(Context, ctxtGrammar, ctxtLang)
-  , Linearization(Linearization)
-  , mergeL
-  , mkLinearization
+  ( Linearization(Linearization)
   , Token(Token) 
   )
 
 import Muste.Selection
-  ( Selection
-  , runInterval
-  )
-
-import Muste.Util
-  ( putDocLn
+  ( Selection(runSelection)
+  , Interval(runInterval)
   )

@@ -3,7 +3,6 @@
 module Main (main) where
 
 import qualified Data.Binary as Binary
-import qualified Data.Text as Text
 
 import qualified Muste   as M
 import qualified Repl    as R
@@ -12,8 +11,8 @@ import qualified Options as O
 
 runMuste :: M.MUState -> O.MusteOptions -> IO ()
 runMuste mustate opts
-    | null sentences = R.interactively replEnv (R.updateMenu . Text.pack)
-    | otherwise      = R.detachedly    replEnv (mapM_ R.updateMenu sentences)
+    | null sentences = R.interactively replEnv
+    | otherwise      = R.detachedly    replEnv sentences
  where 
     replEnv   = R.Env (O.printOptions opts) (O.pruneOptions opts) mustate (O.language opts)
     sentences = O.sentences opts

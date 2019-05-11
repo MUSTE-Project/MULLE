@@ -8,7 +8,6 @@ module Muste.Util
   ( wildCard
   , editDistance
   , lookupFail
-  , putDocLn
   , fromBlob
   , toBlob
   , fromNullableBlob
@@ -25,9 +24,6 @@ import qualified Data.Containers as Mono
 import Data.Containers (IsMap)
 import Data.String (IsString)
 import Data.Text (Text)
-import Data.Text.Prettyprint.Doc (Doc)
-import qualified Data.Text.Prettyprint.Doc as Doc
-import qualified Data.Text.Prettyprint.Doc.Render.Text as Doc
 
 import Data.Typeable (Typeable)
 
@@ -72,12 +68,6 @@ lookupFail
   -> map
   -> m (Mono.MapValue map)
 lookupFail err k = maybeFail err . Mono.lookup k
-
-putDoc :: Doc a -> IO ()
-putDoc = Doc.putDoc
-
-putDocLn :: Doc a -> IO ()
-putDocLn = putDoc . (<> Doc.line)
 
 
 --------------------------------------------------------------------------------

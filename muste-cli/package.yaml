@@ -23,11 +23,9 @@ dependencies:
   - gitrev               >= 1.3.1    && < 1.4   # Development.GitRev
   - haskeline            >= 0.7.4.3  && < 0.8   # System.Console.Haskeline
   - mono-traversable     >= 1.0.9.0  && < 1.1   # Data.{Containers, MonoTraversable, ...}
-  - mtl                  >= 2.2.2    && < 2.3   # Control.Monad.{Except, Reader, State, Trans, ...}
   - muste                >= 0.4      && < 0.5   # Muste
   - optparse-applicative >= 0.14.3.0 && < 0.15  # Options.Applicative
   - prettyprinter        >= 1.2.1    && < 1.3   # Data.Text.Prettyprint
-  - repline              >= 0.2.0.0  && < 0.3   # System.Console.Repline
   - text                 >= 1.2.3.1  && < 1.3   # Data.Text
 
 executables:

@@ -1,43 +1,25 @@
--- | A REPL (Read Eval Print Loop) for the MUSTE library.
---
--- This functionality is provided by the backend
--- "System.Control.Repline".
-
 {-# OPTIONS_GHC -Wall #-}
 {-# Language
- DerivingStrategies,
- GeneralizedNewtypeDeriving,
- MultiParamTypeClasses,
- OverloadedStrings,
- StandaloneDeriving
+ OverloadedStrings
 #-}
 
 module Repl
-  ( Muste
-  , interactively
+  ( interactively
   , detachedly
-  , updateMenu
   , Env(..)
   , grName
   ) where
 
-import System.Console.Repline (HaskelineT, runHaskelineT)
-import qualified System.Console.Haskeline as Repline
-import qualified System.Console.Repline as Repline
+import qualified System.Console.Haskeline as H
 
-import Control.Category ((>>>))
-import Control.Monad.Reader (ask, ReaderT, runReaderT, MonadReader, MonadIO, liftIO)
-import Data.Function ((&))
-
+import Control.Monad.IO.Class (liftIO)
 import Data.Text.Prettyprint.Doc (Doc, Pretty(pretty), (<+>))
 import qualified Data.Text.Prettyprint.Doc as Doc
 import Data.Text (Text)
 import qualified Data.Text as Text
-import qualified Data.Text.IO as Text
 import qualified Data.Set as Set
 import qualified Data.Containers as Mono
 import qualified Data.List as List
-import GHC.Exts (toList)
 
 import qualified Muste
 import qualified Options
@@ -47,48 +29,38 @@ grName = "GRAMMAR"
 
 -- | Data used during execution of the REPL.
 data Env = Env
-  { printOpts  :: Options.PrintOptions
-  , pruneOpts  :: Muste.PruneOpts
-  , muState :: Muste.MUState
-  , muLang :: Text
+  { printOpts :: Options.PrintOptions
+  , pruneOpts :: Muste.PruneOpts
+  , muState   :: Muste.MUState
+  , muLang    :: Text
   }
 
--- | The monad used for interacting with the MUSTE library.
-newtype Muste a = Muste { unMuste :: (ReaderT Env IO) a }
 
-deriving newtype instance Functor Muste
-deriving newtype instance Applicative Muste
-deriving newtype instance Monad Muste
-deriving newtype instance MonadIO Muste
-deriving newtype instance MonadReader Env Muste
-deriving newtype instance Repline.MonadException Muste
-
-type Repl = HaskelineT Muste 
-
-detachedly :: Env -> Repl a -> IO a
-detachedly env act
-    = runHaskelineT Repline.defaultSettings act
-    & runMuste env
-
-runMuste :: Env -> Muste a -> IO a
-runMuste env = unMuste >>> flip runReaderT env
-
-interactively :: Env -> Repline.Command Repl -> IO ()
-interactively env cmd
-    = Repline.evalRepl (return "MULLE> ") cmd [] (Just ':') completer ini
-    & runMuste env
+detachedly :: Env -> [Text] -> IO ()
+detachedly env sentences = mapM_ (updateMenu env) sentences
 
 
-updateMenu :: Text -> Repl ()
-updateMenu sent = do
-    env <- ask
-    let menus = getMenuFor env sent
-    let doc = if Options.printCompact (printOpts env) 
-              then prettyCompact sent menus
-              else prettyMenu env sent menus
-    liftIO $ do
-        Text.putStrLn $ "Sentence is now: " <> sent
-        Muste.putDocLn doc
+interactively :: Env -> IO ()
+interactively env = H.runInputT H.defaultSettings (liftIO initial_text >> loop)
+  where
+    loop = H.getInputLine "\nMULLE> " >>= handle
+    handle Nothing = return ()
+    handle (Just "") = H.outputStrLn "Ctrl-D to quit" >> loop
+    handle (Just input) = liftIO (updateMenu env (Text.pack input)) >> loop
+
+
+updateMenu :: Env -> Text -> IO ()
+updateMenu env sent = putStrLn $ unlines
+    [ ""
+    , "+---------------------------------------------------------------------"
+    , "+-- " ++ Text.unpack sent
+    , show doc
+    ]
+  where 
+    menus = getMenuFor env sent
+    doc = if Options.printCompact (printOpts env) 
+          then prettyCompact sent menus
+          else prettyMenu env sent menus
 
 
 prettyCompact :: Text -> Muste.Menu -> Doc act
@@ -102,7 +74,7 @@ prettyCompact sent menus =
     menuList = Mono.mapToList menus
     purdy (sel, items)
       = Doc.fill 60
-            (pretty sel <> ":" <+> prettyLin sel (Text.words s))
+            (pretty sel <> ":" <+> prettyLin sel (Text.words sent))
         <+> pretty (length items)
 
 
@@ -113,7 +85,7 @@ prettyMenu env sent menus
       [ ""
       , maybeVerbose
         (pretty sel <> ":" <+> prettyLin sel (Text.words sent))
-        (prettyLin sel annotated)
+        (prettyLin sel (map getNodes sentLin))
       , Doc.vcat
         [ maybeVerbose
           (prettyLin sel' (map getWord lin))
@@ -122,15 +94,11 @@ prettyMenu env sent menus
       ]
     | (sel, items) <- Mono.mapToList menus ]
  where
-    annotated :: [Text]
-    annotated = [ getNodes tok | tok <- lin ]
-        where Muste.Linearization lin = foldl1 Muste.mergeL 
-                    [ Muste.mkLinearization ctxt t
-                    | let lin' = Muste.Linearization [Muste.Token (Text.pack w) mempty | w <- words (Text.unpack sent)],
-                    t <- Muste.parseSentenceMU (muState env) grName (Muste.LangLin (muLang env) lin')
-                    ]
-    ctxt :: Muste.Context
-    ctxt = Muste.getContextMU (muState env) grName (muLang env)
+    sentLin :: [Muste.Token]
+    Muste.Linearization sentLin
+        = maybe (error "Can't find linearization nodes in menu")
+                (snd . head . Set.toList) 
+                (Mono.lookup mempty menus)
     getWord :: Muste.Token -> Text
     getWord (Muste.Token word _) = word
     getNodes :: Muste.Token -> Text
@@ -143,7 +111,7 @@ prettyMenu env sent menus
 
 prettyLin :: Pretty tok => Muste.Selection -> [tok] -> Doc a
 prettyLin sel tokens  = Doc.hsep tokens''
-    where intervals   = [ Muste.runInterval int | int <- toList sel ]
+    where intervals   = [ Muste.runInterval int | int <- Set.toList (Muste.runSelection sel) ]
           insertions  = [ pos  | (pos,pos') <- intervals, pos == pos' ]
           leftbraces  = [ pos  | (pos,pos') <- intervals, pos < pos' ]
           rightbraces = [ pos' | (pos,pos') <- intervals, pos < pos' ]
@@ -165,12 +133,8 @@ getMenuFor env sent = menus
             [ Muste.Token (Text.pack w) mempty | w <- words (Text.unpack sent) ]
 
 
--- Currently no completion support.
-completer :: Repline.CompleterStyle Muste 
-completer = Repline.Word (const (pure mempty))
-
-ini :: Repl ()
-ini = liftIO $ putStrLn $ unlines
+initial_text :: IO ()
+initial_text = putStrLn $ unlines
   [ "Type in a sentence to get the menu for that sentence."
   , ""
   , "Please note that sentences that cannot be parsed are silently ignored."

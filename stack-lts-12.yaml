@@ -24,6 +24,3 @@ extra-deps:
 
 # User goal `multiset`
 - multiset-0.3.4
-
-# User goal `repline`
-- repline-0.2.0.0
