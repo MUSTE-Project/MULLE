@@ -33,8 +33,9 @@ import qualified Data.Aeson as Aeson
 import Data.Yaml (decodeFileThrow)
 import qualified Data.Text.Encoding as Enc
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Data.ByteString (ByteString)
-import Data.String.Conversions (convertString)
+import qualified Data.ByteString.Char8 as ByteString
 import qualified Data.Time.Clock as Time
 import qualified Data.Time.Format as Time
 import Data.Time.Clock (UTCTime)
@@ -266,8 +267,8 @@ instance ToJSON Token where
 
 -- FIXME Reduce the three-layered string conversion going on here.
 genToken :: UTCTime -> Token
-genToken = Token . convertString . show . hash
-           . convertString . Time.formatTime Time.defaultTimeLocale "%s"
+genToken = Token . Text.pack . show . hash
+           . ByteString.pack . Time.formatTime Time.defaultTimeLocale "%s"
  where hash :: ByteString -> CryptoH.Digest CryptoH.SHA3_512
        hash = CryptoH.hash
 
