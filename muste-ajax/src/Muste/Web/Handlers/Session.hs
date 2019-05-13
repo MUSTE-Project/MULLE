@@ -18,6 +18,7 @@ module Muste.Web.Handlers.Session
   , addUser
   ) where
 
+import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (asks)
 import qualified Control.Exception.Lifted as CL
@@ -59,7 +60,7 @@ loginUser (NamePwd name pwd) = wrapConnection $ \conn ->
 
 createUser :: NamePwd -> MULLE v ()
 createUser (NamePwd name pwd) = wrapConnection $ \conn -> 
-  do addUser conn name pwd
+    addUser conn name pwd
 
 
 data NamePwd = NamePwd
@@ -110,7 +111,7 @@ instance ToJSON NameOldNewPwd where
 
 logoutUser :: SessionTokenOnly -> MULLE v ()
 logoutUser (SessionTokenOnly token) = wrapConnection $ \conn -> 
-  do deleteSession conn token
+    deleteSession conn token
 
 
 --------------------------------------------------------------------------------
@@ -195,10 +196,9 @@ verifySession token = wrapConnection $ \conn ->
      -- Compute the difference in time stamps
      newTimeStamp <- Time.getCurrentTime
      -- Check if a session exists and it is has been active in the last 30 minutes
-     if expired sessions newTimeStamp
-       then do deleteSession conn token
-               CL.throwIO MULLError.SessionTimeout
-       else return ()
+     when (expired sessions newTimeStamp) $
+       do deleteSession conn token
+          CL.throwIO MULLError.SessionTimeout
 
 
 -- | Creates a new session and returns the session token.
@@ -243,7 +243,7 @@ instance ToJSON a => ToJSON (SessionToken a) where
     ]
 
 
-data SessionTokenOnly = SessionTokenOnly Token
+newtype SessionTokenOnly = SessionTokenOnly Token
 
 instance FromJSON SessionTokenOnly where
   parseJSON = Aeson.withObject "SessionTokenOnly" $ \v -> SessionTokenOnly

@@ -115,7 +115,7 @@ getMessage :: FromJSON json => MULLE v json
 getMessage = 
   do body <- Snap.runRequestBody Streams.read
      case body of
-       Nothing -> CL.throwIO (Proto.RequestBodyError)
+       Nothing -> CL.throwIO Proto.RequestBodyError
        Just a' ->
          case Aeson.eitherDecode (LazyBS.fromStrict a') of
            Left  e -> CL.throwIO (Proto.JSONDecodeError e)
