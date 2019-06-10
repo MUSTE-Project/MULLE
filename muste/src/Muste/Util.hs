@@ -7,7 +7,6 @@
 module Muste.Util
   ( wildCard
   , editDistance
-  , lookupFail
   , fromBlob
   , toBlob
   , fromNullableBlob
@@ -20,7 +19,6 @@ import qualified Database.SQLite.Simple.FromField as SQL
 import Data.Binary (Binary)
 import qualified Data.Binary as Binary
 import qualified Data.ByteString.Lazy as LazyBS
-import qualified Data.Containers as Mono
 import Data.Containers (IsMap)
 import Data.String (IsString)
 import Data.Text (Text)
@@ -55,19 +53,6 @@ editDistance a b = last (if lab == 0 then mainDiag
                     thisdiag = firstelt : doDiag a b firstelt diagAbove (tail diagBelow)
           lab = length a - length b
           min3 x y z = if x < y then x else min y z
-
-maybeFail :: Monad m => String -> Maybe a -> m a
-maybeFail err Nothing = fail err
-maybeFail _  (Just a) = pure a
-
-lookupFail
-  :: Monad m
-  => IsMap map
-  => String
-  -> Mono.ContainerKey map
-  -> map
-  -> m (Mono.MapValue map)
-lookupFail err k = maybeFail err . Mono.lookup k
 
 
 --------------------------------------------------------------------------------
