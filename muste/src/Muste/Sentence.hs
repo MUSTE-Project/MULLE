@@ -24,9 +24,11 @@ module Muste.Sentence
   , annotated
   ) where
 
-import Muste.Util (toBlob, fromBlob)
 import Database.SQLite.Simple.ToField (ToField(..))
 import Database.SQLite.Simple.FromField (FromField(..))
+import qualified Database.SQLite.Simple as SQL
+import qualified Database.SQLite.Simple.Ok as SQL
+import qualified Database.SQLite.Simple.FromField as SQL
 
 import Data.Function ((&))
 import GHC.Generics (Generic)
@@ -34,6 +36,8 @@ import GHC.Generics (Generic)
 import Data.Aeson (ToJSON(..), FromJSON(..), (.=), (.:), (.:?), (.!=))
 import qualified Data.Aeson as Aeson
 import Data.Binary (Binary)
+import qualified Data.Binary as Binary
+import qualified Data.ByteString.Lazy as LazyBS
 import qualified Data.Text as Text
 import Data.Text (Text)
 import Data.Text.Prettyprint.Doc (Pretty(..))
@@ -41,6 +45,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Typeable (Typeable)
 
 import qualified PGF
 
@@ -254,3 +259,14 @@ mergeToken (Token a0 a1) (Token _ b1) = Token
   { concrete = a0
   , classes  = Set.union a1 b1
   }
+
+
+--------------------------------------------------------------------------------
+
+fromBlob :: Typeable b => Binary b => SQL.Field -> SQL.Ok b
+fromBlob fld = case SQL.fieldData fld of
+  SQL.SQLBlob t -> pure $ Binary.decode $ LazyBS.fromStrict t
+  _ -> SQL.returnError SQL.ConversionFailed fld mempty
+
+toBlob :: Binary b => b -> SQL.SQLData
+toBlob b = SQL.SQLBlob $ LazyBS.toStrict $ Binary.encode b

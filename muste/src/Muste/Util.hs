@@ -7,23 +7,10 @@
 module Muste.Util
   ( wildCard
   , editDistance
-  , fromBlob
-  , toBlob
-  , fromNullableBlob
   ) where
 
-import qualified Database.SQLite.Simple as SQL
-import qualified Database.SQLite.Simple.Ok as SQL
-import qualified Database.SQLite.Simple.FromField as SQL
-
-import Data.Binary (Binary)
-import qualified Data.Binary as Binary
-import qualified Data.ByteString.Lazy as LazyBS
-import Data.Containers (IsMap)
 import Data.String (IsString)
 import Data.Text (Text)
-
-import Data.Typeable (Typeable)
 
 wildCard :: IsString text => text
 wildCard = "*empty*"
@@ -53,23 +40,4 @@ editDistance a b = last (if lab == 0 then mainDiag
                     thisdiag = firstelt : doDiag a b firstelt diagAbove (tail diagBelow)
           lab = length a - length b
           min3 x y z = if x < y then x else min y z
-
-
---------------------------------------------------------------------------------
--- SQL utilities, converting to/from BLOBs
-
-fromBlob :: Typeable b => Binary b => SQL.Field -> SQL.Ok b
-fromBlob fld = case SQL.fieldData fld of
-  SQL.SQLBlob t -> pure $ Binary.decode $ LazyBS.fromStrict t
-  _ -> SQL.returnError SQL.ConversionFailed fld mempty
-
-toBlob :: Binary b => b -> SQL.SQLData
-toBlob b = SQL.SQLBlob $ LazyBS.toStrict $ Binary.encode b
-
--- | Safe conversion of blob columns that may be null.
-fromNullableBlob :: Typeable b => Binary b => Monoid b => SQL.Field -> SQL.Ok b
-fromNullableBlob fld = case SQL.fieldData fld of
-  SQL.SQLBlob t -> pure $ Binary.decode $ LazyBS.fromStrict t
-  SQL.SQLNull -> pure mempty
-  _ -> SQL.returnError SQL.ConversionFailed fld mempty
 
