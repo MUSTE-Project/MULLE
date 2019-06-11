@@ -14,8 +14,8 @@ grammars:
 
 lessons: lessons-exemplum.yaml
 db: data/exemplum.sqlite3
-access-log: log/access-exemplum.log
-error-log: log/error-exemplum.log
+access-log: data/exemplum-access.log
+error-log: data/exemplum-error.log
 static-dir: ../muste-ajax/static
 port: 8080
 

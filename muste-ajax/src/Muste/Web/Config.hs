@@ -30,14 +30,11 @@ appConfig cfgFile =
 defaultDB :: FilePath
 defaultDB = defaultDataDir </> "muste" <.> "sqlite3"
 
-defaultLessons :: FilePath
-defaultLessons = "lessons" <.> "yaml"
-
 defaultAccessLog :: FilePath
-defaultAccessLog = defaultLogDir  </> "access" <.> "log"
+defaultAccessLog = defaultDataDir  </> "access" <.> "log"
 
 defaultErrorLog :: FilePath
-defaultErrorLog = defaultLogDir  </> "error" <.> "log"
+defaultErrorLog = defaultDataDir  </> "error" <.> "log"
 
 defaultPort :: Int
 defaultPort = 8080
@@ -51,15 +48,12 @@ defaultVirtualRoot = mempty
 defaultDataDir :: FilePath
 defaultDataDir = "data"
 
-defaultLogDir :: FilePath
-defaultLogDir = "log"
-
 
 data AppConfig = AppConfig
   { cfgDir      :: FilePath  -- the location of this config file
   , grammars    :: [Grammar]
+  , lessons     :: FilePath  -- the location of the lessons config files
   , db          :: FilePath
-  , lessons     :: FilePath  -- the location of the lessons config file
   , accessLog   :: FilePath
   , errorLog    :: FilePath
   , port        :: Int
@@ -72,8 +66,8 @@ instance FromJSON AppConfig where
   parseJSON = Aeson.withObject "app-config" $ \v -> AppConfig
     <$> v .:? "cfg-dir"               .!= ""
     <*> v .:  "grammars"
+    <*> v .:  "lessons"
     <*> v .:? "db"                    .!= defaultDB
-    <*> v .:? "lessons"               .!= defaultLessons
     <*> v .:? "access-log"            .!= defaultAccessLog
     <*> v .:? "error-log"             .!= defaultErrorLog
     <*> v .:? "port"                  .!= defaultPort
@@ -85,8 +79,8 @@ instance ToJSON AppConfig where
   toJSON cfg = Aeson.object
     [ "cfg-dir"      .= cfgDir       cfg
     , "grammars"     .= grammars     cfg
-    , "db"           .= db           cfg
     , "lessons"      .= lessons      cfg
+    , "db"           .= db           cfg
     , "access-log"   .= accessLog    cfg
     , "error-log"    .= errorLog     cfg
     , "port"         .= port         cfg

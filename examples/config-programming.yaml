@@ -11,8 +11,8 @@ grammars:
 
 lessons: lessons-programming.yaml
 db: data/programming.sqlite3
-access-log: log/access-programming.log
-error-log: log/error-programming.log
+access-log: data/programming-access.log
+error-log: data/programming-error.log
 static-dir: ../muste-ajax/static
 port: 8080
 
