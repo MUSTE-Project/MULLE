@@ -64,10 +64,7 @@ createUser (NamePwd name pwd) = wrapConnection $ \conn ->
     addUser conn name pwd
 
 
-data NamePwd = NamePwd
-  { name :: Text
-  , pwd  :: Text
-  }
+data NamePwd = NamePwd Text Text
 
 instance FromJSON NamePwd where
   parseJSON = Aeson.withObject "NamePwd" $ \v -> NamePwd
@@ -75,9 +72,9 @@ instance FromJSON NamePwd where
     <*> v .: "pwd"
 
 instance ToJSON NamePwd where
-  toJSON usr = Aeson.object
-    [ "name" .= name usr
-    , "pwd"  .= pwd  usr
+  toJSON (NamePwd name pwd) = Aeson.object
+    [ "name" .= name
+    , "pwd"  .= pwd
     ]
 
 
