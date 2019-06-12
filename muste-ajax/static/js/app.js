@@ -423,7 +423,7 @@ function exercise_over() {
       lesson: DATA.lesson.name,
       score: DATA.lesson.score,
     };
-    muste_request({value:request}, 'add-completed-lesson');
+    muste_request(request, 'add-completed-lesson');
 
     var popup = i18next.t('exercise.lessonComplete', {returnObjects: true, data: DATA});
     Swal.mixin({
@@ -444,7 +444,7 @@ function exercise_over() {
       exercise: DATA.exercise.nr,
       score: DATA.exercise.score,
     };
-    muste_request({value:request}, 'add-completed-exercise');
+    muste_request(request, 'add-completed-exercise');
 
     var popup = i18next.t('exercise.exerciseComplete', {returnObjects: true, data: DATA});
     Swal.mixin({
@@ -483,7 +483,7 @@ function update_sentences_and_menus(newdata) {
     trg: {lang: DATA.lesson.languages.target, lin: DATA.trg.original},
   };
   reset_selection();
-  muste_request({value:request}, 'get-edit-distance')
+  muste_request(request, 'get-edit-distance')
     .done(function(result) {
       console.log("Current edit distance:", result);
       if (result.distance == 0) {
@@ -493,7 +493,7 @@ function update_sentences_and_menus(newdata) {
         // show the "exercise complete" dialogue after a delay
         setTimeout(exercise_over, 500);
       } else {
-        muste_request({value:request}, 'get-menus')
+        muste_request(request, 'get-menus')
           .done(handle_menu_response);
       }
     });

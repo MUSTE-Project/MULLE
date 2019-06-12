@@ -230,15 +230,15 @@ deleteSession conn token
 data SessionToken a = SessionToken Token a
 
 instance FromJSON a => FromJSON (SessionToken a) where
-  parseJSON = Aeson.withObject "SessionToken" $ \v -> SessionToken
-    <$> v .: "token"
-    <*> v .: "value"
+  parseJSON = Aeson.withObject "SessionToken" $ \v -> 
+    do token <- v .: "token"
+       value <- parseJSON (Aeson.Object v)
+       return (SessionToken token value)
 
 instance ToJSON a => ToJSON (SessionToken a) where
-  toJSON (SessionToken token value) = Aeson.object
-    [ "token" .= token
-    , "value" .= value
-    ]
+  toJSON (SessionToken token value) = Aeson.object ["token" .= token] `merge` toJSON value
+    where Aeson.Object o1 `merge` Aeson.Object o2 = Aeson.Object (o1 <> o2)
+          _ `merge` _ = error "merge: incompatible JSON values"
 
 
 newtype SessionTokenOnly = SessionTokenOnly Token
