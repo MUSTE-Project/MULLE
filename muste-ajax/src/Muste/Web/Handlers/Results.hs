@@ -20,7 +20,7 @@ import Data.Aeson ((.=), (.:), FromJSON(parseJSON), ToJSON(toJSON))
 import qualified Data.Aeson as Aeson
 import qualified Data.Time.Clock as Time
 import Data.Text (Text)
-import Data.List (groupBy)
+import Data.List (groupBy, sortOn)
 
 import qualified Muste.Web.Class as MULLError (MULLError(..))
 import Muste.Web.Class (MULLE, wrapConnection)
@@ -133,14 +133,16 @@ getHighscores :: SessionTokenOnly -> MULLE v [HighScore]
 getHighscores (SessionTokenOnly token) 
   = verifyWrapConnection token $ \conn ->
     do lessons <- SQL.query_ conn " SELECT Lesson, Score, User FROM CompletedLesson "
-       let grouped_lesson_scores = groupBy same lessons
-       return [ maximum scores | scores <- grouped_lesson_scores ]
+       let grouped_lesson_scores = groupBy sameLesson (sortOn sortKey lessons)
+       -- since the groups are sorted by highscore, we can select the first element in each group
+       return [ score | score:_ <- grouped_lesson_scores ]
   where
-    same (HighScore lesson1 _ _) (HighScore lesson2 _ _) = lesson1 == lesson2
+    -- this sort key assures that the scores are grouped by lesson, and then sorted by highscore
+    sortKey (HighScore lesson score _) = (lesson, -score)
+    sameLesson (HighScore lesson1 _ _) (HighScore lesson2 _ _) = lesson1 == lesson2
 
 
 data HighScore = HighScore Text Int Text
-                 deriving (Eq, Ord)
 
 instance FromRow HighScore where
   fromRow = HighScore <$> field <*> field <*> field
