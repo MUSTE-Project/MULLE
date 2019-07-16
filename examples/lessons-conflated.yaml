@@ -1,0 +1,37 @@
+
+- name: "Swedish Number"
+  settings:
+    highlight-matches: on
+  grammar: "Number"
+  languages:
+    source: "ExemplumSwe"
+    target: "ExemplumSwe"
+  exercises:
+    - source: "en god kung läser"
+      target: "en goda kungar läser"
+    - source: "den goda kungen älskar en bok"
+      target: "de dåliga flickorna älskar många pojkar"
+
+- name: "Swedish Gender"
+  settings:
+    highlight-matches: off
+  grammar: "Gender"
+  languages:
+    source: "ExemplumSwe"
+    target: "ExemplumSwe"
+  exercises:
+    - source: "ett hus läser" 
+      target: "en kung läser"
+    - source: "många stora hus älskar en god bok"
+      target: "kungen älskar huset"
+
+- name: "Swedish Species"
+  grammar: "Species"
+  languages:
+    source: "ExemplumSwe"
+    target: "ExemplumSwe"
+  exercises:
+    - source: "den stora kungen älskar det goda huset"
+      target: "en stor kungen älskar ett goda huset"
+    - source: "många stora hus älskar en god bok"
+      target: "kungen älskar huset"

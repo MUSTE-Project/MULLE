@@ -12,10 +12,22 @@ grammars:
     options:
       search-size: 5
 
-lessons: lessons-exemplum.yaml
-db: data/exemplum.sqlite3
-access-log: data/exemplum-access.log
-error-log: data/exemplum-error.log
+  - name: "Programming"
+    path: "grammars/programming/Imperative.pgf"
+    options:
+      search-size: 7
+
+courses: 
+  - name: "Swedish"
+    path: lessons-swedish.yaml
+  - name: "Other languages"
+    path: lessons-otherlangs.yaml
+  - name: "Programming"
+    path: lessons-programming.yaml
+
+db: data/mulle.sqlite3
+access-log: data/mulle-access.log
+error-log: data/mulle-error.log
 static-dir: ../muste-ajax/static
 port: 8080
 

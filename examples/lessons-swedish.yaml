@@ -1,0 +1,30 @@
+
+- name: "English-Swedish"
+  settings:
+    highlight-matches: on
+  grammar: "Exemplum"
+  languages:
+    source: "ExemplumEng"
+    target: "ExemplumSwe"
+  exercises:
+    - source: "many kings love Paris"
+      target: "en god kung älskar Paris"
+    - source: "good kings don't read books"
+      target: "en god kung läser en bok"
+    - source: "the king reads a book in Paris"
+      target: "en kung läser en bok"
+    - source: "a king reads a good book"
+      target: "en kung i Paris läser en bok"
+
+- name: "Spanish-Swedish"
+  settings:
+    highlight-matches: off
+  grammar: "ExemplumAlt"
+  languages:
+    source: "ExemplumSpa"
+    target: "ExemplumSwe"
+  exercises:
+    - source: "un buen rey lee libros"  # a good king reads books
+      target: "en god kung älskar böcker"
+    - source: "un rey ama París"  # a king loves Paris
+      target: "en god kung älskar böcker"

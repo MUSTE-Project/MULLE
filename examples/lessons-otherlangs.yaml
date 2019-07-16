@@ -1,21 +1,4 @@
 
-- name: "Swedish"
-  settings:
-    highlight-matches: on
-  grammar: "Exemplum"
-  languages:
-    source: "ExemplumEng"
-    target: "ExemplumSwe"
-  exercises:
-    - source: "many kings love Paris"
-      target: "en god kung älskar Paris"
-    - source: "good kings don't read books"
-      target: "en god kung läser en bok"
-    - source: "the king reads a book in Paris"
-      target: "en kung läser en bok"
-    - source: "a king reads a good book"
-      target: "en kung i Paris läser en bok"
-
 - name: "Spanish"
   settings:
     highlight-matches: off
@@ -33,7 +16,7 @@
   grammar: "Exemplum"
   languages:
     source: "ExemplumEng"
-    target: "ExemplumChiX"
+    target: "ExemplumChi"
   exercises:
     - source: "a good king loves books"
       target: " 一 个 好 国 王 读 些 书 "  # a good king reads books
