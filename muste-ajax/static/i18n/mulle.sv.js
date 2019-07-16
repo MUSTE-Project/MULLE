@@ -2,7 +2,9 @@
 var I18N = I18N || {};
 
 I18N.sv = {
-  flagicon: 'https://cdn2.iconfinder.com/data/icons/flags_gosquared/32/Sweden_flat.png',
+  // flag downloaded from here:
+  // https://cdn2.iconfinder.com/data/icons/flags_gosquared/32/Sweden_flat.png
+  flagicon: 'external/Sweden_flat.png',
 };
 
 var sv = I18N.sv.translation = {};

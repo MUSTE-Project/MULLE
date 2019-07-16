@@ -2,7 +2,9 @@
 var I18N = I18N || {};
 
 I18N.en = {
-  flagicon: 'https://cdn2.iconfinder.com/data/icons/flags_gosquared/32/United-Kingdom_flat.png',
+  // flag downloaded from here:
+  // https://cdn2.iconfinder.com/data/icons/flags_gosquared/32/United-Kingdom_flat.png
+  flagicon: 'external/United-Kingdom_flat.png',
 };
 
 var en = I18N.en.translation = {};
