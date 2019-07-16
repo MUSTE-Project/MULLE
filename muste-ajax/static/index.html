@@ -82,6 +82,34 @@
   </main>
 
 
+  <!-- PAGE: COURSES -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -->
+
+  <main hidden id="pageCourses">
+    <header>
+      <strong><span data-i18n="app.title">MULLE</span> (<span class="username"></span>)</strong>
+      <nav>
+        <!-- will be filled by the available languages: -->
+        <span class="change-language"></span>
+        <a data-popup="courses.help" data-i18n="[title]nav.help"></a>
+        <a data-page="pageSettings" data-i18n="[title]nav.settings"></a>
+        <a data-page="pageLogin" data-i18n="[title]nav.logout"></a>
+      </nav>
+    </header>
+
+    <section>
+      <header>
+        <h1 data-i18n="courses.title">Courses</h1>
+      </header>
+
+      <div>
+        <div id="courselist">
+          <!-- This will be populated with courses by the function show_courses() -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+
   <!-- PAGE: LESSONS -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -->
 
   <main hidden id="pageLessons">
@@ -93,13 +121,13 @@
         <a data-popup="lesson.help" data-i18n="[title]nav.help"></a>
         <a data-page="pageHighScores" data-i18n="[title]nav.highscores"></a>
         <a data-page="pageSettings" data-i18n="[title]nav.settings"></a>
-        <a data-page="pageLogin" data-i18n="[title]nav.logout"></a>
+        <a data-page="pageCourses" data-i18n="[title]nav.logout"></a>
       </nav>
     </header>
 
     <section>
       <header>
-        <h1 data-i18n="lesson.title">Lessons</h1>
+        <h1 id=coursename></h1>
       </header>
 
       <div>

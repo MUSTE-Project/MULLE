@@ -5,6 +5,8 @@ var DATA = {};
 var LOGIN = {};
 var DEBUG = null;
 
+var CURRENT_COURSE = null;
+var COURSES = [];
 var LESSON_ORDER = [];
 var LESSONS = {};
 
@@ -92,7 +94,7 @@ function set_language(evt) {
     $('title').localize();
     $('body').localize();
     if (LOGIN.token) {
-      show_page('pageLessons');
+      show_page('pageCourses');
     }
   });
 }
@@ -147,8 +149,16 @@ PAGES.pageLogin = function() {
   }
 }
 
+PAGES.pageCourses = function() {
+  CURRENT_COURSE = null;
+  populate_courses();
+}
+
 PAGES.pageLessons = function() {
-  muste_request({}, 'get-completed-lessons')
+  $('#coursename')
+    .text(i18next.t(`backend.courses.${CURRENT_COURSE}.name`, name));
+
+  muste_request({course: CURRENT_COURSE}, 'get-completed-lessons')
     .done(function(lessons) {
       for (var less of lessons) {
         set_score_if_better(LESSONS[less.lesson], less.score);
@@ -156,7 +166,7 @@ PAGES.pageLessons = function() {
                     `${less.lesson}, score: ${less.score}`);
       }
 
-      muste_request({}, 'get-completed-exercises')
+      muste_request({course: CURRENT_COURSE}, 'get-completed-exercises')
         .done(function(exercises) {
           for (var ex of exercises) {
             set_score_if_better(LESSONS[ex.lesson].exercises[ex.exercise], ex.score);
@@ -209,19 +219,11 @@ FORMS.formLogin = function(form) {
       };
       $('.username').text(form.name.value);
 
-      muste_request({}, 'get-lessons')
-        .done(function(lessons) {
-          LESSON_ORDER = [];
-          LESSONS = {};
-          for (var less of lessons) {
-            LESSON_ORDER.push(less.name);
-            LESSONS[less.name] = less;
-            for (var nr = 0; nr < less.exercises.length; nr++) {
-              less.exercises[nr].nr = nr;
-            }
-          }
-          console.log("Reading lessons:", LESSON_ORDER);
-          show_page('pageLessons');
+      muste_request({}, 'get-courses')
+        .done(function(courses) {
+          COURSES = courses;
+          console.log("Reading courses:", COURSES);
+          show_page('pageCourses');
         });
     });   
 }
@@ -262,7 +264,7 @@ FORMS.formChangePwd = function(form) {
       }).fire(
         popup
       ).then(function() {
-        show_page('pageLessons');
+        show_page('pageCourses');
       });
     });
 }
@@ -351,6 +353,47 @@ function muste_request(data, endpoint) {
 
 
 //////////////////////////////////////////////////////////////////////
+// The courses view
+
+// build the course boxes
+function populate_courses() {
+  console.log(`Building info boxes for ${COURSES.length} courses:`, COURSES.join(", "));
+  var $table = $('#courselist').empty();
+  for (var name of COURSES) {
+    $('<div>')
+      .append([
+        $('<h3>')
+        .text(i18next.t(`backend.courses.${name}.name`, name)),
+        $('<button>')
+          .click({course: name}, show_lessons)
+          .text(i18next.t('courses.solve')),
+        $('<p>')
+          .html(i18next.t(`backend.courses.${name}.description`, '')),
+      ])
+      .appendTo($table);
+  }
+}
+
+function show_lessons(data) {
+  if (data.data) data = data.data;
+  CURRENT_COURSE = data.course;
+  muste_request({course: CURRENT_COURSE}, 'get-lessons')
+  .done(function(lessons) {
+    LESSON_ORDER = [];
+    LESSONS = {};
+    for (var less of lessons) {
+      LESSON_ORDER.push(less.name);
+      LESSONS[less.name] = less;
+      for (var nr = 0; nr < less.exercises.length; nr++) {
+        less.exercises[nr].nr = nr;
+      }
+    }
+    console.log("Reading lessons:", LESSON_ORDER);
+    show_page('pageLessons');
+  });
+}
+
+//////////////////////////////////////////////////////////////////////
 // The lessons view
 
 // build the lesson boxes
@@ -366,7 +409,7 @@ function populate_lessons() {
     $('<div>')
       .append([
         $('<h3>')
-          .text(i18next.t(`backend.${name}.name`, name)),
+          .text(i18next.t(`backend.lessons.${name}.name`, name)),
         $('<button>')
           .click({lesson: name, exercise: nr_solved}, start_exercise)
           .text(i18next.t(nr_solved>0 ? 'lesson.continue'
@@ -374,7 +417,7 @@ function populate_lessons() {
                           :             'lesson.solve'
                          )),
         $('<p>')
-          .html(i18next.t(`backend.${name}.description`, lesson.description || '')),
+          .html(i18next.t(`backend.lessons.${name}.description`, lesson.description || '')),
         $('<meter>')
           .prop(update_progressbar(nr_solved, nr_exercises)),
         $('<p>')
@@ -420,6 +463,7 @@ function exercise_over() {
       delete ex.score;
     }
     var request = {
+      course: CURRENT_COURSE,
       lesson: DATA.lesson.name,
       score: DATA.lesson.score,
     };
@@ -440,6 +484,7 @@ function exercise_over() {
 
   else{
     var request = {
+      course: CURRENT_COURSE,
       lesson: DATA.lesson.name,
       exercise: DATA.exercise.nr,
       score: DATA.exercise.score,
@@ -478,6 +523,7 @@ function update_sentences_and_menus(newdata) {
     DATA[newdata.lang].original = DATA[newdata.lang].lin = newdata.lin;
   }
   var request = {
+    course: CURRENT_COURSE,
     grammar: DATA.lesson.grammar,
     src: {lang: DATA.lesson.languages.source, lin: DATA.src.original},
     trg: {lang: DATA.lesson.languages.target, lin: DATA.trg.original},
@@ -521,9 +567,9 @@ function handle_menu_response(response) {
   var nr_exercises = DATA.lesson.exercises.length;
   var nr_solved = get_unsolved(DATA.lesson.exercises).length;
   $('#exercisename')
-    .text(i18next.t(`backend.${DATA.lesson.name}.name`, DATA.lesson.name));
+    .text(i18next.t(`backend.lessons.${DATA.lesson.name}.name`, DATA.lesson.name));
   $('#lessoncounter')
-    .prop(update_progressbar(nr_solved, nr_exercises))
+    .prop(update_progressbar(nr_solved, nr_exercises));
 }
 
 
@@ -845,7 +891,7 @@ function update_progressbar(passed, total) {
 }
 
 function fetch_and_populate_high_scores() {
-  muste_request({}, 'get-highscores')
+  muste_request({course: CURRENT_COURSE}, 'get-highscores')
     .then(function (scores) {
       populate_high_scores(scores);
     });
@@ -864,7 +910,7 @@ function populate_high_scores(scores) {
   var $table = $('#high-scores-table').empty();
   for (var lesson of LESSON_ORDER) {
     var $row = $('<tr>')
-        .append($('<td>').text(i18next.t(`backend.${lesson}.name`, lesson)))
+        .append($('<td>').text(i18next.t(`backend.lessons.${lesson}.name`, lesson)))
         .appendTo($table);
     if (highscores[lesson]) {
       $row.append(

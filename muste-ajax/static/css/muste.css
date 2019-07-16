@@ -81,14 +81,14 @@ input, button {
 }
 
 input, button, .button, .sentence, #menu, .score,
-.swal-modal, .swal-button, #lessonslist > *
+.swal-modal, .swal-button, #courselist > *, #lessonslist > *
 {
     border: 1px solid #aaa;
 }
 
 button, .button, .sentence, #menu, input,
 .clickable, button, label, .word, .space,
-.swal-modal, .swal-button, #lessonslist > *
+.swal-modal, .swal-button, #courselist > *, #lessonslist > *
 {
     border-radius: 10px;
 }
@@ -162,11 +162,13 @@ main > header > *:last-child, main > footer > *:last-child {
 /* https://fontawesome.com/icons */
 
 nav { font-family:"Font Awesome 5 Free" }
+nav [data-popup="courses.help" ]::before { content: "\f128" } /* fa-question */
 nav [data-popup="lesson.help"  ]::before { content: "\f128" } /* fa-question */
 nav [data-popup="exercise.help"]::before { content: "\f128" } /* fa-question */
 nav [data-page="pageHighScores"]::before { content: "\f091" } /* fa-trophy */
 nav [data-page="pageSettings"  ]::before { content: "\f085" } /* fa-cogs */
 nav [data-page="pageLogin"     ]::before { content: "\f2f5" } /* fa-sign-out-alt */
+nav [data-page="pageCourses"   ]::before { content: "\f2f5" } /* fa-sign-out-alt */
 nav [data-page="pageLessons"   ]::before { content: "\f00d" } /* fa-times */
 
 /* checkbox for making the spaces between words larger */
@@ -243,28 +245,28 @@ progress {
 
 
 /**********************************************************************/
-/* List of lessons */
+/* Lists of courses and lessons */
 
-#lessonslist {
+#courselist, #lessonslist {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
 }
 
-#lessonslist > * {
+#courselist > *, #lessonslist > * {
     flex: 0 20%;
     min-width: 300px;
     background: white;
     margin: 2%;
 }
 
-#lessonslist .disabled {
+#courselist .disabled, #lessonslist .disabled {
     opacity: 0.5;
     pointer-events: none;
 }
 
-#lessonslist .finished {
+#courselist .finished, #lessonslist .finished {
     color: green;
 }
 
