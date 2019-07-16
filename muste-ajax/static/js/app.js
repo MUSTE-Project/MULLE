@@ -383,6 +383,7 @@ function show_lessons(data) {
     LESSONS = {};
     for (var less of lessons) {
       LESSON_ORDER.push(less.name);
+      if (!less.settings) less.settings = {};
       LESSONS[less.name] = less;
       for (var nr = 0; nr < less.exercises.length; nr++) {
         less.exercises[nr].nr = nr;
