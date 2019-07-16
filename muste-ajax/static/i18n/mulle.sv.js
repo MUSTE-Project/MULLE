@@ -42,6 +42,17 @@ sv.user = {
   changePwd: "Byt lösenord",
 };
 
+sv.courses = {
+  title: "Kurser att välja mellan",
+  solve: "Starta",
+  help: {
+    title: "Instruktioner",
+    html: `
+  <p>Välj en kurs som du vill arbeta med.</p>
+  <p>Varje kurs består av ett antal lektioner, och 
+     för att klara en lektion måste du lösa ett antal övningar.</p>
+`}};
+
 sv.lesson = {
   title: "Lektioner",
   solve: "Starta",

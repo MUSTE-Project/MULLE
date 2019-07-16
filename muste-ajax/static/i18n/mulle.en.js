@@ -42,6 +42,17 @@ en.user = {
   changePwd: "Change password",
 };
 
+en.courses = {
+  title: "Courses to choose from",
+  solve: "Start",
+  help: {
+    title: "Instructions",
+    html: `
+  <p>Choose a course that you want to work with.</p>
+  <p>Each course consists of a number of lessons, and
+     to complete a lesson you have to solve a number of exercises.</p>
+`}};
+
 en.lesson = {
   title: "Lessons",
   solve: "Solve",

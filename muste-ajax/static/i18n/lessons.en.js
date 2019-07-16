@@ -1,11 +1,37 @@
 
-I18N.en.translation.backend = {
+var I18N = I18N || {};
 
-  // Translations for the lessons in "examples/lessons-exemplum.yaml"
+var en = I18N.en.translation.backend = {};
+
+en.courses = {
   'Swedish': {
-    name: "Swedish",
-    description: "Learn Swedish <br/> (showing matching words)",
+    name: 'Swedish',
+    description: 'Learn Swedish',
   },
+
+  'Other languages': {
+    name: 'Other languages',
+    description: 'Learn other languages (not Swedish)',
+  },
+
+  'Programming': {
+    name: 'Programming',
+    description: 'Learn to program',
+  }
+};
+
+en.lessons = {
+  // Translations for the lessons in "examples/lessons-swedish.yaml"
+  'English-Swedish': {
+    name: "English—Swedish",
+    description: "Learn Swedish from English example sentences",
+  },
+  'Spanish-Swedish': {
+    name: "Spanish—Swedish",
+    description: "Learn Swedish from Spanish example sentences",
+  },
+
+  // Translations for the lessons in "examples/lessons-otherlangs.yaml"
   'Spanish': {
     name: "Spanish",
     description: "Learn Spanish <br/> (don't show matching words)",
@@ -26,7 +52,7 @@ I18N.en.translation.backend = {
 
   // Translations for the lessons in "examples/lessons-programming.yaml"
   'Programming': {
-    name: "Programming",
+    name: "Imperative programming",
     description: "Play with an imperative programming language",
   },
 
