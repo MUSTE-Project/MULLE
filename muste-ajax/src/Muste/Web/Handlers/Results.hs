@@ -28,8 +28,14 @@ import Muste.Web.Handlers.Session
   ( verifySession
   , Token
   , SessionToken(..)
-  , SessionTokenOnly(..)
   )
+
+
+data Empty = Empty
+instance FromJSON Empty where 
+  parseJSON = Aeson.withObject "Empty" $ \v -> return Empty
+instance ToJSON Empty where
+  toJSON Empty = Aeson.object []
 
 
 --------------------------------------------------------------------------------
@@ -37,15 +43,16 @@ import Muste.Web.Handlers.Session
 -- /get-completed-exercises
 
 addCompletedExercise :: SessionToken CompletedExercise -> MULLE v ()
-addCompletedExercise (SessionToken token (CompletedExercise lesson exercise score))
+addCompletedExercise (SessionToken token course (CompletedExercise lesson exercise score))
   = verifyWrapConnection token $ \conn ->
     do user <- getUsername conn token
        timestamp <- Time.getCurrentTime
        SQL.executeNamed conn
          " INSERT OR REPLACE INTO CompletedExercise \
-         \        (User, Lesson, Exercise, Score, Timestamp) \
-         \ VALUES (:User, :Lesson, :Exercise, :Score, :Timestamp) "
+         \        (User, Course, Lesson, Exercise, Score, Timestamp) \
+         \ VALUES (:User, :Course, :Lesson, :Exercise, :Score, :Timestamp) "
          [ ":User"      := user
+         , ":Course"    := course
          , ":Lesson"    := lesson
          , ":Exercise"  := exercise
          , ":Score"     := score
@@ -53,14 +60,14 @@ addCompletedExercise (SessionToken token (CompletedExercise lesson exercise scor
          ]
 
 
-getCompletedExercises :: SessionTokenOnly -> MULLE v [CompletedExercise]
-getCompletedExercises (SessionTokenOnly token) 
+getCompletedExercises :: SessionToken Empty -> MULLE v [CompletedExercise]
+getCompletedExercises (SessionToken token course _)
   = verifyWrapConnection token $ \conn ->
     do user <- getUsername conn token
        SQL.queryNamed conn
          " SELECT Lesson, Exercise, Score \
-         \ FROM CompletedExercise WHERE User = :User "
-         [":User" := user]
+         \ FROM CompletedExercise WHERE User = :User AND Course = :Course "
+         [":User" := user, ":Course" := course]
 
 
 data CompletedExercise = CompletedExercise Text Int Int
@@ -82,34 +89,36 @@ instance ToJSON CompletedExercise where
 -- /get-completed-lessons
 
 addCompletedLesson :: SessionToken CompletedLesson -> MULLE v ()
-addCompletedLesson (SessionToken token (CompletedLesson lesson score))
+addCompletedLesson (SessionToken token course (CompletedLesson lesson score))
   = verifyWrapConnection token $ \conn ->
     do user <- getUsername conn token
        timestamp <- Time.getCurrentTime
        SQL.executeNamed conn
-         " INSERT INTO CompletedLesson (User, Lesson, Score, Timestamp) \
-         \ VALUES (:User, :Lesson, :Score, :Timestamp) "
+         " INSERT INTO CompletedLesson (User, Course, Lesson, Score, Timestamp) \
+         \ VALUES (:User, :Course, :Lesson, :Score, :Timestamp) "
          [ ":User"      := user
+         , ":Course"    := course
          , ":Lesson"    := lesson
          , ":Score"     := score
          , ":Timestamp" := timestamp
          ]
        SQL.executeNamed conn
          " DELETE FROM CompletedExercise \
-         \ WHERE User = :User AND Lesson = :Lesson "
+         \ WHERE User = :User AND Course = :Course AND Lesson = :Lesson "
          [ ":User"      := user
+         , ":Course"    := course
          , ":Lesson"    := lesson
          ]       
 
 
-getCompletedLessons :: SessionTokenOnly -> MULLE v [CompletedLesson]
-getCompletedLessons (SessionTokenOnly token) 
+getCompletedLessons :: SessionToken Empty -> MULLE v [CompletedLesson]
+getCompletedLessons (SessionToken token course _)
   = verifyWrapConnection token $ \conn ->
     do user <- getUsername conn token
        SQL.queryNamed conn
          " SELECT Lesson, Score \
-         \ FROM CompletedLesson WHERE User = :User "
-         [":User" := user]
+         \ FROM CompletedLesson WHERE User = :User AND Course = :Course "
+         [":User" := user, ":Course" := course]
 
 
 data CompletedLesson = CompletedLesson Text Int
@@ -129,10 +138,13 @@ instance ToJSON CompletedLesson where
 --------------------------------------------------------------------------------
 -- get-highscores
 
-getHighscores :: SessionTokenOnly -> MULLE v [HighScore]
-getHighscores (SessionTokenOnly token) 
+getHighscores :: SessionToken Empty -> MULLE v [HighScore]
+getHighscores (SessionToken token course _) 
   = verifyWrapConnection token $ \conn ->
-    do lessons <- SQL.query_ conn " SELECT Lesson, Score, User FROM CompletedLesson "
+    do lessons <- SQL.queryNamed conn 
+          " SELECT Lesson, Score, User \
+          \ FROM CompletedLesson WHERE Course = :Course "
+          [":Course" := course]
        let grouped_lesson_scores = groupBy sameLesson (sortOn sortKey lessons)
        -- since the groups are sorted by highscore, we can select the first element in each group
        return [ score | score:_ <- grouped_lesson_scores ]

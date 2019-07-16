@@ -32,7 +32,7 @@ import qualified Muste
 import Muste (BuilderInfo(..))
 
 import qualified Muste.Web.Config as Config
-import Muste.Web.Config (AppConfig(..), Grammar(..))
+import Muste.Web.Config (AppConfig(..), Course(..), Grammar(..))
 import qualified Muste.Web.Class as Proto
 import Muste.Web.Class (AppState(..), MULLE)
 
@@ -43,14 +43,15 @@ import qualified Muste.Web.Handlers.Grammar as Grammar
 
 -- | The main api.  For the protocol see @Protocol.apiRoutes@.
 apiInit :: Config.AppConfig -> Snap.SnapletInit a AppState
-apiInit AppConfig{cfgDir, db, grammars, lessons}
+apiInit AppConfig{cfgDir, db, grammars, coursesCfgs}
   = Snap.makeSnaplet "api" "MUSTE API" Nothing
   $ do Snap.wrapSite (Cors.applyCORS Cors.defaultOptions)
        Snap.addRoutes apiRoutes
        liftIO $
          do putStrLn ">> Initializing app..."
             conn <- SQL.open $ cfgDir </> db
-            let lessonsCfg = cfgDir </> lessons
+            let courses' = [ Course name (cfgDir </> path)
+                           | Course name path <- coursesCfgs ]
             mustate <- Muste.loadGrammarsMU cfgDir Muste.emptyMUState
                        [ (name, path, binfo)
                        | Grammar{name, path, options} <- grammars,
@@ -60,7 +61,7 @@ apiInit AppConfig{cfgDir, db, grammars, lessons}
                                }
                        ]
             putStrLn "<< Initializing app: OK\n"
-            return $ AppState conn lessonsCfg mustate
+            return $ AppState conn courses' mustate
 
 
 -- | Map requests to various handlers.
@@ -70,6 +71,7 @@ apiRoutes =
   , "logout"                  |> Session.logoutUser
   , "create-user"             |> Session.createUser
   , "change-pwd"              |> Session.changePwd
+  , "get-courses"             |> Session.getAllCourses
   , "get-lessons"             |> Session.getAllLessons
 
   , "get-menus"               |> Grammar.getMenus

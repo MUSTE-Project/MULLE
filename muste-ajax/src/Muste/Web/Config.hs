@@ -7,6 +7,7 @@
 module Muste.Web.Config
   ( appConfig
   , AppConfig(..)
+  , Course(..)
   , Grammar(..)
   , GrammarOptions(..)
   , InitialUser(..)
@@ -52,7 +53,7 @@ defaultDataDir = "data"
 data AppConfig = AppConfig
   { cfgDir      :: FilePath  -- the location of this config file
   , grammars    :: [Grammar]
-  , lessons     :: FilePath  -- the location of the lessons config files
+  , coursesCfgs :: [Course]
   , db          :: FilePath
   , accessLog   :: FilePath
   , errorLog    :: FilePath
@@ -66,7 +67,7 @@ instance FromJSON AppConfig where
   parseJSON = Aeson.withObject "app-config" $ \v -> AppConfig
     <$> v .:? "cfg-dir"               .!= ""
     <*> v .:  "grammars"
-    <*> v .:  "lessons"
+    <*> v .:  "courses"
     <*> v .:? "db"                    .!= defaultDB
     <*> v .:? "access-log"            .!= defaultAccessLog
     <*> v .:? "error-log"             .!= defaultErrorLog
@@ -79,7 +80,7 @@ instance ToJSON AppConfig where
   toJSON cfg = Aeson.object
     [ "cfg-dir"      .= cfgDir       cfg
     , "grammars"     .= grammars     cfg
-    , "lessons"      .= lessons      cfg
+    , "courses"      .= coursesCfgs  cfg
     , "db"           .= db           cfg
     , "access-log"   .= accessLog    cfg
     , "error-log"    .= errorLog     cfg
@@ -90,6 +91,16 @@ instance ToJSON AppConfig where
     ]
 
 
+data Course = Course Text FilePath
+  
+instance FromJSON Course where
+  parseJSON = Aeson.withObject "Course" $ 
+    \v -> Course <$> v .: "name" <*> v .: "path"
+
+instance ToJSON Course where
+  toJSON (Course name path) = Aeson.object [ "name" .= name, "path" .= path ]
+
+  
 data Grammar = Grammar
   { name :: Text
   , path :: FilePath

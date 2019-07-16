@@ -22,6 +22,7 @@ import qualified Data.Text as Text
 import Data.Text (Text)
 
 import qualified Muste
+import Muste.Web.Config (Course(..))
 
 
 ----------------------------------------------------------------------
@@ -32,7 +33,7 @@ type MULLE v a = Snap.Handler v AppState a
 -- | The state that the server will have throughout the uptime.
 data AppState = AppState
   { connection    :: Connection
-  , lessonsCfg    :: FilePath
+  , courses       :: [Course]
   , muState       :: Muste.MUState
   }
 
@@ -55,6 +56,7 @@ data MULLError
   | SessionTimeout
   | LoginFail
   | JSONDecodeError String
+  | CourseNotFound Text
   | GrammarNotFound Text
   | LanguageNotFound Text
   | NoUserFound Text
@@ -73,6 +75,7 @@ instance Exception MULLError where
     SessionTimeout      -> "Session timeout"
     LoginFail           -> "Login failure"
     JSONDecodeError s   -> "Error decoding JSON: " ++ s
+    CourseNotFound c    -> "Course not found: " ++ Text.unpack c
     GrammarNotFound g   -> "Grammar not found: " ++ Text.unpack g
     LanguageNotFound l  -> "Language not found: " ++ Text.unpack l
     NoUserFound u       -> "No user found: " ++ Text.unpack u
@@ -90,6 +93,7 @@ errorResponseCode err = case err of
   SessionTimeout     -> 401
   LoginFail          -> 401
   JSONDecodeError{}  -> 400
+  CourseNotFound{}   -> 400
   GrammarNotFound{}  -> 400
   LanguageNotFound{} -> 400
   NoUserFound{}      -> 401

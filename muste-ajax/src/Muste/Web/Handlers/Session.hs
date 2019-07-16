@@ -2,7 +2,8 @@
 {-# Language
  GeneralizedNewtypeDeriving,
  NamedFieldPuns,
- OverloadedStrings
+ OverloadedStrings,
+ ScopedTypeVariables
 #-}
 
 module Muste.Web.Handlers.Session
@@ -11,7 +12,9 @@ module Muste.Web.Handlers.Session
   , createUser
   , changePwd
   , getAllLessons
+  , getAllCourses
   , Token
+  , Empty
   , SessionToken(..)
   , SessionTokenOnly(..)
   , verifySession
@@ -45,8 +48,9 @@ import qualified Crypto.Random as CryptoR
 import qualified Crypto.KDF.PBKDF2 as CryptoK
 import qualified Crypto.Hash as CryptoH
 
+import Muste.Web.Config (Course(..))
 import qualified Muste.Web.Class as MULLError (MULLError(..))
-import Muste.Web.Class (MULLE, wrapConnection, lessonsCfg)
+import Muste.Web.Class (MULLE, wrapConnection, AppState(courses))
 
 
 
@@ -113,16 +117,34 @@ logoutUser (SessionTokenOnly token) = wrapConnection $ \conn ->
 
 
 --------------------------------------------------------------------------------
--- /lessons
+-- /courses & lessons
 
-getAllLessons :: SessionTokenOnly -> MULLE v [Aeson.Value]
-getAllLessons (SessionTokenOnly token)
+getAllCourses :: SessionTokenOnly -> MULLE v [Text]
+getAllCourses (SessionTokenOnly token)
   = do verifySession token
-       lessonsFile <- asks lessonsCfg
-       liftIO $ putStrLn $ ">> Reading lessons file: " ++ lessonsFile
-       decodeFileThrow lessonsFile
+       theCourses <- asks courses
+       return [ name | Course name _path <- theCourses ]
 
 
+getAllLessons :: SessionToken Empty -> MULLE v Aeson.Value
+getAllLessons (SessionToken token course _)
+  = do verifySession token
+       theCourses <- asks courses
+       let lessonFiles = [ path | Course course' path <- theCourses, course == course' ]
+       if null lessonFiles then 
+          CL.throwIO $ MULLError.CourseNotFound course
+       else
+          do let lessonsFile = head lessonFiles
+             liftIO $ putStrLn $ ">> Reading lessons file for course " ++ Text.unpack course ++ ": " ++ lessonsFile
+             decodeFileThrow lessonsFile
+
+
+data Empty = Empty
+instance FromJSON Empty where 
+  parseJSON = Aeson.withObject "Empty" $ \v -> return Empty
+instance ToJSON Empty where
+  toJSON Empty = Aeson.object []
+           
 --------------------------------------------------------------------------------
 -- Database operations: users
 
@@ -227,18 +249,29 @@ deleteSession conn token
     [ ":Token" := token ]
 
 
-data SessionToken a = SessionToken Token a
+data SessionToken a = SessionToken Token Text a
 
 instance FromJSON a => FromJSON (SessionToken a) where
   parseJSON = Aeson.withObject "SessionToken" $ \v -> 
     do token <- v .: "token"
+       course <- v .: "course"
        value <- parseJSON (Aeson.Object v)
-       return (SessionToken token value)
+       return (SessionToken token course value)
 
 instance ToJSON a => ToJSON (SessionToken a) where
-  toJSON (SessionToken token value) = Aeson.object ["token" .= token] `merge` toJSON value
+  toJSON (SessionToken token course value) 
+    = Aeson.object ["token" .= token, "course" .= course] `merge` toJSON value
     where Aeson.Object o1 `merge` Aeson.Object o2 = Aeson.Object (o1 <> o2)
           _ `merge` _ = error "merge: incompatible JSON values"
+
+-- mergeValues :: Aeson.Value -> Aeson.Value -> Aeson.Value
+-- mergeValues (Aeson.Object o1) (Aeson.Object o2) = Aeson.Object (o1 <> o2)
+-- mergeValues (Aeson.Array a1) (Aeson.Array a2) = Aeson.Array (a1 <> a2)
+-- mergeValues v1 (Aeson.Array a2) | null a2 = v1
+-- mergeValues (Aeson.Array a1) v2 | null a1 = v2
+-- mergeValues v1 Aeson.Null = v1
+-- mergeValues Aeson.Null v2 = v2
+-- mergeValues _ _ = error "mergeValues: incompatible JSON values"
 
 
 newtype SessionTokenOnly = SessionTokenOnly Token

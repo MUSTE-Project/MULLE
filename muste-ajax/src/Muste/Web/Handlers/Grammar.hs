@@ -20,19 +20,19 @@ import Muste.Web.Class (MULLE, muState)
 import Muste.Web.Handlers.Session (verifySession, SessionToken(..))
 
 
-getMenus :: SessionToken MenuRequest -> MULLE v MenuResponse
-getMenus (SessionToken token (MenuRequest lesson src trg))
+getMenus :: SessionToken MenuRequest -> MULLE v Aeson.Value
+getMenus (SessionToken token _course (MenuRequest grammar src trg))
   = do verifySession token
        must <- asks muState
-       let assemble = Muste.getMenusMU must Muste.emptyPruneOpts lesson
-       return $ MenuResponse (assemble src) (assemble trg)
+       let assemble = Muste.getMenusMU must Muste.emptyPruneOpts grammar
+       return $ Aeson.object [ "src" .= assemble src, "trg" .= assemble trg ]
 
 
 editDistance :: SessionToken MenuRequest -> MULLE v Aeson.Value
-editDistance (SessionToken token (MenuRequest lesson src trg))
+editDistance (SessionToken token _course (MenuRequest grammar src trg))
   = do verifySession token
        must <- asks muState
-       let distance = Muste.editDistanceMU must lesson src trg
+       let distance = Muste.editDistanceMU must grammar src trg
        return $ Aeson.object [ "distance" .= distance ]
 
 
@@ -46,13 +46,3 @@ instance FromJSON MenuRequest where
   parseJSON = Aeson.withObject "MenuRequest" $ \v ->
     MenuRequest <$> v .: "grammar" <*> v .: "src" <*> v .: "trg"
 
-
-data MenuResponse = MenuResponse Muste.LinMenus Muste.LinMenus
-
-instance ToJSON MenuResponse where
-  toJSON (MenuResponse src trg) = Aeson.object
-    [ "src" .= src, "trg" .= trg ]
-
-instance FromJSON MenuResponse where
-  parseJSON = Aeson.withObject "MenuResponse" $ \v ->
-    MenuResponse <$> v .: "src" <*> v .: "trg"
