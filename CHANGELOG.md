@@ -1,6 +1,17 @@
 Change log
 ==========
 
+0.5.0
+----
+
+Lots of cleaning and refactoring, too many to note here... here are some highlights:
+
+- added an hierarchical level of "courses", so that you don't need several instances running if you have several language courses
+- code simplifications, both Haskell (`muste-cli/src` and `muste-ajax/src`) and Javascript (`muste-ajax/static`)
+- separated the configuration files into two: (1) the configuration for the server (`examples/config.yaml`), and (2) one config per language course (`examples/lessons-swedish.yaml`, `examples/lessons-other.yaml`, ...)
+- added internationalisation (English and Swedish are examples), all translations are in the directory `muste-ajax/static/i18n`
+- moved all external JS libraries inside the repo, in the directory `muste-ajax/static/external`, so now you don't need an internet connection to run MULLE
+
 0.3.0
 ----
 
