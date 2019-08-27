@@ -15,7 +15,7 @@ sv.app = {
   explanation: `
 Detta är ett spel för att träna olika grammatiska aspekter av ett språk som du vill lära dig.
 Varje lektion är uppdelat i ett antal översättningsövningar, 
-där målet är att ändra målmeningen till en översättning av källmeningen. 
+där målet är att ändra den undre meningen till en översättning av den övre meningen. 
 Poängen beräknas från hur effektiv du är på att översätta.
 `,
 };

@@ -5,8 +5,8 @@
     highlight-matches: off
     hide-source-sentence: on
   languages:
-    source: "ImperativeCnc"
-    target: "ImperativeCnc"
+    solution: "ImperativeCnc"
+    problem: "ImperativeCnc"
   exercises:
-    - source: " program f ; function f &+ ( ) { } "
-      target: " program main ; function main &+ ( ) { x += 2 &+ 3 × 4 ; } "
+    - solution: " program f ; function f &+ ( ) { } "
+      problem: " program main ; function main &+ ( ) { x += 2 &+ 3 × 4 ; } "

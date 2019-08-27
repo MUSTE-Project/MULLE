@@ -309,7 +309,7 @@ progress {
 }
 
 
-/* The main sentences (#src, #trg) */
+/* The main sentences (#solution, #problem) */
 
 /* the internal <span> in a whitespace is there to be able to break lines */
 .sentence > .space     span { display: none }
@@ -385,8 +385,8 @@ progress {
 /* Highlighting */
 
 .sentence > .match { padding: 0 4px; margin: 0 -2px }
-#src > .match { border-bottom: 2px solid }
-#trg > .match { border-top:    2px solid }
+#solution > .match { border-bottom: 2px solid }
+#problem > .match { border-top:    2px solid }
 
 .sentence > .selected {
     font-weight: bolder;

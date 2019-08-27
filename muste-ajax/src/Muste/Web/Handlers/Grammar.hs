@@ -21,28 +21,28 @@ import Muste.Web.Handlers.Session (verifySession, SessionToken(..))
 
 
 getMenus :: SessionToken MenuRequest -> MULLE v Aeson.Value
-getMenus (SessionToken token _course (MenuRequest grammar src trg))
+getMenus (SessionToken token _course (MenuRequest grammar solution problem))
   = do verifySession token
        must <- asks muState
        let assemble = Muste.getMenusMU must Muste.emptyPruneOpts grammar
-       return $ Aeson.object [ "src" .= assemble src, "trg" .= assemble trg ]
+       return $ Aeson.object [ "solution" .= assemble solution, "problem" .= assemble problem ]
 
 
 editDistance :: SessionToken MenuRequest -> MULLE v Aeson.Value
-editDistance (SessionToken token _course (MenuRequest grammar src trg))
+editDistance (SessionToken token _course (MenuRequest grammar solution problem))
   = do verifySession token
        must <- asks muState
-       let distance = Muste.editDistanceMU must grammar src trg
+       let distance = Muste.editDistanceMU must grammar solution problem
        return $ Aeson.object [ "distance" .= distance ]
 
 
 data MenuRequest = MenuRequest Text Muste.LangLin Muste.LangLin
 
 instance ToJSON MenuRequest where
-  toJSON (MenuRequest grammar src trg) = Aeson.object
-    [ "grammar" .= grammar, "src" .= src, "trg" .= trg ]
+  toJSON (MenuRequest grammar solution problem) = Aeson.object
+    [ "grammar" .= grammar, "solution" .= solution, "problem" .= problem ]
 
 instance FromJSON MenuRequest where
   parseJSON = Aeson.withObject "MenuRequest" $ \v ->
-    MenuRequest <$> v .: "grammar" <*> v .: "src" <*> v .: "trg"
+    MenuRequest <$> v .: "grammar" <*> v .: "solution" <*> v .: "problem"
 

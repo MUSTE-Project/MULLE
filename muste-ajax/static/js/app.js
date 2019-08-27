@@ -447,8 +447,8 @@ function start_exercise(data) {
   function trimlin(sent) {
     return sent.trim().split(/\s+/).map((t) => ({concrete:t}));
   }
-  DATA.src = {original: trimlin(DATA.exercise.source)};
-  DATA.trg = {original: trimlin(DATA.exercise.target)};
+  DATA.solution = {original: trimlin(DATA.exercise.solution)};
+  DATA.problem = {original: trimlin(DATA.exercise.problem)};
   update_sentences_and_menus();
 }
 
@@ -526,8 +526,8 @@ function update_sentences_and_menus(newdata) {
   var request = {
     course: CURRENT_COURSE,
     grammar: DATA.lesson.grammar,
-    src: {lang: DATA.lesson.languages.source, lin: DATA.src.original},
-    trg: {lang: DATA.lesson.languages.target, lin: DATA.trg.original},
+    solution: {lang: DATA.lesson.languages.solution, lin: DATA.solution.original},
+    problem: {lang: DATA.lesson.languages.problem, lin: DATA.problem.original},
   };
   reset_selection();
   muste_request(request, 'get-edit-distance')
@@ -535,7 +535,7 @@ function update_sentences_and_menus(newdata) {
       console.log("Current edit distance:", result);
       if (result.distance == 0) {
         // show the final sentences, but without menus
-        DATA.src.menus = DATA.trg.menus = [];
+        DATA.solution.menus = DATA.problem.menus = [];
         handle_menu_response(DATA);
         // show the "exercise complete" dialogue after a delay
         setTimeout(exercise_over, 500);
@@ -550,20 +550,20 @@ function update_sentences_and_menus(newdata) {
 // handles the response from the MUSTE server
 // containing the new sentences and menus
 function handle_menu_response(response) {
-  DATA.src = response.src;
-  DATA.trg = response.trg;
-  clean_lin_and_menu(DATA.src);
-  clean_lin_and_menu(DATA.trg);
-  matchy_magic(DATA.src, DATA.trg);
-  matchy_magic(DATA.trg, DATA.src);
+  DATA.solution = response.solution;
+  DATA.problem = response.problem;
+  clean_lin_and_menu(DATA.solution);
+  clean_lin_and_menu(DATA.problem);
+  matchy_magic(DATA.solution, DATA.problem);
+  matchy_magic(DATA.problem, DATA.solution);
 
   if (DATA.lesson.settings['hide-source-sentence']) {
-    $('#src').hide();
+    $('#solution').hide();
   } else {
-    $('#src').show();
-    show_sentence($('#src'), DATA.src, DATA.lesson.settings);
+    $('#solution').show();
+    show_sentence($('#solution'), DATA.solution, DATA.lesson.settings);
   }
-  show_sentence($('#trg'), DATA.trg, DATA.lesson.settings);
+  show_sentence($('#problem'), DATA.problem, DATA.lesson.settings);
   register_sentence_hover();
   var nr_exercises = DATA.lesson.exercises.length;
   var nr_solved = get_unsolved(DATA.lesson.exercises).length;
@@ -636,17 +636,17 @@ function annotate_and_remove_specials(lin) {
 }
 
 // calculate which words are matched with another with in the other sentence
-function matchy_magic(src, trg) {
-  var all_src_classes = {};
-  for (var tok of src.lin) {
+function matchy_magic(solution, problem) {
+  var all_solution_classes = {};
+  for (var tok of solution.lin) {
     for (var cls of tok.classes || []) {
-      all_src_classes[cls] = true;
+      all_solution_classes[cls] = true;
     }
   }
-  for (var tok of trg.lin) {
+  for (var tok of problem.lin) {
     var matching = {};
     for (var cls of tok.classes || []) {
-      if (all_src_classes[cls]) matching[cls] = true;
+      if (all_solution_classes[cls]) matching[cls] = true;
     }
     tok.matchingClasses = Object.keys(matching);
   }

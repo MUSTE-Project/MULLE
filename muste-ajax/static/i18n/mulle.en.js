@@ -15,7 +15,7 @@ en.app = {
   explanation: `
 This is a game for training different grammatical aspects of another language you want to learn.
 Each training lesson is divided into a number of translation exercises, 
-where the goal is to turn the target sentence into a translation of the source sentence. 
+where the goal is to turn the lower sentence into a translation of the upper sentence. 
 The score is calculated from how effective you are in translating.
 `,
 };
