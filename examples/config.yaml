@@ -12,7 +12,7 @@ grammars:
     options:
       search-size: 5
 
-  - name: "Programming"
+  - name: "Imperative"
     path: "grammars/programming/Imperative.pgf"
     options:
       search-size: 7
