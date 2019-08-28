@@ -557,7 +557,7 @@ function handle_menu_response(response) {
   matchy_magic(DATA.solution, DATA.problem);
   matchy_magic(DATA.problem, DATA.solution);
 
-  if (DATA.lesson.settings['hide-source-sentence']) {
+  if (DATA.lesson.settings['hide-solution']) {
     $('#solution').hide();
   } else {
     $('#solution').show();

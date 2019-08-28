@@ -3,7 +3,7 @@
   grammar: "Imperative"
   settings:
     highlight-matches: off
-    hide-source-sentence: on
+    hide-solution: on
   languages:
     solution: "ImperativeCnc"
     problem: "ImperativeCnc"
