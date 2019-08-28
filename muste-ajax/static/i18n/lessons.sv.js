@@ -46,8 +46,9 @@ sv.lessons = {
   },
   'FakePidgin': {
     name: "Fusk-pidgin",
-    description: "Träna fusk-pidgin <br/> (agglutinering och slumpmässig ordning mellan övningar)" +
-      "<br/> Obs: detta är inte ett existerande språk!",
+    description: "Träna fusk-pidgin <br/>" + 
+      "(höger-till-vänster, agglutinering och slumpmässig ordning mellan övningar) <br/>" +
+      "Obs: detta är inte ett existerande språk!",
   },
 
   // Translations for the lessons in "examples/lessons-programming.yaml"

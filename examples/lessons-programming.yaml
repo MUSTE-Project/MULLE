@@ -2,8 +2,9 @@
 - name: "Programming"
   grammar: "Imperative"
   settings:
-    highlight-matches: off
-    hide-solution: on
+    highlight: matches
+    solution:
+      view: hide
   languages:
     solution: "ImperativeCnc"
     problem: "ImperativeCnc"

@@ -46,8 +46,9 @@ en.lessons = {
   },
   'FakePidgin': {
     name: "Fake Pidgin",
-    description: "Learn Fake Pidgin <br/> (agglutination and random exercise order)" +
-      "<br/> Note: this is not an existing language!",
+    description: "Learn Fake Pidgin <br/> " + 
+      "(right-to-left, agglutination and random exercise order) <br/> " +
+      "Note: this is not an existing language!",
   },
 
   // Translations for the lessons in "examples/lessons-programming.yaml"

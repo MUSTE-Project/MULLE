@@ -1,7 +1,9 @@
 
 - name: "Spanish"
   settings:
-    highlight-matches: off
+    highlight: none
+    solution:
+      view: edit
   grammar: "ExemplumAlt"
   languages:
     solution: "ExemplumEng"
@@ -25,7 +27,9 @@
 
 - name: "Arabic"
   settings:
-    problem-direction: rtl
+    highlight: matches
+    problem:
+      direction: rtl
   grammar: "Exemplum"
   languages:
     solution: "ExemplumEng"
@@ -38,7 +42,10 @@
 
 - name: "FakePidgin"
   settings:
-    randomize-exercise-order: yes
+    highlight: matches
+    ordering: random
+    problem:
+      direction: rtl
   grammar: "Exemplum"
   languages:
     solution: "ExemplumEng"

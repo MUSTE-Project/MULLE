@@ -1,7 +1,7 @@
 
 - name: "English-Swedish"
   settings:
-    highlight-matches: on
+    highlight: matches
   grammar: "Exemplum"
   languages:
     solution: "ExemplumEng"
@@ -18,7 +18,7 @@
 
 - name: "Spanish-Swedish"
   settings:
-    highlight-matches: off
+    highlight: matches
   grammar: "ExemplumAlt"
   languages:
     solution: "ExemplumSpa"

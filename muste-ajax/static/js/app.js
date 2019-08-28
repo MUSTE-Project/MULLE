@@ -12,6 +12,25 @@ var LESSONS = {};
 
 
 //////////////////////////////////////////////////////////////////////
+// Default config settings
+
+var SETTINGS_DEFAULT = {
+  // Every setting has a list of valid values
+  // The first element is the default value
+  highlight: ['none', 'matches'],
+  ordering: ['ordered', 'random'],
+  problem: {
+    view: ['edit'],
+    direction: ['ltr', 'rtl'],
+  },
+  solution: {
+    view: ['static', 'edit', 'hide'],
+    direction: ['ltr', 'rtl'],
+  },
+}
+
+
+//////////////////////////////////////////////////////////////////////
 // Initialisation
 
 jQuery().ready(init);
@@ -383,7 +402,9 @@ function show_lessons(data) {
     LESSONS = {};
     for (var less of lessons) {
       LESSON_ORDER.push(less.name);
-      if (!less.settings) less.settings = {};
+      if (!('settings' in less)) less.settings = {};
+      check_settings(SETTINGS_DEFAULT, less.settings);
+      
       LESSONS[less.name] = less;
       for (var nr = 0; nr < less.exercises.length; nr++) {
         less.exercises[nr].nr = nr;
@@ -393,6 +414,47 @@ function show_lessons(data) {
     show_page('pageLessons');
   });
 }
+
+
+function check_settings(deflt, setns) {
+  function isa(cls, obj) {
+    return Object.prototype.toString.call(obj) === '[object ' + cls + ']';
+  }
+  for (var p in deflt) {
+    if (isa('Object', deflt[p]) && (!(p in setns) || isa('Object', setns[p]))) {
+      // recursion
+      if (!(p in setns)) setns[p] = {};
+      check_settings(deflt[p], setns[p]);
+    } else if (!(isa('Array', deflt[p]) && deflt[p].length > 0)) {
+      // error in default
+      console.error('ERROR in SETTINGS_DEFAULT (in config.js)! Please report a bug.');
+      Swal.fire({
+        type: 'error',
+        title: 'Error in default settings!',
+        text: 'The SETTINGS_DEFAULT (in config.js) contains an error. Please report this as a bug.',
+        confirmButtonText: i18next.t('modal.close'),
+        confirmButtonColor: 'red',
+        allowOutsideClick: false,
+      });
+    } else if (!(p in setns)) {
+      // select the default value
+      setns[p] = deflt[p][0];
+    } else if (!deflt[p].includes(setns[p])) {
+      // error: not a valid value
+      console.error('ERROR in lesson config file!', setns[p], 
+                    'is not valid; possible values are:', deflt[p].join(', '));
+      Swal.fire({
+        type: 'error',
+        title: 'Error in lesson configuration file!',
+        text: setns[p] + ' is not valid; possible values are: ' + deflt[p].join(', '),
+        confirmButtonText: i18next.t('modal.close'),
+        confirmButtonColor: 'red',
+        allowOutsideClick: false,
+      });
+    }
+  }
+}
+
 
 //////////////////////////////////////////////////////////////////////
 // The lessons view
@@ -557,13 +619,15 @@ function handle_menu_response(response) {
   matchy_magic(DATA.solution, DATA.problem);
   matchy_magic(DATA.problem, DATA.solution);
 
-  if (DATA.lesson.settings['hide-solution']) {
-    $('#solution').hide();
-  } else {
-    $('#solution').show();
-    show_sentence($('#solution'), DATA.solution, DATA.lesson.settings);
+  var settings = DATA.lesson.settings;
+  for (var sent of ['solution', 'problem']) {
+    if (settings[sent].view === 'hide') {
+      $('#' + sent).hide();
+    } else {
+      $('#' + sent).show();
+      show_sentence($('#' + sent), DATA[sent], settings[sent]);
+    }
   }
-  show_sentence($('#problem'), DATA.problem, DATA.lesson.settings);
   register_sentence_hover();
   var nr_exercises = DATA.lesson.exercises.length;
   var nr_solved = get_unsolved(DATA.lesson.exercises).length;
@@ -654,20 +718,20 @@ function matchy_magic(solution, problem) {
 
 // build the sentence from the linearisation, and show it
 function show_sentence($sentence, data, settings) {
-  $sentence.empty().prop({dir: data.direction});
+  $sentence.empty().prop({dir: settings.direction});
   build_lin($sentence, data.lin);
 
   $sentence.children().each(function() {
     var position = $(this).data('nr');
     var isSpace = $(this).hasClass('space');
-    if (has_menu(data.menus, position, isSpace)) {
+    if (settings.view === 'edit' && has_menu(data.menus, position, isSpace)) {
       $(this)
         .addClass('clickable')
         .click(click_word);
     }
   });
 
-  if (settings['highlight-matches']) {
+  if (settings.highlight === 'matches') {
     $sentence.children('.word').each(function() {
       var matchingClasses = $(this).data('matchingClasses');
       if (matchingClasses && matchingClasses.length > 0) {
@@ -718,6 +782,7 @@ function build_lin($sentence, lin) {
     // show the semantics as subscript to the word
     if (DEBUG) {
       $('<sub class="debug">')
+        .prop({dir: 'ltr'})
         .text(tok.classes.join(" "))
         .appendTo($word);
     }
