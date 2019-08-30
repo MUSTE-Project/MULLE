@@ -468,13 +468,13 @@ function populate_lessons() {
     var lesson = LESSONS[name];
     var finished = lesson.score > 0;
     var nr_exercises = lesson.exercises.length;
-    var nr_solved = get_unsolved(lesson.exercises).length;
+    var nr_solved = lesson.exercises.filter((e) => e.score > 0).length;
     $('<div>')
       .append([
         $('<h3>')
           .text(i18next.t(`backend.lessons.${name}.name`, name)),
         $('<button>')
-          .click({lesson: name, exercise: nr_solved}, start_exercise)
+          .click({lesson: name}, start_exercise)
           .text(i18next.t(nr_solved>0 ? 'lesson.continue'
                           : finished  ? 'lesson.reSolve' 
                           :             'lesson.solve'
@@ -505,7 +505,12 @@ function start_exercise(data) {
   show_page('pageExercise');
   DATA = {};
   DATA.lesson = LESSONS[data.lesson];
-  DATA.exercise = DATA.lesson.exercises[data.exercise];
+  var unsolved = DATA.lesson.exercises.filter((e) => !(e.score > 0));
+  var nr = 0;
+  if (DATA.lesson.settings.ordering === 'random') {
+    nr = Math.floor(Math.random() * unsolved.length);
+  }
+  DATA.exercise = unsolved[nr];
   function trimlin(sent) {
     return sent.trim().split(/\s+/).map((t) => ({concrete:t}));
   }
@@ -518,9 +523,7 @@ function start_exercise(data) {
 // when the exercise is completed
 function exercise_over() {
   DATA.exercise.score = calculate_exercise_score(DATA.exercise);
-  var next_exercise = DATA.exercise.nr + 1;
-
-  if (next_exercise >= DATA.lesson.exercises.length) {
+  if (DATA.lesson.exercises.every((e) => e.score > 0)) {
     DATA.lesson.score = calculate_lesson_score(DATA.lesson.exercises)
     for (var ex of DATA.lesson.exercises) {
       delete ex.score;
@@ -568,7 +571,6 @@ function exercise_over() {
       if (reply && !reply.dismiss) {
         start_exercise({
           lesson: DATA.lesson.name,
-          exercise: next_exercise,
         });
       } else {
         show_page('pageLessons');
@@ -630,7 +632,7 @@ function handle_menu_response(response) {
   }
   register_sentence_hover();
   var nr_exercises = DATA.lesson.exercises.length;
-  var nr_solved = get_unsolved(DATA.lesson.exercises).length;
+  var nr_solved = DATA.lesson.exercises.filter((e) => e.score > 0).length;
   $('#exercisename')
     .text(i18next.t(`backend.lessons.${DATA.lesson.name}.name`, DATA.lesson.name));
   $('#lessoncounter')
@@ -1052,12 +1054,6 @@ function int_to_rgba(num) {
 // deep equality between objects
 function equal(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
-}
-
-// given a list of exercises, return only the ones that are unsolved
-// (i.e., have a score > 0)
-function get_unsolved(exercises) {
-  return exercises.filter((e) => e.score > 0);
 }
 
 // return if a position is inside the selection
