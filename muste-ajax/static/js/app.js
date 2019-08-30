@@ -469,6 +469,10 @@ function populate_lessons() {
     var finished = lesson.score > 0;
     var nr_exercises = lesson.exercises.length;
     var nr_solved = lesson.exercises.filter((e) => e.score > 0).length;
+    var enabled = true;
+    if (lesson.dependencies) {
+      enabled = lesson.dependencies.every((less) => LESSONS[less].score > 0);
+    }
     $('<div>')
       .append([
         $('<h3>')
@@ -489,7 +493,7 @@ function populate_lessons() {
                ),
       ])
       .toggleClass('finished', finished)
-      .toggleClass('disabled', lesson.disabled == true)
+      .toggleClass('disabled', !enabled)
       .appendTo($table);
   }
 }
