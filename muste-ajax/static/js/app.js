@@ -631,7 +631,7 @@ function handle_menu_response(response) {
       $('#' + sent).hide();
     } else {
       $('#' + sent).show();
-      show_sentence($('#' + sent), DATA[sent], settings[sent]);
+      show_sentence(sent, DATA, settings);
     }
   }
   register_sentence_hover();
@@ -723,14 +723,15 @@ function matchy_magic(solution, problem) {
 }
 
 // build the sentence from the linearisation, and show it
-function show_sentence($sentence, data, settings) {
-  $sentence.empty().prop({dir: settings.direction});
-  build_lin($sentence, data.lin);
+function show_sentence(sent, data, settings) {
+  var $sentence = $('#' + sent);
+  $sentence.empty().prop({dir: settings[sent].direction});
+  build_lin($sentence, data[sent].lin);
 
   $sentence.children().each(function() {
     var position = $(this).data('nr');
     var isSpace = $(this).hasClass('space');
-    if (settings.view === 'edit' && has_menu(data.menus, position, isSpace)) {
+    if (settings[sent].view === 'edit' && has_menu(data[sent].menus, position, isSpace)) {
       $(this)
         .addClass('clickable')
         .click(click_word);
