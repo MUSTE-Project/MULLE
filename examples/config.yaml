@@ -28,7 +28,7 @@ courses:
 db: data/mulle.sqlite3
 access-log: data/mulle-access.log
 error-log: data/mulle-error.log
-static-dir: ../muste-ajax/static
+static-dir: ../muste-frontend
 port: 8080
 
 users:
