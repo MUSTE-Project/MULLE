@@ -2,7 +2,7 @@
 - name: "Programming"
   grammar: "Imperative"
   settings:
-    highlight: matches
+    highlight: none
     solution:
       view: hide
   languages:
